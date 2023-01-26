@@ -1,4 +1,5 @@
-use std::io::{stdin,stdout,Write}; 
+use std::io::{stdin,stdout,Write};
+
 fn main() {
     println!("sumer v0");
     let args: Vec<_> = std::env::args().collect();
@@ -19,7 +20,7 @@ fn run_file(filename: &String) {
 
 fn run_repl() {
     println!("REPL mode");
-    let mut line=String::new();
+    let mut line = String::new();
     loop {
         print!("> ");
         let _ = stdout().flush();
@@ -27,7 +28,7 @@ fn run_repl() {
         if line.is_empty() || line.trim() == "exit" {
             break;
         }
-        run(&mut line);
+        run(&line);
         line.clear();
     }
 }
