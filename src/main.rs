@@ -1,4 +1,8 @@
-use std::io::{stdin,stdout,Write};
+mod scanner;
+mod token;
+
+use std::io::{stdin, stdout, Write};
+use crate::scanner::Scanner;
 
 fn main() {
     println!("sumer v0");
@@ -14,7 +18,7 @@ fn main() {
     }
 }
 
-fn run_file(filename: &String) {
+fn run_file(filename: &str) {
     println!("filename: {filename}");
 }
 
@@ -33,6 +37,6 @@ fn run_repl() {
     }
 }
 
-fn run(source: &String) {
-    println!("{source}");
+fn run(source: &str) {
+
 }
