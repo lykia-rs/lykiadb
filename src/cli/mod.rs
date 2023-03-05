@@ -1,6 +1,6 @@
 use std::io::{stdin, stdout, Write};
 
-fn main() {
+fn init() {
     println!("sumer v0");
     let args: Vec<_> = std::env::args().collect();
     if args.len() > 2 {
@@ -34,5 +34,5 @@ fn run_repl() {
 }
 
 fn run(source: &str) {
-
+    // Implement
 }

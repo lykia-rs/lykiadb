@@ -1,17 +1,25 @@
-use crate::token::{Token, TokenType};
+use crate::query::parsing::token::{Token, TokenType};
 
 pub struct Scanner<'a> {
-    source: &'a str,
-    tokens: Vec<Token<'a>>,
+    source: &'a String,
+    tokens: Vec<Token>,
 }
 
 impl<'a> Scanner<'a> {
+    pub fn new(raw: &'a String) -> Self {
+        Scanner {
+            source: raw,
+            tokens: vec![]
+        }
+    }
+
     fn addToken(&mut self, token: TokenType) {
+        let s = String::from("");
         self.tokens.push(Token {
             tok_type: token,
-            lexeme: "",
-            literal: "",
-            line:2
+            lexeme: s.clone(),
+            literal: s,
+            line: 1
         });
     }
 
@@ -29,3 +37,5 @@ impl<'a> Scanner<'a> {
         }
     }
 }
+
+
