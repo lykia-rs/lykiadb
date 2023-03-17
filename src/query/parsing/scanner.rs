@@ -1,3 +1,4 @@
+use phf::phf_map;
 use crate::query::parsing::token::{Token, TokenType};
 use crate::query::parsing::token::Literal::{Num, Str};
 
@@ -9,6 +10,25 @@ pub struct Scanner<'a> {
     current: usize,
     line: u32
 }
+
+static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "false" => TokenType::False,
+    "for" => TokenType::For,
+    "fun" => TokenType::Fun,
+    "if" => TokenType::If,
+    "nil" =>  TokenType::Nil,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "true" => TokenType::True,
+    "var" => TokenType::Var,
+    "while" => TokenType::While
+};
 
 impl<'a> Scanner<'a> {
     pub fn scan(source: &'a str) -> Vec<Token> {
@@ -131,8 +151,12 @@ impl<'a> Scanner<'a> {
         while self.peek(0).is_alphanumeric() {
             self.advance();
         }
-        let span = self.chars[self.start..self.current].iter().collect();
-        self.add_identifier(span);
+        let span: String = self.chars[self.start..self.current].iter().collect();
+        if KEYWORDS.contains_key(&span) {
+            self.add_token(KEYWORDS.get(&span).unwrap().clone());
+        } else {
+            self.add_identifier(span);
+        }
     }
 
     fn scan_token(&mut self) {
