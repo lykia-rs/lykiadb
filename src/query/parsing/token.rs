@@ -49,15 +49,22 @@ pub enum TokenType {
     EOF
 }
 
+#[derive(Debug)]
+pub enum Literal {
+    Str(String),
+    Num(f32),
+}
+
+#[derive(Debug)]
 pub struct Token {
     pub tok_type: TokenType,
-    pub lexeme: String,
-    pub literal: String,
+    pub lexeme: Option<String>,
+    pub literal: Option<Literal>,
     pub line: u32
 }
 
 impl Token {
     fn to_string(&self) -> String {
-        format!("{:?}{}{}", self.tok_type, self.lexeme, self.literal)
+        format!("{:?}, {:?}, {:?}", self.tok_type, self.lexeme, self.literal)
     }
 }

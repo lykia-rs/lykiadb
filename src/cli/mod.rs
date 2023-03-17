@@ -1,6 +1,7 @@
 use std::io::{stdin, stdout, Write};
+use crate::query::parsing::scanner::Scanner;
 
-fn init() {
+pub fn init() {
     println!("sumer v0");
     let args: Vec<_> = std::env::args().collect();
     if args.len() > 2 {
@@ -34,5 +35,8 @@ fn run_repl() {
 }
 
 fn run(source: &str) {
-    // Implement
+    let tokens = Scanner::scan(&source);
+    for t in tokens {
+        println!("{:?}", t);
+    }
 }

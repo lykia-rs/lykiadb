@@ -1,9 +1,9 @@
+extern crate core;
+
 mod query;
 mod cli;
 mod web;
 
-use crate::web::{run};
-
 fn main() {
-    run();
+    cli::init();
 }

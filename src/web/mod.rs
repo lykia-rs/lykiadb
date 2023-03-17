@@ -5,9 +5,8 @@ use crate::query::parsing::scanner::Scanner;
 #[function_component(App)]
 fn app() -> Html {
     let onclick = Callback::from(move |_| {
-        let input = String::from("x = x + 1");
-        let mut scanner = Scanner::new(&input);
-        &scanner.scanTokens();
+        let input = "x = x + 1";
+        let tokens = Scanner::scan(&input);
     });
     html! {
         <div>
