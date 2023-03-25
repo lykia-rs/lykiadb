@@ -1,5 +1,4 @@
-use phf::phf_map;
-use crate::query::parsing::token::{Token, TokenType};
+use crate::query::parsing::token::{Equality, Helper, Keyword, KEYWORDS, Operator, Token, TokenType};
 use crate::query::parsing::token::Literal::{Num, Str};
 
 pub struct Scanner<'a> {
@@ -10,25 +9,6 @@ pub struct Scanner<'a> {
     current: usize,
     line: u32
 }
-
-static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
-    "and" => TokenType::And,
-    "class" => TokenType::Class,
-    "else" => TokenType::Else,
-    "false" => TokenType::False,
-    "for" => TokenType::For,
-    "fun" => TokenType::Fun,
-    "if" => TokenType::If,
-    "nil" =>  TokenType::Nil,
-    "or" => TokenType::Or,
-    "print" => TokenType::Print,
-    "return" => TokenType::Return,
-    "super" => TokenType::Super,
-    "this" => TokenType::This,
-    "true" => TokenType::True,
-    "var" => TokenType::Var,
-    "while" => TokenType::While
-};
 
 impl<'a> Scanner<'a> {
     pub fn scan(source: &'a str) -> Vec<Token> {
@@ -97,7 +77,7 @@ impl<'a> Scanner<'a> {
 
     fn add_identifier(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::Identifier,
+            tok_type: TokenType::Keyword(Keyword::Identifier),
             lexeme: Some(value.clone()),
             literal: Some(Str(value)),
             line: self.line
@@ -136,11 +116,22 @@ impl<'a> Scanner<'a> {
     }
 
     fn number(&mut self) {
-        while self.peek(0).is_digit(10) { self.advance(); }
+        while self.peek(0).is_ascii_digit() { self.advance(); }
 
-        if self.peek(0) == '.' && self.peek(1).is_digit(10) {
+        if self.peek(0) == '.' && self.peek(1).is_ascii_digit() {
             self.advance();
-            while self.peek(0).is_digit(10) { self.advance(); }
+            while self.peek(0).is_ascii_digit() { self.advance(); }
+        }
+
+        if self.peek(0).to_ascii_lowercase() == 'e' {
+            self.advance();
+            if self.peek(0) == '-' || self.peek(0) == '+' {
+                self.advance();
+            }
+            if self.is_at_end() || !self.peek(0).is_ascii_digit() {
+                panic!("Malformed number.");
+            }
+            while self.peek(0).is_ascii_digit() { self.advance(); }
         }
 
         let span = self.chars[self.start..self.current].iter().collect();
@@ -162,27 +153,27 @@ impl<'a> Scanner<'a> {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenType::LeftParen),
-            ')' => self.add_token(TokenType::RightParen),
-            '{' => self.add_token(TokenType::LeftBrace),
-            '}' => self.add_token(TokenType::RightBrace),
-            ',' => self.add_token(TokenType::Comma),
-            '.' => self.add_token(TokenType::Dot),
-            '-' => self.add_token(TokenType::Minus),
-            '+' => self.add_token(TokenType::Plus),
-            ';' => self.add_token(TokenType::Semicolon),
-            '*' => self.add_token(TokenType::Star),
-            '!' => self.add_double_token('=', TokenType::Bang, TokenType::BangEqual),
-            '=' => self.add_double_token('=', TokenType::Equal, TokenType::EqualEqual),
-            '<' => self.add_double_token('=', TokenType::Less, TokenType::LessEqual),
-            '>' => self.add_double_token('=', TokenType::Greater, TokenType::GreaterEqual),
+            '(' => self.add_token(TokenType::Helper(Helper::LeftParen)),
+            ')' => self.add_token(TokenType::Helper(Helper::RightParen)),
+            '{' => self.add_token(TokenType::Helper(Helper::LeftBrace)),
+            '}' => self.add_token(TokenType::Helper(Helper::RightBrace)),
+            ',' => self.add_token(TokenType::Helper(Helper::Comma)),
+            '.' => self.add_token(TokenType::Operator(Operator::Dot)),
+            '-' => self.add_token(TokenType::Operator(Operator::Minus)),
+            '+' => self.add_token(TokenType::Operator(Operator::Plus)),
+            ';' => self.add_token(TokenType::Helper(Helper::Semicolon)),
+            '*' => self.add_token(TokenType::Operator(Operator::Star)),
+            '!' => self.add_double_token('=', TokenType::Operator(Operator::Bang), TokenType::Equality(Equality::BangEqual)),
+            '=' => self.add_double_token('=', TokenType::Equality(Equality::Equal), TokenType::Equality(Equality::EqualEqual)),
+            '<' => self.add_double_token('=', TokenType::Equality(Equality::Less), TokenType::Equality(Equality::LessEqual)),
+            '>' => self.add_double_token('=', TokenType::Equality(Equality::Greater), TokenType::Equality(Equality::GreaterEqual)),
             '/' => {
                 if self.match_next('/') {
                     while !self.is_at_end() && self.peek(0) != '\n' {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Slash);
+                    self.add_token(TokenType::Operator(Operator::Slash));
                 }
             },
             ' ' => (),
