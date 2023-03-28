@@ -1,5 +1,5 @@
 use crate::lang::parsing::token::{Equality, Helper, Keyword, KEYWORDS, Operator, Token, TokenType};
-use crate::lang::parsing::token::Literal::{Num, Str};
+use crate::lang::parsing::token::LiteralValue::{Num, Str};
 
 pub struct Scanner<'a> {
     chars: Vec<char>,
@@ -59,7 +59,7 @@ impl<'a> Scanner<'a> {
 
     fn add_str_literal(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::String,
+            tok_type: TokenType::Literal,
             lexeme: Some(value.clone()),
             literal: Some(Str(value)),
             line: self.line
@@ -68,7 +68,7 @@ impl<'a> Scanner<'a> {
 
     fn add_num_literal(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::Number,
+            tok_type: TokenType::Literal,
             lexeme: Some(value.clone()),
             literal: Some(Num(value.parse::<f32>().unwrap())),
             line: self.line
@@ -77,7 +77,7 @@ impl<'a> Scanner<'a> {
 
     fn add_identifier(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::Keyword(Keyword::Identifier),
+            tok_type: TokenType::Identifier,
             lexeme: Some(value.clone()),
             literal: Some(Str(value)),
             line: self.line
@@ -196,5 +196,3 @@ impl<'a> Scanner<'a> {
         self.add_token(TokenType::EOF);
     }
 }
-
-
