@@ -1,5 +1,5 @@
 use std::io::{stdin, stdout, Write};
-use crate::query::parsing::scanner::Scanner;
+use crate::lang::parsing::scanner::Scanner;
 
 pub fn init() {
     println!("sumer v0");

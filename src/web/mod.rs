@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use crate::query::parsing::scanner::Scanner;
+use crate::lang::parsing::scanner::Scanner;
 
 
 #[function_component(App)]

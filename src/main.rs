@@ -1,6 +1,6 @@
 extern crate core;
 
-mod query;
+mod lang;
 mod cli;
 mod web;
 

@@ -1,5 +1,5 @@
-use crate::query::parsing::token::{Equality, Helper, Keyword, KEYWORDS, Operator, Token, TokenType};
-use crate::query::parsing::token::Literal::{Num, Str};
+use crate::lang::parsing::token::{Equality, Helper, Keyword, KEYWORDS, Operator, Token, TokenType};
+use crate::lang::parsing::token::Literal::{Num, Str};
 
 pub struct Scanner<'a> {
     chars: Vec<char>,
