@@ -1,4 +1,4 @@
-use crate::lang::parsing::token::{Equality, Helper, Keyword, KEYWORDS, Operator, Token, TokenType};
+use crate::lang::parsing::token::{Equality, Helper, KEYWORDS, Operator, Token, TokenType};
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
 
 pub struct Scanner<'a> {

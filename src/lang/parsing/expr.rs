@@ -1,71 +1,34 @@
-use crate::lang::parsing::token::{LiteralValue, Token};
+use crate::lang::parsing::token::{LiteralValue, Operator, Token, TokenType};
+use crate::lang::parsing::token::LiteralValue::{Num, Str};
 
-/*
+pub trait Visitor<T> {
+    fn visit_expr(&mut self, e: &Expr) -> T;
+}
 
-    let ex = GroupingExpr {
-        expression: &BinaryExpr {
-            left: &LiteralExpr {
-                value: LiteralValue::Str("50".to_string())
-            },
-            operator: Token {
-                tok_type: TokenType::Literal,
-                lexeme: None,
-                literal: None,
-                line: 5
-            },
-            right: &LiteralExpr {
-                value: LiteralValue::Str("50".to_string())
-            }
+#[derive(Debug)]
+pub enum Expr {
+    BinaryExpr(Token, Box<Expr>, Box<Expr>),
+    GroupingExpr(Box<Expr>),
+    LiteralExpr(LiteralValue),
+    UnaryExpr(Token, Box<Expr>),
+}
+
+struct Printer;
+impl Printer {
+    pub fn new() -> Printer {
+        Printer
+    }
+}
+
+impl Visitor<String> for Printer {
+    fn visit_expr(&mut self, e: &Expr) -> String {
+        match e {
+            Expr::BinaryExpr(tok, left, right)
+                => format!("({} {} {})",self.visit_expr(left), tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(right)),
+            Expr::LiteralExpr(Str(value)) => format!("'{}'", value),
+            Expr::LiteralExpr(Num(value)) => format!("{}", value),
+            Expr::GroupingExpr(expr) => format!("({})", self.visit_expr(expr)),
+            Expr::UnaryExpr(tok, expr) => format!("{}{}", tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(expr)),
         }
-    };
-
-    println!("{:?}", ex.expression.say_hello());
-
- */
-
-pub trait Expr {
-    fn say_hello(&self);
-}
-
-pub struct BinaryExpr<'a> {
-    pub left: &'a dyn Expr,
-    pub operator: Token,
-    pub right: &'a dyn Expr
-}
-
-pub struct GroupingExpr<'a> {
-    pub expression: &'a dyn Expr
-}
-
-pub struct LiteralExpr {
-    pub value: LiteralValue
-}
-
-pub struct UnaryExpr<'a> {
-    pub operator: Token,
-    pub right: &'a dyn Expr
-}
-
-impl<'a> Expr for BinaryExpr<'a> {
-    fn say_hello(&self) {
-        println!("binary");
-    }
-}
-
-impl<'a> Expr for GroupingExpr<'a> {
-    fn say_hello(&self) {
-        println!("grouping");
-    }
-}
-
-impl Expr for LiteralExpr {
-    fn say_hello(&self) {
-        println!("literal");
-    }
-}
-
-impl<'a> Expr for UnaryExpr<'a> {
-    fn say_hello(&self) {
-        println!("unary");
     }
 }
