@@ -59,7 +59,7 @@ impl<'a> Scanner<'a> {
 
     fn add_str_literal(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::Literal,
+            tok_type: TokenType::Str,
             lexeme: Some(value.clone()),
             literal: Some(Str(value)),
             line: self.line
@@ -68,7 +68,7 @@ impl<'a> Scanner<'a> {
 
     fn add_num_literal(&mut self, value: String) {
         self.tokens.push(Token {
-            tok_type: TokenType::Literal,
+            tok_type: TokenType::Num,
             lexeme: Some(value.clone()),
             literal: Some(Num(value.parse::<f32>().unwrap())),
             line: self.line

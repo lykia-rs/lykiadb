@@ -1,4 +1,6 @@
 use std::io::{stdin, stdout, Write};
+use crate::lang::parsing::expr::{Printer, Visitor};
+use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
 
 pub fn init() {
@@ -36,7 +38,9 @@ fn run_repl() {
 
 fn run(source: &str) {
     let tokens = Scanner::scan(&source);
-    for t in tokens {
+    for t in &tokens {
         println!("{:?}", t);
     }
+    let ast = Parser::parse(&tokens);
+    println!("{}", Printer::new().visit_expr(&ast));
 }

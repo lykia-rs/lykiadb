@@ -1,6 +1,6 @@
 use phf::phf_map;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Keyword {
     And,
     Class,
@@ -17,7 +17,7 @@ pub enum Keyword {
     While,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Operator{
     Bang,
     Dot,
@@ -27,7 +27,7 @@ pub enum Operator{
     Star,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Equality{
     BangEqual,
     Equal,
@@ -38,7 +38,7 @@ pub enum Equality{
     LessEqual,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Helper {
     Comma,
     Semicolon,
@@ -52,15 +52,19 @@ pub enum Helper {
 pub enum LiteralValue {
     Str(String),
     Num(f32),
+    Bool(bool),
+    Nil
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TokenType {
     Helper(Helper),
     Equality(Equality),
     Operator(Operator),
     Keyword(Keyword),
     Literal,
+    Str,
+    Num,
     Identifier,
     Nil,
     False,
@@ -89,7 +93,7 @@ pub static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "true" => TokenType::True,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<String>,

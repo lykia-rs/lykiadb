@@ -1,5 +1,5 @@
-use crate::lang::parsing::token::{LiteralValue, Operator, Token, TokenType};
-use crate::lang::parsing::token::LiteralValue::{Num, Str};
+use crate::lang::parsing::token::{LiteralValue, Token};
+use crate::lang::parsing::token::LiteralValue::{Bool, Num, Str, Nil};
 
 pub trait Visitor<T> {
     fn visit_expr(&mut self, e: &Expr) -> T;
@@ -13,7 +13,7 @@ pub enum Expr {
     UnaryExpr(Token, Box<Expr>),
 }
 
-struct Printer;
+pub struct Printer;
 impl Printer {
     pub fn new() -> Printer {
         Printer
@@ -27,6 +27,8 @@ impl Visitor<String> for Printer {
                 => format!("({} {} {})",self.visit_expr(left), tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(right)),
             Expr::LiteralExpr(Str(value)) => format!("'{}'", value),
             Expr::LiteralExpr(Num(value)) => format!("{}", value),
+            Expr::LiteralExpr(Bool(value)) => format!("_{}_", value),
+            Expr::LiteralExpr(Nil) => "_nil_".to_string(),
             Expr::GroupingExpr(expr) => format!("({})", self.visit_expr(expr)),
             Expr::UnaryExpr(tok, expr) => format!("{}{}", tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(expr)),
         }
