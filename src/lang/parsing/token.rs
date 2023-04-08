@@ -100,9 +100,3 @@ pub struct Token {
     pub literal: Option<LiteralValue>,
     pub line: u32
 }
-
-impl Token {
-    fn to_string(&self) -> String {
-        format!("{:?}, {:?}, {:?}", self.tok_type, self.lexeme, self.literal)
-    }
-}

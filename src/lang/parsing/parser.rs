@@ -1,5 +1,5 @@
 use crate::lang::parsing::expr::Expr;
-use crate::lang::parsing::expr::Expr::{GroupingExpr, LiteralExpr};
+use crate::lang::parsing::expr::Expr::{Grouping, Literal};
 use crate::lang::parsing::token::{Helper, LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::Equality::{BangEqual, EqualEqual, Greater, GreaterEqual, Less, LessEqual};
 use crate::lang::parsing::token::Operator::{Bang, Minus, Plus, Slash, Star};
@@ -14,7 +14,7 @@ macro_rules! binary {
     ($self: ident,[$($operator:expr),*], $builder: ident) => {
         let mut current_expr: Box<Expr> = $self.$builder();
         while $self.match_next(&vec![$($operator,)*]) {
-            current_expr = Box::from(Expr::BinaryExpr((*$self.peek(1)).clone(), current_expr, $self.$builder()));
+            current_expr = Box::from(Expr::Binary((*$self.peek(1)).clone(), current_expr, $self.$builder()));
         }
         return current_expr;
     }
@@ -52,7 +52,7 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> Box<Expr> {
         if self.match_next(&vec![Operator(Minus), Operator(Bang)]) {
-            return Box::from(Expr::UnaryExpr((*self.peek(1)).clone(), self.unary()));
+            return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
         }
         self.primary()
     }
@@ -61,14 +61,14 @@ impl<'a> Parser<'a> {
         let tok = self.peek(0);
         self.current += 1;
         match &tok.tok_type {
-            TokenType::True => Box::from(LiteralExpr(LiteralValue::Bool(true))),
-            TokenType::False => Box::from(LiteralExpr(LiteralValue::Bool(false))),
-            TokenType::Nil => Box::from(LiteralExpr(LiteralValue::Nil)),
-            TokenType::Str | TokenType::Num => Box::from(LiteralExpr(tok.literal.clone().unwrap())),
+            TokenType::True => Box::from(Literal(LiteralValue::Bool(true))),
+            TokenType::False => Box::from(Literal(LiteralValue::Bool(false))),
+            TokenType::Nil => Box::from(Literal(LiteralValue::Nil)),
+            TokenType::Str | TokenType::Num => Box::from(Literal(tok.literal.clone().unwrap())),
             TokenType::Helper(Helper::LeftParen) => {
                 let expr = self.expression();
                 self.consume(TokenType::Helper(Helper::RightParen), "Expected ')' after expression.");
-                Box::from(GroupingExpr(expr))
+                Box::from(Grouping(expr))
             }
             _ => panic!("Unexpected token: {}", tok.lexeme.clone().unwrap_or("<>".to_string()))
         }
