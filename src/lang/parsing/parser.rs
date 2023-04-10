@@ -1,3 +1,5 @@
+use std::process::exit;
+use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::expr::{Ast, Expr};
 use crate::lang::parsing::expr::Expr::{Grouping, Literal};
 use crate::lang::parsing::token::{Helper, LiteralValue, Token, TokenType};
@@ -67,10 +69,13 @@ impl<'a> Parser<'a> {
             TokenType::Str | TokenType::Num => Box::from(Literal(tok.literal.clone().unwrap())),
             TokenType::Helper(Helper::LeftParen) => {
                 let expr = self.expression();
-                self.consume(TokenType::Helper(Helper::RightParen), "Expected ')' after expression.");
+                self.consume(TokenType::Helper(Helper::RightParen), "Expected ')' after expression");
                 Box::from(Grouping(expr))
             }
-            _ => panic!("Unexpected token: {}", tok.lexeme.clone().unwrap_or("<>".to_string()))
+            _ => {
+                parse_err(&format!("Unexpected token: '{}'", tok.lexeme.clone().unwrap_or("<>".to_string())), tok.line);
+                exit(1);
+            }
         }
     }
 
@@ -79,7 +84,7 @@ impl<'a> Parser<'a> {
             self.advance();
             return;
         }
-        panic!("{}", error_msg);
+        parse_err(&format!("{}", error_msg), self.peek(0).line);
     }
 
     fn advance(&mut self) -> &'a Token {

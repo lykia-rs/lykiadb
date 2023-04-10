@@ -6,6 +6,7 @@ use crate::lang::parsing::visitors::printer::Printer;
 
 pub fn parse(source: &str) -> Ast {
     let tokens = Scanner::scan(source);
+    println!("{:?}", tokens);
     Parser::parse(&tokens)
 }
 

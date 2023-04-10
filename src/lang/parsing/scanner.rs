@@ -1,3 +1,4 @@
+use crate::lang::parsing::error::scan_err;
 use crate::lang::parsing::token::{Equality, Helper, KEYWORDS, Operator, Token, TokenType};
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
 
@@ -104,7 +105,8 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            panic!("Unterminated string.");
+            let err_span: String = self.chars[self.start + 1..self.current -1].iter().collect();
+            scan_err(&format!("Unterminated string '{}'", err_span), self.line);
         }
 
         self.advance();
@@ -127,7 +129,8 @@ impl Scanner {
                 self.advance();
             }
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
-                panic!("Malformed number.");
+                let err_span: String = self.chars[self.start..self.current].iter().collect();
+                scan_err(&format!("Malformed number literal '{}'", err_span), self.line);
             }
             while self.peek(0).is_ascii_digit() { self.advance(); }
         }
@@ -181,7 +184,7 @@ impl Scanner {
             '"' => self.string(),
             '0'..='9' => self.number(),
             'A'..='z' => self.identifier(),
-            _ => panic!("Unexpected character."),
+            _ => scan_err(&format!("Unexpected character '{}'", c), self.line),
         }
     }
 
