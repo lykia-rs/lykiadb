@@ -15,5 +15,5 @@ pub fn print(ast: &Ast) {
 }
 
 pub fn interpret(ast: &Ast) {
-    println!("{}", Interpreter::new().visit_expr(&ast));
+    println!("{:?}", Interpreter::new().visit_expr(&ast));
 }

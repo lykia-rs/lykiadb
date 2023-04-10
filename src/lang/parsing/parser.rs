@@ -29,6 +29,7 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0
         };
+        println!("DebugExp: {:?}", tokens);
         parser.expression()
     }
 
@@ -61,6 +62,7 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self) -> Ast {
         let tok = self.peek(0);
+        println!("Debug: {:?}", tok);
         self.current += 1;
         match &tok.tok_type {
             TokenType::True => Box::from(Literal(LiteralValue::Bool(true))),
@@ -71,7 +73,7 @@ impl<'a> Parser<'a> {
                 let expr = self.expression();
                 self.consume(TokenType::Helper(Helper::RightParen), "Expected ')' after expression");
                 Box::from(Grouping(expr))
-            }
+            },
             _ => {
                 parse_err(&format!("Unexpected token: '{}'", tok.lexeme.clone().unwrap_or("<>".to_string())), tok.line);
                 exit(1);
@@ -95,7 +97,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.peek(0).tok_type == EOF
+        self.cmp_tok(&EOF)
     }
 
     fn peek(&self, offset: usize) -> &'a Token {
