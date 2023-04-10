@@ -1,20 +1,18 @@
 use crate::lang::parsing::token::{Equality, Helper, KEYWORDS, Operator, Token, TokenType};
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
 
-pub struct Scanner<'a> {
+pub struct Scanner {
     chars: Vec<char>,
-    source: &'a str,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: u32
 }
 
-impl<'a> Scanner<'a> {
-    pub fn scan(source: &'a str) -> Vec<Token> {
+impl Scanner {
+    pub fn scan(source: &str) -> Vec<Token> {
         let mut scanner = Scanner {
             chars: source.chars().collect(),
-            source,
             tokens: vec![],
             start: 0,
             current: 0,

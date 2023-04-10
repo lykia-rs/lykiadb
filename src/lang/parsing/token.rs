@@ -62,7 +62,6 @@ pub enum TokenType {
     Equality(Equality),
     Operator(Operator),
     Keyword(Keyword),
-    Literal,
     Str,
     Num,
     Identifier,

@@ -1,7 +1,5 @@
-use crate::lang::parsing::expr::{Ast, Expr, Visitor};
-use crate::lang::parsing::parser::Parser;
-use crate::lang::parsing::scanner::Scanner;
-use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool};
+use crate::lang::parsing::expr::{Expr, Visitor};
+use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 
 pub struct Printer;
 impl Printer {
@@ -23,8 +21,4 @@ impl Visitor<String> for Printer {
             Expr::Unary(tok, expr) => format!("{}{}", tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(expr)),
         }
     }
-}
-
-pub fn print(ast: &Ast) {
-    println!("{}", Printer::new().visit_expr(ast));
 }

@@ -1,5 +1,5 @@
 use crate::lang::parsing::expr::{Expr, Visitor};
-use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool};
+use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 
 pub struct Interpreter;
 impl Interpreter {
