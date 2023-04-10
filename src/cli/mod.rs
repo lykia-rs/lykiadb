@@ -1,7 +1,5 @@
 use std::io::{stdin, stdout, Write};
-use crate::lang::parsing::expr::{Printer, Visitor};
-use crate::lang::parsing::parser::Parser;
-use crate::lang::parsing::scanner::Scanner;
+use crate::lang::parsing::utils::{interpret, parse, print};
 
 pub fn init() {
     println!("sumer v0");
@@ -37,10 +35,7 @@ fn run_repl() {
 }
 
 fn run(source: &str) {
-    let tokens = Scanner::scan(&source);
-    for t in &tokens {
-        println!("{:?}", t);
-    }
-    let ast = Parser::parse(&tokens);
-    println!("{}", Printer::new().visit_expr(&ast));
+    let ast = parse(source);
+    print(&ast);
+    interpret(&ast);
 }

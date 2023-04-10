@@ -1,4 +1,4 @@
-use crate::lang::parsing::expr::Expr;
+use crate::lang::parsing::expr::{Ast, Expr};
 use crate::lang::parsing::expr::Expr::{Grouping, Literal};
 use crate::lang::parsing::token::{Helper, LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::Equality::{BangEqual, EqualEqual, Greater, GreaterEqual, Less, LessEqual};
@@ -12,7 +12,7 @@ pub struct Parser<'a> {
 
 macro_rules! binary {
     ($self: ident,[$($operator:expr),*], $builder: ident) => {
-        let mut current_expr: Box<Expr> = $self.$builder();
+        let mut current_expr: Ast = $self.$builder();
         while $self.match_next(&vec![$($operator,)*]) {
             current_expr = Box::from(Expr::Binary((*$self.peek(1)).clone(), current_expr, $self.$builder()));
         }
@@ -22,7 +22,7 @@ macro_rules! binary {
 
 impl<'a> Parser<'a> {
 
-    pub fn parse(tokens: &Vec<Token>) -> Box<Expr> {
+    pub fn parse(tokens: &Vec<Token>) -> Ast {
         let mut parser = Parser {
             tokens,
             current: 0
@@ -30,34 +30,34 @@ impl<'a> Parser<'a> {
         parser.expression()
     }
 
-    fn expression(&mut self) -> Box<Expr> {
+    fn expression(&mut self) -> Ast {
         self.equality()
     }
 
-    fn equality(&mut self) -> Box<Expr> {
+    fn equality(&mut self) -> Ast {
         binary!(self, [Equality(BangEqual), Equality(EqualEqual)], comparison);
     }
 
-    fn comparison(&mut self) -> Box<Expr> {
+    fn comparison(&mut self) -> Ast {
         binary!(self, [Equality(Greater), Equality(GreaterEqual), Equality(Less), Equality(LessEqual)], term);
     }
 
-    fn term(&mut self) -> Box<Expr> {
+    fn term(&mut self) -> Ast {
         binary!(self, [Operator(Plus), Operator(Minus)], factor);
     }
 
-    fn factor(&mut self) -> Box<Expr> {
+    fn factor(&mut self) -> Ast {
         binary!(self, [Operator(Star), Operator(Slash)], unary);
     }
 
-    fn unary(&mut self) -> Box<Expr> {
+    fn unary(&mut self) -> Ast {
         if self.match_next(&vec![Operator(Minus), Operator(Bang)]) {
             return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
         }
         self.primary()
     }
 
-    fn primary(&mut self) -> Box<Expr> {
+    fn primary(&mut self) -> Ast {
         let tok = self.peek(0);
         self.current += 1;
         match &tok.tok_type {
