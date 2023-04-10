@@ -48,49 +48,49 @@ impl<'a> Scanner<'a> {
         c
     }
 
-    fn add_token(&mut self, token: TokenType) {
+    fn add_token(&mut self, lexeme: &str, token: TokenType) {
         self.tokens.push(Token {
             tok_type: token,
-            lexeme: None,
+            lexeme: Some(lexeme.to_string()),
             literal: None,
             line: self.line
         });
     }
 
-    fn add_str_literal(&mut self, value: String) {
+    fn add_str_literal(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: TokenType::Str,
-            lexeme: Some(value.clone()),
-            literal: Some(Str(value)),
+            lexeme: Some(value.to_string()),
+            literal: Some(Str(value.to_string())),
             line: self.line
         });
     }
 
-    fn add_num_literal(&mut self, value: String) {
+    fn add_num_literal(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: TokenType::Num,
-            lexeme: Some(value.clone()),
+            lexeme: Some(value.to_string()),
             literal: Some(Num(value.parse::<f32>().unwrap())),
             line: self.line
         });
     }
 
-    fn add_identifier(&mut self, value: String) {
+    fn add_identifier(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: TokenType::Identifier,
-            lexeme: Some(value.clone()),
-            literal: Some(Str(value)),
+            lexeme: Some(value.to_string()),
+            literal: Some(Str(value.to_string())),
             line: self.line
         });
     }
 
-    fn add_double_token(&mut self, expected_second: char, token_single: TokenType, token_double: TokenType) {
-        let tok_type = if self.match_next(expected_second) {
-            token_double
+    fn add_double_token(&mut self, lexeme_prefix: &str, expected_second: char, token_single: TokenType, token_double: TokenType) {
+        if self.match_next(expected_second) {
+            let concat = lexeme_prefix.to_string() + &expected_second.to_string();
+            self.add_token(&concat, token_double);
         } else {
-            token_single
+            self.add_token(lexeme_prefix, token_single);
         };
-        self.add_token(tok_type);
     }
 
     fn is_at_end(&self) -> bool {
@@ -111,8 +111,8 @@ impl<'a> Scanner<'a> {
 
         self.advance();
 
-        let span = self.chars[self.start + 1..self.current -1].iter().collect();
-        self.add_str_literal(span);
+        let span: String = self.chars[self.start + 1..self.current -1].iter().collect();
+        self.add_str_literal(&span);
     }
 
     fn number(&mut self) {
@@ -134,8 +134,8 @@ impl<'a> Scanner<'a> {
             while self.peek(0).is_ascii_digit() { self.advance(); }
         }
 
-        let span = self.chars[self.start..self.current].iter().collect();
-        self.add_num_literal(span);
+        let span: String = self.chars[self.start..self.current].iter().collect();
+        self.add_num_literal(&span);
     }
 
     fn identifier(&mut self) {
@@ -144,36 +144,36 @@ impl<'a> Scanner<'a> {
         }
         let span: String = self.chars[self.start..self.current].iter().collect();
         if KEYWORDS.contains_key(&span) {
-            self.add_token(KEYWORDS.get(&span).unwrap().clone());
+            self.add_token(&span,KEYWORDS.get(&span).unwrap().clone());
         } else {
-            self.add_identifier(span);
+            self.add_identifier(&span);
         }
     }
 
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenType::Helper(Helper::LeftParen)),
-            ')' => self.add_token(TokenType::Helper(Helper::RightParen)),
-            '{' => self.add_token(TokenType::Helper(Helper::LeftBrace)),
-            '}' => self.add_token(TokenType::Helper(Helper::RightBrace)),
-            ',' => self.add_token(TokenType::Helper(Helper::Comma)),
-            '.' => self.add_token(TokenType::Operator(Operator::Dot)),
-            '-' => self.add_token(TokenType::Operator(Operator::Minus)),
-            '+' => self.add_token(TokenType::Operator(Operator::Plus)),
-            ';' => self.add_token(TokenType::Helper(Helper::Semicolon)),
-            '*' => self.add_token(TokenType::Operator(Operator::Star)),
-            '!' => self.add_double_token('=', TokenType::Operator(Operator::Bang), TokenType::Equality(Equality::BangEqual)),
-            '=' => self.add_double_token('=', TokenType::Equality(Equality::Equal), TokenType::Equality(Equality::EqualEqual)),
-            '<' => self.add_double_token('=', TokenType::Equality(Equality::Less), TokenType::Equality(Equality::LessEqual)),
-            '>' => self.add_double_token('=', TokenType::Equality(Equality::Greater), TokenType::Equality(Equality::GreaterEqual)),
+            '(' => self.add_token(&c.to_string(), TokenType::Helper(Helper::LeftParen)),
+            ')' => self.add_token(&c.to_string(),TokenType::Helper(Helper::RightParen)),
+            '{' => self.add_token(&c.to_string(),TokenType::Helper(Helper::LeftBrace)),
+            '}' => self.add_token(&c.to_string(),TokenType::Helper(Helper::RightBrace)),
+            ',' => self.add_token(&c.to_string(),TokenType::Helper(Helper::Comma)),
+            '.' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Dot)),
+            '-' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Minus)),
+            '+' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Plus)),
+            ';' => self.add_token(&c.to_string(),TokenType::Helper(Helper::Semicolon)),
+            '*' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Star)),
+            '!' => self.add_double_token(&c.to_string(),'=', TokenType::Operator(Operator::Bang), TokenType::Equality(Equality::BangEqual)),
+            '=' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Equal), TokenType::Equality(Equality::EqualEqual)),
+            '<' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Less), TokenType::Equality(Equality::LessEqual)),
+            '>' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Greater), TokenType::Equality(Equality::GreaterEqual)),
             '/' => {
                 if self.match_next('/') {
                     while !self.is_at_end() && self.peek(0) != '\n' {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Operator(Operator::Slash));
+                    self.add_token(&c.to_string(),TokenType::Operator(Operator::Slash));
                 }
             },
             ' ' => (),
@@ -193,6 +193,6 @@ impl<'a> Scanner<'a> {
             self.scan_token();
         }
 
-        self.add_token(TokenType::EOF);
+        self.add_token(" ",TokenType::EOF);
     }
 }
