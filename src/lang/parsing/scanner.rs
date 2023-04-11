@@ -1,6 +1,7 @@
 use crate::lang::parsing::error::scan_err;
-use crate::lang::parsing::token::{Equality, Helper, KEYWORDS, Operator, Token, TokenType};
+use crate::lang::parsing::token::{KEYWORDS, Token, TokenType};
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
+use crate::lang::parsing::token::TokenType::*;
 
 pub struct Scanner {
     chars: Vec<char>,
@@ -76,7 +77,7 @@ impl Scanner {
 
     fn add_identifier(&mut self, value: &str) {
         self.tokens.push(Token {
-            tok_type: TokenType::Identifier,
+            tok_type: Identifier,
             lexeme: Some(value.to_string()),
             literal: Some(Str(value.to_string())),
             line: self.line
@@ -154,27 +155,27 @@ impl Scanner {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(&c.to_string(), TokenType::Helper(Helper::LeftParen)),
-            ')' => self.add_token(&c.to_string(),TokenType::Helper(Helper::RightParen)),
-            '{' => self.add_token(&c.to_string(),TokenType::Helper(Helper::LeftBrace)),
-            '}' => self.add_token(&c.to_string(),TokenType::Helper(Helper::RightBrace)),
-            ',' => self.add_token(&c.to_string(),TokenType::Helper(Helper::Comma)),
-            '.' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Dot)),
-            '-' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Minus)),
-            '+' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Plus)),
-            ';' => self.add_token(&c.to_string(),TokenType::Helper(Helper::Semicolon)),
-            '*' => self.add_token(&c.to_string(),TokenType::Operator(Operator::Star)),
-            '!' => self.add_double_token(&c.to_string(),'=', TokenType::Operator(Operator::Bang), TokenType::Equality(Equality::BangEqual)),
-            '=' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Equal), TokenType::Equality(Equality::EqualEqual)),
-            '<' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Less), TokenType::Equality(Equality::LessEqual)),
-            '>' => self.add_double_token(&c.to_string(),'=', TokenType::Equality(Equality::Greater), TokenType::Equality(Equality::GreaterEqual)),
+            '(' => self.add_token(&c.to_string(), LeftParen),
+            ')' => self.add_token(&c.to_string(),RightParen),
+            '{' => self.add_token(&c.to_string(),LeftBrace),
+            '}' => self.add_token(&c.to_string(),RightBrace),
+            ',' => self.add_token(&c.to_string(),Comma),
+            '.' => self.add_token(&c.to_string(),Dot),
+            '-' => self.add_token(&c.to_string(),Minus),
+            '+' => self.add_token(&c.to_string(),Plus),
+            ';' => self.add_token(&c.to_string(),Semicolon),
+            '*' => self.add_token(&c.to_string(),Star),
+            '!' => self.add_double_token(&c.to_string(),'=', Bang, BangEqual),
+            '=' => self.add_double_token(&c.to_string(),'=', Equal, EqualEqual),
+            '<' => self.add_double_token(&c.to_string(),'=', Less, LessEqual),
+            '>' => self.add_double_token(&c.to_string(),'=', Greater, GreaterEqual),
             '/' => {
                 if self.match_next('/') {
                     while !self.is_at_end() && self.peek(0) != '\n' {
                         self.advance();
                     }
                 } else {
-                    self.add_token(&c.to_string(),TokenType::Operator(Operator::Slash));
+                    self.add_token(&c.to_string(),Slash);
                 }
             },
             ' ' => (),
@@ -194,6 +195,6 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.add_token(" ",TokenType::EOF);
+        self.add_token(" ",EOF);
     }
 }

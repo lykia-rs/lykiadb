@@ -2,7 +2,7 @@ use std::process::exit;
 use crate::lang::parsing::error::runtime_err;
 use crate::lang::parsing::expr::{Expr, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
-use crate::lang::parsing::token::{Equality, Operator, TokenType};
+use crate::lang::parsing::token::TokenType::*;
 
 pub struct Interpreter;
 impl Interpreter {
@@ -30,16 +30,16 @@ impl Visitor<RuntimeValue> for Interpreter {
                 if let RuntimeValue::Num(left_value) = left_eval {
                     if let RuntimeValue::Num(right_value) = right_eval {
                         return match tok_type {
-                            TokenType::Operator(Operator::Plus) => RuntimeValue::Num(left_value + right_value),
-                            TokenType::Operator(Operator::Minus) => RuntimeValue::Num(left_value - right_value),
-                            TokenType::Operator(Operator::Star) => RuntimeValue::Num(left_value * right_value),
-                            TokenType::Operator(Operator::Slash) => RuntimeValue::Num(left_value / right_value),
-                            TokenType::Equality(Equality::Less) => RuntimeValue::Bool(left_value < right_value),
-                            TokenType::Equality(Equality::LessEqual) => RuntimeValue::Bool(left_value <= right_value),
-                            TokenType::Equality(Equality::Greater) => RuntimeValue::Bool(left_value > right_value),
-                            TokenType::Equality(Equality::GreaterEqual) => RuntimeValue::Bool(left_value >= right_value),
-                            TokenType::Equality(Equality::BangEqual) => RuntimeValue::Bool(left_value != right_value),
-                            TokenType::Equality(Equality::EqualEqual) => RuntimeValue::Bool(left_value == right_value),
+                            Plus => RuntimeValue::Num(left_value + right_value),
+                            Minus => RuntimeValue::Num(left_value - right_value),
+                            Star => RuntimeValue::Num(left_value * right_value),
+                            Slash => RuntimeValue::Num(left_value / right_value),
+                            Less => RuntimeValue::Bool(left_value < right_value),
+                            LessEqual => RuntimeValue::Bool(left_value <= right_value),
+                            Greater => RuntimeValue::Bool(left_value > right_value),
+                            GreaterEqual => RuntimeValue::Bool(left_value >= right_value),
+                            BangEqual => RuntimeValue::Bool(left_value != right_value),
+                            EqualEqual => RuntimeValue::Bool(left_value == right_value),
                             _ => {
                                 runtime_err(&format!("Unexpected operator '{}' in arithmetic operation", &tok.lexeme.clone().unwrap_or(" ".to_string())), tok.line);
                                 exit(1);
@@ -51,7 +51,7 @@ impl Visitor<RuntimeValue> for Interpreter {
                 if let RuntimeValue::Str(left_value) = left_eval {
                     if let RuntimeValue::Str(right_value) = right_eval {
                         return match tok_type {
-                            TokenType::Operator(Operator::Plus) => RuntimeValue::Str(left_value + &right_value),
+                            Plus => RuntimeValue::Str(left_value + &right_value),
                             _ => {
                                 runtime_err(&format!("Unexpected operator '{}' in string operation", &tok.lexeme.clone().unwrap_or(" ".to_string())), tok.line);
                                 exit(1);
@@ -68,7 +68,7 @@ impl Visitor<RuntimeValue> for Interpreter {
             Expr::Literal(Nil) => RuntimeValue::Nil,
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => {
-                if tok.tok_type == TokenType::Operator(Operator::Minus) {
+                if tok.tok_type == Minus {
                     let val = self.visit_expr(expr);
                     match val {
                         RuntimeValue::Num(value) => RuntimeValue::Num(-value),

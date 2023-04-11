@@ -2,10 +2,8 @@ use std::process::exit;
 use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::expr::{Ast, Expr};
 use crate::lang::parsing::expr::Expr::{Grouping, Literal};
-use crate::lang::parsing::token::{Helper, LiteralValue, Token, TokenType};
-use crate::lang::parsing::token::Equality::{BangEqual, EqualEqual, Greater, GreaterEqual, Less, LessEqual};
-use crate::lang::parsing::token::Operator::{Bang, Minus, Plus, Slash, Star};
-use crate::lang::parsing::token::TokenType::{EOF, Equality, Operator};
+use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
+use crate::lang::parsing::token::TokenType::*;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -38,23 +36,23 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> Ast {
-        binary!(self, [Equality(BangEqual), Equality(EqualEqual)], comparison);
+        binary!(self, [BangEqual, EqualEqual], comparison);
     }
 
     fn comparison(&mut self) -> Ast {
-        binary!(self, [Equality(Greater), Equality(GreaterEqual), Equality(Less), Equality(LessEqual)], term);
+        binary!(self, [Greater, GreaterEqual, Less, LessEqual], term);
     }
 
     fn term(&mut self) -> Ast {
-        binary!(self, [Operator(Plus), Operator(Minus)], factor);
+        binary!(self, [Plus, Minus], factor);
     }
 
     fn factor(&mut self) -> Ast {
-        binary!(self, [Operator(Star), Operator(Slash)], unary);
+        binary!(self, [Star, Slash], unary);
     }
 
     fn unary(&mut self) -> Ast {
-        if self.match_next(&vec![Operator(Minus), Operator(Bang)]) {
+        if self.match_next(&vec![Minus, Bang]) {
             return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
         }
         self.primary()
@@ -65,13 +63,13 @@ impl<'a> Parser<'a> {
         println!("Debug: {:?}", tok);
         self.current += 1;
         match &tok.tok_type {
-            TokenType::True => Box::from(Literal(LiteralValue::Bool(true))),
-            TokenType::False => Box::from(Literal(LiteralValue::Bool(false))),
-            TokenType::Nil => Box::from(Literal(LiteralValue::Nil)),
-            TokenType::Str | TokenType::Num => Box::from(Literal(tok.literal.clone().unwrap())),
-            TokenType::Helper(Helper::LeftParen) => {
+            True => Box::from(Literal(LiteralValue::Bool(true))),
+            False => Box::from(Literal(LiteralValue::Bool(false))),
+            Nil => Box::from(Literal(LiteralValue::Nil)),
+            Str | Num => Box::from(Literal(tok.literal.clone().unwrap())),
+            LeftParen => {
                 let expr = self.expression();
-                self.consume(TokenType::Helper(Helper::RightParen), "Expected ')' after expression");
+                self.consume(RightParen, "Expected ')' after expression");
                 Box::from(Grouping(expr))
             },
             _ => {

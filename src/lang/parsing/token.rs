@@ -1,7 +1,34 @@
 use phf::phf_map;
 
+#[derive(Debug, Clone)]
+pub enum LiteralValue {
+    Str(String),
+    Num(f32),
+    Bool(bool),
+    Nil
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Keyword {
+pub enum TokenType {
+    Comma,
+    Semicolon,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    Bang,
+    Dot,
+    Minus,
+    Plus,
+    Slash,
+    Star,
     And,
     Class,
     Else,
@@ -15,53 +42,6 @@ pub enum Keyword {
     This,
     Var,
     While,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Operator{
-    Bang,
-    Dot,
-    Minus,
-    Plus,
-    Slash,
-    Star,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Equality{
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Helper {
-    Comma,
-    Semicolon,
-    LeftParen,
-    RightParen,
-    LeftBrace,
-    RightBrace,
-}
-
-#[derive(Debug, Clone)]
-pub enum LiteralValue {
-    Str(String),
-    Num(f32),
-    Bool(bool),
-    Nil
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum TokenType {
-    Helper(Helper),
-    Equality(Equality),
-    Operator(Operator),
-    Keyword(Keyword),
     Str,
     Num,
     Identifier,
@@ -73,19 +53,19 @@ pub enum TokenType {
 }
 
 pub static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
-    "and" => TokenType::Keyword(Keyword::And),
-    "class" => TokenType::Keyword(Keyword::Class),
-    "else" => TokenType::Keyword(Keyword::Else),
-    "for" => TokenType::Keyword(Keyword::For),
-    "fun" => TokenType::Keyword(Keyword::Fun),
-    "if" => TokenType::Keyword(Keyword::If),
-    "or" => TokenType::Keyword(Keyword::Or),
-    "print" => TokenType::Keyword(Keyword::Print),
-    "return" => TokenType::Keyword(Keyword::Return),
-    "super" => TokenType::Keyword(Keyword::Super),
-    "this" => TokenType::Keyword(Keyword::This),
-    "var" => TokenType::Keyword(Keyword::Var),
-    "while" => TokenType::Keyword(Keyword::While),
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "for" => TokenType::For,
+    "fun" => TokenType::Fun,
+    "if" => TokenType::If,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
     //
     "nil" =>  TokenType::Nil,
     "false" => TokenType::False,
