@@ -12,66 +12,50 @@ impl Interpreter {
 }
 
 #[derive(Debug)]
-pub enum RuntimeValue {
+pub enum RV {
     Str(String),
     Num(f32),
     Bool(bool),
     Nil
 }
 
-impl Visitor<RuntimeValue> for Interpreter {
-    fn visit_expr(&mut self, e: &Expr) -> RuntimeValue {
+impl Visitor<RV> for Interpreter {
+    fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
             Expr::Binary(tok, left, right)  => {
                 let left_eval = self.visit_expr(left);
                 let right_eval = self.visit_expr(right);
                 let tok_type = tok.tok_type.clone();
 
-                if let RuntimeValue::Num(left_value) = left_eval {
-                    if let RuntimeValue::Num(right_value) = right_eval {
-                        return match tok_type {
-                            Plus => RuntimeValue::Num(left_value + right_value),
-                            Minus => RuntimeValue::Num(left_value - right_value),
-                            Star => RuntimeValue::Num(left_value * right_value),
-                            Slash => RuntimeValue::Num(left_value / right_value),
-                            Less => RuntimeValue::Bool(left_value < right_value),
-                            LessEqual => RuntimeValue::Bool(left_value <= right_value),
-                            Greater => RuntimeValue::Bool(left_value > right_value),
-                            GreaterEqual => RuntimeValue::Bool(left_value >= right_value),
-                            BangEqual => RuntimeValue::Bool(left_value != right_value),
-                            EqualEqual => RuntimeValue::Bool(left_value == right_value),
-                            _ => {
-                                runtime_err(&format!("Unexpected operator '{}' in arithmetic operation", &tok.lexeme.clone().unwrap_or(" ".to_string())), tok.line);
-                                exit(1);
-                            }
-                        };
-                    }
+                match (left_eval, tok_type, right_eval) {
+                    (RV::Num(l), Plus, RV::Num(r)) => RV::Num(l + r),
+                    (RV::Num(l), Minus, RV::Num(r)) => RV::Num(l - r),
+                    (RV::Num(l), Star, RV::Num(r)) => RV::Num(l * r),
+                    (RV::Num(l), Slash, RV::Num(r)) => RV::Num(l / r),
+                    (RV::Num(l), Less, RV::Num(r)) => RV::Bool(l < r),
+                    (RV::Num(l), LessEqual, RV::Num(r)) => RV::Bool(l <= r),
+                    (RV::Num(l), Greater, RV::Num(r)) => RV::Bool(l > r),
+                    (RV::Num(l), GreaterEqual, RV::Num(r)) => RV::Bool(l >= r),
+                    (RV::Num(l), BangEqual, RV::Num(r)) => RV::Bool(l != r),
+                    (RV::Num(l), EqualEqual, RV::Num(r)) => RV::Bool(l == r),
+                    //
+                    (RV::Str(l), Plus, RV::Str(r)) => RV::Str(l + &r),
+                    (RV::Str(l), Plus, RV::Num(r)) => RV::Str(l + &r.to_string()),
+                    (RV::Num(l), Plus, RV::Str(r)) => RV::Str(l.to_string() + &r),
+                    //
+                    (_, _, _) => panic!("Invalid operation")
                 }
-
-                if let RuntimeValue::Str(left_value) = left_eval {
-                    if let RuntimeValue::Str(right_value) = right_eval {
-                        return match tok_type {
-                            Plus => RuntimeValue::Str(left_value + &right_value),
-                            _ => {
-                                runtime_err(&format!("Unexpected operator '{}' in string operation", &tok.lexeme.clone().unwrap_or(" ".to_string())), tok.line);
-                                exit(1);
-                            }
-                        };
-                    }
-                }
-
-                RuntimeValue::Num(1.0)
             }
-            Expr::Literal(Str(value)) => RuntimeValue::Str(value.clone()),
-            Expr::Literal(Num(value)) => RuntimeValue::Num(value.clone()),
-            Expr::Literal(Bool(value)) => RuntimeValue::Bool(value.clone()),
-            Expr::Literal(Nil) => RuntimeValue::Nil,
+            Expr::Literal(Str(value)) => RV::Str(value.clone()),
+            Expr::Literal(Num(value)) => RV::Num(value.clone()),
+            Expr::Literal(Bool(value)) => RV::Bool(value.clone()),
+            Expr::Literal(Nil) => RV::Nil,
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => {
                 if tok.tok_type == Minus {
                     let val = self.visit_expr(expr);
                     match val {
-                        RuntimeValue::Num(value) => RuntimeValue::Num(-value),
+                        RV::Num(value) => RV::Num(-value),
                         _ => {
                             runtime_err(&format!("Non-numeric {:?} cannot be negated", val), tok.line);
                             exit(1);
@@ -80,10 +64,10 @@ impl Visitor<RuntimeValue> for Interpreter {
                 }
                 else {
                     match self.visit_expr(expr) {
-                        RuntimeValue::Num(value) => RuntimeValue::Bool(value == 0.0 || value.is_nan()),
-                        RuntimeValue::Str(value) => RuntimeValue::Bool(value.is_empty()),
-                        RuntimeValue::Bool(value) => RuntimeValue::Bool(!value),
-                        RuntimeValue::Nil => RuntimeValue::Bool(true),
+                        RV::Num(value) => RV::Bool(value == 0.0 || value.is_nan()),
+                        RV::Str(value) => RV::Bool(value.is_empty()),
+                        RV::Bool(value) => RV::Bool(!value),
+                        RV::Nil => RV::Bool(true),
                     }
                 }
             },
