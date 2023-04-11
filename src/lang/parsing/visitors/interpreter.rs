@@ -1,5 +1,6 @@
 use crate::lang::parsing::expr::{Expr, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
+use crate::lang::parsing::token::{Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 
 pub struct Interpreter;
@@ -17,6 +18,12 @@ pub enum RV {
     Undefined,
     NaN,
     Nil
+}
+
+macro_rules! bool2num {
+    ($val: ident) => {
+        if $val { 1.0 } else { 0.0 }
+    }
 }
 
 impl Visitor<RV> for Interpreter {
@@ -47,14 +54,31 @@ impl Visitor<RV> for Interpreter {
                     (RV::Str(l), BangEqual, RV::Str(r)) => RV::Bool(l != r),
                     (RV::Str(l), EqualEqual, RV::Str(r)) => RV::Bool(l == r),
                     //
+                    (RV::Bool(l), Plus, RV::Bool(r)) => RV::Num(bool2num!(l) + bool2num!(r)),
+                    (RV::Bool(l), Minus, RV::Bool(r)) => RV::Num(bool2num!(l) - bool2num!(r)),
+                    (RV::Bool(l), Star, RV::Bool(r)) => RV::Num(bool2num!(l) * bool2num!(r)),
+                    (RV::Bool(l), Slash, RV::Bool(r)) => RV::Num(bool2num!(l) / bool2num!(r)),
+                    (RV::Bool(l), Less, RV::Bool(r)) => RV::Bool(!l & r),
+                    (RV::Bool(l), LessEqual, RV::Bool(r)) => RV::Bool(l <= r),
+                    (RV::Bool(l), Greater, RV::Bool(r)) => RV::Bool(l & !r),
+                    (RV::Bool(l), GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
+                    (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
+                    (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
+                    //
                     (RV::Str(str), Plus, RV::Num(num)) => RV::Str(str + &num.to_string()),
                     (RV::Num(num), Plus, RV::Str(str)) => RV::Str(num.to_string() + &str),
                     //
-                    (RV::Str(str), Plus, RV::Bool(bool)) |
-                    (RV::Bool(bool), Plus, RV::Str(str)) => RV::Str(str + if bool { "true" } else {"false"}),
+                    (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s + &bool.to_string()),
+                    (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(bool.to_string() + &s),
                     //
-                    (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
-                    (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
+                    (RV::Num(n), Plus, RV::Bool(bool)) |
+                    (RV::Bool(bool), Plus, RV::Num(n)) => RV::Num(n + bool2num!(bool)),
+                    (RV::Num(n), Minus, RV::Bool(bool)) => RV::Num(n - bool2num!(bool)),
+                    (RV::Bool(bool), Minus, RV::Num(n)) => RV::Num(bool2num!(bool) - n),
+                    (RV::Num(n), Star, RV::Bool(bool)) |
+                    (RV::Bool(bool), Star, RV::Num(n)) => RV::Num(n * bool2num!(bool)),
+                    (RV::Num(n), Slash, RV::Bool(bool)) => RV::Num(n / bool2num!(bool)),
+                    (RV::Bool(bool), Slash, RV::Num(n)) => RV::Num(bool2num!(bool) / n),
                     //
                     (RV::Nil, EqualEqual, RV::Nil) => RV::Bool(true),
                     (RV::Nil, BangEqual, RV::Nil) => RV::Bool(false),
@@ -72,8 +96,9 @@ impl Visitor<RV> for Interpreter {
                     (_, Greater, _) |
                     (_, GreaterEqual, _) |
                     (_, EqualEqual, _) |
-                    (_, BangEqual, _) => RV::Bool(true),
+                    (_, BangEqual, _) => RV::Bool(false),
                     //
+                    (_, Plus, _) |
                     (_, Minus, _) |
                     (_, Star, _) |
                     (_, Slash, _) => RV::NaN,

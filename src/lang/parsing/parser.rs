@@ -27,7 +27,7 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0
         };
-        println!("DebugExp: {:?}", tokens);
+        // println!("DebugExp: {:?}", tokens);
         parser.expression()
     }
 
@@ -60,7 +60,7 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self) -> Ast {
         let tok = self.peek(0);
-        println!("Debug: {:?}", tok);
+        // println!("Debug: {:?}", tok);
         self.current += 1;
         match &tok.tok_type {
             True => Box::from(Literal(LiteralValue::Bool(true))),

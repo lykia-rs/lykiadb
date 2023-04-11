@@ -12,11 +12,8 @@ impl Visitor<String> for Printer {
     fn visit_expr(&mut self, e: &Expr) -> String {
         match e {
             Expr::Binary(tok, left, right)
-            => format!("({} {} {})",self.visit_expr(left), tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(right)),
-            Expr::Literal(Str(value)) => format!("'{}'", value),
-            Expr::Literal(Num(value)) => format!("{}", value),
-            Expr::Literal(Bool(value)) => format!("_{}_", value),
-            Expr::Literal(Nil) => "_nil_".to_string(),
+                => format!("({} {} {})",self.visit_expr(left), tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(right)),
+            Expr::Literal(v) => format!("{:?}", v),
             Expr::Grouping(expr) => format!("({})", self.visit_expr(expr)),
             Expr::Unary(tok, expr) => format!("{}{}", tok.lexeme.as_ref().unwrap_or(&"".to_string()), self.visit_expr(expr)),
         }
