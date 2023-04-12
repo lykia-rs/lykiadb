@@ -1,7 +1,7 @@
 use std::process::exit;
 use crate::lang::parsing::error::parse_err;
-use crate::lang::parsing::expr::{Ast, Expr};
-use crate::lang::parsing::expr::Expr::{Grouping, Literal};
+use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
+use crate::lang::parsing::ast::Expr::{Grouping, Literal};
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 
@@ -12,7 +12,7 @@ pub struct Parser<'a> {
 
 macro_rules! binary {
     ($self: ident,[$($operator:expr),*], $builder: ident) => {
-        let mut current_expr: Ast = $self.$builder();
+        let mut current_expr: BExpr = $self.$builder();
         while $self.match_next(&vec![$($operator,)*]) {
             current_expr = Box::from(Expr::Binary((*$self.peek(1)).clone(), current_expr, $self.$builder()));
         }
@@ -22,43 +22,71 @@ macro_rules! binary {
 
 impl<'a> Parser<'a> {
 
-    pub fn parse(tokens: &Vec<Token>) -> Ast {
+    pub fn parse(tokens: &Vec<Token>) -> Vec<Stmt> {
         let mut parser = Parser {
             tokens,
             current: 0
         };
         // println!("DebugExp: {:?}", tokens);
-        parser.expression()
+        parser.program()
     }
 
-    fn expression(&mut self) -> Ast {
+    fn program(&mut self) -> Vec<Stmt> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+        self.consume(EOF, "Expected EOF char at the end of file");
+        statements
+    }
+
+    fn statement(&mut self) -> Stmt {
+        if self.match_next(&vec![Print]) {
+            return self.print_statement();
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(Semicolon, "Expected ; after value");
+        Stmt::Print(expr)
+    }
+
+    fn expression_statement(&mut self) -> Stmt {
+        let expr = self.expression();
+        self.consume(Semicolon, "Expected ; after expression");
+        Stmt::Expression(expr)
+    }
+
+    fn expression(&mut self) -> BExpr {
         self.equality()
     }
 
-    fn equality(&mut self) -> Ast {
+    fn equality(&mut self) -> BExpr {
         binary!(self, [BangEqual, EqualEqual], comparison);
     }
 
-    fn comparison(&mut self) -> Ast {
+    fn comparison(&mut self) -> BExpr {
         binary!(self, [Greater, GreaterEqual, Less, LessEqual], term);
     }
 
-    fn term(&mut self) -> Ast {
+    fn term(&mut self) -> BExpr {
         binary!(self, [Plus, Minus], factor);
     }
 
-    fn factor(&mut self) -> Ast {
+    fn factor(&mut self) -> BExpr {
         binary!(self, [Star, Slash], unary);
     }
 
-    fn unary(&mut self) -> Ast {
+    fn unary(&mut self) -> BExpr {
         if self.match_next(&vec![Minus, Bang]) {
             return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
         }
         self.primary()
     }
 
-    fn primary(&mut self) -> Ast {
+    fn primary(&mut self) -> BExpr {
         let tok = self.peek(0);
         // println!("Debug: {:?}", tok);
         self.current += 1;
@@ -84,7 +112,7 @@ impl<'a> Parser<'a> {
             self.advance();
             return;
         }
-        parse_err(&format!("{}", error_msg), self.peek(0).line);
+        parse_err(&error_msg.to_string(), self.peek(0).line);
     }
 
     fn advance(&mut self) -> &'a Token {

@@ -1,0 +1,22 @@
+use crate::lang::parsing::token::{LiteralValue, Token};
+pub type BExpr = Box<Expr>;
+pub type Ast = Vec<Stmt>;
+
+pub trait Visitor<T> {
+    fn visit(&mut self, a: &Ast) -> Option<T>;
+    fn visit_expr(&mut self, e: &Expr) -> T;
+    fn visit_stmt(&mut self, e: &Stmt) -> T;
+}
+
+#[derive(Debug)]
+pub enum Expr {
+    Binary(Token, BExpr, BExpr),
+    Grouping(BExpr),
+    Literal(LiteralValue),
+    Unary(Token, BExpr),
+}
+
+pub enum Stmt {
+    Expression(BExpr),
+    Print(BExpr)
+}

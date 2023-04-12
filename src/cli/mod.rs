@@ -36,6 +36,6 @@ fn run_repl() {
 
 fn run(source: &str) {
     let ast = parse(source);
-    print(&ast);
+    // print(&ast);
     interpret(&ast);
 }
