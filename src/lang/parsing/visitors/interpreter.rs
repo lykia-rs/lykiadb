@@ -79,6 +79,18 @@ impl Visitor<RV> for Interpreter {
                     (RV::Bool(bool), Star, RV::Num(n)) => RV::Num(n * bool2num!(bool)),
                     (RV::Num(n), Slash, RV::Bool(bool)) => RV::Num(n / bool2num!(bool)),
                     (RV::Bool(bool), Slash, RV::Num(n)) => RV::Num(bool2num!(bool) / n),
+                    (RV::Bool(bool), Less, RV::Num(n)) => RV::Bool(bool2num!(bool) < n),
+                    (RV::Bool(bool), LessEqual, RV::Num(n)) => RV::Bool(bool2num!(bool) <= n),
+                    (RV::Bool(bool), Greater, RV::Num(n)) => RV::Bool(bool2num!(bool) > n),
+                    (RV::Bool(bool), GreaterEqual, RV::Num(n)) => RV::Bool(bool2num!(bool) >= n),
+                    (RV::Num(n), Less, RV::Bool(bool)) => RV::Bool(n < bool2num!(bool)),
+                    (RV::Num(n), LessEqual, RV::Bool(bool)) => RV::Bool(n <= bool2num!(bool)),
+                    (RV::Num(n), Greater, RV::Bool(bool)) => RV::Bool(n > bool2num!(bool)),
+                    (RV::Num(n), GreaterEqual, RV::Bool(bool)) => RV::Bool(n >= bool2num!(bool)),
+                    (RV::Bool(bool), BangEqual, RV::Num(n)) |
+                    (RV::Num(n), BangEqual, RV::Bool(bool)) => RV::Bool(bool2num!(bool) != n),
+                    (RV::Bool(bool), EqualEqual, RV::Num(n)) |
+                    (RV::Num(n), EqualEqual, RV::Bool(bool))  => RV::Bool(bool2num!(bool) == n),
                     //
                     (RV::Nil, EqualEqual, RV::Nil) => RV::Bool(true),
                     (RV::Nil, BangEqual, RV::Nil) => RV::Bool(false),
