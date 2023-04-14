@@ -67,8 +67,10 @@ impl<'a> Parser<'a> {
 
     fn var_declaration(&mut self) -> Stmt {
         let token = self.consume(Identifier, "Expected identifier after var").clone();
-        self.consume(Equal, "Expected = after identifier");
-        let expr = self.expression();
+        let expr = match self.match_next(&vec![Equal]) {
+            true => self.expression(),
+            false => Box::from(Literal(LiteralValue::Nil))
+        };
         self.consume(Semicolon, "Expected ; after expression");
         Stmt::Declaration(token, expr)
     }

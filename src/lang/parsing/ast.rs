@@ -1,6 +1,6 @@
 use crate::lang::parsing::token::{LiteralValue, Token};
 pub type BExpr = Box<Expr>;
-pub type Ast = Vec<Stmt>;
+// pub type Ast = Vec<Stmt>;
 
 pub trait Visitor<T> {
     fn visit_expr(&mut self, e: &Expr) -> T;

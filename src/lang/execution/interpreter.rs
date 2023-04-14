@@ -131,7 +131,7 @@ impl Visitor<RV> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap_or(&"".to_string())).unwrap_or(&RV::Nil).clone()
+            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap()).unwrap().clone()
         }
     }
 
