@@ -1,5 +1,5 @@
 use std::io::{stdin, stdout, Write};
-use crate::lang::runtime::runtime::Runtime;
+use crate::lang::execution::runtime::Runtime;
 
 pub fn init() {
     println!("sumer v0");

@@ -2,8 +2,8 @@ use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
-use crate::lang::runtime::environment::{Environment, RV};
-use crate::lang::runtime::error::runtime_err;
+use crate::lang::execution::environment::{Environment, RV};
+use crate::lang::execution::error::runtime_err;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -98,10 +98,10 @@ impl Interpreter {
             (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
             (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
             //
-            (RV::Str(str), Plus, RV::Num(num)) => RV::Str(str.to_string() + &num.to_string()),
-            (RV::Num(num), Plus, RV::Str(str)) => RV::Str(num.to_string() + &str),
+            (RV::Str(s), Plus, RV::Num(num)) => RV::Str(s + &num.to_string()),
+            (RV::Num(num), Plus, RV::Str(s)) => RV::Str(num.to_string() + &s),
             //
-            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s.to_string() + &bool.to_string()),
+            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s + &bool.to_string()),
             (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(bool.to_string() + &s),
             //
             (_, Less, _) |
@@ -128,10 +128,10 @@ impl Visitor<RV> for Interpreter {
             Expr::Literal(Num(value)) => RV::Num(*value),
             Expr::Literal(Bool(value)) => RV::Bool(*value),
             Expr::Literal(Nil) => RV::Nil,
-            Expr::Grouping(expr) => self.visit_expr(expr).clone(),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, expr).clone(),
-            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok).clone(),
-            Expr::Variable(tok) => self.env.read(&tok.lexeme.as_ref().unwrap_or(&"".to_string())).unwrap_or(&RV::Nil).clone()
+            Expr::Grouping(expr) => self.visit_expr(expr),
+            Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
+            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
+            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap_or(&"".to_string())).unwrap_or(&RV::Nil).clone()
         }
     }
 
@@ -147,7 +147,7 @@ impl Visitor<RV> for Interpreter {
             Stmt::Declaration(tok, expr) => {
                 match &tok.lexeme {
                     Some(var_name) => {
-                        let evaluated = self.visit_expr(expr).clone();
+                        let evaluated = self.visit_expr(expr);
                         self.env.declare(var_name.clone(), evaluated);
                     },
                     None => {

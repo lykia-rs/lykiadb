@@ -1,8 +1,8 @@
 use crate::lang::parsing::ast::{Visitor};
 use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
-use crate::lang::runtime::environment::Environment;
-use crate::lang::runtime::interpreter::Interpreter;
+use crate::lang::execution::environment::Environment;
+use crate::lang::execution::interpreter::Interpreter;
 
 pub struct Runtime {
     interpreter: Interpreter
