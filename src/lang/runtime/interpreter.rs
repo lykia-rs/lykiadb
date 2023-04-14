@@ -1,7 +1,9 @@
-use crate::lang::parsing::ast::{Ast, BExpr, Expr, Stmt, Visitor};
+use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
+use crate::lang::runtime::environment::{Environment, RV};
+use crate::lang::runtime::error::runtime_err;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -9,20 +11,15 @@ macro_rules! bool2num {
     }
 }
 
-#[derive(Debug)]
-pub enum RV {
-    Str(String),
-    Num(f32),
-    Bool(bool),
-    Undefined,
-    NaN,
-    Nil
+pub struct Interpreter {
+    env: Environment
 }
 
-pub struct Interpreter;
 impl Interpreter {
-    pub fn new() -> Interpreter {
-        Interpreter
+    pub fn new(env: Environment) -> Interpreter {
+        Interpreter {
+            env
+        }
     }
 
     fn eval_unary(&mut self, tok: &Token, expr: &BExpr) -> RV {
@@ -101,10 +98,10 @@ impl Interpreter {
             (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
             (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
             //
-            (RV::Str(str), Plus, RV::Num(num)) => RV::Str(str + &num.to_string()),
+            (RV::Str(str), Plus, RV::Num(num)) => RV::Str(str.to_string() + &num.to_string()),
             (RV::Num(num), Plus, RV::Str(str)) => RV::Str(num.to_string() + &str),
             //
-            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s + &bool.to_string()),
+            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s.to_string() + &bool.to_string()),
             (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(bool.to_string() + &s),
             //
             (_, Less, _) |
@@ -125,34 +122,39 @@ impl Interpreter {
 }
 
 impl Visitor<RV> for Interpreter {
-    fn visit(&mut self, a: &Ast) -> Option<RV> {
-        let mut out_buf: Option<RV> = None;
-        for stmt in a {
-            out_buf = Some(self.visit_stmt(stmt));
-        }
-        out_buf
-    }
-
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
             Expr::Literal(Str(value)) => RV::Str(value.clone()),
             Expr::Literal(Num(value)) => RV::Num(*value),
             Expr::Literal(Bool(value)) => RV::Bool(*value),
             Expr::Literal(Nil) => RV::Nil,
-            Expr::Grouping(expr) => self.visit_expr(expr),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
+            Expr::Grouping(expr) => self.visit_expr(expr).clone(),
+            Expr::Unary(tok, expr) => self.eval_unary(tok, expr).clone(),
+            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok).clone(),
+            Expr::Variable(tok) => self.env.read(&tok.lexeme.as_ref().unwrap_or(&"".to_string())).unwrap_or(&RV::Nil).clone()
         }
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> RV {
         match e {
             Stmt::Print(expr) => {
-                self.visit_expr(expr);
+                println!("{:?}", self.visit_expr(expr));
                 RV::Undefined
             },
             Stmt::Expression(expr) => {
                 self.visit_expr(expr)
+            }
+            Stmt::Declaration(tok, expr) => {
+                match &tok.lexeme {
+                    Some(var_name) => {
+                        let evaluated = self.visit_expr(expr).clone();
+                        self.env.declare(var_name.clone(), evaluated);
+                    },
+                    None => {
+                        runtime_err("Variable name cannot be empty", tok.line);
+                    }
+                }
+                RV::Undefined
             }
         }
     }

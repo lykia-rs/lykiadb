@@ -1,7 +1,7 @@
 use std::process::exit;
 use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
-use crate::lang::parsing::ast::Expr::{Grouping, Literal};
+use crate::lang::parsing::ast::Expr::{Grouping, Literal, Variable};
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 
@@ -27,17 +27,23 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0
         };
-        // println!("DebugExp: {:?}", tokens);
         parser.program()
     }
 
     fn program(&mut self) -> Vec<Stmt> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement());
+            statements.push(self.declaration());
         }
         self.consume(EOF, "Expected EOF char at the end of file");
         statements
+    }
+
+    fn declaration(&mut self) -> Stmt {
+        if self.match_next(&vec![Var]) {
+            return self.var_declaration()
+        }
+        self.statement()
     }
 
     fn statement(&mut self) -> Stmt {
@@ -57,6 +63,14 @@ impl<'a> Parser<'a> {
         let expr = self.expression();
         self.consume(Semicolon, "Expected ; after expression");
         Stmt::Expression(expr)
+    }
+
+    fn var_declaration(&mut self) -> Stmt {
+        let token = self.consume(Identifier, "Expected identifier after var").clone();
+        self.consume(Equal, "Expected = after identifier");
+        let expr = self.expression();
+        self.consume(Semicolon, "Expected ; after expression");
+        Stmt::Declaration(token, expr)
     }
 
     fn expression(&mut self) -> BExpr {
@@ -88,7 +102,6 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self) -> BExpr {
         let tok = self.peek(0);
-        // println!("Debug: {:?}", tok);
         self.current += 1;
         match &tok.tok_type {
             True => Box::from(Literal(LiteralValue::Bool(true))),
@@ -100,19 +113,20 @@ impl<'a> Parser<'a> {
                 self.consume(RightParen, "Expected ')' after expression");
                 Box::from(Grouping(expr))
             },
+            Identifier => Box::from(Variable(tok.clone())),
             _ => {
-                parse_err(&format!("Unexpected token: '{}'", tok.lexeme.clone().unwrap_or("<>".to_string())), tok.line);
+                parse_err(&format!("Unexpected token: '{}'", tok.lexeme.as_ref().unwrap_or(&"".to_string())), tok.line);
                 exit(1);
-            }
+            },
         }
     }
 
-    fn consume(&mut self, expected_tok_type: TokenType, error_msg: &str) {
+    fn consume(&mut self, expected_tok_type: TokenType, error_msg: &str) -> &Token {
         if self.cmp_tok(&expected_tok_type) {
-            self.advance();
-            return;
+            return self.advance();
         }
-        parse_err(&error_msg.to_string(), self.peek(0).line);
+        parse_err(error_msg, self.peek(0).line);
+        exit(1);
     }
 
     fn advance(&mut self) -> &'a Token {

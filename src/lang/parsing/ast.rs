@@ -3,7 +3,6 @@ pub type BExpr = Box<Expr>;
 pub type Ast = Vec<Stmt>;
 
 pub trait Visitor<T> {
-    fn visit(&mut self, a: &Ast) -> Option<T>;
     fn visit_expr(&mut self, e: &Expr) -> T;
     fn visit_stmt(&mut self, e: &Stmt) -> T;
 }
@@ -14,9 +13,11 @@ pub enum Expr {
     Grouping(BExpr),
     Literal(LiteralValue),
     Unary(Token, BExpr),
+    Variable(Token)
 }
 
 pub enum Stmt {
     Expression(BExpr),
-    Print(BExpr)
+    Print(BExpr),
+    Declaration(Token, BExpr)
 }

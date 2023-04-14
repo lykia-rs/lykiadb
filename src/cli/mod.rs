@@ -1,5 +1,5 @@
 use std::io::{stdin, stdout, Write};
-use crate::lang::parsing::utils::{interpret, parse, print};
+use crate::lang::runtime::runtime::Runtime;
 
 pub fn init() {
     println!("sumer v0");
@@ -22,6 +22,7 @@ fn run_file(filename: &str) {
 fn run_repl() {
     println!("REPL mode");
     let mut line = String::new();
+    let mut runtime = Runtime::new();
     loop {
         print!("> ");
         let _ = stdout().flush();
@@ -29,13 +30,7 @@ fn run_repl() {
         if line.is_empty() || line.trim() == "exit" {
             break;
         }
-        run(&line);
+        runtime.interpret(&line);
         line.clear();
     }
-}
-
-fn run(source: &str) {
-    let ast = parse(source);
-    // print(&ast);
-    interpret(&ast);
 }
