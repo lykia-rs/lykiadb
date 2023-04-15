@@ -25,6 +25,17 @@ impl Environment {
         self.vars.insert(name, value);
     }
 
+    pub fn assign(&mut self, name: String, value: RV) -> Result<bool, String> {
+
+        if !self.vars.contains_key(&name) {
+            return Err(format!("Assignment to an undefined variable '{}'", &name))
+        }
+
+        self.vars.insert(name, value);
+
+        Ok(true)
+    }
+
     pub fn read(&self, name: &String) -> Option<&RV> {
         self.vars.get(name)
     }

@@ -131,7 +131,14 @@ impl Visitor<RV> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap()).unwrap().clone()
+            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap()).unwrap().clone(),
+            Expr::Assignment(tok, expr) => {
+                let evaluated = self.visit_expr(expr);
+                if let Err(msg) = self.env.assign(tok.lexeme.as_ref().unwrap().clone(), evaluated.clone()) {
+                    runtime_err(&msg, tok.line)
+                }
+                evaluated
+            }
         }
     }
 

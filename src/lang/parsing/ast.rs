@@ -13,7 +13,8 @@ pub enum Expr {
     Grouping(BExpr),
     Literal(LiteralValue),
     Unary(Token, BExpr),
-    Variable(Token)
+    Variable(Token),
+    Assignment(Token, BExpr)
 }
 
 pub enum Stmt {
