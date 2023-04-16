@@ -47,6 +47,9 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self) -> Stmt {
+        if self.match_next(&vec![If]) {
+            return self.if_statement();
+        }
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
@@ -56,6 +59,19 @@ impl<'a> Parser<'a> {
         self.expression_statement()
     }
 
+    fn if_statement(&mut self) -> Stmt {
+        self.consume(LeftParen, "Expected '(' after if.");
+        let condition = self.expression();
+        self.consume(RightParen, "Expected ')' after if condition.");
+        let if_branch = self.statement();
+
+        if self.match_next(&vec![Else]) {
+            let else_branch = self.statement();
+            return Stmt::If(condition, Box::from(if_branch), Some(Box::from(else_branch)));
+        }
+        Stmt::If(condition, Box::from(if_branch), None)
+    }
+
     fn block(&mut self) -> Stmt {
         let mut statements: Vec<Stmt> = vec![];
 
@@ -63,30 +79,30 @@ impl<'a> Parser<'a> {
             statements.push(self.declaration());
         }
 
-        self.consume(RightBrace, "Expected } after block.");
+        self.consume(RightBrace, "Expected '}' after block.");
 
         Stmt::Block(statements)
     }
 
     fn print_statement(&mut self) -> Stmt {
         let expr = self.expression();
-        self.consume(Semicolon, "Expected ; after value");
+        self.consume(Semicolon, "Expected ';' after value");
         Stmt::Print(expr)
     }
 
     fn expression_statement(&mut self) -> Stmt {
         let expr = self.expression();
-        self.consume(Semicolon, "Expected ; after expression");
+        self.consume(Semicolon, "Expected ';' after expression");
         Stmt::Expression(expr)
     }
 
     fn var_declaration(&mut self) -> Stmt {
-        let token = self.consume(Identifier, "Expected identifier after var").clone();
+        let token = self.consume(Identifier, "Expected identifier after 'var'").clone();
         let expr = match self.match_next(&vec![Equal]) {
             true => self.expression(),
             false => Box::from(Literal(LiteralValue::Nil))
         };
-        self.consume(Semicolon, "Expected ; after expression");
+        self.consume(Semicolon, "Expected ';' after expression");
         Stmt::Declaration(token, expr)
     }
 
@@ -151,7 +167,7 @@ impl<'a> Parser<'a> {
             },
             Identifier => Box::from(Variable(tok.clone())),
             _ => {
-                parse_err(&format!("Unexpected token: '{}'", tok.lexeme.as_ref().unwrap_or(&"".to_string())), tok.line);
+                parse_err(&format!("Unexpected token '{}'", tok.lexeme.as_ref().unwrap_or(&"".to_string())), tok.line);
                 exit(1);
             },
         }

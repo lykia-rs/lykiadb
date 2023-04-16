@@ -21,5 +21,6 @@ pub enum Stmt {
     Expression(BExpr),
     Print(BExpr),
     Declaration(Token, BExpr),
-    Block(Vec<Stmt>)
+    Block(Vec<Stmt>),
+    If(BExpr, Box<Stmt>, Option<Box<Stmt>>)
 }

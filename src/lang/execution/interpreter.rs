@@ -15,6 +15,17 @@ pub struct Interpreter {
     env: EnvironmentStack
 }
 
+fn is_value_truthy(rv: RV) -> bool {
+    match rv {
+        RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
+        RV::Str(value) => !value.is_empty(),
+        RV::Bool(value) => value,
+        RV::Nil |
+        RV::Undefined |
+        RV::NaN => false
+    }
+}
+
 impl Interpreter {
     pub fn new(env: EnvironmentStack) -> Interpreter {
         Interpreter {
@@ -33,15 +44,7 @@ impl Interpreter {
             }
         }
         else {
-            match self.visit_expr(expr) {
-                RV::Num(value) => RV::Bool(value == 0.0 || value.is_nan()),
-                RV::Str(value) => RV::Bool(value.is_empty()),
-                RV::Bool(value) => RV::Bool(!value),
-                RV::Nil |
-                RV::Undefined |
-                RV::NaN
-                => RV::Bool(true),
-            }
+            RV::Bool(is_value_truthy(self.visit_expr(expr)))
         }
     }
 
@@ -169,6 +172,15 @@ impl Visitor<RV> for Interpreter {
                     self.visit_stmt(statement);
                 }
                 self.env.pop();
+                RV::Undefined
+            },
+            Stmt::If(condition, if_stmt, else_optional) => {
+                if is_value_truthy(self.visit_expr(condition)) {
+                    self.visit_stmt(if_stmt);
+                }
+                else if let Some(else_stmt) = else_optional {
+                    self.visit_stmt(else_stmt);
+                }
                 RV::Undefined
             }
         }
