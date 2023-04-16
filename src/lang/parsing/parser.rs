@@ -35,7 +35,7 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             statements.push(self.declaration());
         }
-        self.consume(EOF, "Expected EOF char at the end of file");
+        self.consume(Eof, "Expected EOF char at the end of file");
         statements
     }
 
@@ -50,7 +50,22 @@ impl<'a> Parser<'a> {
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
+        if self.match_next(&vec![LeftBrace]) {
+            return self.block();
+        }
         self.expression_statement()
+    }
+
+    fn block(&mut self) -> Stmt {
+        let mut statements: Vec<Stmt> = vec![];
+
+        while !self.cmp_tok(&RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+
+        self.consume(RightBrace, "Expected } after block.");
+
+        Stmt::Block(statements)
     }
 
     fn print_statement(&mut self) -> Stmt {
@@ -158,7 +173,7 @@ impl<'a> Parser<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.cmp_tok(&EOF)
+        self.cmp_tok(&Eof)
     }
 
     fn peek(&self, offset: usize) -> &'a Token {

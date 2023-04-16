@@ -1,5 +1,6 @@
-use std::io::{stdin, stdout, Write};
-use crate::lang::execution::runtime::Runtime;
+use std::fs::File;
+use std::io::{BufReader, Read, stdin, stdout, Write};
+use crate::lang::execution::runtime::{Runtime, RuntimeMode};
 
 pub fn init() {
     println!("sumer v0");
@@ -15,14 +16,24 @@ pub fn init() {
     }
 }
 
+fn read_lines(filename: &str) -> String {
+    let file = File::open(filename).unwrap();
+    let mut content: String = String::new();
+    BufReader::new(file).read_to_string(&mut content).expect("File couldn't be read.");
+    content
+}
+
 fn run_file(filename: &str) {
     println!("filename: {filename}");
+    let content = read_lines(filename);
+    let mut runtime = Runtime::new(RuntimeMode::File);
+    runtime.interpret(&content);
 }
 
 fn run_repl() {
     println!("REPL mode");
     let mut line = String::new();
-    let mut runtime = Runtime::new();
+    let mut runtime = Runtime::new(RuntimeMode::Repl);
     loop {
         print!("> ");
         let _ = stdout().flush();

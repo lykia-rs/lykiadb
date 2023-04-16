@@ -2,7 +2,7 @@ use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
-use crate::lang::execution::environment::{Environment, RV};
+use crate::lang::execution::environment::{EnvironmentStack, RV};
 use crate::lang::execution::error::runtime_err;
 
 macro_rules! bool2num {
@@ -12,11 +12,11 @@ macro_rules! bool2num {
 }
 
 pub struct Interpreter {
-    env: Environment
+    env: EnvironmentStack
 }
 
 impl Interpreter {
-    pub fn new(env: Environment) -> Interpreter {
+    pub fn new(env: EnvironmentStack) -> Interpreter {
         Interpreter {
             env
         }
@@ -150,7 +150,7 @@ impl Visitor<RV> for Interpreter {
             },
             Stmt::Expression(expr) => {
                 self.visit_expr(expr)
-            }
+            },
             Stmt::Declaration(tok, expr) => {
                 match &tok.lexeme {
                     Some(var_name) => {
@@ -161,6 +161,14 @@ impl Visitor<RV> for Interpreter {
                         runtime_err("Variable name cannot be empty", tok.line);
                     }
                 }
+                RV::Undefined
+            },
+            Stmt::Block(statements) => {
+                self.env.push();
+                for statement in statements {
+                    self.visit_stmt(statement);
+                }
+                self.env.pop();
                 RV::Undefined
             }
         }

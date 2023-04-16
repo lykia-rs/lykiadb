@@ -20,5 +20,6 @@ pub enum Expr {
 pub enum Stmt {
     Expression(BExpr),
     Print(BExpr),
-    Declaration(Token, BExpr)
+    Declaration(Token, BExpr),
+    Block(Vec<Stmt>)
 }

@@ -49,7 +49,7 @@ pub enum TokenType {
     False,
     True,
     //
-    EOF
+    Eof
 }
 
 pub static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {

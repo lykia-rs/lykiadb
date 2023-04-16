@@ -195,6 +195,6 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.add_token(" ",EOF);
+        self.add_token(" ", Eof);
     }
 }
