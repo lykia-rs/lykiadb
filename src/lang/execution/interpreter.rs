@@ -191,6 +191,12 @@ impl Visitor<RV> for Interpreter {
                     self.visit_stmt(else_stmt);
                 }
                 RV::Undefined
+            },
+            Stmt::While(condition, stmt) => {
+                while is_value_truthy(self.visit_expr(condition)) {
+                    self.visit_stmt(stmt);
+                }
+                RV::Undefined
             }
         }
     }

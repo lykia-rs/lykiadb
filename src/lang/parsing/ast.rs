@@ -15,7 +15,7 @@ pub enum Expr {
     Unary(Token, BExpr),
     Variable(Token),
     Assignment(Token, BExpr),
-    Logical(BExpr, Token, BExpr)
+    Logical(BExpr, Token, BExpr),
 }
 
 pub enum Stmt {
@@ -23,5 +23,6 @@ pub enum Stmt {
     Print(BExpr),
     Declaration(Token, BExpr),
     Block(Vec<Stmt>),
-    If(BExpr, Box<Stmt>, Option<Box<Stmt>>)
+    If(BExpr, Box<Stmt>, Option<Box<Stmt>>),
+    While(BExpr, Box<Stmt>)
 }

@@ -50,6 +50,9 @@ impl<'a> Parser<'a> {
         if self.match_next(&vec![If]) {
             return self.if_statement();
         }
+        if self.match_next(&vec![While]) {
+            return self.while_statement();
+        }
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
@@ -70,6 +73,16 @@ impl<'a> Parser<'a> {
             return Stmt::If(condition, Box::from(if_branch), Some(Box::from(else_branch)));
         }
         Stmt::If(condition, Box::from(if_branch), None)
+    }
+
+    fn while_statement(&mut self) -> Stmt {
+        self.consume(LeftParen, "Expected '(' after while.");
+        let condition = self.expression();
+        self.consume(RightParen, "Expected ')' after while condition.");
+        let inner_stmt = self.statement();
+
+        Stmt::While(condition, Box::from(inner_stmt))
+
     }
 
     fn block(&mut self) -> Stmt {

@@ -37,7 +37,7 @@ impl EnvironmentStack {
     pub fn assign(&mut self, name: String, value: RV) -> Result<bool, String> {
         for x in self.envs.iter_mut() {
             if x.contains_key(&name) {
-                self.envs[0].insert(name, value);
+                x.insert(name, value);
                 return Ok(true);
             }
         }
