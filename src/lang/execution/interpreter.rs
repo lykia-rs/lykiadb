@@ -142,6 +142,15 @@ impl Visitor<RV> for Interpreter {
                 }
                 evaluated
             }
+            Expr::Logical(left, tok, right) => {
+                let is_true = is_value_truthy(self.visit_expr(left));
+
+                if (tok.tok_type == Or && is_true) || (tok.tok_type == And && !is_true) {
+                    return RV::Bool(is_true);
+                }
+
+                RV::Bool(is_value_truthy(self.visit_expr(right)))
+            }
         }
     }
 

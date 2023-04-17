@@ -1,7 +1,7 @@
 use std::process::exit;
 use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
-use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Variable};
+use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Logical, Variable};
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 
@@ -111,7 +111,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> BExpr {
-        let expr = self.equality();
+        let expr = self.or();
 
         if self.match_next(&vec![Equal]) {
             let equals = self.peek(1);
@@ -125,6 +125,26 @@ impl<'a> Parser<'a> {
                     exit(1);
                 },
             }
+        }
+        expr
+    }
+
+    fn or(&mut self) -> BExpr {
+        let expr = self.and();
+        if self.match_next(&vec![Or]) {
+            let op = self.peek(1);
+            let right = self.and();
+            return Box::from(Logical(expr, op.clone(), right));
+        }
+        expr
+    }
+
+    fn and(&mut self) -> BExpr {
+        let expr = self.equality();
+        if self.match_next(&vec![And]) {
+            let op = self.peek(1);
+            let right = self.equality();
+            return Box::from(Logical(expr, op.clone(), right));
         }
         expr
     }

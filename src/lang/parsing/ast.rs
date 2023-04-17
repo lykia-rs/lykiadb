@@ -14,7 +14,8 @@ pub enum Expr {
     Literal(LiteralValue),
     Unary(Token, BExpr),
     Variable(Token),
-    Assignment(Token, BExpr)
+    Assignment(Token, BExpr),
+    Logical(BExpr, Token, BExpr)
 }
 
 pub enum Stmt {

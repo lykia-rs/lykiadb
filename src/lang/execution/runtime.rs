@@ -9,7 +9,7 @@ pub struct Runtime {
     mode: RuntimeMode
 }
 
-#[derive(PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum RuntimeMode {
     Repl,
     File
