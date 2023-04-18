@@ -3,7 +3,7 @@ use phf::phf_map;
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
     Str(String),
-    Num(f32),
+    Num(f64),
     Bool(bool),
     Nil
 }
@@ -37,6 +37,7 @@ pub enum TokenType {
     If,
     Or,
     Print,
+    Clock,
     Return,
     Super,
     This,
@@ -61,6 +62,7 @@ pub static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "if" => TokenType::If,
     "or" => TokenType::Or,
     "print" => TokenType::Print,
+    "clock" => TokenType::Clock,
     "return" => TokenType::Return,
     "super" => TokenType::Super,
     "this" => TokenType::This,

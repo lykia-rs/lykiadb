@@ -70,7 +70,7 @@ impl Scanner {
         self.tokens.push(Token {
             tok_type: TokenType::Num,
             lexeme: Some(value.to_string()),
-            literal: Some(Num(value.parse::<f32>().unwrap())),
+            literal: Some(Num(value.parse::<f64>().unwrap())),
             line: self.line
         });
     }

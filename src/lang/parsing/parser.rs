@@ -103,6 +103,10 @@ impl<'a> Parser<'a> {
         Stmt::Print(expr)
     }
 
+    fn clock_expr(&mut self) -> BExpr {
+        Box::from(Expr::Clock())
+    }
+
     fn expression_statement(&mut self) -> Stmt {
         let expr = self.expression();
         self.consume(Semicolon, "Expected ';' after expression");
@@ -181,6 +185,9 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> BExpr {
         if self.match_next(&vec![Minus, Bang]) {
             return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
+        }
+        if self.match_next(&vec![Clock]) {
+            return self.clock_expr();
         }
         self.primary()
     }

@@ -16,6 +16,7 @@ pub enum Expr {
     Variable(Token),
     Assignment(Token, BExpr),
     Logical(BExpr, Token, BExpr),
+    Clock()
 }
 
 pub enum Stmt {

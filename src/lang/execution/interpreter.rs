@@ -1,3 +1,4 @@
+use std::time;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
@@ -141,7 +142,7 @@ impl Visitor<RV> for Interpreter {
                     runtime_err(&msg, tok.line)
                 }
                 evaluated
-            }
+            },
             Expr::Logical(left, tok, right) => {
                 let is_true = is_value_truthy(self.visit_expr(left));
 
@@ -150,6 +151,14 @@ impl Visitor<RV> for Interpreter {
                 }
 
                 RV::Bool(is_value_truthy(self.visit_expr(right)))
+            },
+            Expr::Clock() => {
+                if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
+                    RV::Num(n.as_secs_f64())
+                }
+                else {
+                    RV::Num(0.0)
+                }
             }
         }
     }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub enum RV {
     Str(String),
-    Num(f32),
+    Num(f64),
     Bool(bool),
     Undefined,
     NaN,
