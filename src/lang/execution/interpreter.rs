@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::time;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
@@ -87,7 +88,7 @@ impl Interpreter {
             (RV::Num(l), BangEqual, RV::Num(r)) => RV::Bool(l != r),
             (RV::Num(l), EqualEqual, RV::Num(r)) => RV::Bool(l == r),
             //
-            (RV::Str(l), Plus, RV::Str(r)) => RV::Str(l + &r),
+            (RV::Str(l), Plus, RV::Str(r)) => RV::Str(Rc::new(l.to_string() + &r.to_string())),
             (RV::Str(l), Less, RV::Str(r)) => RV::Bool(l < r),
             (RV::Str(l), LessEqual, RV::Str(r)) => RV::Bool(l <= r),
             (RV::Str(l), Greater, RV::Str(r)) => RV::Bool(l > r),
@@ -102,11 +103,11 @@ impl Interpreter {
             (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
             (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
             //
-            (RV::Str(s), Plus, RV::Num(num)) => RV::Str(s + &num.to_string()),
-            (RV::Num(num), Plus, RV::Str(s)) => RV::Str(num.to_string() + &s),
+            (RV::Str(s), Plus, RV::Num(num)) => RV::Str(Rc::new(s.to_string() + &num.to_string())),
+            (RV::Num(num), Plus, RV::Str(s)) => RV::Str(Rc::new(num.to_string() + &s.to_string())),
             //
-            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(s + &bool.to_string()),
-            (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(bool.to_string() + &s),
+            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(Rc::new(s.to_string() + &bool.to_string())),
+            (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(Rc::new(bool.to_string() + &s.to_string())),
             //
             (_, Less, _) |
             (_, LessEqual, _) |

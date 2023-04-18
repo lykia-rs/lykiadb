@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::lang::parsing::error::scan_err;
 use crate::lang::parsing::token::{KEYWORDS, Token, TokenType};
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
@@ -61,7 +62,7 @@ impl Scanner {
         self.tokens.push(Token {
             tok_type: TokenType::Str,
             lexeme: Some(value.to_string()),
-            literal: Some(Str(value.to_string())),
+            literal: Some(Str(Rc::new(value.to_string()))),
             line: self.line
         });
     }
@@ -79,7 +80,7 @@ impl Scanner {
         self.tokens.push(Token {
             tok_type: Identifier,
             lexeme: Some(value.to_string()),
-            literal: Some(Str(value.to_string())),
+            literal: Some(Str(Rc::new(value.to_string()))),
             line: self.line
         });
     }

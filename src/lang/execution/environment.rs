@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum RV {
-    Str(String),
+    Str(Rc<String>),
     Num(f64),
     Bool(bool),
     Undefined,

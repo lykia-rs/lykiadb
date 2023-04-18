@@ -1,8 +1,9 @@
+use std::rc::Rc;
 use phf::phf_map;
 
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
-    Str(String),
+    Str(Rc<String>),
     Num(f64),
     Bool(bool),
     Nil
