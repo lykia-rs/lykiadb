@@ -1,5 +1,5 @@
-# Reverie
-Reverie is a toy vector database written in Rust. 
+# ReverieDB
+Reverie is a vector database written in Rust. 
 It provides a convenient scripting language with SQL-like syntax supports both in-memory and in-disk storage. It is distributed by default, also handles concurrency with MVCC (Multi-Version Concurrency Control) mechanism.
 
 ## Features
