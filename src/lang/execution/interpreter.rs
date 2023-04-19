@@ -139,7 +139,7 @@ impl Visitor<RV> for Interpreter {
             Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap()).unwrap().clone(),
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(msg) = self.env.assign(tok.lexeme.as_ref().unwrap().clone(), evaluated.clone()) {
+                if let Err(msg) = self.env.assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line)
                 }
                 evaluated
@@ -177,7 +177,7 @@ impl Visitor<RV> for Interpreter {
                 match &tok.lexeme {
                     Some(var_name) => {
                         let evaluated = self.visit_expr(expr);
-                        self.env.declare(var_name.clone(), evaluated);
+                        self.env.declare(var_name.to_string(), evaluated);
                     },
                     None => {
                         runtime_err("Variable name cannot be empty", tok.line);

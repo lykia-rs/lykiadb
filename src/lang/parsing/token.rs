@@ -78,7 +78,7 @@ pub static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub tok_type: TokenType,
-    pub lexeme: Option<String>,
+    pub lexeme: Option<Rc<String>>,
     pub literal: Option<LiteralValue>,
     pub line: u32
 }

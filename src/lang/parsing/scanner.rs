@@ -52,7 +52,7 @@ impl Scanner {
     fn add_token(&mut self, lexeme: &str, token: TokenType) {
         self.tokens.push(Token {
             tok_type: token,
-            lexeme: Some(lexeme.to_string()),
+            lexeme: Some(Rc::new(lexeme.to_string())),
             literal: None,
             line: self.line
         });
@@ -61,7 +61,7 @@ impl Scanner {
     fn add_str_literal(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: TokenType::Str,
-            lexeme: Some(value.to_string()),
+            lexeme: Some(Rc::new(value.to_string())),
             literal: Some(Str(Rc::new(value.to_string()))),
             line: self.line
         });
@@ -70,7 +70,7 @@ impl Scanner {
     fn add_num_literal(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: TokenType::Num,
-            lexeme: Some(value.to_string()),
+            lexeme: Some(Rc::new(value.to_string())),
             literal: Some(Num(value.parse::<f64>().unwrap())),
             line: self.line
         });
@@ -79,7 +79,7 @@ impl Scanner {
     fn add_identifier(&mut self, value: &str) {
         self.tokens.push(Token {
             tok_type: Identifier,
-            lexeme: Some(value.to_string()),
+            lexeme: Some(Rc::new(value.to_string())),
             literal: Some(Str(Rc::new(value.to_string()))),
             line: self.line
         });

@@ -207,7 +207,7 @@ impl<'a> Parser<'a> {
             },
             Identifier => Box::from(Variable(tok.clone())),
             _ => {
-                parse_err(&format!("Unexpected token '{}'", tok.lexeme.as_ref().unwrap_or(&"".to_string())), tok.line);
+                parse_err(&format!("Unexpected token '{}'", tok.lexeme.clone().unwrap()), tok.line);
                 exit(1);
             },
         }
