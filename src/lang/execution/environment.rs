@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::rc::Rc;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -12,18 +12,18 @@ pub enum RV {
 }
 
 pub struct EnvironmentStack {
-    envs: Vec<HashMap<String, RV>>
+    envs: Vec<FxHashMap<String, RV>>
 }
 
 impl EnvironmentStack {
     pub fn new() -> EnvironmentStack {
         EnvironmentStack {
-            envs: vec![HashMap::new()]
+            envs: vec![FxHashMap::default()]
         }
     }
 
     pub fn push(&mut self) {
-        self.envs.insert(0, HashMap::new());
+        self.envs.insert(0, FxHashMap::default());
     }
 
     pub fn pop(&mut self) {

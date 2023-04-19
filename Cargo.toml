@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 phf = { version = "0.11", default-features = false, features = ["macros"] }
+rustc-hash = "1.1.0"
 
 [profile.release]
-debug = 1
+debug = true
