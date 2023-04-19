@@ -10,6 +10,13 @@ It provides a convenient scripting language with SQL-like syntax supports both i
 - Both in-memory and in-disk storage support, allowing for faster read/write performance and durability.
 - MVCC concurrency control mechanism, which enables multiple transactions to access the same data simultaneously without interfering with each other.
 
+## Roadmap
+
+- [x] Scripting & querying Language 
+- [ ] Minimal storage
+- [ ] Query planning and execution
+- [ ] Distributed access
+
 ## Getting Started
 To use Reverie, you can download the latest release from the GitHub releases page. The database server can be started with the following command:
 
@@ -24,10 +31,8 @@ $ reverie-cli
 Alternatively, you can use the Reverie API to interact with the database programmatically. The API is well-documented and easy to use.
 
 ## Scripting Language
-Reverie's scripting language provides a set of built-in functions for working with the database, as well as the ability to define custom functions. The language is designed to be easy to use, with a syntax that is similar to other popular scripting languages.
-
-## SQL-like Syntax
-Reverie's SQL-like syntax allows database developers to use familiar syntax and commands to interact with the database. The syntax includes support for common SQL commands such as SELECT, INSERT, UPDATE, DELETE, and more.
+- Reverie's scripting language provides a set of built-in functions for working with the database, as well as the ability to define custom functions. The language is designed to be easy to use, with a syntax that is similar to other popular scripting languages.
+- SQL-like Syntax: Reverie's SQL-like syntax allows database developers to use familiar syntax and commands to interact with the database. The syntax includes support for common SQL commands such as SELECT, INSERT, UPDATE, DELETE, and more.
 
 ## Distributed by design
 Reverie is built using the Raft consensus algorithm, which ensures that the database is fault-tolerant and consistent. This means that even in the event of a node failure or network partition, the database can continue to operate and provide consistent data.
