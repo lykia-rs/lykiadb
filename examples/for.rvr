@@ -1,0 +1,8 @@
+var loopStart = clock;
+
+for (var i = 0; i < 10000000; i = i+1) 5;
+
+var loopTime = clock - loopStart;
+
+print "loop";
+print loopTime;

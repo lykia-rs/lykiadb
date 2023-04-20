@@ -53,6 +53,9 @@ impl<'a> Parser<'a> {
         if self.match_next(&vec![While]) {
             return self.while_statement();
         }
+        if self.match_next(&vec![For]) {
+            return self.for_statement();
+        }
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
@@ -79,10 +82,24 @@ impl<'a> Parser<'a> {
         self.consume(LeftParen, "Expected '(' after while.");
         let condition = self.expression();
         self.consume(RightParen, "Expected ')' after while condition.");
-        let inner_stmt = self.statement();
+        let inner_stmt = self.declaration();
 
         Stmt::While(condition, Box::from(inner_stmt))
+    }
 
+    fn for_statement(&mut self) -> Stmt {
+        self.consume(LeftParen, "Expected '(' after for.");
+        let definition = self.declaration();
+        let bool_condition = self.expression();
+        self.consume(Semicolon, "Expected ';' after expression.");
+        let increment = self.expression();
+        self.consume(RightParen, "Expected ')' after body.");
+        let inner_stmt = self.declaration();
+
+        Stmt::For(Box::from(definition),
+                  bool_condition,
+                  increment,
+                  Box::from(inner_stmt))
     }
 
     fn block(&mut self) -> Stmt {

@@ -207,6 +207,14 @@ impl Visitor<RV> for Interpreter {
                     self.visit_stmt(stmt);
                 }
                 RV::Undefined
+            },
+            Stmt::For(definition, bool_condition, increment, inner_stmt) => {
+                self.visit_stmt(definition);
+                while is_value_truthy(self.visit_expr(bool_condition)) {
+                    self.visit_stmt(inner_stmt);
+                    self.visit_expr(increment);
+                }
+                RV::Undefined
             }
         }
     }
