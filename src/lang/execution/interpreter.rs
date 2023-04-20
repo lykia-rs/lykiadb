@@ -234,7 +234,7 @@ impl Visitor<RV> for Interpreter {
             }
             Stmt::Loop(condition, stmt, post_body) => {
                 self.ongoing_loops.push(LoopState::Go);
-                while *self.ongoing_loops.last().unwrap() != LoopState::Broken && is_value_truthy(self.visit_expr(condition)) {
+                while *self.ongoing_loops.last().unwrap() != LoopState::Broken && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
                     self.visit_stmt(stmt);
                     if *self.ongoing_loops.last().unwrap() == LoopState::Continue {
                         let last_item = self.ongoing_loops.last_mut();

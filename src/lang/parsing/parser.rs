@@ -90,23 +90,43 @@ impl<'a> Parser<'a> {
         self.consume(RightParen, "Expected ')' after while condition.");
         let inner_stmt = self.declaration();
 
-        Stmt::Loop(condition, Box::from(inner_stmt), None)
+        Stmt::Loop(Some(condition), Box::from(inner_stmt), None)
     }
 
     fn for_statement(&mut self) -> Stmt {
         self.consume(LeftParen, "Expected '(' after for.");
-        let initializer = self.declaration();
-        let condition = self.expression();
-        self.consume(Semicolon, "Expected ';' after expression.");
-        let increment = self.expression();
-        self.consume(RightParen, "Expected ')' after body.");
+
+        let initializer = if self.match_next(&vec![Semicolon]) { None } else { Some(self.declaration()) };
+
+        let condition = if self.match_next(&vec![Semicolon]) { None }
+        else {
+            let q = Some(self.expression());
+            self.consume(Semicolon, "Expected ';' after expression.");
+            q
+        };
+
+        let increment = if self.match_next(&vec![RightParen]) { None }
+        else {
+            let q = self.expression();
+            self.consume(RightParen, "Expected ')' after body.");
+            Some(Box::from(Stmt::Expression(q)))
+        };
+
         let inner_stmt = self.declaration();
 
+        if initializer.is_none() {
+            return Stmt::Block(vec![
+                Stmt::Loop(condition,
+                           Box::from(inner_stmt),
+                           increment
+                )
+            ])
+        }
         Stmt::Block(vec![
-            initializer,
+            initializer.unwrap(),
             Stmt::Loop(condition,
                        Box::from(inner_stmt),
-                       Some(Box::from(Stmt::Expression(increment)))
+                       increment
             )
         ])
     }

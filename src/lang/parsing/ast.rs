@@ -25,7 +25,7 @@ pub enum Stmt {
     Declaration(Token, BExpr),
     Block(Vec<Stmt>),
     If(BExpr, Box<Stmt>, Option<Box<Stmt>>),
-    Loop(BExpr, Box<Stmt>, Option<Box<Stmt>>),
+    Loop(Option<BExpr>, Box<Stmt>, Option<Box<Stmt>>),
     Break(Token),
     Continue(Token)
 }
