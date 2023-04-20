@@ -227,16 +227,6 @@ impl Visitor<RV> for Interpreter {
                 }
                 self.ongoing_loops.pop();
                 RV::Undefined
-            },
-            Stmt::For(definition, bool_condition, increment, inner_stmt) => {
-                self.ongoing_loops.push(LoopHandle::Go);
-                self.visit_stmt(definition);
-                while *self.ongoing_loops.last().unwrap() == LoopHandle::Go && is_value_truthy(self.visit_expr(bool_condition)) {
-                    self.visit_stmt(inner_stmt);
-                    self.visit_expr(increment);
-                }
-                self.ongoing_loops.pop();
-                RV::Undefined
             }
         }
     }

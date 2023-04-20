@@ -99,10 +99,16 @@ impl<'a> Parser<'a> {
         self.consume(RightParen, "Expected ')' after body.");
         let inner_stmt = self.declaration();
 
-        Stmt::For(Box::from(initializer),
-                  condition,
-                  increment,
-                  Box::from(inner_stmt))
+        Stmt::Block(vec![
+            initializer,
+            Stmt::While(condition,
+                        Box::from(Stmt::Block(vec![
+                            inner_stmt,
+                            Stmt::Expression(increment)
+                        ])
+                    )
+            )
+        ])
     }
 
     fn block(&mut self) -> Stmt {
