@@ -135,7 +135,31 @@ impl Interpreter {
     }
 }
 
+impl Interpreter {
+    fn is_loop_at(&self, state: LoopState) -> bool {
+        *self.ongoing_loops.last().unwrap() == state
+    }
+
+    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
+        if from.is_none() {
+            return if !self.ongoing_loops.is_empty() {
+                let last_item = self.ongoing_loops.last_mut();
+                *last_item.unwrap() = to;
+                true
+            } else {
+                false
+            }
+        }
+        else if self.is_loop_at(from.unwrap()) {
+            let last_item = self.ongoing_loops.last_mut();
+            *last_item.unwrap() = to;
+        }
+        return true;
+    }
+}
+
 impl Visitor<RV> for Interpreter {
+
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
             Expr::Literal(Str(value)) => RV::Str(value.clone()),
@@ -178,10 +202,6 @@ impl Visitor<RV> for Interpreter {
             return RV::Undefined;
         }
         match e {
-            Stmt::Print(expr) => {
-                println!("{:?}", self.visit_expr(expr));
-                RV::Undefined
-            },
             Stmt::Expression(expr) => {
                 self.visit_expr(expr)
             },
@@ -214,39 +234,34 @@ impl Visitor<RV> for Interpreter {
                 }
                 RV::Undefined
             },
-            Stmt::Continue(token) => {
-                if !self.ongoing_loops.is_empty() {
-                    let last_item = self.ongoing_loops.last_mut();
-                    *last_item.unwrap() = LoopState::Continue;
-                    return RV::Undefined;
-                }
-                runtime_err("Unexpected continue statement", token.line);
+            Stmt::Print(expr) => {
+                println!("{:?}", self.visit_expr(expr));
                 RV::Undefined
-            }
-            Stmt::Break(token) => {
-                if !self.ongoing_loops.is_empty() {
-                    let last_item = self.ongoing_loops.last_mut();
-                    *last_item.unwrap() = LoopState::Broken;
-                    return RV::Undefined;
-                }
-                runtime_err("Unexpected break statement", token.line);
-                RV::Undefined
-            }
+            },
             Stmt::Loop(condition, stmt, post_body) => {
                 self.ongoing_loops.push(LoopState::Go);
-                while *self.ongoing_loops.last().unwrap() != LoopState::Broken && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
+                while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
                     self.visit_stmt(stmt);
-                    if *self.ongoing_loops.last().unwrap() == LoopState::Continue {
-                        let last_item = self.ongoing_loops.last_mut();
-                        *last_item.unwrap() = LoopState::Go;
-                    }
+                    self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post) = post_body {
                         self.visit_stmt(post);
                     }
                 }
                 self.ongoing_loops.pop();
                 RV::Undefined
-            }
+            },
+            Stmt::Break(token) => {
+                if !self.set_loop_state(LoopState::Continue, None) {
+                    runtime_err("Unexpected break statement", token.line);
+                }
+                RV::Undefined
+            },
+            Stmt::Continue(token) => {
+                if !self.set_loop_state(LoopState::Continue, None) {
+                    runtime_err("Unexpected continue statement", token.line);
+                }
+                RV::Undefined
+            },
         }
     }
 }
