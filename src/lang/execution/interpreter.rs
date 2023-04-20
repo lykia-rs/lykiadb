@@ -251,7 +251,7 @@ impl Visitor<RV> for Interpreter {
                 RV::Undefined
             },
             Stmt::Break(token) => {
-                if !self.set_loop_state(LoopState::Continue, None) {
+                if !self.set_loop_state(LoopState::Broken, None) {
                     runtime_err("Unexpected break statement", token.line);
                 }
                 RV::Undefined
