@@ -89,15 +89,15 @@ impl<'a> Parser<'a> {
 
     fn for_statement(&mut self) -> Stmt {
         self.consume(LeftParen, "Expected '(' after for.");
-        let definition = self.declaration();
-        let bool_condition = self.expression();
+        let initializer = self.declaration();
+        let condition = self.expression();
         self.consume(Semicolon, "Expected ';' after expression.");
         let increment = self.expression();
         self.consume(RightParen, "Expected ')' after body.");
         let inner_stmt = self.declaration();
 
-        Stmt::For(Box::from(definition),
-                  bool_condition,
+        Stmt::For(Box::from(initializer),
+                  condition,
                   increment,
                   Box::from(inner_stmt))
     }
