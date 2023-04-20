@@ -56,6 +56,9 @@ impl<'a> Parser<'a> {
         if self.match_next(&vec![For]) {
             return self.for_statement();
         }
+        if self.match_next(&vec![Loop]) {
+            return self.loop_statement();
+        }
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
@@ -84,6 +87,11 @@ impl<'a> Parser<'a> {
         Stmt::If(condition, Box::from(if_branch), None)
     }
 
+    fn loop_statement(&mut self) -> Stmt {
+        let inner_stmt = self.declaration();
+        Stmt::Loop(None, Box::from(inner_stmt), None)
+    }
+
     fn while_statement(&mut self) -> Stmt {
         self.consume(LeftParen, "Expected '(' after while.");
         let condition = self.expression();
@@ -100,34 +108,26 @@ impl<'a> Parser<'a> {
 
         let condition = if self.match_next(&vec![Semicolon]) { None }
         else {
-            let q = Some(self.expression());
+            let wrapped = self.expression();
             self.consume(Semicolon, "Expected ';' after expression.");
-            q
+            Some(wrapped)
         };
 
         let increment = if self.match_next(&vec![RightParen]) { None }
         else {
-            let q = self.expression();
+            let wrapped = self.expression();
             self.consume(RightParen, "Expected ')' after body.");
-            Some(Box::from(Stmt::Expression(q)))
+            Some(Box::from(Stmt::Expression(wrapped)))
         };
 
-        let inner_stmt = self.declaration();
+        let inner_stmt = Box::from(self.declaration());
 
         if initializer.is_none() {
-            return Stmt::Block(vec![
-                Stmt::Loop(condition,
-                           Box::from(inner_stmt),
-                           increment
-                )
-            ])
+            return Stmt::Loop(condition,inner_stmt, increment);
         }
         Stmt::Block(vec![
             initializer.unwrap(),
-            Stmt::Loop(condition,
-                       Box::from(inner_stmt),
-                       increment
-            )
+            Stmt::Loop(condition, inner_stmt, increment)
         ])
     }
 
