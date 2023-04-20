@@ -203,7 +203,7 @@ impl Visitor<RV> for Interpreter {
         }
         match e {
             Stmt::Expression(expr) => {
-                self.visit_expr(expr)
+                return self.visit_expr(expr)
             },
             Stmt::Declaration(tok, expr) => {
                 match &tok.lexeme {
@@ -215,7 +215,6 @@ impl Visitor<RV> for Interpreter {
                         runtime_err("Variable name cannot be empty", tok.line);
                     }
                 }
-                RV::Undefined
             },
             Stmt::Block(statements) => {
                 self.env.push();
@@ -223,7 +222,6 @@ impl Visitor<RV> for Interpreter {
                     self.visit_stmt(statement);
                 }
                 self.env.pop();
-                RV::Undefined
             },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
@@ -232,11 +230,9 @@ impl Visitor<RV> for Interpreter {
                 else if let Some(else_stmt) = else_optional {
                     self.visit_stmt(else_stmt);
                 }
-                RV::Undefined
             },
             Stmt::Print(expr) => {
                 println!("{:?}", self.visit_expr(expr));
-                RV::Undefined
             },
             Stmt::Loop(condition, stmt, post_body) => {
                 self.ongoing_loops.push(LoopState::Go);
@@ -248,20 +244,18 @@ impl Visitor<RV> for Interpreter {
                     }
                 }
                 self.ongoing_loops.pop();
-                RV::Undefined
             },
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
                     runtime_err("Unexpected break statement", token.line);
                 }
-                RV::Undefined
             },
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
                     runtime_err("Unexpected continue statement", token.line);
                 }
-                RV::Undefined
             },
         }
+        return RV::Undefined;
     }
 }
