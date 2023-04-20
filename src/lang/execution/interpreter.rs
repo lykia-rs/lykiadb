@@ -14,7 +14,7 @@ macro_rules! bool2num {
 }
 
 #[derive(PartialEq)]
-pub enum LoopHandle {
+pub enum LoopState {
     Go,
     Broken,
     Continue
@@ -22,7 +22,7 @@ pub enum LoopHandle {
 
 pub struct Interpreter {
     env: EnvironmentStack,
-    ongoing_loops: Vec<LoopHandle>
+    ongoing_loops: Vec<LoopState>
 }
 
 fn is_value_truthy(rv: RV) -> bool {
@@ -174,6 +174,9 @@ impl Visitor<RV> for Interpreter {
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> RV {
+        if !self.ongoing_loops.is_empty() && *self.ongoing_loops.last().unwrap() == LoopState::Continue {
+            return RV::Undefined;
+        }
         match e {
             Stmt::Print(expr) => {
                 println!("{:?}", self.visit_expr(expr));
@@ -211,19 +214,35 @@ impl Visitor<RV> for Interpreter {
                 }
                 RV::Undefined
             },
-            Stmt::Break(token) => {
-                if self.ongoing_loops.len() > 0 {
+            Stmt::Continue(token) => {
+                if !self.ongoing_loops.is_empty() {
                     let last_item = self.ongoing_loops.last_mut();
-                    *last_item.unwrap() = LoopHandle::Broken;
+                    *last_item.unwrap() = LoopState::Continue;
+                    return RV::Undefined;
+                }
+                runtime_err("Unexpected continue statement", token.line);
+                RV::Undefined
+            }
+            Stmt::Break(token) => {
+                if !self.ongoing_loops.is_empty() {
+                    let last_item = self.ongoing_loops.last_mut();
+                    *last_item.unwrap() = LoopState::Broken;
                     return RV::Undefined;
                 }
                 runtime_err("Unexpected break statement", token.line);
                 RV::Undefined
             }
-            Stmt::While(condition, stmt) => {
-                self.ongoing_loops.push(LoopHandle::Go);
-                while *self.ongoing_loops.last().unwrap() == LoopHandle::Go && is_value_truthy(self.visit_expr(condition)) {
+            Stmt::Loop(condition, stmt, post_body) => {
+                self.ongoing_loops.push(LoopState::Go);
+                while *self.ongoing_loops.last().unwrap() != LoopState::Broken && is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(stmt);
+                    if *self.ongoing_loops.last().unwrap() == LoopState::Continue {
+                        let last_item = self.ongoing_loops.last_mut();
+                        *last_item.unwrap() = LoopState::Go;
+                    }
+                    if let Some(post) = post_body {
+                        self.visit_stmt(post);
+                    }
                 }
                 self.ongoing_loops.pop();
                 RV::Undefined

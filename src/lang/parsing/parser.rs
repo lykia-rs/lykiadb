@@ -60,7 +60,10 @@ impl<'a> Parser<'a> {
             return self.print_statement();
         }
         if self.match_next(&vec![Break]) {
-            return self.break_stmt();
+            return self.break_statement();
+        }
+        if self.match_next(&vec![Continue]) {
+            return self.continue_statement();
         }
         if self.match_next(&vec![LeftBrace]) {
             return self.block();
@@ -87,7 +90,7 @@ impl<'a> Parser<'a> {
         self.consume(RightParen, "Expected ')' after while condition.");
         let inner_stmt = self.declaration();
 
-        Stmt::While(condition, Box::from(inner_stmt))
+        Stmt::Loop(condition, Box::from(inner_stmt), None)
     }
 
     fn for_statement(&mut self) -> Stmt {
@@ -101,12 +104,9 @@ impl<'a> Parser<'a> {
 
         Stmt::Block(vec![
             initializer,
-            Stmt::While(condition,
-                        Box::from(Stmt::Block(vec![
-                            inner_stmt,
-                            Stmt::Expression(increment)
-                        ])
-                    )
+            Stmt::Loop(condition,
+                       Box::from(inner_stmt),
+                       Some(Box::from(Stmt::Expression(increment)))
             )
         ])
     }
@@ -133,10 +133,16 @@ impl<'a> Parser<'a> {
         Box::from(Expr::Clock())
     }
 
-    fn break_stmt(&mut self) -> Stmt {
+    fn break_statement(&mut self) -> Stmt {
         let tok = self.peek(1);
         self.consume(Semicolon, "Expected ';' after value");
-        Stmt::Break(tok.clone())
+        return Stmt::Break(tok.clone());
+    }
+
+    fn continue_statement(&mut self) -> Stmt {
+        let tok = self.peek(1);
+        self.consume(Semicolon, "Expected ';' after value");
+        return Stmt::Continue(tok.clone());
     }
 
     fn expression_statement(&mut self) -> Stmt {
