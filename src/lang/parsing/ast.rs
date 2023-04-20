@@ -26,5 +26,6 @@ pub enum Stmt {
     Block(Vec<Stmt>),
     If(BExpr, Box<Stmt>, Option<Box<Stmt>>),
     While(BExpr, Box<Stmt>),
-    For(Box<Stmt>, BExpr, BExpr, Box<Stmt>)
+    For(Box<Stmt>, BExpr, BExpr, Box<Stmt>),
+    Break(Token)
 }

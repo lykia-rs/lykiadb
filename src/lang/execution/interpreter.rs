@@ -13,8 +13,16 @@ macro_rules! bool2num {
     }
 }
 
+#[derive(PartialEq)]
+pub enum LoopHandle {
+    Go,
+    Broken,
+    Continue
+}
+
 pub struct Interpreter {
-    env: EnvironmentStack
+    env: EnvironmentStack,
+    ongoing_loops: Vec<LoopHandle>
 }
 
 fn is_value_truthy(rv: RV) -> bool {
@@ -31,7 +39,8 @@ fn is_value_truthy(rv: RV) -> bool {
 impl Interpreter {
     pub fn new(env: EnvironmentStack) -> Interpreter {
         Interpreter {
-            env
+            env,
+            ongoing_loops: vec![]
         }
     }
 
@@ -202,18 +211,31 @@ impl Visitor<RV> for Interpreter {
                 }
                 RV::Undefined
             },
+            Stmt::Break(token) => {
+                if self.ongoing_loops.len() > 0 {
+                    let last_item = self.ongoing_loops.last_mut();
+                    *last_item.unwrap() = LoopHandle::Broken;
+                    return RV::Undefined;
+                }
+                runtime_err("Unexpected break statement", token.line);
+                RV::Undefined
+            }
             Stmt::While(condition, stmt) => {
-                while is_value_truthy(self.visit_expr(condition)) {
+                self.ongoing_loops.push(LoopHandle::Go);
+                while *self.ongoing_loops.last().unwrap() == LoopHandle::Go && is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(stmt);
                 }
+                self.ongoing_loops.pop();
                 RV::Undefined
             },
             Stmt::For(definition, bool_condition, increment, inner_stmt) => {
+                self.ongoing_loops.push(LoopHandle::Go);
                 self.visit_stmt(definition);
-                while is_value_truthy(self.visit_expr(bool_condition)) {
+                while *self.ongoing_loops.last().unwrap() == LoopHandle::Go && is_value_truthy(self.visit_expr(bool_condition)) {
                     self.visit_stmt(inner_stmt);
                     self.visit_expr(increment);
                 }
+                self.ongoing_loops.pop();
                 RV::Undefined
             }
         }

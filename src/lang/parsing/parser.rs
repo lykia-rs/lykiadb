@@ -59,6 +59,9 @@ impl<'a> Parser<'a> {
         if self.match_next(&vec![Print]) {
             return self.print_statement();
         }
+        if self.match_next(&vec![Break]) {
+            return self.break_stmt();
+        }
         if self.match_next(&vec![LeftBrace]) {
             return self.block();
         }
@@ -122,6 +125,12 @@ impl<'a> Parser<'a> {
 
     fn clock_expr(&mut self) -> BExpr {
         Box::from(Expr::Clock())
+    }
+
+    fn break_stmt(&mut self) -> Stmt {
+        let tok = self.peek(1);
+        self.consume(Semicolon, "Expected ';' after value");
+        Stmt::Break(tok.clone())
     }
 
     fn expression_statement(&mut self) -> Stmt {
