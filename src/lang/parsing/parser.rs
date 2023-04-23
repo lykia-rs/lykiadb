@@ -13,8 +13,8 @@ pub struct Parser<'a> {
 macro_rules! binary {
     ($self: ident,[$($operator:expr),*], $builder: ident) => {
         let mut current_expr: BExpr = $self.$builder();
-        while $self.match_next(&vec![$($operator,)*]) {
-            current_expr = Box::from(Expr::Binary((*$self.peek(1)).clone(), current_expr, $self.$builder()));
+        while $self.match_next_multi(&vec![$($operator,)*]) {
+            current_expr = Box::from(Expr::Binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()));
         }
         return current_expr;
     }
@@ -40,35 +40,35 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Stmt {
-        if self.match_next(&vec![Var]) {
+        if self.match_next(Var) {
             return self.var_declaration()
         }
         self.statement()
     }
 
     fn statement(&mut self) -> Stmt {
-        if self.match_next(&vec![If]) {
+        if self.match_next(If) {
             return self.if_statement();
         }
-        if self.match_next(&vec![While]) {
+        if self.match_next(While) {
             return self.while_statement();
         }
-        if self.match_next(&vec![For]) {
+        if self.match_next(For) {
             return self.for_statement();
         }
-        if self.match_next(&vec![Loop]) {
+        if self.match_next(Loop) {
             return self.loop_statement();
         }
-        if self.match_next(&vec![Print]) {
+        if self.match_next(Print) {
             return self.print_statement();
         }
-        if self.match_next(&vec![Break]) {
+        if self.match_next(Break) {
             return self.break_statement();
         }
-        if self.match_next(&vec![Continue]) {
+        if self.match_next(Continue) {
             return self.continue_statement();
         }
-        if self.match_next(&vec![LeftBrace]) {
+        if self.match_next(LeftBrace) {
             return self.block();
         }
         self.expression_statement()
@@ -80,7 +80,7 @@ impl<'a> Parser<'a> {
         self.consume(RightParen, "Expected ')' after if condition.");
         let if_branch = self.statement();
 
-        if self.match_next(&vec![Else]) {
+        if self.match_next(Else) {
             let else_branch = self.statement();
             return Stmt::If(condition, Box::from(if_branch), Some(Box::from(else_branch)));
         }
@@ -104,16 +104,16 @@ impl<'a> Parser<'a> {
     fn for_statement(&mut self) -> Stmt {
         self.consume(LeftParen, "Expected '(' after for.");
 
-        let initializer = if self.match_next(&vec![Semicolon]) { None } else { Some(self.declaration()) };
+        let initializer = if self.match_next(Semicolon) { None } else { Some(self.declaration()) };
 
-        let condition = if self.match_next(&vec![Semicolon]) { None }
+        let condition = if self.match_next(Semicolon) { None }
         else {
             let wrapped = self.expression();
             self.consume(Semicolon, "Expected ';' after expression.");
             Some(wrapped)
         };
 
-        let increment = if self.match_next(&vec![RightParen]) { None }
+        let increment = if self.match_next(RightParen) { None }
         else {
             let wrapped = self.expression();
             self.consume(RightParen, "Expected ')' after body.");
@@ -154,13 +154,13 @@ impl<'a> Parser<'a> {
     }
 
     fn break_statement(&mut self) -> Stmt {
-        let tok = self.peek(1);
+        let tok = self.peek_bw(1);
         self.consume(Semicolon, "Expected ';' after value");
         Stmt::Break(tok.clone())
     }
 
     fn continue_statement(&mut self) -> Stmt {
-        let tok = self.peek(1);
+        let tok = self.peek_bw(1);
         self.consume(Semicolon, "Expected ';' after value");
         Stmt::Continue(tok.clone())
     }
@@ -173,7 +173,7 @@ impl<'a> Parser<'a> {
 
     fn var_declaration(&mut self) -> Stmt {
         let token = self.consume(Identifier, "Expected identifier after 'var'").clone();
-        let expr = match self.match_next(&vec![Equal]) {
+        let expr = match self.match_next(Equal) {
             true => self.expression(),
             false => Box::from(Literal(LiteralValue::Nil))
         };
@@ -188,8 +188,8 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> BExpr {
         let expr = self.or();
 
-        if self.match_next(&vec![Equal]) {
-            let equals = self.peek(1);
+        if self.match_next(Equal) {
+            let equals = self.peek_bw(1);
             let value = self.assignment();
             match *expr {
                 Variable(tok) => {
@@ -206,8 +206,8 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> BExpr {
         let expr = self.and();
-        if self.match_next(&vec![Or]) {
-            let op = self.peek(1);
+        if self.match_next(Or) {
+            let op = self.peek_bw(1);
             let right = self.and();
             return Box::from(Logical(expr, op.clone(), right));
         }
@@ -216,8 +216,8 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> BExpr {
         let expr = self.equality();
-        if self.match_next(&vec![And]) {
-            let op = self.peek(1);
+        if self.match_next(And) {
+            let op = self.peek_bw(1);
             let right = self.equality();
             return Box::from(Logical(expr, op.clone(), right));
         }
@@ -241,17 +241,17 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> BExpr {
-        if self.match_next(&vec![Minus, Bang]) {
-            return Box::from(Expr::Unary((*self.peek(1)).clone(), self.unary()));
+        if self.match_next_multi(&vec![Minus, Bang]) {
+            return Box::from(Expr::Unary((*self.peek_bw(1)).clone(), self.unary()));
         }
-        if self.match_next(&vec![Clock]) {
+        if self.match_next(Clock) {
             return self.clock_expr();
         }
         self.primary()
     }
 
     fn primary(&mut self) -> BExpr {
-        let tok = self.peek(0);
+        let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
             True => Box::from(Literal(LiteralValue::Bool(true))),
@@ -275,7 +275,7 @@ impl<'a> Parser<'a> {
         if self.cmp_tok(&expected_tok_type) {
             return self.advance();
         }
-        parse_err(error_msg, self.peek(0).line);
+        parse_err(error_msg, self.peek_bw(0).line);
         exit(1);
     }
 
@@ -283,23 +283,35 @@ impl<'a> Parser<'a> {
         if !self.is_at_end() {
             self.current += 1;
         }
-        self.peek(1)
+        self.peek_bw(1)
     }
 
     fn is_at_end(&self) -> bool {
         self.cmp_tok(&Eof)
     }
 
-    fn peek(&self, offset: usize) -> &'a Token {
+    fn peek_bw(&self, offset: usize) -> &'a Token {
         &self.tokens[self.current - offset]
     }
 
+    fn peek_fw(&self, offset: usize) -> &'a Token {
+        &self.tokens[self.current + offset]
+    }
+
     fn cmp_tok(&self, t: &TokenType) -> bool {
-        let current = self.peek(0);
+        let current = self.peek_bw(0);
         current.tok_type == *t
     }
 
-    fn match_next(&mut self, types: &Vec<TokenType>) -> bool {
+    fn match_next(&mut self, t: TokenType) -> bool {
+        if self.cmp_tok(&t) {
+            self.advance();
+            return true;
+        }
+        false
+    }
+
+    fn match_next_multi(&mut self, types: &Vec<TokenType>) -> bool {
         for t in types {
             if self.cmp_tok(t) {
                 self.advance();
