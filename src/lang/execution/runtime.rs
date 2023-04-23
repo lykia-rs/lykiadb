@@ -23,8 +23,8 @@ impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
         let mut env = EnvironmentStack::new();
 
-        env.declare("clock".to_string(), RV::Callable(Rc::new(Clock::new())));
-        env.declare("print".to_string(), RV::Callable(Rc::new(Print::new())));
+        env.declare("clock".to_string(), RV::Callable(Rc::new(Clock)));
+        env.declare("print".to_string(), RV::Callable(Rc::new(Print)));
 
         Runtime {
             interpreter: Interpreter::new(env),

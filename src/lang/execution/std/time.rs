@@ -3,16 +3,9 @@ use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::{Callable, RV};
 
 pub struct Clock;
-
-impl Clock {
-    pub fn new() -> Clock {
-        Clock
-    }
-}
-
 impl Callable for Clock {
-    fn arity(&self) -> u16 {
-        0
+    fn arity(&self) -> Option<usize> {
+        Some(0)
     }
 
     fn call(&self, _interpreter: &Interpreter, _args: Vec<RV>) -> RV {

@@ -14,12 +14,12 @@ pub enum RV {
 }
 
 pub trait Callable {
-    fn arity(&self) -> u16;
+    fn arity(&self) -> Option<usize>;
     fn call(&self, interpreter: &Interpreter, args: Vec<RV>) -> RV;
 }
 
 impl Debug for dyn Callable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<Callable>")
+        write!(f, "<native fn>")
     }
 }

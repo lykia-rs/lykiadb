@@ -192,9 +192,14 @@ impl Visitor<RV> for Interpreter {
             Expr::Call(callee, paren, arguments) => {
                 let eval = self.visit_expr(callee);
 
-                if let Callable(callable_obj) = eval {
+                if let Callable(callable) = eval {
+                    let arity = callable.arity();
+                    if arity.is_some() && arity.unwrap() != arguments.len() {
+                        runtime_err(&format!("Function expects {} arguments, while provided {}.", arity.unwrap(), arguments.len()), paren.line);
+                        exit(1);
+                    }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg) ).collect();
-                    callable_obj.call(&(*self), args_evaluated)
+                    callable.call(&(*self), args_evaluated)
                 }
                 else {
                     runtime_err("Expression does not yield a callable", paren.line);
