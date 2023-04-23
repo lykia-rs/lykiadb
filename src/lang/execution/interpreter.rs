@@ -1,11 +1,13 @@
+use std::process::exit;
 use std::rc::Rc;
-use std::time;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
-use crate::lang::execution::environment::{EnvironmentStack, RV};
+use crate::lang::execution::environment::{EnvironmentStack};
 use crate::lang::execution::error::runtime_err;
+use crate::lang::execution::primitives::RV;
+use crate::lang::execution::primitives::RV::Callable;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -32,7 +34,8 @@ fn is_value_truthy(rv: RV) -> bool {
         RV::Bool(value) => value,
         RV::Nil |
         RV::Undefined |
-        RV::NaN => false
+        RV::NaN => false,
+        _ => true
     }
 }
 
@@ -186,12 +189,16 @@ impl Visitor<RV> for Interpreter {
 
                 RV::Bool(is_value_truthy(self.visit_expr(right)))
             },
-            Expr::Clock() => {
-                if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
-                    RV::Num(n.as_secs_f64())
+            Expr::Call(callee, paren, arguments) => {
+                let eval = self.visit_expr(callee);
+
+                if let Callable(callable_obj) = eval {
+                    let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg) ).collect();
+                    callable_obj.call(&(*self), args_evaluated)
                 }
                 else {
-                    RV::Num(0.0)
+                    runtime_err("Expression does not yield a callable", paren.line);
+                    exit(1);
                 }
             }
         }

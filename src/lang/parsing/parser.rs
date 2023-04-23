@@ -149,10 +149,6 @@ impl<'a> Parser<'a> {
         Stmt::Print(expr)
     }
 
-    fn clock_expr(&mut self) -> BExpr {
-        Box::from(Expr::Clock())
-    }
-
     fn break_statement(&mut self) -> Stmt {
         let tok = self.peek_bw(1);
         self.consume(Semicolon, "Expected ';' after value");
@@ -244,10 +240,35 @@ impl<'a> Parser<'a> {
         if self.match_next_multi(&vec![Minus, Bang]) {
             return Box::from(Expr::Unary((*self.peek_bw(1)).clone(), self.unary()));
         }
-        if self.match_next(Clock) {
-            return self.clock_expr();
+        self.call()
+    }
+
+    fn finish_call(&mut self, callee: BExpr) -> BExpr {
+        let mut arguments: Vec<BExpr> = vec![];
+        if !self.cmp_tok(&RightParen) {
+            arguments.push(self.expression());
+            while self.match_next(Comma) {
+                arguments.push(self.expression());
+            }
         }
-        self.primary()
+        let paren = self.consume(RightParen, "Expected ')' after argument list.");
+
+        Box::from(Expr::Call(callee, paren.clone(), arguments))
+    }
+
+    fn call(&mut self) -> BExpr {
+        let mut expr = self.primary();
+
+        loop {
+            if self.match_next(LeftParen) {
+                expr = self.finish_call(expr);
+            }
+            else {
+                break;
+            }
+        }
+
+        expr
     }
 
     fn primary(&mut self) -> BExpr {
@@ -292,10 +313,6 @@ impl<'a> Parser<'a> {
 
     fn peek_bw(&self, offset: usize) -> &'a Token {
         &self.tokens[self.current - offset]
-    }
-
-    fn peek_fw(&self, offset: usize) -> &'a Token {
-        &self.tokens[self.current + offset]
     }
 
     fn cmp_tok(&self, t: &TokenType) -> bool {

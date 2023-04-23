@@ -1,15 +1,5 @@
-use std::rc::Rc;
 use rustc_hash::FxHashMap;
-
-#[derive(Debug, Clone)]
-pub enum RV {
-    Str(Rc<String>),
-    Num(f64),
-    Bool(bool),
-    Undefined,
-    NaN,
-    Nil
-}
+use crate::lang::execution::primitives::RV;
 
 pub struct EnvironmentStack {
     envs: Vec<FxHashMap<String, RV>>
