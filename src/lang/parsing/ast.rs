@@ -1,6 +1,6 @@
 use crate::lang::parsing::token::{LiteralValue, Token};
 pub type BExpr = Box<Expr>;
-// pub type Ast = Vec<Stmt>;
+pub type BStmt = Box<Stmt>;
 
 pub trait Visitor<T> {
     fn visit_expr(&mut self, e: &Expr) -> T;
@@ -21,10 +21,11 @@ pub enum Expr {
 
 pub enum Stmt {
     Expression(BExpr),
+    Function(Token, Vec<Token>, Vec<Stmt>),
     Declaration(Token, BExpr),
     Block(Vec<Stmt>),
-    If(BExpr, Box<Stmt>, Option<Box<Stmt>>),
-    Loop(Option<BExpr>, Box<Stmt>, Option<Box<Stmt>>),
+    If(BExpr, BStmt, Option<BStmt>),
+    Loop(Option<BExpr>, BStmt, Option<BStmt>),
     Break(Token),
     Continue(Token)
 }

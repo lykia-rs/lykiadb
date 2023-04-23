@@ -2,6 +2,7 @@ use std::process::exit;
 use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
 use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Logical, Variable};
+use crate::lang::parsing::ast::Stmt::Block;
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 
@@ -42,6 +43,9 @@ impl<'a> Parser<'a> {
     fn declaration(&mut self) -> Stmt {
         if self.match_next(Var) {
             return self.var_declaration()
+        }
+        if self.match_next(Fun) {
+            return self.fun_declaration()
         }
         self.statement()
     }
@@ -156,6 +160,28 @@ impl<'a> Parser<'a> {
         let expr = self.expression();
         self.consume(Semicolon, "Expected ';' after expression");
         Stmt::Expression(expr)
+    }
+
+    fn fun_declaration(&mut self) -> Stmt {
+        let token = self.consume(Identifier, "Expected identifier after 'fun'").clone();
+        self.consume(LeftParen, "Expected '(' after function name.");
+        let mut parameters: Vec<Token> = vec![];
+        if !self.cmp_tok(&RightParen) {
+            parameters.push(self.consume(Identifier, "Identifier expected").clone());
+            while self.match_next(Comma) {
+                parameters.push(self.consume(Identifier, "Identifier expected").clone());
+            }
+        }
+        self.consume(RightParen, "Expected ')' after parameter list.");
+        self.consume(LeftBrace, "Expected '{' before function body.");
+        let block = self.block();
+
+        let body = match block {
+            Block(stmts) => stmts,
+            _ => vec![]
+        };
+
+        Stmt::Function(token, parameters, body)
     }
 
     fn var_declaration(&mut self) -> Stmt {

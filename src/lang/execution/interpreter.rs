@@ -264,6 +264,9 @@ impl Visitor<RV> for Interpreter {
                     runtime_err("Unexpected continue statement", token.line);
                 }
             },
+            Stmt::Function(token, parameters, body) => {
+                todo!()
+            }
         }
         RV::Undefined
     }
