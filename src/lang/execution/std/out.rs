@@ -7,7 +7,7 @@ impl Callable for Print {
         None
     }
 
-    fn call(&self, _interpreter: &Interpreter, args: Vec<RV>) -> RV {
+    fn call(&self, _interpreter: &mut Interpreter, args: Vec<RV>) -> RV {
         for arg in args {
             print!("{:?} ", arg);
         }

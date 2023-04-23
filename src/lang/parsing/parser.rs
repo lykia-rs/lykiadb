@@ -1,4 +1,5 @@
 use std::process::exit;
+use std::rc::Rc;
 use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
 use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Logical, Variable};
@@ -164,7 +165,7 @@ impl<'a> Parser<'a> {
 
     fn fun_declaration(&mut self) -> Stmt {
         let token = self.consume(Identifier, "Expected identifier after 'fun'").clone();
-        self.consume(LeftParen, "Expected '(' after function name.");
+        self.consume(LeftParen, "Expected '(' after function name");
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&RightParen) {
             parameters.push(self.consume(Identifier, "Identifier expected").clone());
@@ -172,8 +173,8 @@ impl<'a> Parser<'a> {
                 parameters.push(self.consume(Identifier, "Identifier expected").clone());
             }
         }
-        self.consume(RightParen, "Expected ')' after parameter list.");
-        self.consume(LeftBrace, "Expected '{' before function body.");
+        self.consume(RightParen, "Expected ')' after parameter list");
+        self.consume(LeftBrace, "Expected '{' before function body");
         let block = self.block();
 
         let body = match block {
@@ -181,7 +182,7 @@ impl<'a> Parser<'a> {
             _ => vec![]
         };
 
-        Stmt::Function(token, parameters, body)
+        Stmt::Function(token, parameters, Rc::new(body))
     }
 
     fn var_declaration(&mut self) -> Stmt {
