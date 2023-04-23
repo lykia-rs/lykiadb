@@ -15,7 +15,7 @@ impl Callable for Clock {
         0
     }
 
-    fn call(&self, interpreter: &Interpreter, args: Vec<RV>) -> RV {
+    fn call(&self, _interpreter: &Interpreter, _args: Vec<RV>) -> RV {
         if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
             return RV::Num(n.as_secs_f64());
         }

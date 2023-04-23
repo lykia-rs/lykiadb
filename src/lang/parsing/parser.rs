@@ -59,9 +59,6 @@ impl<'a> Parser<'a> {
         if self.match_next(Loop) {
             return self.loop_statement();
         }
-        if self.match_next(Print) {
-            return self.print_statement();
-        }
         if self.match_next(Break) {
             return self.break_statement();
         }
@@ -141,12 +138,6 @@ impl<'a> Parser<'a> {
         self.consume(RightBrace, "Expected '}' after block.");
 
         Stmt::Block(statements)
-    }
-
-    fn print_statement(&mut self) -> Stmt {
-        let expr = self.expression();
-        self.consume(Semicolon, "Expected ';' after value");
-        Stmt::Print(expr)
     }
 
     fn break_statement(&mut self) -> Stmt {

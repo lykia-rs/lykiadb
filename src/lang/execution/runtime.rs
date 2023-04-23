@@ -5,6 +5,7 @@ use crate::lang::parsing::scanner::Scanner;
 use crate::lang::execution::environment::{EnvironmentStack};
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::RV;
+use crate::lang::execution::std::out::Print;
 use crate::lang::execution::std::time::Clock;
 
 pub struct Runtime {
@@ -23,6 +24,7 @@ impl Runtime {
         let mut env = EnvironmentStack::new();
 
         env.declare("clock".to_string(), RV::Callable(Rc::new(Clock::new())));
+        env.declare("print".to_string(), RV::Callable(Rc::new(Print::new())));
 
         Runtime {
             interpreter: Interpreter::new(env),

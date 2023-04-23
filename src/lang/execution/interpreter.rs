@@ -238,9 +238,6 @@ impl Visitor<RV> for Interpreter {
                     self.visit_stmt(else_stmt);
                 }
             },
-            Stmt::Print(expr) => {
-                println!("{:?}", self.visit_expr(expr));
-            },
             Stmt::Loop(condition, stmt, post_body) => {
                 self.ongoing_loops.push(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {

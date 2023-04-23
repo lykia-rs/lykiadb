@@ -7,5 +7,4 @@ for (var i = 0; i < 10; i = i+1) {
 }
 var loopTime = clock() - loopStart;
 
-print "loop";
-print loopTime;
+print("loop:", loopTime);

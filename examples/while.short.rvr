@@ -13,5 +13,4 @@ while (i < 10000000) {
 
 var loopTime = clock() - loopStart;
 
-print "loop";
-print loopTime;
+print("loop", loopTime);
