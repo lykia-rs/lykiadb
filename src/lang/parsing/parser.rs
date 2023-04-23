@@ -156,13 +156,13 @@ impl<'a> Parser<'a> {
     fn break_statement(&mut self) -> Stmt {
         let tok = self.peek(1);
         self.consume(Semicolon, "Expected ';' after value");
-        return Stmt::Break(tok.clone());
+        Stmt::Break(tok.clone())
     }
 
     fn continue_statement(&mut self) -> Stmt {
         let tok = self.peek(1);
         self.consume(Semicolon, "Expected ';' after value");
-        return Stmt::Continue(tok.clone());
+        Stmt::Continue(tok.clone())
     }
 
     fn expression_statement(&mut self) -> Stmt {

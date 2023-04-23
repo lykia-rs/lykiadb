@@ -154,7 +154,7 @@ impl Interpreter {
             let last_item = self.ongoing_loops.last_mut();
             *last_item.unwrap() = to;
         }
-        return true;
+        true
     }
 }
 
@@ -256,6 +256,6 @@ impl Visitor<RV> for Interpreter {
                 }
             },
         }
-        return RV::Undefined;
+        RV::Undefined
     }
 }
