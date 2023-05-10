@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::lang::parsing::token::{LiteralValue, Token};
 pub type BExpr = Box<Expr>;
 pub type BStmt = Box<Stmt>;
@@ -21,7 +22,7 @@ pub enum Expr {
 
 pub enum Stmt {
     Expression(BExpr),
-    Function(Token, Vec<Token>, Vec<Stmt>),
+    Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
     Declaration(Token, BExpr),
     Block(Vec<Stmt>),
     If(BExpr, BStmt, Option<BStmt>),

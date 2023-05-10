@@ -6,7 +6,7 @@ use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::execution::environment::{EnvironmentStack};
 use crate::lang::execution::error::runtime_err;
-use crate::lang::execution::primitives::RV;
+use crate::lang::execution::primitives::{Function, RV};
 use crate::lang::execution::primitives::RV::Callable;
 
 macro_rules! bool2num {
@@ -159,6 +159,15 @@ impl Interpreter {
         }
         true
     }
+
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>) -> RV {
+        self.env.push();
+        for statement in statements {
+            self.visit_stmt(statement);
+        }
+        self.env.pop();
+        RV::Undefined
+    }
 }
 
 impl Visitor<RV> for Interpreter {
@@ -199,7 +208,7 @@ impl Visitor<RV> for Interpreter {
                         exit(1);
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg) ).collect();
-                    callable.call(&(*self), args_evaluated)
+                    callable.call(self, args_evaluated)
                 }
                 else {
                     runtime_err("Expression does not yield a callable", paren.line);
@@ -228,13 +237,7 @@ impl Visitor<RV> for Interpreter {
                     }
                 }
             },
-            Stmt::Block(statements) => {
-                self.env.push();
-                for statement in statements {
-                    self.visit_stmt(statement);
-                }
-                self.env.pop();
-            },
+            Stmt::Block(statements) => { self.execute_block(statements); },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(if_stmt);
@@ -265,7 +268,12 @@ impl Visitor<RV> for Interpreter {
                 }
             },
             Stmt::Function(token, parameters, body) => {
-                todo!()
+                let fun = Function {
+                    parameters: (*parameters).iter().map(|x| x.lexeme.as_ref().unwrap().clone()).collect(),
+                    body: body.clone()
+                };
+
+                self.env.declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
             }
         }
         RV::Undefined
