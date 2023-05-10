@@ -3,10 +3,10 @@ use std::io::{BufReader, Read, stdin, stdout, Write};
 use crate::lang::execution::runtime::{Runtime, RuntimeMode};
 
 pub fn init() {
-    println!("reverie v0");
+    println!("lykia v0");
     let args: Vec<_> = std::env::args().collect();
     if args.len() > 2 {
-        println!("Too many args. Usage: reverie [script]");
+        println!("Too many args. Usage: lykia [script]");
         std::process::exit(64);
     }
     let filename_arg = args.get(1);

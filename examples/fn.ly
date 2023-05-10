@@ -4,5 +4,5 @@ fun hello_world(message) {
 }
 
 for (var i=0; i<10; i = i + 1) {
-    hello_world("My name is Reverie.");
+    hello_world("My name is Lykia.");
 }
