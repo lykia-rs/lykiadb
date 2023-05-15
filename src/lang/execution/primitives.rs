@@ -17,11 +17,14 @@ pub enum RV {
 pub trait Callable {
     fn arity(&self) -> Option<usize>;
     fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> RV;
+    fn get_desc(&self) -> &str {
+        "<native_fn>"
+    }
 }
 
 impl Debug for dyn Callable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<native fn>")
+        write!(f, "{}", self.get_desc())
     }
 }
 
@@ -37,5 +40,9 @@ impl Callable for Function {
 
     fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> RV {
         interpreter.execute_block(&self.body)
+    }
+
+    fn get_desc(&self) -> &str {
+        "<fn>"
     }
 }
