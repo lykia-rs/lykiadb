@@ -6,6 +6,6 @@ fun fib(n) {
 
 // Calculate the total execution time
 var start = clock();
-print fib(35) == 9227465;
-print "elapsed:";
-print clock() - start;
+print(fib(35) == 9227465);
+print("elapsed:");
+print(clock() - start);

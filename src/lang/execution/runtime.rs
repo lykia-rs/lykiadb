@@ -2,7 +2,7 @@ use std::rc::Rc;
 use crate::lang::parsing::ast::{Visitor};
 use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
-use crate::lang::execution::environment::{EnvironmentStack};
+use crate::lang::execution::environment::Environment;
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::RV;
 use crate::lang::execution::std::out::Print;
@@ -21,10 +21,10 @@ pub enum RuntimeMode {
 
 impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
-        let mut env = EnvironmentStack::new();
+        let env = Environment::new(None);
 
-        env.declare("clock".to_string(), RV::Callable(Rc::new(Clock)));
-        env.declare("print".to_string(), RV::Callable(Rc::new(Print)));
+        env.borrow_mut().declare("clock".to_string(), RV::Callable(Rc::new(Clock)));
+        env.borrow_mut().declare("print".to_string(), RV::Callable(Rc::new(Print)));
 
         Runtime {
             interpreter: Interpreter::new(env),

@@ -1,46 +1,59 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use crate::lang::execution::primitives::RV;
 
-pub struct EnvironmentStack {
-    envs: Vec<FxHashMap<String, RV>>
+pub type Shared<T> = Rc<RefCell<T>>;
+
+pub fn alloc_shared<T>(obj: T) -> Shared<T> {
+    Rc::new(RefCell::new(obj))
 }
 
-impl EnvironmentStack {
-    pub fn new() -> EnvironmentStack {
-        EnvironmentStack {
-            envs: vec![FxHashMap::default()]
-        }
+pub struct Environment {
+    map: FxHashMap<String, RV>,
+    pub parent: Option<Shared<Environment>>
+}
+
+impl Environment {
+    pub fn new(parent: Option<Shared<Environment>>) -> Shared<Environment> {
+        alloc_shared(Environment {
+            map: FxHashMap::default(),
+            parent
+        })
     }
 
-    pub fn push(&mut self) {
-        self.envs.insert(0, FxHashMap::default());
-    }
-
-    pub fn pop(&mut self) {
-        self.envs.remove(0);
+    pub fn pop(&mut self) -> Shared<Environment> {
+        self.parent.clone().unwrap()
     }
 
     pub fn declare(&mut self, name: String, value: RV) {
-        let env = self.envs.first_mut().unwrap();
-        env.insert(name, value);
+        self.map.insert(name, value);
     }
 
     pub fn assign(&mut self, name: String, value: RV) -> Result<bool, String> {
-        for x in self.envs.iter_mut() {
-            if x.contains_key(&name) {
-                x.insert(name, value);
-                return Ok(true);
-            }
+        if self.map.contains_key(&name) {
+            self.map.insert(name, value);
+            return Ok(true);
         }
+
+        if self.parent.is_some() {
+            return self.parent.as_mut().unwrap().borrow_mut().assign(name, value);
+        }
+
         Err(format!("Assignment to an undefined variable '{}'", &name))
     }
 
-    pub fn read(&mut self, name: &String) -> Result<&RV, String> {
-        for x in self.envs.iter_mut() {
-            if x.contains_key(name) {
-                return Ok(x.get(name).unwrap());
-            }
+    pub fn read(&mut self, name: &String) -> Result<RV, String> {
+        if self.map.contains_key(name) {
+            // TODO(vck): Remove clone
+            return Ok(self.map.get(name).unwrap().clone());
         }
+
+        if self.parent.is_some() {
+            // return self.parent.as_mut().unwrap().borrow_mut().read(name);
+            return self.parent.as_mut().unwrap().borrow_mut().read(name);
+        }
+
         Err(format!("Variable '{}' was not found.", &name))
     }
 }

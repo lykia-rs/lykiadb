@@ -1,10 +1,10 @@
 use std::process::exit;
 use std::rc::Rc;
+use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
-use crate::lang::execution::environment::{EnvironmentStack};
 use crate::lang::execution::error::runtime_err;
 use crate::lang::execution::primitives::{Function, RV};
 use crate::lang::execution::primitives::RV::Callable;
@@ -23,7 +23,7 @@ pub enum LoopState {
 }
 
 pub struct Interpreter {
-    env: EnvironmentStack,
+    env: Shared<Environment>,
     ongoing_loops: Vec<LoopState>
 }
 
@@ -40,7 +40,7 @@ fn is_value_truthy(rv: RV) -> bool {
 }
 
 impl Interpreter {
-    pub fn new(env: EnvironmentStack) -> Interpreter {
+    pub fn new(env: Shared<Environment>) -> Interpreter {
         Interpreter {
             env,
             ongoing_loops: vec![]
@@ -161,11 +161,11 @@ impl Interpreter {
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>) -> RV {
-        self.env.push();
+        self.env = Environment::new(Some(self.env.clone()));
         for statement in statements {
             self.visit_stmt(statement);
         }
-        self.env.pop();
+        self.env = self.env.clone().borrow_mut().pop();
         RV::Undefined
     }
 }
@@ -181,10 +181,10 @@ impl Visitor<RV> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.read(tok.lexeme.as_ref().unwrap()).unwrap().clone(),
+            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap().clone(),
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(msg) = self.env.assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
+                if let Err(msg) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line)
                 }
                 evaluated
@@ -230,7 +230,7 @@ impl Visitor<RV> for Interpreter {
                 match &tok.lexeme {
                     Some(var_name) => {
                         let evaluated = self.visit_expr(expr);
-                        self.env.declare(var_name.to_string(), evaluated);
+                        self.env.borrow_mut().declare(var_name.to_string(), evaluated);
                     },
                     None => {
                         runtime_err("Variable name cannot be empty", tok.line);
@@ -273,7 +273,7 @@ impl Visitor<RV> for Interpreter {
                     body: body.clone()
                 };
 
-                self.env.declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
+                self.env.borrow_mut().declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
             }
         }
         RV::Undefined
