@@ -28,5 +28,6 @@ pub enum Stmt {
     If(BExpr, BStmt, Option<BStmt>),
     Loop(Option<BExpr>, BStmt, Option<BStmt>),
     Break(Token),
-    Continue(Token)
+    Continue(Token),
+    Return(Token, Option<BExpr>)
 }

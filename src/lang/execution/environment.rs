@@ -50,7 +50,6 @@ impl Environment {
         }
 
         if self.parent.is_some() {
-            // return self.parent.as_mut().unwrap().borrow_mut().read(name);
             return self.parent.as_mut().unwrap().borrow_mut().read(name);
         }
 

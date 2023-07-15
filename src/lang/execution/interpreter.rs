@@ -160,8 +160,13 @@ impl Interpreter {
         true
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>) -> RV {
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
         self.env = Environment::new(Some(self.env.clone()));
+        if let Some(pairs) = pairs_opt {
+            for pair in pairs {
+                self.env.borrow_mut().declare(pair.0, pair.1)
+            }
+        }
         for statement in statements {
             self.visit_stmt(statement);
         }
@@ -181,7 +186,7 @@ impl Visitor<RV> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(expr),
             Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap().clone(),
+            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
                 if let Err(msg) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
@@ -237,7 +242,7 @@ impl Visitor<RV> for Interpreter {
                     }
                 }
             },
-            Stmt::Block(statements) => { self.execute_block(statements); },
+            Stmt::Block(statements) => { return self.execute_block(statements, None); },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(if_stmt);
@@ -266,6 +271,12 @@ impl Visitor<RV> for Interpreter {
                 if !self.set_loop_state(LoopState::Continue, None) {
                     runtime_err("Unexpected continue statement", token.line);
                 }
+            },
+            Stmt::Return(_token, expr) => {
+                if !expr.is_none() {
+                    return self.visit_expr(expr.as_ref().unwrap());
+                }
+                return RV::Undefined;
             },
             Stmt::Function(token, parameters, body) => {
                 let fun = Function {

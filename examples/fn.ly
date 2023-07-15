@@ -1,8 +1,8 @@
 fun helloWorld (message) {
     print("Hello world!", message);
-    break;
+    return "as";
 }
 
 for (var i=0; i<10; i = i + 1) {
-    helloWorld("My name is Lykia.");
+    print(helloWorld("My name is Lykia."));
 }

@@ -39,7 +39,15 @@ impl Callable for Function {
     }
 
     fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> RV {
-        interpreter.execute_block(&self.body)
+        let parameters = &self.parameters;
+
+        let mut pairs: Vec<(String, RV)> = Vec::new();
+
+        for (i, param) in parameters.iter().enumerate() {
+            pairs.push((param.to_string(), args.get(i).unwrap().clone()));
+        }
+
+        interpreter.execute_block(&self.body, Some(pairs))
     }
 
     fn get_desc(&self) -> &str {

@@ -70,6 +70,9 @@ impl<'a> Parser<'a> {
         if self.match_next(Continue) {
             return self.continue_statement();
         }
+        if self.match_next(Return) {
+            return self.return_statement();
+        }
         if self.match_next(LeftBrace) {
             return self.block();
         }
@@ -101,6 +104,17 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.declaration();
 
         Stmt::Loop(Some(condition), Box::from(inner_stmt), None)
+    }
+
+    fn return_statement(&mut self) -> Stmt {
+        let tok = self.peek_bw(1);
+        let mut expr: Option<BExpr> = None;
+        if !self.cmp_tok(&Semicolon) {
+            expr = Some(self.expression());
+        }
+        self.consume(Semicolon, "Expected ';' after return value.");
+
+        Stmt::Return(tok.clone(), expr)
     }
 
     fn for_statement(&mut self) -> Stmt {
