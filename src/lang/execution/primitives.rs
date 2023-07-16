@@ -47,7 +47,7 @@ impl Callable for Function {
             pairs.push((param.to_string(), args.get(i).unwrap().clone()));
         }
 
-        interpreter.fn_call(&self.body, Some(pairs))
+        interpreter.user_fn_call(&self.body, Some(pairs))
     }
 
     fn get_desc(&self) -> &str {

@@ -173,11 +173,8 @@ impl Interpreter {
         true
     }
 
-    pub fn fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
-        self.call_stack.insert(0, Context::new());
-        let val = self.execute_block(statements, pairs_opt);
-        self.call_stack.remove(0);
-        val
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
+        self.execute_block(statements, pairs_opt)
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
@@ -233,7 +230,10 @@ impl Visitor<RV> for Interpreter {
                         exit(1);
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg) ).collect();
-                    callable.call(self, args_evaluated)
+                    self.call_stack.insert(0, Context::new());
+                    let val = callable.call(self, args_evaluated);
+                    self.call_stack.remove(0);
+                    val
                 }
                 else {
                     runtime_err("Expression does not yield a callable", paren.line);
