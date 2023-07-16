@@ -15,16 +15,29 @@ macro_rules! bool2num {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum LoopState {
     Go,
     Broken,
-    Continue
+    Continue,
+}
+
+#[derive(Debug)]
+pub struct Context {
+    ongoing_loops: Vec<LoopState>
+}
+
+impl Context {
+    pub fn new() -> Context {
+        Context {
+            ongoing_loops: vec![]
+        }
+    }
 }
 
 pub struct Interpreter {
     env: Shared<Environment>,
-    ongoing_loops: Vec<LoopState>
+    call_stack: Vec<Context>
 }
 
 fn is_value_truthy(rv: RV) -> bool {
@@ -43,7 +56,7 @@ impl Interpreter {
     pub fn new(env: Shared<Environment>) -> Interpreter {
         Interpreter {
             env,
-            ongoing_loops: vec![]
+            call_stack: vec![Context::new()]
         }
     }
 
@@ -140,13 +153,13 @@ impl Interpreter {
 
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
-        *self.ongoing_loops.last().unwrap() == state
+        *self.call_stack[0].ongoing_loops.last().unwrap() == state
     }
 
     fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
         if from.is_none() {
-            return if !self.ongoing_loops.is_empty() {
-                let last_item = self.ongoing_loops.last_mut();
+            return if !self.call_stack[0].ongoing_loops.is_empty() {
+                let last_item = self.call_stack[0].ongoing_loops.last_mut();
                 *last_item.unwrap() = to;
                 true
             } else {
@@ -154,10 +167,17 @@ impl Interpreter {
             }
         }
         else if self.is_loop_at(from.unwrap()) {
-            let last_item = self.ongoing_loops.last_mut();
+            let last_item = self.call_stack[0].ongoing_loops.last_mut();
             *last_item.unwrap() = to;
         }
         true
+    }
+
+    pub fn fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
+        self.call_stack.insert(0, Context::new());
+        let val = self.execute_block(statements, pairs_opt);
+        self.call_stack.remove(0);
+        val
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
@@ -224,7 +244,7 @@ impl Visitor<RV> for Interpreter {
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> RV {
-        if !self.ongoing_loops.is_empty() && *self.ongoing_loops.last().unwrap() == LoopState::Continue {
+        if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
             return RV::Undefined;
         }
         match e {
@@ -252,7 +272,7 @@ impl Visitor<RV> for Interpreter {
                 }
             },
             Stmt::Loop(condition, stmt, post_body) => {
-                self.ongoing_loops.push(LoopState::Go);
+                self.call_stack[0].ongoing_loops.push(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
                     self.visit_stmt(stmt);
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
@@ -260,7 +280,7 @@ impl Visitor<RV> for Interpreter {
                         self.visit_stmt(post);
                     }
                 }
-                self.ongoing_loops.pop();
+                self.call_stack[0].ongoing_loops.pop();
             },
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
