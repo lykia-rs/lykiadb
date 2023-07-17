@@ -1,6 +1,6 @@
 fun helloWorld (message) {
     print("Hello world!", message);
-    return "as";
+    return "bonsoir";
 }
 
 for (var i=0; i<10; i = i + 1) {

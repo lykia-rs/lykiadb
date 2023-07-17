@@ -24,13 +24,15 @@ pub enum LoopState {
 
 #[derive(Debug)]
 pub struct Context {
-    ongoing_loops: Vec<LoopState>
+    ongoing_loops: Vec<LoopState>,
+    ret: Option<RV>
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
-            ongoing_loops: vec![]
+            ongoing_loops: vec![],
+            ret: None
         }
     }
 }
@@ -186,8 +188,14 @@ impl Interpreter {
         }
         for statement in statements {
             self.visit_stmt(statement);
+            if self.call_stack[0].ret.is_some() {
+                break;
+            }
         }
         self.env = self.env.clone().borrow_mut().pop();
+        if self.call_stack[0].ret.is_some() {
+            return self.call_stack[0].ret.clone().unwrap();
+        }
         RV::Undefined
     }
 }
@@ -247,6 +255,9 @@ impl Visitor<RV> for Interpreter {
         if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
             return RV::Undefined;
         }
+        if self.call_stack[0].ret.is_some() {
+            return RV::Undefined;
+        }
         match e {
             Stmt::Expression(expr) => {
                 return self.visit_expr(expr)
@@ -293,8 +304,9 @@ impl Visitor<RV> for Interpreter {
                 }
             },
             Stmt::Return(_token, expr) => {
-                if !expr.is_none() {
-                    return self.visit_expr(expr.as_ref().unwrap());
+                if expr.is_some() {
+                    let ret = self.visit_expr(expr.as_ref().unwrap());
+                    self.call_stack[0].ret = Some(ret);
                 }
                 return RV::Undefined;
             },

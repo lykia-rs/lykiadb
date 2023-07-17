@@ -48,6 +48,7 @@ impl Callable for Function {
         }
 
         interpreter.user_fn_call(&self.body, Some(pairs))
+
     }
 
     fn get_desc(&self) -> &str {
