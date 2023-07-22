@@ -3,9 +3,9 @@ use crate::lang::parsing::token::{LiteralValue, Token};
 pub type BExpr = Box<Expr>;
 pub type BStmt = Box<Stmt>;
 
-pub trait Visitor<T> {
+pub trait Visitor<T, Q> {
     fn visit_expr(&mut self, e: &Expr) -> T;
-    fn visit_stmt(&mut self, e: &Stmt) -> T;
+    fn visit_stmt(&mut self, e: &Stmt) -> Result<T, Q>;
 }
 
 #[derive(Debug)]

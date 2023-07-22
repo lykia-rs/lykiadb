@@ -2,11 +2,11 @@ use std::process::exit;
 use std::rc::Rc;
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
-use crate::lang::parsing::token::LiteralValue::{Num, Str, Bool, Nil};
+use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::execution::error::runtime_err;
-use crate::lang::execution::primitives::{Function, RV};
+use crate::lang::execution::primitives::{Function, Reason, RV};
 use crate::lang::execution::primitives::RV::Callable;
 
 macro_rules! bool2num {
@@ -25,14 +25,12 @@ pub enum LoopState {
 #[derive(Debug)]
 pub struct Context {
     ongoing_loops: Vec<LoopState>,
-    ret: Option<RV>
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
             ongoing_loops: vec![],
-            ret: None
         }
     }
 }
@@ -175,32 +173,30 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> Result<RV, Reason> {
         self.execute_block(statements, pairs_opt)
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> RV {
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> Result<RV, Reason> {
         self.env = Environment::new(Some(self.env.clone()));
         if let Some(pairs) = pairs_opt {
             for pair in pairs {
                 self.env.borrow_mut().declare(pair.0, pair.1)
             }
         }
+        let mut ret = Ok(RV::Undefined);
         for statement in statements {
-            self.visit_stmt(statement);
-            if self.call_stack[0].ret.is_some() {
+            ret = self.visit_stmt(statement);
+            if ret.is_err() {
                 break;
             }
         }
         self.env = self.env.clone().borrow_mut().pop();
-        if self.call_stack[0].ret.is_some() {
-            return self.call_stack[0].ret.clone().unwrap();
-        }
-        RV::Undefined
+        ret
     }
 }
 
-impl Visitor<RV> for Interpreter {
+impl Visitor<RV, Reason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
@@ -214,7 +210,7 @@ impl Visitor<RV> for Interpreter {
             Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(msg) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
+                if let Err(Reason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line)
                 }
                 evaluated
@@ -237,11 +233,17 @@ impl Visitor<RV> for Interpreter {
                         runtime_err(&format!("Function expects {} arguments, while provided {}.", arity.unwrap(), arguments.len()), paren.line);
                         exit(1);
                     }
-                    let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg) ).collect();
+                    let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
                     self.call_stack.insert(0, Context::new());
                     let val = callable.call(self, args_evaluated);
                     self.call_stack.remove(0);
-                    val
+                    match val {
+                        Err(Reason::Return(unpacked_val)) => {
+                            unpacked_val
+                        }
+                        Err(Reason::Error(msg))=> panic!("{}", msg),
+                        _ => RV::Undefined
+                    }
                 }
                 else {
                     runtime_err("Expression does not yield a callable", paren.line);
@@ -251,16 +253,13 @@ impl Visitor<RV> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, e: &Stmt) -> RV {
+    fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, Reason> {
         if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
-            return RV::Undefined;
-        }
-        if self.call_stack[0].ret.is_some() {
-            return RV::Undefined;
+            return Ok(RV::Undefined);
         }
         match e {
             Stmt::Expression(expr) => {
-                return self.visit_expr(expr)
+                return Ok(self.visit_expr(expr));
             },
             Stmt::Declaration(tok, expr) => {
                 match &tok.lexeme {
@@ -273,22 +272,22 @@ impl Visitor<RV> for Interpreter {
                     }
                 }
             },
-            Stmt::Block(statements) => { return self.execute_block(statements, None); },
+            Stmt::Block(statements) => { return Ok(self.execute_block(statements, None))?; },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
-                    self.visit_stmt(if_stmt);
+                    self.visit_stmt(if_stmt)?;
                 }
                 else if let Some(else_stmt) = else_optional {
-                    self.visit_stmt(else_stmt);
+                    self.visit_stmt(else_stmt)?;
                 }
             },
             Stmt::Loop(condition, stmt, post_body) => {
                 self.call_stack[0].ongoing_loops.push(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
-                    self.visit_stmt(stmt);
+                    self.visit_stmt(stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post) = post_body {
-                        self.visit_stmt(post);
+                        self.visit_stmt(post)?;
                     }
                 }
                 self.call_stack[0].ongoing_loops.pop();
@@ -306,9 +305,9 @@ impl Visitor<RV> for Interpreter {
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.as_ref().unwrap());
-                    self.call_stack[0].ret = Some(ret);
+                    return Err(Reason::Return(ret));
                 }
-                return RV::Undefined;
+                return Err(Reason::Return(RV::Undefined));
             },
             Stmt::Function(token, parameters, body) => {
                 let fun = Function {
@@ -319,6 +318,6 @@ impl Visitor<RV> for Interpreter {
                 self.env.borrow_mut().declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
             }
         }
-        RV::Undefined
+        Ok(RV::Undefined)
     }
 }

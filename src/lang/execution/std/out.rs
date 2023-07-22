@@ -1,5 +1,5 @@
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::{Callable, RV};
+use crate::lang::execution::primitives::{Callable, Reason, RV};
 
 pub struct Print;
 impl Callable for Print {
@@ -7,11 +7,11 @@ impl Callable for Print {
         None
     }
 
-    fn call(&self, _interpreter: &mut Interpreter, args: Vec<RV>) -> RV {
+    fn call(&self, _interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason> {
         for arg in args {
             print!("{:?} ", arg);
         }
         println!();
-        RV::Undefined
+        Err(Reason::Return(RV::Undefined))
     }
 }

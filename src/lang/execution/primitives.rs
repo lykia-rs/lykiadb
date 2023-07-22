@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::parsing::ast::{Stmt};
+use crate::lang::parsing::ast::Stmt;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -14,9 +14,15 @@ pub enum RV {
     Callable(Rc<dyn Callable>)
 }
 
+#[derive(Debug)]
+pub enum Reason {
+    Error(String),
+    Return(RV),
+}
+
 pub trait Callable {
     fn arity(&self) -> Option<usize>;
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> RV;
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason>;
     fn get_desc(&self) -> &str {
         "<native_fn>"
     }
@@ -38,7 +44,7 @@ impl Callable for Function {
         Some(self.parameters.len())
     }
 
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> RV {
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason> {
         let parameters = &self.parameters;
 
         let mut pairs: Vec<(String, RV)> = Vec::new();
@@ -47,8 +53,7 @@ impl Callable for Function {
             pairs.push((param.to_string(), args.get(i).unwrap().clone()));
         }
 
-        interpreter.user_fn_call(&self.body, Some(pairs))
-
+        interpreter.user_fn_call(&self.body, Some(pairs)).map(|_| RV::Undefined)
     }
 
     fn get_desc(&self) -> &str {
