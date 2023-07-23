@@ -48,17 +48,10 @@ impl Callable for Function {
 
     fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason> {
         let parameters = &self.parameters;
-
-        let mut pairs: Vec<(String, RV)> = Vec::new();
-
-        for (i, param) in parameters.iter().enumerate() {
-            pairs.push((param.to_string(), args.get(i).unwrap().clone()));
-        }
-
         let fn_env = Environment::new(self.closure.clone());
 
-        for pair in pairs {
-            fn_env.borrow_mut().declare(pair.0, pair.1)
+        for (i, param) in parameters.iter().enumerate() {
+            fn_env.borrow_mut().declare(param.to_string(), args.get(i).unwrap().clone());
         }
 
         interpreter.user_fn_call(&self.body, fn_env).map(|_| RV::Undefined)
