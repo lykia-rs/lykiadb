@@ -5,8 +5,7 @@ use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
-use crate::lang::execution::error::runtime_err;
-use crate::lang::execution::primitives::{Function, HaltReason, RV};
+use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
 
 macro_rules! bool2num {
@@ -220,7 +219,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
                 if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
-                    runtime_err(&msg, tok.line)
+                    runtime_err(&msg, tok.line);
+                    exit(1);
                 }
                 evaluated
             },

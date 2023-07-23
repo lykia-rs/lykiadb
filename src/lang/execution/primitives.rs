@@ -21,6 +21,10 @@ pub enum HaltReason {
     Return(RV),
 }
 
+pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
+    HaltReason::Error(format!("{} at line {}", msg, line + 1))
+}
+
 pub trait Callable {
     fn arity(&self) -> Option<usize>;
     fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, HaltReason>;
