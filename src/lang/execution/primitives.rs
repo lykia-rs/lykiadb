@@ -16,14 +16,14 @@ pub enum RV {
 }
 
 #[derive(Debug)]
-pub enum Reason {
+pub enum HaltReason {
     Error(String),
     Return(RV),
 }
 
 pub trait Callable {
     fn arity(&self) -> Option<usize>;
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason>;
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, HaltReason>;
     fn get_desc(&self) -> &str {
         "<native_fn>"
     }
@@ -46,7 +46,7 @@ impl Callable for Function {
         Some(self.parameters.len())
     }
 
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, Reason> {
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, HaltReason> {
         let parameters = &self.parameters;
         let fn_env = Environment::new(self.closure.clone());
 

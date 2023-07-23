@@ -1,6 +1,6 @@
 use std::time;
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::{Callable, Reason, RV};
+use crate::lang::execution::primitives::{Callable, HaltReason, RV};
 
 pub struct Clock;
 impl Callable for Clock {
@@ -8,11 +8,11 @@ impl Callable for Clock {
         Some(0)
     }
 
-    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<RV>) -> Result<RV, Reason> {
+    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<RV>) -> Result<RV, HaltReason> {
         if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
-            return Err(Reason::Return(RV::Num(n.as_secs_f64())));
+            return Err(HaltReason::Return(RV::Num(n.as_secs_f64())));
         }
-        Err(Reason::Return(RV::Undefined))
+        Err(HaltReason::Return(RV::Undefined))
     }
 }
 
@@ -23,7 +23,7 @@ impl Callable for Bench {
         Some(2)
     }
 
-    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<RV>) -> Result<RV, Reason> {
+    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<RV>) -> Result<RV, HaltReason> {
         let benched = &_args[0];
         let repeats = &_args[1];
 
@@ -38,9 +38,9 @@ impl Callable for Bench {
                     let end =  time::SystemTime::now().duration_since(time::UNIX_EPOCH);
                     total += end.unwrap().as_secs_f64() - start.unwrap().as_secs_f64();
                 }
-                return Err(Reason::Return(RV::Num(total / repeat_int as f64)));
+                return Err(HaltReason::Return(RV::Num(total / repeat_int as f64)));
             }
         }
-        Err(Reason::Error("Unexpected types for bench function".to_owned()))
+        Err(HaltReason::Error("Unexpected types for bench function".to_owned()))
     }
 }

@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
-use crate::lang::execution::primitives::{Reason, RV};
+use crate::lang::execution::primitives::{HaltReason, RV};
 
 pub type Shared<T> = Rc<RefCell<T>>;
 
@@ -30,7 +30,7 @@ impl Environment {
         self.map.insert(name, value);
     }
 
-    pub fn assign(&mut self, name: String, value: RV) -> Result<bool, Reason> {
+    pub fn assign(&mut self, name: String, value: RV) -> Result<bool, HaltReason> {
         if self.map.contains_key(&name) {
             self.map.insert(name, value);
             return Ok(true);
@@ -40,10 +40,10 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().assign(name, value);
         }
 
-        Err(Reason::Error(format!("Assignment to an undefined variable '{}'", &name)))
+        Err(HaltReason::Error(format!("Assignment to an undefined variable '{}'", &name)))
     }
 
-    pub fn read(&mut self, name: &String) -> Result<RV, Reason> {
+    pub fn read(&mut self, name: &String) -> Result<RV, HaltReason> {
         if self.map.contains_key(name) {
             // TODO(vck): Remove clone
             return Ok(self.map.get(name).unwrap().clone());
@@ -53,6 +53,6 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().read(name);
         }
 
-        Err(Reason::Error(format!("Variable '{}' was not found.", &name)))
+        Err(HaltReason::Error(format!("Variable '{}' was not found.", &name)))
     }
 }

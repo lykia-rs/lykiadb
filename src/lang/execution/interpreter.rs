@@ -6,7 +6,7 @@ use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
 use crate::lang::parsing::token::Token;
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::execution::error::runtime_err;
-use crate::lang::execution::primitives::{Function, Reason, RV};
+use crate::lang::execution::primitives::{Function, HaltReason, RV};
 use crate::lang::execution::primitives::RV::Callable;
 
 macro_rules! bool2num {
@@ -173,11 +173,11 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, Reason> {
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, HaltReason> {
         self.execute_block(statements, Some(environment))
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, Reason> {
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
         let mut env_tmp: Option<Shared<Environment>> = None;
 
         if let Some(env_opt_unwrapped) = env_opt {
@@ -205,7 +205,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor<RV, Reason> for Interpreter {
+impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
@@ -219,7 +219,7 @@ impl Visitor<RV, Reason> for Interpreter {
             Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(Reason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
+                if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line)
                 }
                 evaluated
@@ -247,10 +247,10 @@ impl Visitor<RV, Reason> for Interpreter {
                     let val = callable.call(self, args_evaluated);
                     self.call_stack.remove(0);
                     match val {
-                        Err(Reason::Return(unpacked_val)) => {
+                        Err(HaltReason::Return(unpacked_val)) => {
                             unpacked_val
                         }
-                        Err(Reason::Error(msg))=> panic!("{}", msg),
+                        Err(HaltReason::Error(msg))=> panic!("{}", msg),
                         _ => RV::Undefined
                     }
                 }
@@ -262,7 +262,7 @@ impl Visitor<RV, Reason> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, Reason> {
+    fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
         if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
             return Ok(RV::Undefined);
         }
@@ -314,9 +314,9 @@ impl Visitor<RV, Reason> for Interpreter {
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.as_ref().unwrap());
-                    return Err(Reason::Return(ret));
+                    return Err(HaltReason::Return(ret));
                 }
-                return Err(Reason::Return(RV::Undefined));
+                return Err(HaltReason::Return(RV::Undefined));
             },
             Stmt::Function(token, parameters, body) => {
                 let fun = Function {
