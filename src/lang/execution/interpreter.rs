@@ -173,25 +173,34 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> Result<RV, Reason> {
-        self.execute_block(statements, pairs_opt)
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, Reason> {
+        self.execute_block(statements, Some(environment))
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, pairs_opt: Option<Vec<(String, RV)>>) -> Result<RV, Reason> {
-        self.env = Environment::new(Some(self.env.clone()));
-        if let Some(pairs) = pairs_opt {
-            for pair in pairs {
-                self.env.borrow_mut().declare(pair.0, pair.1)
-            }
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, Reason> {
+        let mut env_tmp: Option<Shared<Environment>> = None;
+
+        if let Some(env_opt_unwrapped) = env_opt {
+            env_tmp = Some(self.env.clone());
+            self.env = env_opt_unwrapped;
+        }
+        else {
+            self.env = Environment::new(Some(self.env.clone()));
         }
         let mut ret = Ok(RV::Undefined);
+
         for statement in statements {
             ret = self.visit_stmt(statement);
             if ret.is_err() {
                 break;
             }
         }
-        self.env = self.env.clone().borrow_mut().pop();
+        if let Some(env_tmp_unwrapped) = env_tmp {
+            self.env = env_tmp_unwrapped;
+        }
+        else {
+            self.env = self.env.clone().borrow_mut().pop();
+        }
         ret
     }
 }
@@ -312,7 +321,8 @@ impl Visitor<RV, Reason> for Interpreter {
             Stmt::Function(token, parameters, body) => {
                 let fun = Function {
                     parameters: (*parameters).iter().map(|x| x.lexeme.as_ref().unwrap().clone()).collect(),
-                    body: body.clone()
+                    body: body.clone(),
+                    closure: Some(self.env.clone())
                 };
 
                 self.env.borrow_mut().declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));

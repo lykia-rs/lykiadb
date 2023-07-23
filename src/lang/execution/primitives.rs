@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
+use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::parsing::ast::Stmt;
 
@@ -37,6 +38,7 @@ impl Debug for dyn Callable {
 pub struct Function {
     pub parameters: Vec<Rc<String>>,
     pub body: Rc<Vec<Stmt>>,
+    pub closure: Option<Shared<Environment>>
 }
 
 impl Callable for Function {
@@ -53,7 +55,13 @@ impl Callable for Function {
             pairs.push((param.to_string(), args.get(i).unwrap().clone()));
         }
 
-        interpreter.user_fn_call(&self.body, Some(pairs)).map(|_| RV::Undefined)
+        let fn_env = Environment::new(self.closure.clone());
+
+        for pair in pairs {
+            fn_env.borrow_mut().declare(pair.0, pair.1)
+        }
+
+        interpreter.user_fn_call(&self.body, fn_env).map(|_| RV::Undefined)
     }
 
     fn get_desc(&self) -> &str {
