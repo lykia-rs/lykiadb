@@ -1,4 +1,3 @@
-use std::io::repeat;
 use std::time;
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::{Callable, Reason, RV};
