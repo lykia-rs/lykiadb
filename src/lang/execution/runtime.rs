@@ -6,7 +6,7 @@ use crate::lang::execution::environment::Environment;
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::RV;
 use crate::lang::execution::std::out::Print;
-use crate::lang::execution::std::time::Clock;
+use crate::lang::execution::std::time::{Bench, Clock};
 
 pub struct Runtime {
     interpreter: Interpreter,
@@ -24,6 +24,7 @@ impl Runtime {
         let env = Environment::new(None);
 
         env.borrow_mut().declare("clock".to_string(), RV::Callable(Rc::new(Clock)));
+        env.borrow_mut().declare("bench".to_string(), RV::Callable(Rc::new(Bench)));
         env.borrow_mut().declare("print".to_string(), RV::Callable(Rc::new(Print)));
 
         Runtime {
