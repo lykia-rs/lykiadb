@@ -10,9 +10,9 @@ impl Callable for Clock {
 
     fn call(&self, _interpreter: &mut Interpreter, _args: Vec<RV>) -> Result<RV, HaltReason> {
         if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
-            return Err(HaltReason::Return(RV::Num(n.as_secs_f64())));
+            return Ok(RV::Num(n.as_secs_f64()));
         }
-        Err(HaltReason::Return(RV::Undefined))
+        Ok(RV::Undefined)
     }
 }
 
@@ -38,7 +38,7 @@ impl Callable for Bench {
                     let end =  time::SystemTime::now().duration_since(time::UNIX_EPOCH);
                     total += end.unwrap().as_secs_f64() - start.unwrap().as_secs_f64();
                 }
-                return Err(HaltReason::Return(RV::Num(total / repeat_int as f64)));
+                return Ok(RV::Num(total / repeat_int as f64));
             }
         }
         Err(HaltReason::Error("Unexpected types for bench function".to_owned()))

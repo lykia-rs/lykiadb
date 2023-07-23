@@ -12,6 +12,6 @@ impl Callable for Print {
             print!("{:?} ", arg);
         }
         println!();
-        Err(HaltReason::Return(RV::Undefined))
+        Ok(RV::Undefined)
     }
 }

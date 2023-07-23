@@ -247,11 +247,13 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     let val = callable.call(self, args_evaluated);
                     self.call_stack.remove(0);
                     match val {
+                        Err(HaltReason::Error(msg))=> panic!("{}", msg),
                         Err(HaltReason::Return(unpacked_val)) => {
                             unpacked_val
                         }
-                        Err(HaltReason::Error(msg))=> panic!("{}", msg),
-                        _ => RV::Undefined
+                        Ok(unpacked_val) => {
+                            unpacked_val
+                        }
                     }
                 }
                 else {
