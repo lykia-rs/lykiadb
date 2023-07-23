@@ -277,7 +277,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         self.env.borrow_mut().declare(var_name.to_string(), evaluated);
                     },
                     None => {
-                        runtime_err("Variable name cannot be empty", tok.line);
+                        return Err(runtime_err("Variable name cannot be empty", tok.line));
                     }
                 }
             },
@@ -303,12 +303,12 @@ impl Visitor<RV, HaltReason> for Interpreter {
             },
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
-                    runtime_err("Unexpected break statement", token.line);
+                    return Err(runtime_err("Unexpected break statement", token.line));
                 }
             },
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
-                    runtime_err("Unexpected continue statement", token.line);
+                    return Err(runtime_err("Unexpected continue statement", token.line));
                 }
             },
             Stmt::Return(_token, expr) => {
