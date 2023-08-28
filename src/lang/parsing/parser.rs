@@ -13,12 +13,6 @@ pub struct Parser<'a> {
 }
 
 #[derive(Debug)]
-pub enum ExpectedPos {
-    After,
-    Before,
-}
-
-#[derive(Debug)]
 pub enum ParseError {
     UnexpectedToken { line: u32, token: Token },
     MissingToken { line: u32, token: Token, description: String},
@@ -52,7 +46,7 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             statements.push(self.declaration()?);
         }
-        self.expected(Eof, ExpectedPos::After, self.peek_bw(0))?;
+        self.expected(Eof)?;
         Ok(statements)
     }
 
@@ -95,9 +89,9 @@ impl<'a> Parser<'a> {
     }
 
     fn if_statement(&mut self) -> ParseResult<Stmt> {
-        self.expected(sym!(LeftParen), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
-        self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(RightParen))?;
         let if_branch = self.statement()?;
 
         if self.match_next(kw!(Else)) {
@@ -113,9 +107,9 @@ impl<'a> Parser<'a> {
     }
 
     fn while_statement(&mut self) -> ParseResult<Stmt> {
-        self.expected(sym!(LeftParen), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
-        self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(RightParen))?;
         let inner_stmt = self.declaration()?;
 
         Ok(Stmt::Loop(Some(condition), Box::from(inner_stmt), None))
@@ -127,27 +121,27 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&sym!(Semicolon)) {
             expr = Some(self.expression()?);
         }
-        self.expected(sym!(Semicolon), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(Semicolon))?;
 
         Ok(Stmt::Return(tok.clone(), expr))
     }
 
     fn for_statement(&mut self) -> ParseResult<Stmt> {
-        self.expected(sym!(LeftParen), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(LeftParen))?;
 
         let initializer = if self.match_next(sym!(Semicolon)) { None } else { Some(self.declaration()?) };
 
         let condition = if self.match_next(sym!(Semicolon)) { None }
         else {
             let wrapped = self.expression()?;
-            self.expected(sym!(Semicolon), ExpectedPos::After, self.peek_bw(1))?;
+            self.expected(sym!(Semicolon))?;
             Some(wrapped)
         };
 
         let increment = if self.match_next(sym!(RightParen)) { None }
         else {
             let wrapped = self.expression()?;
-            self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
+            self.expected(sym!(RightParen))?;
             Some(Box::from(Stmt::Expression(wrapped)))
         };
 
@@ -169,44 +163,43 @@ impl<'a> Parser<'a> {
             statements.push(self.declaration()?);
         }
 
-        self.expected(sym!(RightBrace), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(RightBrace))?;
 
         Ok(Stmt::Block(statements))
     }
 
     fn break_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
-        self.expected(sym!(Semicolon), ExpectedPos::After, tok)?;
+        self.expected(sym!(Semicolon))?;
         Ok(Stmt::Break(tok.clone()))
     }
 
     fn continue_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
-        self.expected(sym!(Semicolon), ExpectedPos::After, tok)?;
+        self.expected(sym!(Semicolon))?;
         Ok(Stmt::Continue(tok.clone()))
     }
 
     fn expression_statement(&mut self) -> ParseResult<Stmt> {
         let expr = self.expression()?;
-        self.expected(sym!(Semicolon), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(Semicolon))?;
         Ok(Stmt::Expression(expr))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Stmt> {
-        let tok = self.peek_bw(1);
-        let token = self.expected(Identifier, ExpectedPos::After, tok)?.clone();
-        self.expected(sym!(LeftParen), ExpectedPos::After, self.peek_bw(1))?;
+        let token = self.expected(Identifier)?.clone();
+        self.expected(sym!(LeftParen))?;
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            let p = self.expected(Identifier, ExpectedPos::After, self.peek_bw(1))?;
+            let p = self.expected(Identifier)?;
             parameters.push(p.clone());
             while self.match_next(sym!(Comma)) {
-                let q = self.expected(Identifier, ExpectedPos::After, self.peek_bw(1))?;
+                let q = self.expected(Identifier)?;
                 parameters.push(q.clone());
             }
         }
-        self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
-        self.expected(sym!(LeftBrace), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(RightParen))?;
+        self.expected(sym!(LeftBrace))?;
         let block = self.block()?;
 
         let body = match block {
@@ -218,12 +211,12 @@ impl<'a> Parser<'a> {
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
-        let token = self.expected(Identifier, ExpectedPos::After, self.peek_bw(1))?.clone();
+        let token = self.expected(Identifier)?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
             false => Box::from(Literal(LiteralValue::Nil))
         };
-        self.expected(sym!(Semicolon), ExpectedPos::After, self.peek_bw(1))?;
+        self.expected(sym!(Semicolon))?;
         Ok(Stmt::Declaration(token, expr))
     }
 
@@ -300,7 +293,7 @@ impl<'a> Parser<'a> {
                 arguments.push(self.expression()?);
             }
         }
-        let paren = self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
+        let paren = self.expected(sym!(RightParen))?;
 
         Ok(Box::from(Expr::Call(callee, paren.clone(), arguments)))
     }
@@ -331,7 +324,7 @@ impl<'a> Parser<'a> {
             Identifier => Ok(Box::from(Variable(tok.clone()))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
-                self.expected(sym!(RightParen), ExpectedPos::After, self.peek_bw(1))?;
+                self.expected(sym!(RightParen))?;
                 Ok(Box::from(Grouping(expr)))
             },
             _ => {
@@ -340,14 +333,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expected(&mut self, expected_tok_type: TokenType, position: ExpectedPos, token: &Token) -> ParseResult<&Token> {
+    fn expected(&mut self, expected_tok_type: TokenType) -> ParseResult<&Token> {
         if self.cmp_tok(&expected_tok_type) {
             return Ok(self.advance());
         };
+        let prev_token = self.peek_bw(1);
         Err(ParseError::MissingToken {
-            line: token.line,
-            token: token.clone(),
-            description: format!("Expected '{:?}' {:?} {:?}", expected_tok_type, position, token)
+            line: prev_token.line,
+            token: prev_token.clone(),
+            description: format!("Expected '{:?}' after {:?}", expected_tok_type, self.peek_bw(1))
         })
     }
 
