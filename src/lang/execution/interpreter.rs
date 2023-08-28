@@ -1,12 +1,16 @@
 use std::process::exit;
 use std::rc::Rc;
+use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
-use crate::lang::parsing::token::Token;
-use crate::lang::parsing::token::TokenType::*;
+use crate::lang::parsing::token::{Token};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
+use crate::lang::parsing::token::TokenType;
+use crate::lang::parsing::token::Keyword::*;
+use crate::lang::parsing::token::Symbol::*;
+use crate::lang::parsing::token::TokenType::Symbol;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -60,7 +64,7 @@ impl Interpreter {
     }
 
     fn eval_unary(&mut self, tok: &Token, expr: &BExpr) -> RV {
-        if tok.tok_type == Minus {
+        if tok.tok_type == sym!(Minus) {
             let val = self.visit_expr(expr);
             match val {
                 RV::Num(value) => RV::Num(-value),
@@ -82,68 +86,68 @@ impl Interpreter {
         let (left_coerced, right_coerced) = match (&left_eval, &tok_type, &right_eval) {
             (RV::Num(n), _, RV::Bool(bool)) => (RV::Num(*n), RV::Num(bool2num!(*bool))),
             (RV::Bool(bool), _, RV::Num(n)) => (RV::Num(bool2num!(*bool)), RV::Num(*n)),
-            (RV::Bool(l), Plus, RV::Bool(r)) |
-            (RV::Bool(l), Minus, RV::Bool(r)) |
-            (RV::Bool(l), Star, RV::Bool(r)) |
-            (RV::Bool(l), Slash, RV::Bool(r)) => (RV::Num(bool2num!(*l)), RV::Num(bool2num!(*r))),
+            (RV::Bool(l), Symbol(Plus), RV::Bool(r)) |
+            (RV::Bool(l), Symbol(Minus), RV::Bool(r)) |
+            (RV::Bool(l), Symbol(Star), RV::Bool(r)) |
+            (RV::Bool(l), Symbol(Slash), RV::Bool(r)) => (RV::Num(bool2num!(*l)), RV::Num(bool2num!(*r))),
             (_, _, _) => (left_eval, right_eval)
         };
 
         match (left_coerced, tok_type, right_coerced) {
-            (RV::Nil, EqualEqual, RV::Nil) => RV::Bool(true),
-            (RV::Nil, BangEqual, RV::Nil) => RV::Bool(false),
+            (RV::Nil, Symbol(EqualEqual), RV::Nil) => RV::Bool(true),
+            (RV::Nil, Symbol(BangEqual), RV::Nil) => RV::Bool(false),
             //
-            (_, EqualEqual, RV::Nil) |
-            (RV::Nil, EqualEqual, _) => RV::Bool(false),
+            (_, Symbol(EqualEqual), RV::Nil) |
+            (RV::Nil, Symbol(EqualEqual), _) => RV::Bool(false),
             //
-            (RV::NaN, Plus, _) | (_, Plus, RV::NaN) |
-            (RV::NaN, Minus, _) | (_, Minus, RV::NaN) |
-            (RV::NaN, Star, _) | (_, Star, RV::NaN) |
-            (RV::NaN, Slash, _) | (_, Slash, RV::NaN) => RV::NaN,
+            (RV::NaN, Symbol(Plus), _) | (_, Symbol(Plus), RV::NaN) |
+            (RV::NaN, Symbol(Minus), _) | (_, Symbol(Minus), RV::NaN) |
+            (RV::NaN, Symbol(Star), _) | (_, Symbol(Star), RV::NaN) |
+            (RV::NaN, Symbol(Slash), _) | (_, Symbol(Slash), RV::NaN) => RV::NaN,
             //
-            (RV::Num(l), Plus, RV::Num(r)) => RV::Num(l + r),
-            (RV::Num(l), Minus, RV::Num(r)) => RV::Num(l - r),
-            (RV::Num(l), Star, RV::Num(r)) => RV::Num(l * r),
-            (RV::Num(l), Slash, RV::Num(r)) => RV::Num(l / r),
-            (RV::Num(l), Less, RV::Num(r)) => RV::Bool(l < r),
-            (RV::Num(l), LessEqual, RV::Num(r)) => RV::Bool(l <= r),
-            (RV::Num(l), Greater, RV::Num(r)) => RV::Bool(l > r),
-            (RV::Num(l), GreaterEqual, RV::Num(r)) => RV::Bool(l >= r),
-            (RV::Num(l), BangEqual, RV::Num(r)) => RV::Bool(l != r),
-            (RV::Num(l), EqualEqual, RV::Num(r)) => RV::Bool(l == r),
+            (RV::Num(l), Symbol(Plus), RV::Num(r)) => RV::Num(l + r),
+            (RV::Num(l), Symbol(Minus), RV::Num(r)) => RV::Num(l - r),
+            (RV::Num(l), Symbol(Star), RV::Num(r)) => RV::Num(l * r),
+            (RV::Num(l), Symbol(Slash), RV::Num(r)) => RV::Num(l / r),
+            (RV::Num(l), Symbol(Less), RV::Num(r)) => RV::Bool(l < r),
+            (RV::Num(l), Symbol(LessEqual), RV::Num(r)) => RV::Bool(l <= r),
+            (RV::Num(l), Symbol(Greater), RV::Num(r)) => RV::Bool(l > r),
+            (RV::Num(l), Symbol(GreaterEqual), RV::Num(r)) => RV::Bool(l >= r),
+            (RV::Num(l), Symbol(BangEqual), RV::Num(r)) => RV::Bool(l != r),
+            (RV::Num(l), Symbol(EqualEqual), RV::Num(r)) => RV::Bool(l == r),
             //
-            (RV::Str(l), Plus, RV::Str(r)) => RV::Str(Rc::new(l.to_string() + &r.to_string())),
-            (RV::Str(l), Less, RV::Str(r)) => RV::Bool(l < r),
-            (RV::Str(l), LessEqual, RV::Str(r)) => RV::Bool(l <= r),
-            (RV::Str(l), Greater, RV::Str(r)) => RV::Bool(l > r),
-            (RV::Str(l), GreaterEqual, RV::Str(r)) => RV::Bool(l >= r),
-            (RV::Str(l), BangEqual, RV::Str(r)) => RV::Bool(l != r),
-            (RV::Str(l), EqualEqual, RV::Str(r)) => RV::Bool(l == r),
+            (RV::Str(l), Symbol(Plus), RV::Str(r)) => RV::Str(Rc::new(l.to_string() + &r.to_string())),
+            (RV::Str(l), Symbol(Less), RV::Str(r)) => RV::Bool(l < r),
+            (RV::Str(l), Symbol(LessEqual), RV::Str(r)) => RV::Bool(l <= r),
+            (RV::Str(l), Symbol(Greater), RV::Str(r)) => RV::Bool(l > r),
+            (RV::Str(l), Symbol(GreaterEqual), RV::Str(r)) => RV::Bool(l >= r),
+            (RV::Str(l), Symbol(BangEqual), RV::Str(r)) => RV::Bool(l != r),
+            (RV::Str(l), Symbol(EqualEqual), RV::Str(r)) => RV::Bool(l == r),
             //
-            (RV::Bool(l), Less, RV::Bool(r)) => RV::Bool(!l & r),
-            (RV::Bool(l), LessEqual, RV::Bool(r)) => RV::Bool(l <= r),
-            (RV::Bool(l), Greater, RV::Bool(r)) => RV::Bool(l & !r),
-            (RV::Bool(l), GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
-            (RV::Bool(l), BangEqual, RV::Bool(r)) => RV::Bool(l != r),
-            (RV::Bool(l), EqualEqual, RV::Bool(r)) => RV::Bool(l == r),
+            (RV::Bool(l), Symbol(Less), RV::Bool(r)) => RV::Bool(!l & r),
+            (RV::Bool(l), Symbol(LessEqual), RV::Bool(r)) => RV::Bool(l <= r),
+            (RV::Bool(l), Symbol(Greater), RV::Bool(r)) => RV::Bool(l & !r),
+            (RV::Bool(l), Symbol(GreaterEqual), RV::Bool(r)) => RV::Bool(l >= r),
+            (RV::Bool(l), Symbol(BangEqual), RV::Bool(r)) => RV::Bool(l != r),
+            (RV::Bool(l), Symbol(EqualEqual), RV::Bool(r)) => RV::Bool(l == r),
             //
-            (RV::Str(s), Plus, RV::Num(num)) => RV::Str(Rc::new(s.to_string() + &num.to_string())),
-            (RV::Num(num), Plus, RV::Str(s)) => RV::Str(Rc::new(num.to_string() + &s.to_string())),
+            (RV::Str(s), Symbol(Plus), RV::Num(num)) => RV::Str(Rc::new(s.to_string() + &num.to_string())),
+            (RV::Num(num), Symbol(Plus), RV::Str(s)) => RV::Str(Rc::new(num.to_string() + &s.to_string())),
             //
-            (RV::Str(s), Plus, RV::Bool(bool))  => RV::Str(Rc::new(s.to_string() + &bool.to_string())),
-            (RV::Bool(bool), Plus, RV::Str(s)) => RV::Str(Rc::new(bool.to_string() + &s.to_string())),
+            (RV::Str(s), Symbol(Plus), RV::Bool(bool))  => RV::Str(Rc::new(s.to_string() + &bool.to_string())),
+            (RV::Bool(bool), Symbol(Plus), RV::Str(s)) => RV::Str(Rc::new(bool.to_string() + &s.to_string())),
             //
-            (_, Less, _) |
-            (_, LessEqual, _) |
-            (_, Greater, _) |
-            (_, GreaterEqual, _) |
-            (_, EqualEqual, _) |
-            (_, BangEqual, _) => RV::Bool(false),
+            (_, Symbol(Less), _) |
+            (_, Symbol(LessEqual), _) |
+            (_, Symbol(Greater), _) |
+            (_, Symbol(GreaterEqual), _) |
+            (_, Symbol(EqualEqual), _) |
+            (_, Symbol(BangEqual), _) => RV::Bool(false),
             //
-            (_, Plus, _) |
-            (_, Minus, _) |
-            (_, Star, _) |
-            (_, Slash, _) => RV::NaN,
+            (_, Symbol(Plus), _) |
+            (_, Symbol(Minus), _) |
+            (_, Symbol(Star), _) |
+            (_, Symbol(Slash), _) => RV::NaN,
             //
             (_, _, _) => RV::Undefined
         }
@@ -227,7 +231,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Logical(left, tok, right) => {
                 let is_true = is_value_truthy(self.visit_expr(left));
 
-                if (tok.tok_type == Or && is_true) || (tok.tok_type == And && !is_true) {
+                if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
                     return RV::Bool(is_true);
                 }
 

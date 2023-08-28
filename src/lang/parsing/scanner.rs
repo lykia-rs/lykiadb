@@ -1,8 +1,10 @@
 use std::rc::Rc;
 use crate::lang::parsing::error::scan_err;
-use crate::lang::parsing::token::{KEYWORDS, Token, TokenType};
+use crate::lang::parsing::token::*;
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
+use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::*;
+use crate::sym;
 
 pub struct Scanner {
     chars: Vec<char>,
@@ -141,13 +143,15 @@ impl Scanner {
         self.add_num_literal(&span);
     }
 
-    fn identifier(&mut self) {
+    fn identifier(&mut self, is_safe: bool) {
         while self.peek(0).is_alphanumeric() {
             self.advance();
         }
         let span: String = self.chars[self.start..self.current].iter().collect();
-        if KEYWORDS.contains_key(&span) {
-            self.add_token(&span,KEYWORDS.get(&span).unwrap().clone());
+        if CASE_SNS_KEYWORDS.contains_key(&span) {
+            self.add_token(&span, CASE_SNS_KEYWORDS.get(&span).unwrap().clone());
+        } else if CASE_INS_KEYWORDS.contains_key(&span.to_ascii_uppercase()) {
+            self.add_token(&span,CASE_INS_KEYWORDS.get(&span.to_ascii_uppercase()).unwrap().clone());
         } else {
             self.add_identifier(&span);
         }
@@ -156,27 +160,27 @@ impl Scanner {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(&c.to_string(), LeftParen),
-            ')' => self.add_token(&c.to_string(),RightParen),
-            '{' => self.add_token(&c.to_string(),LeftBrace),
-            '}' => self.add_token(&c.to_string(),RightBrace),
-            ',' => self.add_token(&c.to_string(),Comma),
-            '.' => self.add_token(&c.to_string(),Dot),
-            '-' => self.add_token(&c.to_string(),Minus),
-            '+' => self.add_token(&c.to_string(),Plus),
-            ';' => self.add_token(&c.to_string(),Semicolon),
-            '*' => self.add_token(&c.to_string(),Star),
-            '!' => self.add_double_token(&c.to_string(),'=', Bang, BangEqual),
-            '=' => self.add_double_token(&c.to_string(),'=', Equal, EqualEqual),
-            '<' => self.add_double_token(&c.to_string(),'=', Less, LessEqual),
-            '>' => self.add_double_token(&c.to_string(),'=', Greater, GreaterEqual),
+            '(' => self.add_token(&c.to_string(), sym!(LeftParen)),
+            ')' => self.add_token(&c.to_string(),sym!(RightParen)),
+            '{' => self.add_token(&c.to_string(),sym!(LeftBrace)),
+            '}' => self.add_token(&c.to_string(),sym!(RightBrace)),
+            ',' => self.add_token(&c.to_string(),sym!(Comma)),
+            '.' => self.add_token(&c.to_string(),sym!(Dot)),
+            '-' => self.add_token(&c.to_string(),sym!(Minus)),
+            '+' => self.add_token(&c.to_string(),sym!(Plus)),
+            ';' => self.add_token(&c.to_string(),sym!(Semicolon)),
+            '*' => self.add_token(&c.to_string(),sym!(Star)),
+            '!' => self.add_double_token(&c.to_string(),'=', sym!(Bang), sym!(BangEqual)),
+            '=' => self.add_double_token(&c.to_string(),'=', sym!(Equal), sym!(EqualEqual)),
+            '<' => self.add_double_token(&c.to_string(),'=', sym!(Less), sym!(LessEqual)),
+            '>' => self.add_double_token(&c.to_string(),'=', sym!(Greater), sym!(GreaterEqual)),
             '/' => {
                 if self.match_next('/') {
                     while !self.is_at_end() && self.peek(0) != '\n' {
                         self.advance();
                     }
                 } else {
-                    self.add_token(&c.to_string(),Slash);
+                    self.add_token(&c.to_string(),sym!(Slash));
                 }
             },
             ' ' => (),
@@ -185,7 +189,8 @@ impl Scanner {
             '\n' => self.line += 1,
             '"' => self.string(),
             '0'..='9' => self.number(),
-            'A'..='z' => self.identifier(),
+            'A'..='z' => self.identifier(false),
+            '$' => self.identifier(true),
             _ => scan_err(&format!("Unexpected character '{}'", c), self.line),
         }
     }
