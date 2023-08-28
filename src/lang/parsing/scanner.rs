@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use crate::lang::parsing::error::scan_err;
 use crate::lang::parsing::token::*;
 use crate::lang::parsing::token::LiteralValue::{Num, Str};
 use crate::lang::parsing::token::Symbol::*;
@@ -14,8 +13,15 @@ pub struct Scanner {
     line: u32
 }
 
+#[derive(Debug)]
+pub enum ScanError {
+    UnexpectedCharacter { line: u32, chr: char }, // scan_err(&format!("Unexpected character '{}'", c), self.line),
+    UnterminatedString { line: u32, string: String }, // &format!("Unterminated string '{}'", err_span), self.line);
+    MalformedNumberLiteral { line: u32, string: String } // &format!("Malformed number literal '{}'", err_span), self.line);
+}
+
 impl Scanner {
-    pub fn scan(source: &str) -> Vec<Token> {
+    pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
             chars: source.chars().collect(),
             tokens: vec![],
@@ -23,8 +29,8 @@ impl Scanner {
             current: 0,
             line: 0
         };
-        scanner.scan_tokens();
-        scanner.tokens
+        scanner.scan_tokens()?;
+        Ok(scanner.tokens)
     }
 
     fn match_next(&mut self, expected: char) -> bool {
@@ -100,7 +106,7 @@ impl Scanner {
         self.current >= self.chars.len()
     }
 
-    fn string(&mut self) {
+    fn string(&mut self) -> Result<(), ScanError> {
         while self.peek(0) != '"' && !self.is_at_end() {
             if self.peek(0) == '\n' {
                 self.line += 1;
@@ -110,16 +116,17 @@ impl Scanner {
 
         if self.is_at_end() {
             let err_span: String = self.chars[self.start + 1..self.current -1].iter().collect();
-            scan_err(&format!("Unterminated string '{}'", err_span), self.line);
+            return Err(ScanError::UnterminatedString {line: self.line, string: err_span});
         }
 
         self.advance();
 
         let span: String = self.chars[self.start + 1..self.current -1].iter().collect();
         self.add_str_literal(&span);
+        Ok(())
     }
 
-    fn number(&mut self) {
+    fn number(&mut self) -> Result<(), ScanError> {
         while self.peek(0).is_ascii_digit() { self.advance(); }
 
         if self.peek(0) == '.' && self.peek(1).is_ascii_digit() {
@@ -134,13 +141,14 @@ impl Scanner {
             }
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
                 let err_span: String = self.chars[self.start..self.current].iter().collect();
-                scan_err(&format!("Malformed number literal '{}'", err_span), self.line);
+                return Err(ScanError::MalformedNumberLiteral {line: self.line, string: err_span});
             }
             while self.peek(0).is_ascii_digit() { self.advance(); }
         }
 
         let span: String = self.chars[self.start..self.current].iter().collect();
         self.add_num_literal(&span);
+        Ok(())
     }
 
     fn identifier(&mut self, is_safe: bool) {
@@ -157,7 +165,7 @@ impl Scanner {
         }
     }
 
-    fn scan_token(&mut self) {
+    fn scan_token(&mut self) -> Result<(), ScanError> {
         let c = self.advance();
         match c {
             '(' => self.add_token(&c.to_string(), sym!(LeftParen)),
@@ -187,20 +195,22 @@ impl Scanner {
             '\r' => (),
             '\t' => (),
             '\n' => self.line += 1,
-            '"' => self.string(),
-            '0'..='9' => self.number(),
+            '"' => self.string()?,
+            '0'..='9' => self.number()?,
             'A'..='z' => self.identifier(false),
             '$' => self.identifier(true),
-            _ => scan_err(&format!("Unexpected character '{}'", c), self.line),
+            _ => return Err(ScanError::UnexpectedCharacter {line: self.line, chr: c})
         }
+        Ok(())
     }
 
-    fn scan_tokens(&mut self) {
+    fn scan_tokens(&mut self) -> Result<(), ScanError> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token();
+            self.scan_token()?;
         }
 
         self.add_token(" ", Eof);
+        Ok(())
     }
 }

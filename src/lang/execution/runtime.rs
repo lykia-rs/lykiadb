@@ -34,13 +34,22 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) {
-        let tokens = Scanner::scan(source);
-        let ast = Parser::parse(&tokens);
-        for stmt in ast {
-            let out = self.interpreter.visit_stmt(&stmt);
-            if self.mode == RuntimeMode::Repl {
-                println!("{:?}", out);
+        Scanner::scan(source).map(
+            |tokens| {
+                let ast = Parser::parse(&tokens);
+                for stmt in ast {
+                    let out = self.interpreter.visit_stmt(&stmt);
+                    if self.mode == RuntimeMode::Repl {
+                        println!("{:?}", out);
+                    }
+                }
+                tokens
             }
-        }
+        ).map_err(
+            |err| {
+                println!("{:?}", err);
+                err
+            }
+        );
     }
 }
