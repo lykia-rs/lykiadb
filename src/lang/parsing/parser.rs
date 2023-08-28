@@ -187,14 +187,14 @@ impl<'a> Parser<'a> {
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Stmt> {
-        let token = self.expected(Identifier)?.clone();
+        let token = self.expected(Identifier { dollar: false })?.clone();
         self.expected(sym!(LeftParen))?;
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            let p = self.expected(Identifier)?;
+            let p = self.expected(Identifier { dollar: true })?;
             parameters.push(p.clone());
             while self.match_next(sym!(Comma)) {
-                let q = self.expected(Identifier)?;
+                let q = self.expected(Identifier { dollar: true })?;
                 parameters.push(q.clone());
             }
         }
@@ -211,7 +211,7 @@ impl<'a> Parser<'a> {
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
-        let token = self.expected(Identifier)?.clone();
+        let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
             false => Box::from(Literal(LiteralValue::Nil))
@@ -321,7 +321,7 @@ impl<'a> Parser<'a> {
             False => Ok(Box::from(Literal(LiteralValue::Bool(false)))),
             Nil => Ok(Box::from(Literal(LiteralValue::Nil))),
             Str | Num => Ok(Box::from(Literal(tok.literal.clone().unwrap()))),
-            Identifier => Ok(Box::from(Variable(tok.clone()))),
+            Identifier { dollar: _ } => Ok(Box::from(Variable(tok.clone()))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;

@@ -1,10 +1,10 @@
-var a = "global";
+var $a = "global";
 {
   fun showA() {
-    print(a);
+    print($a);
   }
 
   showA();
-  var a = "block";
+  var $a = "block";
   showA();
 }

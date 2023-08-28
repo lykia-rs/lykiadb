@@ -84,15 +84,6 @@ impl Scanner {
         });
     }
 
-    fn add_identifier(&mut self, value: &str) {
-        self.tokens.push(Token {
-            tok_type: Identifier,
-            lexeme: Some(Rc::new(value.to_string())),
-            literal: Some(Str(Rc::new(value.to_string()))),
-            line: self.line
-        });
-    }
-
     fn add_double_token(&mut self, lexeme_prefix: &str, expected_second: char, token_single: TokenType, token_double: TokenType) {
         if self.match_next(expected_second) {
             let concat = lexeme_prefix.to_string() + &expected_second.to_string();
@@ -151,7 +142,7 @@ impl Scanner {
         Ok(())
     }
 
-    fn identifier(&mut self, is_safe: bool) {
+    fn identifier(&mut self, is_dollar: bool) {
         while self.peek(0).is_alphanumeric() {
             self.advance();
         }
@@ -161,7 +152,12 @@ impl Scanner {
         } else if CASE_INS_KEYWORDS.contains_key(&span.to_ascii_uppercase()) {
             self.add_token(&span,CASE_INS_KEYWORDS.get(&span.to_ascii_uppercase()).unwrap().clone());
         } else {
-            self.add_identifier(&span);
+            self.tokens.push(Token {
+                tok_type: Identifier { dollar: is_dollar },
+                lexeme: Some(Rc::new(span.to_string())),
+                literal: Some(Str(Rc::new(span.to_string()))),
+                line: self.line
+            });
         }
     }
 
@@ -257,7 +253,15 @@ mod test {
             Token {tok_type: TokenType::Str, lexeme: lexm!("hello world"), literal: Some(Str(Rc::new("hello world".to_string()))), line: 0},
             Token {tok_type: TokenType::True, lexeme: lexm!("true"), literal: None, line: 0},
             Token {tok_type: TokenType::False, lexeme: lexm!("false"), literal: None, line: 0},
-            Token {tok_type: TokenType::Identifier, lexeme: lexm!("helloIdentifier"), literal: Some(Str(Rc::new("helloIdentifier".to_string()))), line: 0},
+            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("helloIdentifier"), literal: Some(Str(Rc::new("helloIdentifier".to_string()))), line: 0},
+            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
+        ]);
+    }
+    #[test]
+    fn test_identifiers() {
+        assert_tokens("$myPreciseVariable myPreciseFunction", vec![
+            Token {tok_type: TokenType::Identifier { dollar: true }, lexeme: lexm!("$myPreciseVariable"), literal: Some(Str(Rc::new("$myPreciseVariable".to_string()))), line: 0},
+            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("myPreciseFunction"), literal: Some(Str(Rc::new("myPreciseFunction".to_string()))), line: 0},
             Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
         ]);
     }

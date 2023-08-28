@@ -40,8 +40,9 @@ pub enum TokenType {
     False,
     True,
     //
-    Identifier,
-    SafeIdentifier,
+    Identifier {
+        dollar: bool,
+    },
     //
     Symbol(Symbol),
     Keyword(Keyword),
