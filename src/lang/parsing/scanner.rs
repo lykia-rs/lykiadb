@@ -223,6 +223,7 @@ mod test {
 
     fn assert_tokens(source: &str, expected_tokens: Vec<Token>) {
         let tokens = Scanner::scan(source).unwrap();
+        println!("{:?}", tokens);
         assert_eq!(tokens.len(), expected_tokens.len());
         // assert that the elements are equal
         for (token, expected) in tokens.iter().zip(expected_tokens.iter()) {
@@ -249,7 +250,7 @@ mod test {
     }
 
     #[test]
-    fn test_literals() {
+    fn test_mixed_arbitrary() {
         assert_tokens("123 123.456 \"hello world\" true false helloIdentifier", vec![
             Token {tok_type: TokenType::Num, lexeme: lexm!("123"), literal: Some(Num(123.0)), line: 0},
             Token {tok_type: TokenType::Num, lexeme: lexm!("123.456"), literal: Some(Num(123.456)), line: 0},
@@ -257,6 +258,29 @@ mod test {
             Token {tok_type: TokenType::True, lexeme: lexm!("true"), literal: None, line: 0},
             Token {tok_type: TokenType::False, lexeme: lexm!("false"), literal: None, line: 0},
             Token {tok_type: TokenType::Identifier, lexeme: lexm!("helloIdentifier"), literal: Some(Str(Rc::new("helloIdentifier".to_string()))), line: 0},
+            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
+        ]);
+    }
+
+    #[test]
+    fn test_number_literals() {
+        assert_tokens("0 1 2 3 4 5 6 7 8 9 10 100 500 1000 1.7976931348623157E+308 1.7976931348623157E-308", vec![
+            Token {tok_type: TokenType::Num, lexeme: lexm!("0"), literal: Some(Num(0.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("1"), literal: Some(Num(1.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("2"), literal: Some(Num(2.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("3"), literal: Some(Num(3.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("4"), literal: Some(Num(4.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("5"), literal: Some(Num(5.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("6"), literal: Some(Num(6.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("7"), literal: Some(Num(7.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("8"), literal: Some(Num(8.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("9"), literal: Some(Num(9.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("10"), literal: Some(Num(10.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("100"), literal: Some(Num(100.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("500"), literal: Some(Num(500.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("1000"), literal: Some(Num(1000.0)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("1.7976931348623157E+308"), literal: Some(Num(1.7976931348623157E+308)), line: 0},
+            Token {tok_type: TokenType::Num, lexeme: lexm!("1.7976931348623157E-308"), literal: Some(Num(1.7976931348623157E-308)), line: 0},
             Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
         ]);
     }
