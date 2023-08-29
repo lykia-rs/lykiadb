@@ -27,14 +27,46 @@ pub enum LoopState {
 
 #[derive(Debug)]
 pub struct Context {
-    ongoing_loops: Vec<LoopState>,
+    ongoing_loops: Option<Vec<LoopState>>,
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
-            ongoing_loops: vec![],
+            ongoing_loops: None,
         }
+    }
+
+    pub fn push_loop(&mut self, state: LoopState) {
+        if self.ongoing_loops.is_none() {
+            self.ongoing_loops = Some(vec![]);
+        }
+        self.ongoing_loops.as_mut().unwrap().push(state);
+    }
+
+    pub fn pop_loop(&mut self) {
+        self.ongoing_loops.as_mut().unwrap().pop();
+    }
+
+    pub fn is_loops_empty(&self) -> bool {
+        if self.ongoing_loops.is_none() {
+            return true;
+        }
+        return self.ongoing_loops.as_ref().unwrap().is_empty()
+    }
+
+    pub fn get_last_loop(&self) -> Option<&LoopState> {
+        if self.ongoing_loops.is_none() {
+            return None;
+        }
+        return self.ongoing_loops.as_ref().unwrap().last();
+    }
+
+    pub fn set_last_loop(&mut self, to: LoopState) {
+        if self.ongoing_loops.is_none() {
+            return;
+        }
+        return self.ongoing_loops.as_mut().unwrap()[0] = to;
     }
 }
 
@@ -156,22 +188,20 @@ impl Interpreter {
 
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
-        *self.call_stack[0].ongoing_loops.last().unwrap() == state
+        *self.call_stack[0].get_last_loop().unwrap() == state
     }
 
     fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
         if from.is_none() {
-            return if !self.call_stack[0].ongoing_loops.is_empty() {
-                let last_item = self.call_stack[0].ongoing_loops.last_mut();
-                *last_item.unwrap() = to;
+            return if !self.call_stack[0].is_loops_empty() {
+                self.call_stack[0].set_last_loop(to);
                 true
             } else {
                 false
             }
         }
         else if self.is_loop_at(from.unwrap()) {
-            let last_item = self.call_stack[0].ongoing_loops.last_mut();
-            *last_item.unwrap() = to;
+            self.call_stack[0].set_last_loop(to);
         }
         true
     }
@@ -269,7 +299,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
-        if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
+        if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() == LoopState::Continue {
             return Ok(RV::Undefined);
         }
         match e {
@@ -297,7 +327,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Loop(condition, stmt, post_body) => {
-                self.call_stack[0].ongoing_loops.push(LoopState::Go);
+                self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
                     self.visit_stmt(stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
@@ -305,7 +335,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         self.visit_stmt(post)?;
                     }
                 }
-                self.call_stack[0].ongoing_loops.pop();
+                self.call_stack[0].pop_loop();
             },
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
