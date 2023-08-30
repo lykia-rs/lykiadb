@@ -1,7 +1,5 @@
 use std::process::exit;
-use std::rc::Rc;
 use rustc_hash::FxHashMap;
-use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::{HaltReason, runtime_err, RV};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::Token;

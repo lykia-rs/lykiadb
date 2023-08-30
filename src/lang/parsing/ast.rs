@@ -63,6 +63,7 @@ impl Expr {
     }
 }
 
+#[derive(Debug)]
 pub enum Stmt {
     Expression(BExpr),
     Function(Token, Vec<Token>, Rc<Vec<Stmt>>),

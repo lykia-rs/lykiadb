@@ -1,13 +1,10 @@
 use std::process::exit;
 use std::rc::Rc;
-use rustc_hash::FxHashMap;
-
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
-use crate::lang::execution::resolver::Resolver;
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
@@ -273,15 +270,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Call(_, callee, paren, arguments) => {
                 let eval = self.visit_expr(callee);
 
-                if let Callable(callable) = eval {
-                    let arity = callable.arity();
+                if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != arguments.len() {
                         runtime_err(&format!("Function expects {} arguments, while provided {}.", arity.unwrap(), arguments.len()), paren.line);
                         exit(1);
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
                     self.call_stack.insert(0, Context::new());
-                    let val = callable.call(self, args_evaluated);
+                    let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
                         Err(HaltReason::Error(msg))=> panic!("{}", msg),
@@ -358,13 +354,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 return Err(HaltReason::Return(RV::Undefined));
             },
             Stmt::Function(token, parameters, body) => {
-                let fun = Function {
-                    parameters: (*parameters).iter().map(|x| x.lexeme.as_ref().unwrap().clone()).collect(),
-                    body: body.clone(),
-                    closure: Some(self.env.clone())
-                };
+                let name = token.lexeme.as_ref().unwrap().to_string();
+                let fun = Function::UserDefined(
+                    name.clone(),
+                    Rc::clone(body),
+                    parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
+                    self.env.clone(),
+                );
 
-                self.env.borrow_mut().declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
+                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), Rc::new(fun)));
             }
         }
         Ok(RV::Undefined)

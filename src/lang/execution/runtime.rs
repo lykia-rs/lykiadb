@@ -4,9 +4,10 @@ use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
 use crate::lang::execution::environment::Environment;
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::RV;
-use crate::lang::execution::std::out::Print;
-use crate::lang::execution::std::time::{Bench, Clock};
+use crate::lang::execution::primitives::{Callable, Function, RV};
+use crate::lang::execution::std::fib::nt_fib;
+use crate::lang::execution::std::out::{nt_print};
+use crate::lang::execution::std::time::{nt_bench, nt_clock};
 
 pub struct Runtime {
     interpreter: Interpreter,
@@ -23,9 +24,10 @@ impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
         let env = Environment::new(None);
 
-        env.borrow_mut().declare("clock".to_string(), RV::Callable(Rc::new(Clock)));
-        env.borrow_mut().declare("bench".to_string(), RV::Callable(Rc::new(Bench)));
-        env.borrow_mut().declare("print".to_string(), RV::Callable(Rc::new(Print)));
+        env.borrow_mut().declare("clock".to_string(), RV::Callable(Some(0), Rc::new(Function::Native(nt_clock))));
+        env.borrow_mut().declare("bench".to_string(), RV::Callable(Some(1), Rc::new(Function::Native(nt_bench))));
+        env.borrow_mut().declare("print".to_string(), RV::Callable(None, Rc::new(Function::Native(nt_print))));
+        env.borrow_mut().declare("fibNat".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_fib))));
 
         Runtime {
             interpreter: Interpreter::new(env),
