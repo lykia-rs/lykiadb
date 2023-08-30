@@ -3,3 +3,4 @@ pub mod runtime;
 mod environment;
 mod primitives;
 mod std;
+mod resolver;

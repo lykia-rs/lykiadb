@@ -3,14 +3,14 @@ use std::rc::Rc;
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
-use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
-use crate::lang::parsing::token::{Token};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::Symbol;
+use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
+use crate::lang::parsing::token::Token;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -27,20 +27,52 @@ pub enum LoopState {
 
 #[derive(Debug)]
 pub struct Context {
-    ongoing_loops: Vec<LoopState>,
+    ongoing_loops: Option<Vec<LoopState>>,
 }
 
 impl Context {
     pub fn new() -> Context {
         Context {
-            ongoing_loops: vec![],
+            ongoing_loops: None,
         }
+    }
+
+    pub fn push_loop(&mut self, state: LoopState) {
+        if self.ongoing_loops.is_none() {
+            self.ongoing_loops = Some(vec![]);
+        }
+        self.ongoing_loops.as_mut().unwrap().push(state);
+    }
+
+    pub fn pop_loop(&mut self) {
+        self.ongoing_loops.as_mut().unwrap().pop();
+    }
+
+    pub fn is_loops_empty(&self) -> bool {
+        if self.ongoing_loops.is_none() {
+            return true;
+        }
+        return self.ongoing_loops.as_ref().unwrap().is_empty()
+    }
+
+    pub fn get_last_loop(&self) -> Option<&LoopState> {
+        if self.ongoing_loops.is_none() {
+            return None;
+        }
+        return self.ongoing_loops.as_ref().unwrap().last();
+    }
+
+    pub fn set_last_loop(&mut self, to: LoopState) {
+        if self.ongoing_loops.is_none() {
+            return;
+        }
+        return self.ongoing_loops.as_mut().unwrap()[0] = to;
     }
 }
 
 pub struct Interpreter {
     env: Shared<Environment>,
-    call_stack: Vec<Context>
+    call_stack: Vec<Context>,
 }
 
 fn is_value_truthy(rv: RV) -> bool {
@@ -156,22 +188,20 @@ impl Interpreter {
 
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
-        *self.call_stack[0].ongoing_loops.last().unwrap() == state
+        *self.call_stack[0].get_last_loop().unwrap() == state
     }
 
     fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
         if from.is_none() {
-            return if !self.call_stack[0].ongoing_loops.is_empty() {
-                let last_item = self.call_stack[0].ongoing_loops.last_mut();
-                *last_item.unwrap() = to;
+            return if !self.call_stack[0].is_loops_empty() {
+                self.call_stack[0].set_last_loop(to);
                 true
             } else {
                 false
             }
         }
         else if self.is_loop_at(from.unwrap()) {
-            let last_item = self.call_stack[0].ongoing_loops.last_mut();
-            *last_item.unwrap() = to;
+            self.call_stack[0].set_last_loop(to);
         }
         true
     }
@@ -212,15 +242,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
-            Expr::Literal(Str(value)) => RV::Str(value.clone()),
-            Expr::Literal(Num(value)) => RV::Num(*value),
-            Expr::Literal(Bool(value)) => RV::Bool(*value),
-            Expr::Literal(Nil) => RV::Nil,
-            Expr::Grouping(expr) => self.visit_expr(expr),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
-            Expr::Assignment(tok, expr) => {
+            Expr::Literal(_, Str(value)) => RV::Str(value.clone()),
+            Expr::Literal(_, Num(value)) => RV::Num(*value),
+            Expr::Literal(_, Bool(value)) => RV::Bool(*value),
+            Expr::Literal(_, Nil) => RV::Nil,
+            Expr::Grouping(_, expr) => self.visit_expr(expr),
+            Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
+            Expr::Binary(_, tok, left, right) => self.eval_binary(left, right, tok),
+            Expr::Variable(_, tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
+            Expr::Assignment(_, tok, expr) => {
                 let evaluated = self.visit_expr(expr);
                 if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line);
@@ -228,7 +258,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
                 evaluated
             },
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical(_, left, tok, right) => {
                 let is_true = is_value_truthy(self.visit_expr(left));
 
                 if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
@@ -237,18 +267,17 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 RV::Bool(is_value_truthy(self.visit_expr(right)))
             },
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call(_, callee, paren, arguments) => {
                 let eval = self.visit_expr(callee);
 
-                if let Callable(callable) = eval {
-                    let arity = callable.arity();
+                if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != arguments.len() {
                         runtime_err(&format!("Function expects {} arguments, while provided {}.", arity.unwrap(), arguments.len()), paren.line);
                         exit(1);
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
                     self.call_stack.insert(0, Context::new());
-                    let val = callable.call(self, args_evaluated);
+                    let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
                         Err(HaltReason::Error(msg))=> panic!("{}", msg),
@@ -269,7 +298,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
-        if !self.call_stack[0].ongoing_loops.is_empty() && *self.call_stack[0].ongoing_loops.last().unwrap() == LoopState::Continue {
+        if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() == LoopState::Continue {
             return Ok(RV::Undefined);
         }
         match e {
@@ -297,7 +326,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Loop(condition, stmt, post_body) => {
-                self.call_stack[0].ongoing_loops.push(LoopState::Go);
+                self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
                     self.visit_stmt(stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
@@ -305,7 +334,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         self.visit_stmt(post)?;
                     }
                 }
-                self.call_stack[0].ongoing_loops.pop();
+                self.call_stack[0].pop_loop();
             },
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
@@ -325,13 +354,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 return Err(HaltReason::Return(RV::Undefined));
             },
             Stmt::Function(token, parameters, body) => {
-                let fun = Function {
-                    parameters: (*parameters).iter().map(|x| x.lexeme.as_ref().unwrap().clone()).collect(),
-                    body: body.clone(),
-                    closure: Some(self.env.clone())
-                };
+                let name = token.lexeme.as_ref().unwrap().to_string();
+                let fun = Function::UserDefined(
+                    name.clone(),
+                    Rc::clone(body),
+                    parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
+                    self.env.clone(),
+                );
 
-                self.env.borrow_mut().declare(token.lexeme.as_ref().unwrap().to_string(), Callable(Rc::new(fun)));
+                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), Rc::new(fun)));
             }
         }
         Ok(RV::Undefined)

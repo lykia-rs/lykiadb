@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use phf::phf_map;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LiteralValue {
     Str(Rc<String>),
     Num(f64),
@@ -40,8 +40,9 @@ pub enum TokenType {
     False,
     True,
     //
-    Identifier,
-    SafeIdentifier,
+    Identifier {
+        dollar: bool,
+    },
     //
     Symbol(Symbol),
     Keyword(Keyword),
@@ -160,6 +161,19 @@ pub enum SqlKeyword {
     }
 }
 
+pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
+    '(' => sym!(Symbol::LeftParen),
+    ')' => sym!(Symbol::RightParen),
+    '{' => sym!(Symbol::LeftBrace),
+    '}' => sym!(Symbol::RightBrace),
+    ',' => sym!(Symbol::Comma),
+    '.' => sym!(Symbol::Dot),
+    '-' => sym!(Symbol::Minus),
+    '+' => sym!(Symbol::Plus),
+    ';' => sym!(Symbol::Semicolon),
+    '*' => sym!(Symbol::Star),
+};
+
 pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "and" => kw!(Keyword::And),
     "class" => kw!(Keyword::Class),
@@ -201,6 +215,7 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "NOT" => skw!(SqlKeyword::Not),
     "NULL" => skw!(SqlKeyword::Null),
     "OFFSET" => skw!(SqlKeyword::Offset),
+    "LIMIT" => skw!(SqlKeyword::Limit),
     "LIKE" => skw!(SqlKeyword::Like),
     "JOIN" => skw!(SqlKeyword::Join),
     "INNER" => skw!(SqlKeyword::Inner),
@@ -235,7 +250,7 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "WRITE" => skw!(SqlKeyword::Write),
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<Rc<String>>,

@@ -10,5 +10,13 @@ bumpalo = "3.12.2"
 phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 
+[dependencies.uuid]
+version = "1.4.1"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
 [profile.release]
 debug = true

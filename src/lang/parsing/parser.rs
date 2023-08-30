@@ -1,10 +1,7 @@
-use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
-use crate::lang::parsing::error::parse_err;
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
-use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Logical, Variable};
-use crate::lang::parsing::ast::Stmt::Block;
+use crate::lang::parsing::ast::Expr::{Variable};
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::parsing::token::Keyword::*;
@@ -15,19 +12,28 @@ pub struct Parser<'a> {
     current: usize,
 }
 
+#[derive(Debug)]
+pub enum ParseError {
+    UnexpectedToken { line: u32, token: Token },
+    MissingToken { line: u32, token: Token, description: String},
+    InvalidAssignmentTarget { line: u32 }
+}
+
+type ParseResult<T> = Result<T, ParseError>;
+
 macro_rules! binary {
-    ($self: ident,[$($operator:expr),*], $builder: ident) => {
-        let mut current_expr: BExpr = $self.$builder();
+    ($self: ident, [$($operator:expr),*], $builder: ident) => {
+        let mut current_expr: BExpr = $self.$builder()?;
         while $self.match_next_multi(&vec![$($operator,)*]) {
-            current_expr = Box::from(Expr::Binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()));
+            current_expr = Box::from(Expr::new_binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()?));
         }
-        return current_expr;
+        return Ok(current_expr);
     }
 }
 
 impl<'a> Parser<'a> {
 
-    pub fn parse(tokens: &Vec<Token>) -> Vec<Stmt> {
+    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Vec<Stmt>> {
         let mut parser = Parser {
             tokens,
             current: 0
@@ -35,16 +41,16 @@ impl<'a> Parser<'a> {
         parser.program()
     }
 
-    fn program(&mut self) -> Vec<Stmt> {
+    fn program(&mut self) -> ParseResult<Vec<Stmt>> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.declaration());
+            statements.push(self.declaration()?);
         }
-        self.consume(Eof, "Expected EOF char at the end of file");
-        statements
+        self.expected(Eof)?;
+        Ok(statements)
     }
 
-    fn declaration(&mut self) -> Stmt {
+    fn declaration(&mut self) -> ParseResult<Stmt> {
         if self.match_next(kw!(Var)) {
             return self.var_declaration()
         }
@@ -54,7 +60,7 @@ impl<'a> Parser<'a> {
         self.statement()
     }
 
-    fn statement(&mut self) -> Stmt {
+    fn statement(&mut self) -> ParseResult<Stmt> {
         if self.match_next(kw!(If)) {
             return self.if_statement();
         }
@@ -82,257 +88,261 @@ impl<'a> Parser<'a> {
         self.expression_statement()
     }
 
-    fn if_statement(&mut self) -> Stmt {
-        self.consume(sym!(LeftParen), "Expected '(' after if.");
-        let condition = self.expression();
-        self.consume(sym!(RightParen), "Expected ')' after if condition.");
-        let if_branch = self.statement();
+    fn if_statement(&mut self) -> ParseResult<Stmt> {
+        self.expected(sym!(LeftParen))?;
+        let condition = self.expression()?;
+        self.expected(sym!(RightParen))?;
+        let if_branch = self.statement()?;
 
         if self.match_next(kw!(Else)) {
-            let else_branch = self.statement();
-            return Stmt::If(condition, Box::from(if_branch), Some(Box::from(else_branch)));
+            let else_branch = self.statement()?;
+            return Ok(Stmt::If(condition, Box::from(if_branch), Some(Box::from(else_branch))));
         }
-        Stmt::If(condition, Box::from(if_branch), None)
+        Ok(Stmt::If(condition, Box::from(if_branch), None))
     }
 
-    fn loop_statement(&mut self) -> Stmt {
-        let inner_stmt = self.declaration();
-        Stmt::Loop(None, Box::from(inner_stmt), None)
+    fn loop_statement(&mut self) -> ParseResult<Stmt> {
+        let inner_stmt = self.declaration()?;
+        Ok(Stmt::Loop(None, Box::from(inner_stmt), None))
     }
 
-    fn while_statement(&mut self) -> Stmt {
-        self.consume(sym!(LeftParen), "Expected '(' after while.");
-        let condition = self.expression();
-        self.consume(sym!(RightParen), "Expected ')' after while condition.");
-        let inner_stmt = self.declaration();
+    fn while_statement(&mut self) -> ParseResult<Stmt> {
+        self.expected(sym!(LeftParen))?;
+        let condition = self.expression()?;
+        self.expected(sym!(RightParen))?;
+        let inner_stmt = self.declaration()?;
 
-        Stmt::Loop(Some(condition), Box::from(inner_stmt), None)
+        Ok(Stmt::Loop(Some(condition), Box::from(inner_stmt), None))
     }
 
-    fn return_statement(&mut self) -> Stmt {
+    fn return_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
         let mut expr: Option<BExpr> = None;
         if !self.cmp_tok(&sym!(Semicolon)) {
-            expr = Some(self.expression());
+            expr = Some(self.expression()?);
         }
-        self.consume(sym!(Semicolon), "Expected ';' after return value.");
+        self.expected(sym!(Semicolon))?;
 
-        Stmt::Return(tok.clone(), expr)
+        Ok(Stmt::Return(tok.clone(), expr))
     }
 
-    fn for_statement(&mut self) -> Stmt {
-        self.consume(sym!(LeftParen), "Expected '(' after for.");
+    fn for_statement(&mut self) -> ParseResult<Stmt> {
+        self.expected(sym!(LeftParen))?;
 
-        let initializer = if self.match_next(sym!(Semicolon)) { None } else { Some(self.declaration()) };
+        let initializer = if self.match_next(sym!(Semicolon)) { None } else { Some(self.declaration()?) };
 
         let condition = if self.match_next(sym!(Semicolon)) { None }
         else {
-            let wrapped = self.expression();
-            self.consume(sym!(Semicolon), "Expected ';' after expression.");
+            let wrapped = self.expression()?;
+            self.expected(sym!(Semicolon))?;
             Some(wrapped)
         };
 
         let increment = if self.match_next(sym!(RightParen)) { None }
         else {
-            let wrapped = self.expression();
-            self.consume(sym!(RightParen), "Expected ')' after body.");
+            let wrapped = self.expression()?;
+            self.expected(sym!(RightParen))?;
             Some(Box::from(Stmt::Expression(wrapped)))
         };
 
-        let inner_stmt = Box::from(self.declaration());
+        let inner_stmt = Box::from(self.declaration()?);
 
         if initializer.is_none() {
-            return Stmt::Loop(condition,inner_stmt, increment);
+            return Ok(Stmt::Loop(condition,inner_stmt, increment));
         }
-        Stmt::Block(vec![
+        Ok(Stmt::Block(vec![
             initializer.unwrap(),
             Stmt::Loop(condition, inner_stmt, increment)
-        ])
+        ]))
     }
 
-    fn block(&mut self) -> Stmt {
+    fn block(&mut self) -> ParseResult<Stmt> {
         let mut statements: Vec<Stmt> = vec![];
 
         while !self.cmp_tok(&sym!(RightBrace)) && !self.is_at_end() {
-            statements.push(self.declaration());
+            statements.push(self.declaration()?);
         }
 
-        self.consume(sym!(RightBrace), "Expected '}' after block.");
+        self.expected(sym!(RightBrace))?;
 
-        Stmt::Block(statements)
+        Ok(Stmt::Block(statements))
     }
 
-    fn break_statement(&mut self) -> Stmt {
+    fn break_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
-        self.consume(sym!(Semicolon), "Expected ';' after value");
-        Stmt::Break(tok.clone())
+        self.expected(sym!(Semicolon))?;
+        Ok(Stmt::Break(tok.clone()))
     }
 
-    fn continue_statement(&mut self) -> Stmt {
+    fn continue_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
-        self.consume(sym!(Semicolon), "Expected ';' after value");
-        Stmt::Continue(tok.clone())
+        self.expected(sym!(Semicolon))?;
+        Ok(Stmt::Continue(tok.clone()))
     }
 
-    fn expression_statement(&mut self) -> Stmt {
-        let expr = self.expression();
-        self.consume(sym!(Semicolon), "Expected ';' after expression");
-        Stmt::Expression(expr)
+    fn expression_statement(&mut self) -> ParseResult<Stmt> {
+        let expr = self.expression()?;
+        self.expected(sym!(Semicolon))?;
+        Ok(Stmt::Expression(expr))
     }
 
-    fn fun_declaration(&mut self) -> Stmt {
-        let token = self.consume(Identifier, "Expected identifier after 'fun'").clone();
-        self.consume(sym!(LeftParen), "Expected '(' after function name");
+    fn fun_declaration(&mut self) -> ParseResult<Stmt> {
+        let token = self.expected(Identifier { dollar: false })?.clone();
+        self.expected(sym!(LeftParen))?;
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            parameters.push(self.consume(Identifier, "Identifier expected").clone());
+            let p = self.expected(Identifier { dollar: true })?;
+            parameters.push(p.clone());
             while self.match_next(sym!(Comma)) {
-                parameters.push(self.consume(Identifier, "Identifier expected").clone());
+                let q = self.expected(Identifier { dollar: true })?;
+                parameters.push(q.clone());
             }
         }
-        self.consume(sym!(RightParen), "Expected ')' after parameter list");
-        self.consume(sym!(LeftBrace), "Expected '{' before function body");
-        let block = self.block();
+        self.expected(sym!(RightParen))?;
+        self.expected(sym!(LeftBrace))?;
+        let block = self.block()?;
 
         let body = match block {
-            Block(stmts) => stmts,
+            Stmt::Block(stmts) => stmts,
             _ => vec![]
         };
 
-        Stmt::Function(token, parameters, Rc::new(body))
+        Ok(Stmt::Function(token, parameters, Rc::new(body)))
     }
 
-    fn var_declaration(&mut self) -> Stmt {
-        let token = self.consume(Identifier, "Expected identifier after 'var'").clone();
+    fn var_declaration(&mut self) -> ParseResult<Stmt> {
+        let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
-            true => self.expression(),
-            false => Box::from(Literal(LiteralValue::Nil))
+            true => self.expression()?,
+            false => Box::from(Expr::new_literal(LiteralValue::Nil))
         };
-        self.consume(sym!(Semicolon), "Expected ';' after expression");
-        Stmt::Declaration(token, expr)
+        self.expected(sym!(Semicolon))?;
+        Ok(Stmt::Declaration(token, expr))
     }
 
-    fn expression(&mut self) -> BExpr {
+    fn expression(&mut self) -> ParseResult<BExpr> {
         self.assignment()
     }
 
-    fn assignment(&mut self) -> BExpr {
-        let expr = self.or();
+    fn assignment(&mut self) -> ParseResult<BExpr> {
+        let expr = self.or()?;
 
         if self.match_next(sym!(Equal)) {
             let equals = self.peek_bw(1);
-            let value = self.assignment();
+            let value = self.assignment()?;
             match *expr {
-                Variable(tok) => {
-                    return Box::from(Assignment(tok, value));
+                Variable(_, tok) => {
+                    return Ok(Box::from(Expr::new_assignment(tok, value)));
                 },
                 _ => {
-                    parse_err("Invalid assignment target", equals.line);
-                    exit(1);
+                    return Err(ParseError::InvalidAssignmentTarget { line: equals.line });
                 },
             }
         }
-        expr
+        Ok(expr)
     }
 
-    fn or(&mut self) -> BExpr {
-        let expr = self.and();
+    fn or(&mut self) -> ParseResult<BExpr> {
+        let expr = self.and()?;
         if self.match_next(kw!(Or)) {
             let op = self.peek_bw(1);
-            let right = self.and();
-            return Box::from(Logical(expr, op.clone(), right));
+            let right = self.and()?;
+            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
         }
-        expr
+        Ok(expr)
     }
 
-    fn and(&mut self) -> BExpr {
-        let expr = self.equality();
+    fn and(&mut self) -> ParseResult<BExpr> {
+        let expr = self.equality()?;
         if self.match_next(kw!(And)) {
             let op = self.peek_bw(1);
-            let right = self.equality();
-            return Box::from(Logical(expr, op.clone(), right));
+            let right = self.equality()?;
+            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
         }
-        expr
+        Ok(expr)
     }
 
-    fn equality(&mut self) -> BExpr {
+    fn equality(&mut self) -> ParseResult<BExpr> {
         binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
     }
 
-    fn comparison(&mut self) -> BExpr {
+    fn comparison(&mut self) -> ParseResult<BExpr> {
         binary!(self, [sym!(Greater), sym!(GreaterEqual), sym!(Less), sym!(LessEqual)], term);
     }
 
-    fn term(&mut self) -> BExpr {
+    fn term(&mut self) -> ParseResult<BExpr> {
         binary!(self, [sym!(Plus), sym!(Minus)], factor);
     }
 
-    fn factor(&mut self) -> BExpr {
+    fn factor(&mut self) -> ParseResult<BExpr> {
         binary!(self, [sym!(Star), sym!(Slash)], unary);
     }
 
-    fn unary(&mut self) -> BExpr {
+    fn unary(&mut self) -> ParseResult<BExpr> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
-            return Box::from(Expr::Unary((*self.peek_bw(1)).clone(), self.unary()));
+            return Ok(Box::from(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?)));
         }
         self.call()
     }
 
-    fn finish_call(&mut self, callee: BExpr) -> BExpr {
+    fn finish_call(&mut self, callee: BExpr) -> ParseResult<BExpr> {
         let mut arguments: Vec<BExpr> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            arguments.push(self.expression());
+            arguments.push(self.expression()?);
             while self.match_next(sym!(Comma)) {
-                arguments.push(self.expression());
+                arguments.push(self.expression()?);
             }
         }
-        let paren = self.consume(sym!(RightParen), "Expected ')' after argument list.");
+        let paren = self.expected(sym!(RightParen))?;
 
-        Box::from(Expr::Call(callee, paren.clone(), arguments))
+        Ok(Box::from(Expr::new_call(callee, paren.clone(), arguments)))
     }
 
-    fn call(&mut self) -> BExpr {
-        let mut expr = self.primary();
+    fn call(&mut self) -> ParseResult<BExpr> {
+        let mut expr = self.primary()?;
 
         loop {
             if self.match_next(sym!(LeftParen)) {
-                expr = self.finish_call(expr);
+                expr = self.finish_call(expr)?;
             }
             else {
                 break;
             }
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn primary(&mut self) -> BExpr {
+    fn primary(&mut self) -> ParseResult<BExpr> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Box::from(Literal(LiteralValue::Bool(true))),
-            False => Box::from(Literal(LiteralValue::Bool(false))),
-            Nil => Box::from(Literal(LiteralValue::Nil)),
-            Str | Num => Box::from(Literal(tok.literal.clone().unwrap())),
+            True => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(true)))),
+            False => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(false)))),
+            Nil => Ok(Box::from(Expr::new_literal(LiteralValue::Nil))),
+            Str | Num => Ok(Box::from(Expr::new_literal(tok.literal.clone().unwrap()))),
+            Identifier { dollar: _ } => Ok(Box::from(Expr::new_variable(tok.clone()))),
             Symbol(LeftParen) => {
-                let expr = self.expression();
-                self.consume(sym!(RightParen), "Expected ')' after expression");
-                Box::from(Grouping(expr))
+                let expr = self.expression()?;
+                self.expected(sym!(RightParen))?;
+                Ok(Box::from(Expr::new_grouping(expr)))
             },
-            Identifier => Box::from(Variable(tok.clone())),
             _ => {
-                parse_err(&format!("Unexpected token '{}'", tok.lexeme.clone().unwrap()), tok.line);
-                exit(1);
+                Err(ParseError::UnexpectedToken { line: tok.line, token: tok.clone() })
             },
         }
     }
 
-    fn consume(&mut self, expected_tok_type: TokenType, error_msg: &str) -> &Token {
+    fn expected(&mut self, expected_tok_type: TokenType) -> ParseResult<&Token> {
         if self.cmp_tok(&expected_tok_type) {
-            return self.advance();
-        }
-        parse_err(error_msg, self.peek_bw(0).line);
-        exit(1);
+            return Ok(self.advance());
+        };
+        let prev_token = self.peek_bw(1);
+        Err(ParseError::MissingToken {
+            line: prev_token.line,
+            token: prev_token.clone(),
+            description: format!("Expected '{:?}' after {:?}", expected_tok_type, self.peek_bw(1))
+        })
     }
 
     fn advance(&mut self) -> &'a Token {
