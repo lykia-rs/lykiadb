@@ -1,5 +1,5 @@
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::{Callable, HaltReason, RV};
+use crate::lang::execution::primitives::{HaltReason, RV};
 
 fn _calculate(n: f64) -> f64 {
     if n < 2. {

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use crate::{kw, sym};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
-use crate::lang::parsing::ast::Expr::{Assignment, Grouping, Literal, Logical, Variable};
+use crate::lang::parsing::ast::Expr::{Variable};
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::parsing::token::Keyword::*;
@@ -318,14 +318,14 @@ impl<'a> Parser<'a> {
         self.current += 1;
         match &tok.tok_type {
             True => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(true)))),
-            False => Ok(Box::from(Expr::new_literal((LiteralValue::Bool(false))))),
-            Nil => Ok(Box::from(Expr::new_literal((LiteralValue::Nil)))),
-            Str | Num => Ok(Box::from(Expr::new_literal((tok.literal.clone().unwrap())))),
-            Identifier { dollar: _ } => Ok(Box::from(Expr::new_variable((tok.clone())))),
+            False => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(false)))),
+            Nil => Ok(Box::from(Expr::new_literal(LiteralValue::Nil))),
+            Str | Num => Ok(Box::from(Expr::new_literal(tok.literal.clone().unwrap()))),
+            Identifier { dollar: _ } => Ok(Box::from(Expr::new_variable(tok.clone()))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(Box::from(Expr::new_grouping((expr))))
+                Ok(Box::from(Expr::new_grouping(expr)))
             },
             _ => {
                 Err(ParseError::UnexpectedToken { line: tok.line, token: tok.clone() })

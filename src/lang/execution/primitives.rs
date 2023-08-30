@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter, Pointer, Write};
+use std::fmt::{Debug, Formatter, Write};
 use std::process::exit;
 use std::rc::Rc;
 use crate::lang::execution::environment::{Environment, Shared};
@@ -59,7 +59,7 @@ impl Function {
     pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
             Function::Native(function) => function(interpreter, arguments),
-            Function::UserDefined(name, body, parameters, closure) => {
+            Function::UserDefined(_name, body, parameters, closure) => {
                 let fn_env = Environment::new(Some(Rc::clone(closure)));
 
                 for (i, param) in parameters.iter().enumerate() {

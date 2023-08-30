@@ -4,7 +4,7 @@ use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
 use crate::lang::execution::environment::Environment;
 use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::{Callable, Function, RV};
+use crate::lang::execution::primitives::{Function, RV};
 use crate::lang::execution::std::fib::nt_fib;
 use crate::lang::execution::std::out::{nt_print};
 use crate::lang::execution::std::time::{nt_bench, nt_clock};

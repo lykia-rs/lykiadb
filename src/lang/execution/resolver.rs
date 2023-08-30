@@ -49,14 +49,14 @@ impl Resolver {
         }
     }
 
-    pub fn declare(&mut self, name: &Token) {
+    pub fn declare(&mut self, _name: &Token) {
         if self.scopes.is_empty() {
             return;
         }
         // self.scopes.last().as_mut().unwrap().insert(name.lexeme.unwrap().to_string(), false);
     }
 
-    pub fn define(&mut self, name: &Token) {
+    pub fn define(&mut self, _name: &Token) {
         if self.scopes.is_empty() {
             return;
         }
@@ -72,8 +72,8 @@ impl Visitor<RV, HaltReason> for Resolver {
         match e {
             Expr::Literal(_, _) => (),
             Expr::Grouping(_, expr) => self.resolve_expr(expr),
-            Expr::Unary(_, tok, expr) => self.resolve_expr(expr),
-            Expr::Binary(_, tok, left, right) => {
+            Expr::Unary(_, _tok, expr) => self.resolve_expr(expr),
+            Expr::Binary(_, _tok, left, right) => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             }
@@ -90,11 +90,11 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(value);
                 self.resolve_local(expr, name);
             },
-            Expr::Logical(_, left, tok, right) => {
+            Expr::Logical(_, left, _tok, right) => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             },
-            Expr::Call(_, callee, paren, arguments) => {
+            Expr::Call(_, callee, _paren, arguments) => {
                 self.resolve_expr(callee);
 
                 for argument in arguments {
@@ -108,12 +108,12 @@ impl Visitor<RV, HaltReason> for Resolver {
     fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
 
         match e {
-            Stmt::Break(token) |
-            Stmt::Continue(token) => (),
+            Stmt::Break(_token) |
+            Stmt::Continue(_token) => (),
             Stmt::Expression(expr) => {
                 self.resolve_expr(expr);
             },
-            Stmt::Declaration(tok, expr) => {
+            Stmt::Declaration(_tok, expr) => {
                 self.resolve_expr(expr);
             },
             Stmt::Block(statements) => {
@@ -136,7 +136,7 @@ impl Visitor<RV, HaltReason> for Resolver {
                     self.resolve_expr(&expr.as_ref().unwrap());
                 }
             },
-            Stmt::Function(token, parameters, body) => {
+            Stmt::Function(_token, parameters, body) => {
                 self.begin_scope();
                 for param in parameters {
                     self.declare(param);
