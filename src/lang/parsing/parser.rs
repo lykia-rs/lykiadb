@@ -31,6 +31,15 @@ macro_rules! binary {
     }
 }
 
+// a macro for repeating match_next pattern
+macro_rules! match_next {
+    ($self: ident, $t: expr, $callee: ident) => {
+        if $self.match_next($t) {
+            return $self.$callee();
+        }
+    }
+}
+
 impl<'a> Parser<'a> {
 
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Vec<Stmt>> {
@@ -51,40 +60,20 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> ParseResult<Stmt> {
-        if self.match_next(kw!(Var)) {
-            return self.var_declaration()
-        }
-        if self.match_next(kw!(Fun)) {
-            return self.fun_declaration()
-        }
+        match_next!(self, kw!(Var), var_declaration);
+        match_next!(self, kw!(Fun), fun_declaration);
         self.statement()
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {
-        if self.match_next(kw!(If)) {
-            return self.if_statement();
-        }
-        if self.match_next(kw!(While)) {
-            return self.while_statement();
-        }
-        if self.match_next(kw!(For)) {
-            return self.for_statement();
-        }
-        if self.match_next(kw!(Loop)) {
-            return self.loop_statement();
-        }
-        if self.match_next(kw!(Break)) {
-            return self.break_statement();
-        }
-        if self.match_next(kw!(Continue)) {
-            return self.continue_statement();
-        }
-        if self.match_next(kw!(Return)) {
-            return self.return_statement();
-        }
-        if self.match_next(sym!(LeftBrace)) {
-            return self.block();
-        }
+        match_next!(self, kw!(If), if_statement);
+        match_next!(self, kw!(While), while_statement);
+        match_next!(self, kw!(For), for_statement);
+        match_next!(self, kw!(Loop), loop_statement);
+        match_next!(self, kw!(Break), break_statement);
+        match_next!(self, kw!(Continue), continue_statement);
+        match_next!(self, kw!(Return), return_statement);
+        match_next!(self, sym!(LeftBrace), block);
         self.expression_statement()
     }
 
