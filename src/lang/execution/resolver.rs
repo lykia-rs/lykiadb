@@ -5,17 +5,18 @@ use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::{HaltReason, runtime_err, RV};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::parsing::token::Token;
+use uuid::Uuid;
 
 pub struct Resolver {
-    interpreter: Rc<Interpreter>,
-    scopes: Vec<FxHashMap<String, bool>>
+    scopes: Vec<FxHashMap<String, bool>>,
+    locals: FxHashMap<Uuid, usize>,
 }
 
 impl Resolver {
-    pub fn new(interpreter: Rc<Interpreter>) -> Resolver {
+    pub fn new() -> Resolver {
         Resolver {
-            interpreter,
-            scopes: vec![]
+            scopes: vec![],
+            locals: FxHashMap::default()
         }
     }
 
@@ -43,8 +44,8 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: &Expr, name: &Token) {
         for (i, scope) in self.scopes.iter().rev().enumerate() {
-            if scope.contains_key(&name.lexeme.unwrap().to_string()) {
-                self.interpreter.resolve(expr, self.scopes.len() - 1 - i);
+            if scope.contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
+                self.locals.insert(expr.id(), self.scopes.len() - 1 - i);
                 return;
             }
         }
@@ -69,31 +70,31 @@ impl Visitor<RV, HaltReason> for Resolver {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
-            Expr::Literal(_) => (),
-            Expr::Grouping(expr) => self.resolve_expr(expr),
-            Expr::Unary(tok, expr) => self.resolve_expr(expr),
-            Expr::Binary(tok, left, right) => {
+            Expr::Literal(_, _) => (),
+            Expr::Grouping(_, expr) => self.resolve_expr(expr),
+            Expr::Unary(_, tok, expr) => self.resolve_expr(expr),
+            Expr::Binary(_, tok, left, right) => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             }
-            expr @ Expr::Variable(tok) => {
+            expr @ Expr::Variable(_, tok) => {
                 if !self.scopes.is_empty() &&
-                    !*(self.scopes.last().unwrap().get(&tok.lexeme.unwrap().to_string()).unwrap()) {
+                    !*(self.scopes.last().unwrap().get(&tok.lexeme.as_ref().unwrap().to_string()).unwrap()) {
                     runtime_err(&"Can't read local variable in its own initializer.", tok.line);
                     exit(1);
                 }
 
                 self.resolve_local(expr, tok);
             },
-            expr @ Expr::Assignment(name, value) => {
+            expr @ Expr::Assignment(_, name, value) => {
                 self.resolve_expr(value);
                 self.resolve_local(expr, name);
             },
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical(_, left, tok, right) => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             },
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call(_, callee, paren, arguments) => {
                 self.resolve_expr(callee);
 
                 for argument in arguments {
@@ -132,7 +133,7 @@ impl Visitor<RV, HaltReason> for Resolver {
             },
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
-                    self.resolve_expr(&expr.unwrap());
+                    self.resolve_expr(&expr.as_ref().unwrap());
                 }
             },
             Stmt::Function(token, parameters, body) => {

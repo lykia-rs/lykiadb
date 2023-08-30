@@ -25,7 +25,7 @@ macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: BExpr = $self.$builder()?;
         while $self.match_next_multi(&vec![$($operator,)*]) {
-            current_expr = Box::from(Expr::Binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()?));
+            current_expr = Box::from(Expr::new_binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()?));
         }
         return Ok(current_expr);
     }
@@ -214,7 +214,7 @@ impl<'a> Parser<'a> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => Box::from(Literal(LiteralValue::Nil))
+            false => Box::from(Expr::new_literal(LiteralValue::Nil))
         };
         self.expected(sym!(Semicolon))?;
         Ok(Stmt::Declaration(token, expr))
@@ -231,8 +231,8 @@ impl<'a> Parser<'a> {
             let equals = self.peek_bw(1);
             let value = self.assignment()?;
             match *expr {
-                Variable(tok) => {
-                    return Ok(Box::from(Assignment(tok, value)));
+                Variable(_, tok) => {
+                    return Ok(Box::from(Expr::new_assignment(tok, value)));
                 },
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget { line: equals.line });
@@ -247,7 +247,7 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(Box::from(Logical(expr, op.clone(), right)));
+            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -257,7 +257,7 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(Box::from(Logical(expr, op.clone(), right)));
+            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -280,7 +280,7 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> ParseResult<BExpr> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
-            return Ok(Box::from(Expr::Unary((*self.peek_bw(1)).clone(), self.unary()?)));
+            return Ok(Box::from(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?)));
         }
         self.call()
     }
@@ -295,7 +295,7 @@ impl<'a> Parser<'a> {
         }
         let paren = self.expected(sym!(RightParen))?;
 
-        Ok(Box::from(Expr::Call(callee, paren.clone(), arguments)))
+        Ok(Box::from(Expr::new_call(callee, paren.clone(), arguments)))
     }
 
     fn call(&mut self) -> ParseResult<BExpr> {
@@ -317,15 +317,15 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Ok(Box::from(Literal(LiteralValue::Bool(true)))),
-            False => Ok(Box::from(Literal(LiteralValue::Bool(false)))),
-            Nil => Ok(Box::from(Literal(LiteralValue::Nil))),
-            Str | Num => Ok(Box::from(Literal(tok.literal.clone().unwrap()))),
-            Identifier { dollar: _ } => Ok(Box::from(Variable(tok.clone()))),
+            True => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(true)))),
+            False => Ok(Box::from(Expr::new_literal((LiteralValue::Bool(false))))),
+            Nil => Ok(Box::from(Expr::new_literal((LiteralValue::Nil)))),
+            Str | Num => Ok(Box::from(Expr::new_literal((tok.literal.clone().unwrap())))),
+            Identifier { dollar: _ } => Ok(Box::from(Expr::new_variable((tok.clone())))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(Box::from(Grouping(expr)))
+                Ok(Box::from(Expr::new_grouping((expr))))
             },
             _ => {
                 Err(ParseError::UnexpectedToken { line: tok.line, token: tok.clone() })

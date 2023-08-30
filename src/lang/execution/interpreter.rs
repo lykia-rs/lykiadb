@@ -7,6 +7,7 @@ use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
+use crate::lang::execution::resolver::Resolver;
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
@@ -74,8 +75,7 @@ impl Context {
 
 pub struct Interpreter {
     env: Shared<Environment>,
-    locals: FxHashMap<Expr, usize>,
-    call_stack: Vec<Context>
+    call_stack: Vec<Context>,
 }
 
 fn is_value_truthy(rv: RV) -> bool {
@@ -94,13 +94,8 @@ impl Interpreter {
     pub fn new(env: Shared<Environment>) -> Interpreter {
         Interpreter {
             env,
-            call_stack: vec![Context::new()],
-            locals: FxHashMap::default()
+            call_stack: vec![Context::new()]
         }
-    }
-
-    pub fn resolve(&mut self, expr: &Expr, depth: usize) {
-        self.locals.insert(expr, depth);
     }
 
     fn eval_unary(&mut self, tok: &Token, expr: &BExpr) -> RV {
@@ -250,15 +245,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
-            Expr::Literal(Str(value)) => RV::Str(value.clone()),
-            Expr::Literal(Num(value)) => RV::Num(*value),
-            Expr::Literal(Bool(value)) => RV::Bool(*value),
-            Expr::Literal(Nil) => RV::Nil,
-            Expr::Grouping(expr) => self.visit_expr(expr),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
-            Expr::Assignment(tok, expr) => {
+            Expr::Literal(_, Str(value)) => RV::Str(value.clone()),
+            Expr::Literal(_, Num(value)) => RV::Num(*value),
+            Expr::Literal(_, Bool(value)) => RV::Bool(*value),
+            Expr::Literal(_, Nil) => RV::Nil,
+            Expr::Grouping(_, expr) => self.visit_expr(expr),
+            Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
+            Expr::Binary(_, tok, left, right) => self.eval_binary(left, right, tok),
+            Expr::Variable(_, tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
+            Expr::Assignment(_, tok, expr) => {
                 let evaluated = self.visit_expr(expr);
                 if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line);
@@ -266,7 +261,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
                 evaluated
             },
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical(_, left, tok, right) => {
                 let is_true = is_value_truthy(self.visit_expr(left));
 
                 if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
@@ -275,7 +270,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 RV::Bool(is_value_truthy(self.visit_expr(right)))
             },
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call(_, callee, paren, arguments) => {
                 let eval = self.visit_expr(callee);
 
                 if let Callable(callable) = eval {
