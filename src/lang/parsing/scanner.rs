@@ -183,7 +183,7 @@ impl Scanner {
                     self.add_token(&c.to_string(),sym!(Slash));
                 }
             },
-            other @ _ => {
+            other => {
                 if let Some(sym) = SYMBOLS.get(&other) {
                     self.add_token(&other.to_string(), sym.clone());
                 } else {

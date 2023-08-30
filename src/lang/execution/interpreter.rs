@@ -1,16 +1,18 @@
 use std::process::exit;
 use std::rc::Rc;
+use rustc_hash::FxHashMap;
+
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
-use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
-use crate::lang::parsing::token::{Token};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::Symbol;
+use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
+use crate::lang::parsing::token::Token;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -72,6 +74,7 @@ impl Context {
 
 pub struct Interpreter {
     env: Shared<Environment>,
+    locals: FxHashMap<Expr, usize>,
     call_stack: Vec<Context>
 }
 
@@ -91,8 +94,13 @@ impl Interpreter {
     pub fn new(env: Shared<Environment>) -> Interpreter {
         Interpreter {
             env,
-            call_stack: vec![Context::new()]
+            call_stack: vec![Context::new()],
+            locals: FxHashMap::default()
         }
+    }
+
+    pub fn resolve(&mut self, expr: &Expr, depth: usize) {
+        self.locals.insert(expr, depth);
     }
 
     fn eval_unary(&mut self, tok: &Token, expr: &BExpr) -> RV {
