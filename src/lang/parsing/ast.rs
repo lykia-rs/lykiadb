@@ -44,7 +44,7 @@ impl Expr {
         Expr::Grouping(Uuid::new_v4(), expr)
     }
     pub fn new_literal(value: LiteralValue) -> Expr {
-        Expr::Literal(Uuid::new_v4(), LiteralValue::Nil)
+        Expr::Literal(Uuid::new_v4(), value)
     }
     pub fn new_unary(op: Token, expr: BExpr) -> Expr {
         Expr::Unary(Uuid::new_v4(), op, expr)

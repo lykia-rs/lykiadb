@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use crate::lang::parsing::ast::{Visitor};
+use crate::lang::parsing::ast::Visitor;
 use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
 use crate::lang::execution::environment::Environment;

@@ -55,14 +55,16 @@ impl Resolver {
         if self.scopes.is_empty() {
             return;
         }
-        self.scopes.last().as_mut().unwrap().insert(name.lexeme.unwrap().to_string(), false);
+        // self.scopes.last().as_mut().unwrap().insert(name.lexeme.unwrap().to_string(), false);
     }
 
     pub fn define(&mut self, name: &Token) {
         if self.scopes.is_empty() {
             return;
         }
-        self.scopes.last().as_mut().unwrap().insert(name.lexeme.unwrap().to_string(), true);
+        /*let mut last = self.scopes.last().as_mut().unwrap();
+        last.insert(name.lexeme.as_mut().unwrap().to_string(), true);
+        */
     }
 }
 
