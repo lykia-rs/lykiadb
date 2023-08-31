@@ -1,15 +1,26 @@
-# lykia-lang
-Lykia is an embeddable, interpreted scripting language written in Rust. Created as a query language for Lykia project.
+# lykia-db
+Lykia is a toy document database basically written for educational purposes. It is planned to be a modest mixture of popular kids in town (e.g. SurrealDB).
 
 ## Overview
-- Written in Rust for performance, reliability, and safety.
-- A handy scripting language that is easy to use and provides a rich set of functions.
-- Built based on the language "Lox" which is explained in the famous book, Crafting Interpreters.
+- Written in Rust
+- A weird scripting and query language, combination of PHP and SQL. Built based on the language "Lox" which is explained in the famous book, Crafting Interpreters.
+- A subset of JSON data types in both scripting language itself and storage
+- In-disk and in-memory storage
+- ACID compliance
+- Replication
+- A handy scripting language that is easy to use and provides a rich set of functions. 
 
 ## Roadmap
 
-- [x] Core language features
-- [ ] Pattern matching
+- [x] Core scripting language
+- [ ] SQL parsing
+- [ ] Query planning
+- [ ] Event loop for communication
+- [ ] In-memory storage engine
+- [ ] Bitcask storage engine
+- [ ] Transaction management with MVCC
+- [ ] B-Tree implementation for indexes
+- [ ] Basic replication with Raft
 - [ ] Plug-in support
 - [ ] Basic type check
 
@@ -26,10 +37,6 @@ Alternatively, you can run a Lykia script by passing its name as the first argum
 ```shell 
 $ lykia hello.ly
 ```
-
-
-## Contributing
-Lykia is an open-source project, and contributions are welcome! If you would like to contribute to the project, please read our contributing guidelines.
 
 ## License
 Lykia is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.
