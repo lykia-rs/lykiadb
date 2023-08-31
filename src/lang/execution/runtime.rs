@@ -6,8 +6,8 @@ use crate::lang::execution::environment::Environment;
 use crate::lang::execution::interpreter::Interpreter;
 use crate::lang::execution::primitives::{Function, RV};
 use crate::lang::execution::std::fib::nt_fib;
-use crate::lang::execution::std::out::{nt_print};
-use crate::lang::execution::std::time::{nt_bench, nt_clock};
+use crate::lang::execution::std::out::nt_print;
+use crate::lang::execution::std::time::nt_clock;
 
 pub struct Runtime {
     interpreter: Interpreter,
@@ -25,7 +25,6 @@ impl Runtime {
         let env = Environment::new(None);
 
         env.borrow_mut().declare("clock".to_string(), RV::Callable(Some(0), Rc::new(Function::Native(nt_clock))));
-        env.borrow_mut().declare("bench".to_string(), RV::Callable(Some(1), Rc::new(Function::Native(nt_bench))));
         env.borrow_mut().declare("print".to_string(), RV::Callable(None, Rc::new(Function::Native(nt_print))));
         env.borrow_mut().declare("fibNat".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_fib))));
 

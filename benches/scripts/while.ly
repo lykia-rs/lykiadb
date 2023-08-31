@@ -1,7 +1,5 @@
 var $i = 0;
 
-var $loopStart = clock();
-
 while ($i < 10000000) {
   $i = $i + 1;
 
@@ -11,11 +9,8 @@ while ($i < 10000000) {
   "str"; "str"; "str"; "stru"; "str"; 1; "str"; nil; "str"; true;
 }
 
-var $loopTime = clock() - $loopStart;
-
-var $start = clock();
-
 $i = 0;
+
 while ($i < 10000000) {
   $i = $i + 1;
 
@@ -24,8 +19,3 @@ while ($i < 10000000) {
   true == true; true == 1; true == false; true == "str"; true == nil;
   "str" == "str"; "str" == "stru"; "str" == 1; "str" == nil; "str" == true;
 }
-
-var $elapsed = clock() - $start;
-print("loop:", $loopTime);
-print("elapsed:", $elapsed);
-print("equals", $elapsed - $loopTime);
