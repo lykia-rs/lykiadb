@@ -379,7 +379,7 @@ mod test {
 
     use crate::lang::parsing::{scanner::Scanner, token::{Token, LiteralValue}, ast::{Stmt, Expr}};
 
-    use crate::{kw, lexm, skw};
+    use crate::lexm;
 
     use super::*;
 

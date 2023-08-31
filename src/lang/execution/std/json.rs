@@ -19,5 +19,5 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
         Err(e) => return Err(HaltReason::Error(format!("json_decode: {}", e)))
     };
 
-    return Ok(parsed);
+    Ok(parsed)
 }

@@ -80,7 +80,7 @@ impl Function {
                     fn_env.borrow_mut().declare(param.to_string(), arguments.get(i).unwrap().clone());
                 }
 
-                interpreter.user_fn_call(&body, fn_env).map(|_| RV::Undefined)
+                interpreter.user_fn_call(body, fn_env).map(|_| RV::Undefined)
             }
             _ => exit(1)
         }
