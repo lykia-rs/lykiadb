@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter, Write};
+use std::fmt::{Debug, Formatter};
 use std::process::exit;
 use std::rc::Rc;
 use crate::lang::execution::environment::{Environment, Shared};
