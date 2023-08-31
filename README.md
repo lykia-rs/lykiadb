@@ -13,7 +13,8 @@ Lykia is a toy document database basically written for educational purposes. It 
 ## Roadmap
 
 - [x] Core scripting language
-- [ ] SQL parsing
+- [-] A minimal standard library
+- [-] SQL parsing
 - [ ] Query planning
 - [ ] Event loop for communication
 - [ ] In-memory storage engine
@@ -21,8 +22,6 @@ Lykia is a toy document database basically written for educational purposes. It 
 - [ ] Transaction management with MVCC
 - [ ] B-Tree implementation for indexes
 - [ ] Basic replication with Raft
-- [ ] Plug-in support
-- [ ] Basic type check
 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
