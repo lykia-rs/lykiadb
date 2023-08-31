@@ -390,6 +390,7 @@ mod test {
     fn compare_parsed_to_expected(source: &str, expected: Vec<Stmt>) {
         let tokens = get_tokens(source);
         let parsed = Parser::parse(&tokens).unwrap();
+        assert_eq!(parsed, expected);
     }
 
     #[test]

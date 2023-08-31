@@ -9,6 +9,8 @@ pub enum LiteralValue {
     Nil
 }
 
+impl Eq for LiteralValue {}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Symbol {
     Comma,
@@ -250,7 +252,7 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "WRITE" => skw!(SqlKeyword::Write),
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<Rc<String>>,

@@ -8,7 +8,7 @@ pub trait Visitor<T, Q> {
     fn visit_stmt(&mut self, e: &Stmt) -> Result<T, Q>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
     Binary(Uuid, Token, Box<Expr>, Box<Expr>),
     Grouping(Uuid, Box<Expr>),
@@ -21,7 +21,6 @@ pub enum Expr {
 }
 
 impl Expr {
-
     pub fn id(&self) -> Uuid {
         match self {
             Expr::Binary(id, _, _, _) => *id,
@@ -61,7 +60,7 @@ impl Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(Box<Expr>),
     Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
