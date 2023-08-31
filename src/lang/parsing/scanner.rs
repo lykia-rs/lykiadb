@@ -143,7 +143,7 @@ impl Scanner {
     }
 
     fn identifier(&mut self, is_dollar: bool) {
-        while self.peek(0).is_alphanumeric() {
+        while self.peek(0).is_ascii_alphanumeric() || self.peek(0) == '_' {
             self.advance();
         }
         let span: String = self.chars[self.start..self.current].iter().collect();
@@ -213,7 +213,6 @@ mod test {
 
     fn assert_tokens(source: &str, expected_tokens: Vec<Token>) {
         let tokens = Scanner::scan(source).unwrap();
-        println!("{:?}", tokens);
         assert_eq!(tokens.len(), expected_tokens.len());
         // assert that the elements are equal
         for (token, expected) in tokens.iter().zip(expected_tokens.iter()) {
@@ -253,9 +252,11 @@ mod test {
     }
     #[test]
     fn test_identifiers() {
-        assert_tokens("$myPreciseVariable myPreciseFunction", vec![
+        assert_tokens("$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function", vec![
             Token {tok_type: TokenType::Identifier { dollar: true }, lexeme: lexm!("$myPreciseVariable"), literal: Some(Str(Rc::new("$myPreciseVariable".to_string()))), line: 0},
+            Token {tok_type: TokenType::Identifier { dollar: true }, lexeme: lexm!("$my_precise_variable"), literal: Some(Str(Rc::new("$my_precise_variable".to_string()))), line: 0},
             Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("myPreciseFunction"), literal: Some(Str(Rc::new("myPreciseFunction".to_string()))), line: 0},
+            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("my_precise_function"), literal: Some(Str(Rc::new("my_precise_function".to_string()))), line: 0},
             Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
         ]);
     }

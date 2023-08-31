@@ -383,14 +383,13 @@ mod test {
 
     use super::*;
 
-
     fn get_tokens(source: &str) -> Vec<Token> {
         return Scanner::scan(source).unwrap();
     }
 
     fn compare_parsed_to_expected(source: &str, expected: Vec<Stmt>) {
         let tokens = get_tokens(source);
-        let parsed = Parser::parse(&tokens).unwrap();        
+        let parsed = Parser::parse(&tokens).unwrap();
     }
 
     #[test]

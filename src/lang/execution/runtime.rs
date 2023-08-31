@@ -8,6 +8,7 @@ use crate::lang::execution::primitives::{Function, RV};
 use crate::lang::execution::std::fib::nt_fib;
 use crate::lang::execution::std::out::nt_print;
 use crate::lang::execution::std::time::nt_clock;
+use super::std::json::{nt_json_encode, nt_json_decode};
 
 pub struct Runtime {
     interpreter: Interpreter,
@@ -26,7 +27,9 @@ impl Runtime {
 
         env.borrow_mut().declare("clock".to_string(), RV::Callable(Some(0), Rc::new(Function::Native(nt_clock))));
         env.borrow_mut().declare("print".to_string(), RV::Callable(None, Rc::new(Function::Native(nt_print))));
-        env.borrow_mut().declare("fibNat".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_fib))));
+        env.borrow_mut().declare("fib_nat".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_fib))));
+        env.borrow_mut().declare("json_encode".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_json_encode))));
+        env.borrow_mut().declare("json_decode".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_json_decode))));
 
         Runtime {
             interpreter: Interpreter::new(env),
