@@ -372,3 +372,45 @@ impl<'a> Parser<'a> {
         false
     }
 }
+
+
+#[cfg(test)]
+mod test {
+
+    use crate::lang::parsing::{scanner::Scanner, token::{Token, LiteralValue}, ast::{Stmt, Expr}};
+
+    use crate::{kw, lexm, skw};
+
+    use super::*;
+
+
+    fn get_tokens(source: &str) -> Vec<Token> {
+        return Scanner::scan(source).unwrap();
+    }
+
+    fn compare_parsed_to_expected(source: &str, expected: Vec<Stmt>) {
+        let tokens = get_tokens(source);
+        let parsed = Parser::parse(&tokens).unwrap();        
+    }
+
+    #[test]
+    fn test_parse_literal_expression() {
+        compare_parsed_to_expected("1;", vec![
+            Stmt::Expression(
+                Expr::new_literal(LiteralValue::Num(1.0))
+            )
+        ]);
+    }
+
+    #[test]
+    fn test_parse_unary_expression() {
+        compare_parsed_to_expected("-1;", vec![
+            Stmt::Expression(
+                Expr::new_unary(
+                    Token {tok_type: sym!(Minus), lexeme: lexm!("-"), literal: None, line: 0},
+                    Expr::new_literal(LiteralValue::Num(1.0)
+                )
+            )
+        )]);
+    }
+}

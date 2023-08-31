@@ -207,15 +207,9 @@ impl Scanner {
 
 #[cfg(test)]
 mod test {
-    use crate::{kw, skw};
+    use crate::{kw, lexm, skw};
 
     use super::*;
-
-    macro_rules! lexm {
-        ($a: literal) => {
-            Some(Rc::new($a.to_owned()))
-        };
-    }
 
     fn assert_tokens(source: &str, expected_tokens: Vec<Token>) {
         let tokens = Scanner::scan(source).unwrap();
