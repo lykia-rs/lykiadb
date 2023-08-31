@@ -2,7 +2,7 @@ use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
-use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
+use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
 use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
 use crate::lang::execution::primitives::RV::Callable;
 use crate::lang::parsing::token::TokenType;
@@ -95,7 +95,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, tok: &Token, expr: &BExpr) -> RV {
+    fn eval_unary(&mut self, tok: &Token, expr: &Box<Expr>) -> RV {
         if tok.tok_type == sym!(Minus) {
             let val = self.visit_expr(expr);
             match val {
@@ -110,7 +110,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_binary(&mut self, left: &BExpr, right: &BExpr, tok: &Token) -> RV {
+    fn eval_binary(&mut self, left: &Box<Expr>, right: &Box<Expr>, tok: &Token) -> RV {
         let left_eval = self.visit_expr(left);
         let right_eval = self.visit_expr(right);
         let tok_type = tok.tok_type.clone();

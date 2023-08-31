@@ -1,7 +1,7 @@
 use std::process::exit;
 use rustc_hash::FxHashMap;
 use crate::lang::execution::primitives::{HaltReason, runtime_err, RV};
-use crate::lang::parsing::ast::{BExpr, Expr, Stmt, Visitor};
+use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
 use crate::lang::parsing::token::Token;
 use uuid::Uuid;
 
@@ -36,7 +36,7 @@ impl Resolver {
         self.visit_stmt(statement);
     }
 
-    pub fn resolve_expr(&mut self, expr: &BExpr) {
+    pub fn resolve_expr(&mut self, expr: &Box<Expr>) {
         self.visit_expr(expr);
     }
 

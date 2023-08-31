@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use crate::{kw, sym};
-use crate::lang::parsing::ast::{BExpr, Expr, Stmt};
-use crate::lang::parsing::ast::Expr::{Variable};
+use crate::lang::parsing::ast::{Expr, Stmt};
+use crate::lang::parsing::ast::Expr::Variable;
 use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::parsing::token::Keyword::*;
@@ -23,9 +23,9 @@ type ParseResult<T> = Result<T, ParseError>;
 
 macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
-        let mut current_expr: BExpr = $self.$builder()?;
+        let mut current_expr: Box<Expr> = $self.$builder()?;
         while $self.match_next_multi(&vec![$($operator,)*]) {
-            current_expr = Box::from(Expr::new_binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()?));
+            current_expr = Expr::new_binary((*$self.peek_bw(1)).clone(), current_expr, $self.$builder()?);
         }
         return Ok(current_expr);
     }
@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
 
     fn return_statement(&mut self) -> ParseResult<Stmt> {
         let tok = self.peek_bw(1);
-        let mut expr: Option<BExpr> = None;
+        let mut expr: Option<Box<Expr>> = None;
         if !self.cmp_tok(&sym!(Semicolon)) {
             expr = Some(self.expression()?);
         }
@@ -203,17 +203,17 @@ impl<'a> Parser<'a> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => Box::from(Expr::new_literal(LiteralValue::Nil))
+            false => Expr::new_literal(LiteralValue::Nil)
         };
         self.expected(sym!(Semicolon))?;
         Ok(Stmt::Declaration(token, expr))
     }
 
-    fn expression(&mut self) -> ParseResult<BExpr> {
+    fn expression(&mut self) -> ParseResult<Box<Expr>> {
         self.assignment()
     }
 
-    fn assignment(&mut self) -> ParseResult<BExpr> {
+    fn assignment(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.or()?;
 
         if self.match_next(sym!(Equal)) {
@@ -221,7 +221,7 @@ impl<'a> Parser<'a> {
             let value = self.assignment()?;
             match *expr {
                 Variable(_, tok) => {
-                    return Ok(Box::from(Expr::new_assignment(tok, value)));
+                    return Ok(Expr::new_assignment(tok, value));
                 },
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget { line: equals.line });
@@ -231,51 +231,51 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn or(&mut self) -> ParseResult<BExpr> {
+    fn or(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.and()?;
         if self.match_next(kw!(Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
+            return Ok(Expr::new_logical(expr, op.clone(), right));
         }
         Ok(expr)
     }
 
-    fn and(&mut self) -> ParseResult<BExpr> {
+    fn and(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.equality()?;
         if self.match_next(kw!(And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(Box::from(Expr::new_logical(expr, op.clone(), right)));
+            return Ok(Expr::new_logical(expr, op.clone(), right));
         }
         Ok(expr)
     }
 
-    fn equality(&mut self) -> ParseResult<BExpr> {
+    fn equality(&mut self) -> ParseResult<Box<Expr>> {
         binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
     }
 
-    fn comparison(&mut self) -> ParseResult<BExpr> {
+    fn comparison(&mut self) -> ParseResult<Box<Expr>> {
         binary!(self, [sym!(Greater), sym!(GreaterEqual), sym!(Less), sym!(LessEqual)], term);
     }
 
-    fn term(&mut self) -> ParseResult<BExpr> {
+    fn term(&mut self) -> ParseResult<Box<Expr>> {
         binary!(self, [sym!(Plus), sym!(Minus)], factor);
     }
 
-    fn factor(&mut self) -> ParseResult<BExpr> {
+    fn factor(&mut self) -> ParseResult<Box<Expr>> {
         binary!(self, [sym!(Star), sym!(Slash)], unary);
     }
 
-    fn unary(&mut self) -> ParseResult<BExpr> {
+    fn unary(&mut self) -> ParseResult<Box<Expr>> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
-            return Ok(Box::from(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?)));
+            return Ok(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?));
         }
         self.call()
     }
 
-    fn finish_call(&mut self, callee: BExpr) -> ParseResult<BExpr> {
-        let mut arguments: Vec<BExpr> = vec![];
+    fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
+        let mut arguments: Vec<Box<Expr>> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
             arguments.push(self.expression()?);
             while self.match_next(sym!(Comma)) {
@@ -284,10 +284,10 @@ impl<'a> Parser<'a> {
         }
         let paren = self.expected(sym!(RightParen))?;
 
-        Ok(Box::from(Expr::new_call(callee, paren.clone(), arguments)))
+        Ok(Expr::new_call(callee, paren.clone(), arguments))
     }
 
-    fn call(&mut self) -> ParseResult<BExpr> {
+    fn call(&mut self) -> ParseResult<Box<Expr>> {
         let mut expr = self.primary()?;
 
         loop {
@@ -302,19 +302,19 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn primary(&mut self) -> ParseResult<BExpr> {
+    fn primary(&mut self) -> ParseResult<Box<Expr>> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(true)))),
-            False => Ok(Box::from(Expr::new_literal(LiteralValue::Bool(false)))),
-            Nil => Ok(Box::from(Expr::new_literal(LiteralValue::Nil))),
-            Str | Num => Ok(Box::from(Expr::new_literal(tok.literal.clone().unwrap()))),
-            Identifier { dollar: _ } => Ok(Box::from(Expr::new_variable(tok.clone()))),
+            True => Ok(Expr::new_literal(LiteralValue::Bool(true))),
+            False => Ok(Expr::new_literal(LiteralValue::Bool(false))),
+            Nil => Ok(Expr::new_literal(LiteralValue::Nil)),
+            Str | Num => Ok(Expr::new_literal(tok.literal.clone().unwrap())),
+            Identifier { dollar: _ } => Ok(Expr::new_variable(tok.clone())),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(Box::from(Expr::new_grouping(expr)))
+                Ok(Expr::new_grouping(expr))
             },
             _ => {
                 Err(ParseError::UnexpectedToken { line: tok.line, token: tok.clone() })
