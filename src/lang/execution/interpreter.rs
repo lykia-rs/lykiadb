@@ -18,7 +18,7 @@ macro_rules! bool2num {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum LoopState {
     Go,
     Broken,
@@ -66,7 +66,8 @@ impl Context {
         if self.ongoing_loops.is_none() {
             return;
         }
-        return self.ongoing_loops.as_mut().unwrap()[0] = to;
+        self.pop_loop();
+        self.push_loop(to);
     }
 }
 
@@ -188,7 +189,8 @@ impl Interpreter {
 
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
-        *self.call_stack[0].get_last_loop().unwrap() == state
+        let last_loop = *self.call_stack[0].get_last_loop().unwrap();
+        last_loop == state
     }
 
     fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
@@ -298,7 +300,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
     }
 
     fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
-        if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() == LoopState::Continue {
+        if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() != LoopState::Go {
             return Ok(RV::Undefined);
         }
         match e {

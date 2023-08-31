@@ -1,6 +1,6 @@
 fun makeCounter() {
     var $i = 0;
-    fun count() {
+    fun count($q) {
         $i = $i + 1;
         print($i);
     }
