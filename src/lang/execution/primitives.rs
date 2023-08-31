@@ -26,20 +26,6 @@ pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
     HaltReason::Error(format!("{} at line {}", msg, line + 1))
 }
 
-pub trait Callable {
-    fn arity(&self) -> Option<usize>;
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<RV>) -> Result<RV, HaltReason>;
-    fn get_desc(&self) -> &str {
-        "<native_fn>"
-    }
-}
-
-impl Debug for dyn Callable {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.get_desc())
-    }
-}
-
 pub enum Function {
     Native(fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>),
     UserDefined(String, Rc<Vec<Stmt>>, Vec<String>, Shared<Environment>),
