@@ -1,8 +1,8 @@
 use std::process::exit;
 use rustc_hash::FxHashMap;
-use crate::lang::execution::primitives::{HaltReason, runtime_err, RV};
+use crate::lang::execution::primitives::{HaltReason, runtime_err};
 use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::parsing::token::Token;
+use crate::lang::parsing::token::{Token, RV};
 use uuid::Uuid;
 
 pub struct Resolver {

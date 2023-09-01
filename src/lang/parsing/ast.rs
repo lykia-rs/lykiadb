@@ -1,6 +1,6 @@
 
 use std::rc::Rc;
-use crate::lang::parsing::token::{LiteralValue, Token};
+use crate::lang::parsing::token::{RV, Token};
 use uuid::Uuid;
 
 pub trait Visitor<T, Q> {
@@ -12,7 +12,7 @@ pub trait Visitor<T, Q> {
 pub enum Expr {
     Binary(Uuid, Token, Box<Expr>, Box<Expr>),
     Grouping(Uuid, Box<Expr>),
-    Literal(Uuid, LiteralValue),
+    Literal(Uuid, RV),
     Unary(Uuid, Token, Box<Expr>),
     Variable(Uuid, Token),
     Assignment(Uuid, Token, Box<Expr>),
@@ -40,7 +40,7 @@ impl Expr {
     pub fn new_grouping(expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Grouping(Uuid::new_v4(), expr))
     }
-    pub fn new_literal(value: LiteralValue) -> Box<Expr> {
+    pub fn new_literal(value: RV) -> Box<Expr> {
         Box::new(Expr::Literal(Uuid::new_v4(), value))
     }
     pub fn new_unary(op: Token, expr: Box<Expr>) -> Box<Expr> {

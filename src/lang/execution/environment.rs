@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
-use crate::lang::execution::primitives::{HaltReason, RV};
+use crate::lang::execution::primitives::HaltReason;
+use crate::lang::parsing::token::RV;
 
 pub type Shared<T> = Rc<RefCell<T>>;
 

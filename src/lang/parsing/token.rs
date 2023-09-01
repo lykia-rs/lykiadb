@@ -1,15 +1,51 @@
 use std::rc::Rc;
 use phf::phf_map;
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LiteralValue {
+pub enum RV {
     Str(Rc<String>),
     Num(f64),
     Bool(bool),
-    Nil
+    Object(FxHashMap<String, RV>),
+    Array(Vec<RV>),
+    Callable(Option<usize>, Rc<Function>),
+    Undefined,
+    NaN,
+    Null,
 }
 
-impl Eq for LiteralValue {}
+impl Eq for RV {}
+
+impl<'de> Deserialize<'de> for RV {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        match value {
+            serde_json::Value::String(s) => Ok(RV::Str(Rc::new(s))),
+            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
+            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
+            serde_json::Value::Null => Ok(RV::Null),
+            _ => Ok(RV::Undefined)
+        }
+    }
+}
+
+impl<'se> Serialize for RV {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+        match self {
+            RV::Str(s) => serializer.serialize_str(s),
+            RV::Num(n) => serializer.serialize_f64(*n),
+            RV::Bool(b) => serializer.serialize_bool(*b),
+            RV::Undefined => serializer.serialize_none(),
+            RV::NaN => serializer.serialize_none(),
+            RV::Null => serializer.serialize_none(),
+            RV::Callable(_, _) => serializer.serialize_none(),
+            RV::Array(_) => serializer.serialize_none(),
+            RV::Object(_) => serializer.serialize_none(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Symbol {
@@ -38,7 +74,7 @@ pub enum Symbol {
 pub enum TokenType {
     Str,
     Num,
-    Nil,
+    Null,
     False,
     True,
     //
@@ -193,7 +229,7 @@ pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => kw!(Keyword::While),
     "loop" => kw!(Keyword::Loop),
     //
-    "nil" =>  TokenType::Nil,
+    "null" =>  TokenType::Null,
     "false" => TokenType::False,
     "true" => TokenType::True,
 };
@@ -256,6 +292,6 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<Rc<String>>,
-    pub literal: Option<LiteralValue>,
+    pub literal: Option<RV>,
     pub line: u32
 }

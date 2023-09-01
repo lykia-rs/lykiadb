@@ -3,13 +3,13 @@ use std::rc::Rc;
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
-use crate::lang::execution::primitives::RV::Callable;
+use crate::lang::execution::primitives::{Function, HaltReason, runtime_err};
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::Symbol;
-use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
+use crate::lang::parsing::token::RV;
+use crate::lang::parsing::token::RV::*;
 use crate::lang::parsing::token::Token;
 
 macro_rules! bool2num {
@@ -81,7 +81,7 @@ fn is_value_truthy(rv: RV) -> bool {
         RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
         RV::Str(value) => !value.is_empty(),
         RV::Bool(value) => value,
-        RV::Nil |
+        RV::Null |
         RV::Undefined |
         RV::NaN => false,
         _ => true
@@ -127,11 +127,11 @@ impl Interpreter {
         };
 
         match (left_coerced, tok_type, right_coerced) {
-            (RV::Nil, Symbol(EqualEqual), RV::Nil) => RV::Bool(true),
-            (RV::Nil, Symbol(BangEqual), RV::Nil) => RV::Bool(false),
+            (RV::Null, Symbol(EqualEqual), RV::Null) => RV::Bool(true),
+            (RV::Null, Symbol(BangEqual), RV::Null) => RV::Bool(false),
             //
-            (_, Symbol(EqualEqual), RV::Nil) |
-            (RV::Nil, Symbol(EqualEqual), _) => RV::Bool(false),
+            (_, Symbol(EqualEqual), RV::Null) |
+            (RV::Null, Symbol(EqualEqual), _) => RV::Bool(false),
             //
             (RV::NaN, Symbol(Plus), _) | (_, Symbol(Plus), RV::NaN) |
             (RV::NaN, Symbol(Minus), _) | (_, Symbol(Minus), RV::NaN) |
@@ -244,10 +244,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
-            Expr::Literal(_, Str(value)) => RV::Str(value.clone()),
-            Expr::Literal(_, Num(value)) => RV::Num(*value),
-            Expr::Literal(_, Bool(value)) => RV::Bool(*value),
-            Expr::Literal(_, Nil) => RV::Nil,
+            Expr::Literal(_, value) => value.clone(),
             Expr::Grouping(_, expr) => self.visit_expr(expr),
             Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(_, tok, left, right) => self.eval_binary(left, right, tok),
