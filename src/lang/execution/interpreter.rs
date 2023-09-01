@@ -3,13 +3,13 @@ use std::rc::Rc;
 use crate::{kw, sym};
 use crate::lang::execution::environment::{Environment, Shared};
 use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::execution::primitives::{Function, HaltReason, runtime_err};
+use crate::lang::execution::primitives::Function;
 use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::Symbol;
-use crate::lang::parsing::token::RV;
-use crate::lang::parsing::token::RV::*;
+use crate::lang::parsing::types::RV;
+use crate::lang::parsing::types::RV::*;
 use crate::lang::parsing::token::Token;
 
 macro_rules! bool2num {
@@ -17,6 +17,17 @@ macro_rules! bool2num {
         if $val { 1.0 } else { 0.0 }
     }
 }
+
+#[derive(Debug)]
+pub enum HaltReason {
+    Error(String),
+    Return(RV),
+}
+
+pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
+    HaltReason::Error(format!("{} at line {}", msg, line + 1))
+}
+
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum LoopState {

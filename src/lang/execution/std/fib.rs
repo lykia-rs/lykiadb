@@ -1,6 +1,5 @@
-use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::{HaltReason};
-use crate::lang::parsing::token::RV;
+use crate::lang::execution::interpreter::{HaltReason, Interpreter};
+use crate::lang::parsing::types::RV;
 
 fn _calculate(n: f64) -> f64 {
     if n < 2. {

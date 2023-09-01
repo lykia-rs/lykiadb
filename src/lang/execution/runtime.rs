@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use crate::lang::parsing::{ast::Visitor, token::RV};
+use crate::lang::parsing::ast::Visitor;
 use crate::lang::parsing::parser::Parser;
 use crate::lang::parsing::scanner::Scanner;
 use crate::lang::execution::environment::Environment;
@@ -8,7 +8,8 @@ use crate::lang::execution::primitives::Function;
 use crate::lang::execution::std::fib::nt_fib;
 use crate::lang::execution::std::out::nt_print;
 use crate::lang::execution::std::time::nt_clock;
-use super::std::json::{nt_json_encode, nt_json_decode};
+use crate::lang::parsing::types::RV;
+use super::std::json::{nt_json_decode, nt_json_encode};
 
 pub struct Runtime {
     interpreter: Interpreter,

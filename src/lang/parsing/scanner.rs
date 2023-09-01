@@ -2,8 +2,8 @@ use std::rc::Rc;
 use crate::lang::parsing::token::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::*;
+use crate::lang::parsing::types::RV::{Num, Str};
 use crate::sym;
-use crate::lang::parsing::token::RV::{Num, Str};
 
 pub struct Scanner {
     chars: Vec<char>,

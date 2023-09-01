@@ -7,7 +7,7 @@ use crate::lang::parsing::token::{Token, TokenType};
 use crate::lang::parsing::token::TokenType::*;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
-use crate::lang::parsing::token::RV;
+use crate::lang::parsing::types::RV;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -379,7 +379,8 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
-    use crate::lang::parsing::{scanner::Scanner, token::{Token, RV}, ast::{Stmt, Expr}};
+    use crate::lang::parsing::{ast::{Expr, Stmt}, scanner::Scanner, token::Token};
+    use crate::lang::parsing::types::RV;
 
     use crate::lexm;
 

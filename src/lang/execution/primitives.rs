@@ -1,20 +1,11 @@
 use std::fmt::{Debug, Formatter};
 use std::process::exit;
 use std::rc::Rc;
+use crate::lang::parsing::types::Callable;
 use crate::lang::execution::environment::{Environment, Shared};
-use crate::lang::execution::interpreter::Interpreter;
+use crate::lang::execution::interpreter::{HaltReason, Interpreter};
 use crate::lang::parsing::ast::Stmt;
-use crate::lang::parsing::token::RV;
-
-#[derive(Debug)]
-pub enum HaltReason {
-    Error(String),
-    Return(RV),
-}
-
-pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
-    HaltReason::Error(format!("{} at line {}", msg, line + 1))
-}
+use crate::lang::parsing::types::RV;
 
 pub enum Function {
     Native(fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>),
@@ -31,8 +22,8 @@ impl Debug for Function {
     }
 }
 
-impl Function {
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
+impl Callable for Function {
+    fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
             Function::Native(function) => function(interpreter, arguments),
             Function::UserDefined(_name, body, parameters, closure) => {

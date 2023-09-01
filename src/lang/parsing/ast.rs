@@ -1,11 +1,24 @@
-
 use std::rc::Rc;
-use crate::lang::parsing::token::{RV, Token};
 use uuid::Uuid;
+use crate::lang::parsing::token::Token;
+use crate::lang::parsing::types::RV;
 
 pub trait Visitor<T, Q> {
     fn visit_expr(&mut self, e: &Expr) -> T;
     fn visit_stmt(&mut self, e: &Stmt) -> Result<T, Q>;
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Stmt {
+    Expression(Box<Expr>),
+    Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
+    Declaration(Token, Box<Expr>),
+    Block(Vec<Stmt>),
+    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
+    Loop(Option<Box<Expr>>, Box<Stmt>, Option<Box<Stmt>>),
+    Break(Token),
+    Continue(Token),
+    Return(Token, Option<Box<Expr>>)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -58,17 +71,4 @@ impl Expr {
     pub fn new_call(callee: Box<Expr>, paren: Token, arguments: Vec<Box<Expr>>) -> Box<Expr> {
         Box::new(Expr::Call(Uuid::new_v4(), callee, paren, arguments))
     }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Stmt {
-    Expression(Box<Expr>),
-    Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
-    Declaration(Token, Box<Expr>),
-    Block(Vec<Stmt>),
-    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    Loop(Option<Box<Expr>>, Box<Stmt>, Option<Box<Stmt>>),
-    Break(Token),
-    Continue(Token),
-    Return(Token, Option<Box<Expr>>)
 }

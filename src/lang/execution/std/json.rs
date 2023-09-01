@@ -2,7 +2,9 @@ use std::rc::Rc;
 
 use serde_json::json;
 
-use crate::lang::{execution::{primitives::HaltReason, interpreter::Interpreter}, parsing::token::RV};
+use crate::lang::execution::interpreter::Interpreter;
+use crate::lang::execution::interpreter::HaltReason;
+use crate::lang::parsing::types::RV;
 
 pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
     return Ok(RV::Str(Rc::new(json!(args[0]).to_string())));
