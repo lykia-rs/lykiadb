@@ -1,14 +1,14 @@
+use std::collections::HashMap;
 use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
 use crate::runtime::environment::{Environment, Shared};
 use crate::lang::ast::{Expr, Stmt, Visitor};
-use crate::runtime::primitives::Function;
 use crate::lang::token::TokenType;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::Symbol;
-use crate::lang::types::{RV, CallableError};
+use crate::lang::types::{RV, CallableError, Function};
 use crate::lang::types::RV::*;
 use crate::lang::token::Token;
 
@@ -42,7 +42,7 @@ pub enum LoopState {
     Continue,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Context {
     ongoing_loops: Option<Vec<LoopState>>,
 }
@@ -87,7 +87,7 @@ impl Context {
         self.push_loop(to);
     }
 }
-
+#[derive(PartialEq)]
 pub struct Interpreter {
     env: Shared<Environment>,
     call_stack: Vec<Context>,
@@ -110,6 +110,12 @@ impl Interpreter {
         Interpreter {
             env,
             call_stack: vec![Context::new()]
+        }
+    }
+
+    pub fn define_native_fns(&mut self, fns: HashMap<&str, RV>) {
+        for (name, value) in fns {
+            self.env.borrow_mut().declare(name.to_string(), value);
         }
     }
 
@@ -204,6 +210,7 @@ impl Interpreter {
     }
 }
 
+
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
         let last_loop = *self.call_stack[0].get_last_loop().unwrap();
@@ -226,7 +233,12 @@ impl Interpreter {
     }
 
     pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, CallableError> {
-        self.execute_block(statements, Some(environment)).map_err(| err | From::from(err))
+        match self.execute_block(statements, Some(environment)) {
+            Ok(ok) => Ok(ok),
+            Err(HaltReason::Return(rv)) => Ok(rv),
+            Err(HaltReason::GenericError(msg)) => Err(CallableError::GenericError(msg)),
+            Err(HaltReason::CallableError(err)) => Err(err),
+        }
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
@@ -293,13 +305,17 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
                     self.call_stack.insert(0, Context::new());
+                    
                     let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
                         Ok(unpacked_val) => {
                             unpacked_val
                         },
-                        Err(err)=> exit(-1)
+                        Err(err)=> { 
+                            println!("{:?}", err);
+                            exit(-1) 
+                        }
                     }
                 }
                 else {
@@ -370,14 +386,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
             },
             Stmt::Function(token, parameters, body) => {
                 let name = token.lexeme.as_ref().unwrap().to_string();
-                let fun = Function::UserDefined(
-                    name.clone(),
-                    Rc::clone(body),
-                    parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
-                    self.env.clone(),
-                );
+                let fun = Function::UserDefined {
+                    name: name.clone(),
+                    body: Rc::clone(body),
+                    parameters:parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
+                    closure: self.env.clone(),
+                };
 
-                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), Rc::new(fun)));
+                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun));
             }
         }
         Ok(RV::Undefined)

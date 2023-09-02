@@ -1,22 +1,19 @@
-use ::std::rc::Rc;
+use ::std::collections::HashMap;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
 use crate::lang::scanner::Scanner;
-use crate::lang::types::RV;
+use crate::lang::types::{RV, Function};
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
-use crate::runtime::primitives::Function;
 use crate::runtime::std::fib::nt_fib;
 use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
 use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 
 pub mod interpreter;
-mod environment;
-mod primitives;
+pub mod environment;
 mod std;
 mod resolver;
-
 
 pub struct Runtime {
     interpreter: Interpreter,
@@ -32,15 +29,20 @@ pub enum RuntimeMode {
 impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
         let env = Environment::new(None);
+        let mut interpreter = Interpreter::new(env);
 
-        env.borrow_mut().declare("clock".to_string(), RV::Callable(Some(0), Rc::new(Function::Native(nt_clock))));
-        env.borrow_mut().declare("print".to_string(), RV::Callable(None, Rc::new(Function::Native(nt_print))));
-        env.borrow_mut().declare("fib_nat".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_fib))));
-        env.borrow_mut().declare("json_encode".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_json_encode))));
-        env.borrow_mut().declare("json_decode".to_string(), RV::Callable(Some(1),Rc::new(Function::Native(nt_json_decode))));
+        let native_fns = HashMap::from([
+            ("clock", RV::Callable(Some(0), Function::Native{ function: nt_clock })),
+            ("print", RV::Callable(None, Function::Native{ function: nt_print })),
+            ("fib_nat", RV::Callable(Some(1), Function::Native{ function: nt_fib })),
+            ("json_encode", RV::Callable(Some(1),Function::Native{ function: nt_json_encode })),
+            ("json_decode", RV::Callable(Some(1),Function::Native{ function: nt_json_decode })),
+        ]);
+
+        interpreter.define_native_fns(native_fns);
 
         Runtime {
-            interpreter: Interpreter::new(env),
+            interpreter,
             mode
         }
     }

@@ -10,7 +10,7 @@ pub fn alloc_shared<T>(obj: T) -> Shared<T> {
     Rc::new(RefCell::new(obj))
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Environment {
     map: FxHashMap<String, RV>,
     pub parent: Option<Shared<Environment>>

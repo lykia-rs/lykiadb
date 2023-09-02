@@ -1,22 +1,83 @@
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
+use std::fmt::{Debug, Formatter, Display};
+use std::process::exit;
+use crate::runtime::environment::{Environment, Shared};
 use crate::runtime::interpreter::Interpreter;
+use crate::lang::ast::Stmt;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum CallableError {
     GenericError(String),
 }
 
-pub trait Callable where Self: std::fmt::Debug + std::fmt::Display {
-    fn call(&self, interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, CallableError>;
+#[derive(Clone)]
+pub enum Function {
+    Native {
+        function: fn(&mut Interpreter, &[RV]) -> Result<RV, CallableError> 
+    },
+    UserDefined {
+        name: String,
+        parameters: Vec<String>, 
+        closure: Shared<Environment>,
+        body: Rc<Vec<Stmt>>
+    },
 }
 
-impl PartialEq for dyn Callable {
-    fn eq(&self, other: &Self) -> bool {
-        self as *const dyn Callable == other as *const dyn Callable
+impl Function {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Function::Native { function: _ } => write!(f, "<native_fn>"),
+            Function::UserDefined { name, parameters: _, closure: _, body: _ } => write!(f, "{}", name),
+            _ => exit(1)
+        }
     }
 }
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Function::Native { function: _ }, Function::Native { function: _ }) => false,
+            (a @ Function::UserDefined { name: _, parameters: _, closure: _, body: _ }, 
+             b @ Function::UserDefined { name: _, parameters: _, closure: _, body: _ }) => {
+                a == b
+            }
+            _ => false
+        }
+    }
+}
+
+impl Debug for Function {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.fmt(f)
+    }
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.fmt(f)
+    }
+}
+
+impl Function {
+    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, CallableError> {
+        match self {
+            Function::Native { function } => function(interpreter, arguments),
+            Function::UserDefined { name: _, parameters, closure, body }  => {
+                let fn_env = Environment::new(Some(Rc::clone(&closure)));
+
+                for (i, param) in parameters.iter().enumerate() {
+                    fn_env.borrow_mut().declare(param.to_string(), arguments.get(i).unwrap().clone());
+                }
+
+                interpreter.user_fn_call(&body, fn_env)
+            }
+            _ => exit(1)
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RV {
@@ -25,7 +86,7 @@ pub enum RV {
     Bool(bool),
     Object(FxHashMap<String, RV>),
     Array(Vec<RV>),
-    Callable(Option<usize>, Rc<dyn Callable>),
+    Callable(Option<usize>, Function),
     Undefined,
     NaN,
     Null,
