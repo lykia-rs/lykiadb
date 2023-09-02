@@ -1,7 +1,7 @@
 use std::{fs::File, io::{BufReader, Read}};
 
 use criterion::{criterion_group, criterion_main, Criterion, black_box};
-use lykia::lang::execution::runtime::{Runtime, RuntimeMode};
+use lykia::lang::runtime::{Runtime, RuntimeMode};
 
 fn runtime(filename: &str) {
     let file = File::open(filename).unwrap();

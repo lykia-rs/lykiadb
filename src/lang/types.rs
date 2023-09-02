@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
-
-use crate::lang::execution::interpreter::Interpreter;
+use crate::runtime::interpreter::Interpreter;
 
 #[derive(Debug)]
 pub enum CallableError {

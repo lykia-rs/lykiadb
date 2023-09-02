@@ -1,9 +1,8 @@
 use std::rc::Rc;
 use serde_json::json;
 
-use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::parsing::types::CallableError;
-use crate::lang::parsing::types::RV;
+use crate::runtime::interpreter::Interpreter;
+use crate::lang::types::{RV, CallableError};
 
 pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, CallableError> {
     return Ok(RV::Str(Rc::new(json!(args[0]).to_string())));

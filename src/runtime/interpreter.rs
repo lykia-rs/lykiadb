@@ -1,16 +1,16 @@
 use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
-use crate::lang::execution::environment::{Environment, Shared};
-use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::execution::primitives::Function;
-use crate::lang::parsing::token::TokenType;
-use crate::lang::parsing::token::Keyword::*;
-use crate::lang::parsing::token::Symbol::*;
-use crate::lang::parsing::token::TokenType::Symbol;
-use crate::lang::parsing::types::{RV, CallableError};
-use crate::lang::parsing::types::RV::*;
-use crate::lang::parsing::token::Token;
+use crate::runtime::environment::{Environment, Shared};
+use crate::lang::ast::{Expr, Stmt, Visitor};
+use crate::runtime::primitives::Function;
+use crate::lang::token::TokenType;
+use crate::lang::token::Keyword::*;
+use crate::lang::token::Symbol::*;
+use crate::lang::token::TokenType::Symbol;
+use crate::lang::types::{RV, CallableError};
+use crate::lang::types::RV::*;
+use crate::lang::token::Token;
 
 macro_rules! bool2num {
     ($val: expr) => {

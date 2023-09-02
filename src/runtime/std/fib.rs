@@ -1,5 +1,5 @@
-use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::parsing::types::{RV, CallableError};
+use crate::runtime::interpreter::Interpreter;
+use crate::lang::types::{RV, CallableError};
 
 fn _calculate(n: f64) -> f64 {
     if n < 2. {

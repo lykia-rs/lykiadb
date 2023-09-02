@@ -1,10 +1,10 @@
 use std::process::exit;
 use rustc_hash::FxHashMap;
-use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::parsing::token::Token;
+use crate::runtime::interpreter::{HaltReason, runtime_err};
+use crate::lang::ast::{Expr, Stmt, Visitor};
+use crate::lang::token::Token;
+use crate::lang::types::RV;
 use uuid::Uuid;
-use crate::lang::execution::interpreter::{HaltReason, runtime_err};
-use crate::lang::parsing::types::RV;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,

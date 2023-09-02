@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
 use crate::{kw, sym};
-use crate::lang::parsing::ast::{Expr, Stmt};
-use crate::lang::parsing::ast::Expr::Variable;
-use crate::lang::parsing::token::{Token, TokenType};
-use crate::lang::parsing::token::TokenType::*;
-use crate::lang::parsing::token::Keyword::*;
-use crate::lang::parsing::token::Symbol::*;
-use crate::lang::parsing::types::RV;
+use crate::lang::ast::{Expr, Stmt};
+use crate::lang::ast::Expr::Variable;
+use crate::lang::token::{Token, TokenType};
+use crate::lang::token::TokenType::*;
+use crate::lang::token::Keyword::*;
+use crate::lang::token::Symbol::*;
+use crate::lang::types::RV;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -379,8 +379,8 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
-    use crate::lang::parsing::{ast::{Expr, Stmt}, scanner::Scanner, token::Token};
-    use crate::lang::parsing::types::RV;
+    use crate::lang::{ast::{Expr, Stmt}, scanner::Scanner, token::Token};
+    use crate::lang::types::RV;
 
     use crate::lexm;
 

@@ -1,15 +1,22 @@
-use std::rc::Rc;
-use crate::lang::parsing::ast::Visitor;
-use crate::lang::parsing::parser::Parser;
-use crate::lang::parsing::scanner::Scanner;
-use crate::lang::execution::environment::Environment;
-use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::execution::primitives::Function;
-use crate::lang::execution::std::fib::nt_fib;
-use crate::lang::execution::std::out::nt_print;
-use crate::lang::execution::std::time::nt_clock;
-use crate::lang::parsing::types::RV;
-use super::std::json::{nt_json_decode, nt_json_encode};
+use ::std::rc::Rc;
+use crate::lang::ast::Visitor;
+use crate::lang::parser::Parser;
+use crate::lang::scanner::Scanner;
+use crate::lang::types::RV;
+use crate::runtime::environment::Environment;
+use crate::runtime::interpreter::Interpreter;
+use crate::runtime::primitives::Function;
+use crate::runtime::std::fib::nt_fib;
+use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
+use crate::runtime::std::out::nt_print;
+use crate::runtime::std::time::nt_clock;
+
+pub mod interpreter;
+mod environment;
+mod primitives;
+mod std;
+mod resolver;
+
 
 pub struct Runtime {
     interpreter: Interpreter,

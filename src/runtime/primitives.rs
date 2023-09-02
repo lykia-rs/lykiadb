@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Formatter, Display};
 use std::process::exit;
 use std::rc::Rc;
-use crate::lang::parsing::types::{CallableError, Callable};
-use crate::lang::execution::environment::{Environment, Shared};
-use crate::lang::execution::interpreter::Interpreter;
-use crate::lang::parsing::ast::Stmt;
-use crate::lang::parsing::types::RV;
+use crate::lang::types::{CallableError, Callable};
+use crate::runtime::environment::{Environment, Shared};
+use crate::runtime::interpreter::Interpreter;
+use crate::lang::ast::Stmt;
+use crate::lang::types::RV;
 pub enum Function {
     Native(fn(&mut Interpreter, &[RV]) -> Result<RV, CallableError>),
     UserDefined(String, Rc<Vec<Stmt>>, Vec<String>, Shared<Environment>),
