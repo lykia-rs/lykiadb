@@ -1,4 +1,5 @@
 use ::std::collections::HashMap;
+use ::std::rc::Rc;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
 use crate::lang::scanner::Scanner;
@@ -33,11 +34,11 @@ impl Runtime {
         let mut interpreter = Interpreter::new(env);
 
         let native_fns = HashMap::from([
-            ("clock", RV::Callable(Some(0), Function::Native{ function: nt_clock })),
-            ("print", RV::Callable(None, Function::Native{ function: nt_print })),
-            ("fib_nat", RV::Callable(Some(1), Function::Native{ function: nt_fib })),
-            ("json_encode", RV::Callable(Some(1),Function::Native{ function: nt_json_encode })),
-            ("json_decode", RV::Callable(Some(1),Function::Native{ function: nt_json_decode })),
+            ("clock", RV::Callable(Some(0), Rc::new(Function::Native{ function: nt_clock }))),
+            ("print", RV::Callable(None, Rc::new(Function::Native{ function: nt_print }))),
+            ("fib_nat", RV::Callable(Some(1), Rc::new(Function::Native{ function: nt_fib }))),
+            ("json_encode", RV::Callable(Some(1),Rc::new(Function::Native{ function: nt_json_encode }))),
+            ("json_decode", RV::Callable(Some(1),Rc::new(Function::Native{ function: nt_json_decode }))),
         ]);
 
         interpreter.define_native_fns(native_fns);

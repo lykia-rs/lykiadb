@@ -81,7 +81,7 @@ pub enum RV {
     Bool(bool),
     Object(FxHashMap<String, RV>),
     Array(Vec<RV>),
-    Callable(Option<usize>, Function),
+    Callable(Option<usize>, Rc<Function>),
     Undefined,
     NaN,
     Null,

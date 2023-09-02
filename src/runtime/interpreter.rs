@@ -384,7 +384,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     closure: self.env.clone(),
                 };
 
-                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun));
+                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun.into()));
             }
         }
         Ok(RV::Undefined)
