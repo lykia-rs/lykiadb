@@ -1,14 +1,22 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
 
+use crate::lang::execution::interpreter::Interpreter;
+
 #[derive(Debug)]
 pub enum CallableError {
-    GenericError { line: u32, chr: char },
+    GenericError(String),
 }
 
-pub trait Callable {
-    fn call(&self, args: Vec<RV>) -> Result<RV, CallableError>;
+pub trait Callable where Self: std::fmt::Debug + std::fmt::Display {
+    fn call(&self, interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, CallableError>;
+}
+
+impl PartialEq for dyn Callable {
+    fn eq(&self, other: &Self) -> bool {
+        self as *const dyn Callable == other as *const dyn Callable
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,7 +47,7 @@ impl<'de> Deserialize<'de> for RV {
     }
 }
 
-impl<'se> Serialize for RV {
+impl Serialize for RV {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
         match self {
             RV::Str(s) => serializer.serialize_str(s),

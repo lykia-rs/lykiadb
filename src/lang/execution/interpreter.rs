@@ -8,7 +8,7 @@ use crate::lang::parsing::token::TokenType;
 use crate::lang::parsing::token::Keyword::*;
 use crate::lang::parsing::token::Symbol::*;
 use crate::lang::parsing::token::TokenType::Symbol;
-use crate::lang::parsing::types::RV;
+use crate::lang::parsing::types::{RV, CallableError};
 use crate::lang::parsing::types::RV::*;
 use crate::lang::parsing::token::Token;
 
@@ -18,16 +18,22 @@ macro_rules! bool2num {
     }
 }
 
+impl From<HaltReason> for CallableError {
+    fn from(err: HaltReason) -> CallableError {
+        CallableError::GenericError(format!("{:?}", err))
+    }
+}
+
 #[derive(Debug)]
 pub enum HaltReason {
-    Error(String),
+    GenericError(String),
+    CallableError(CallableError),
     Return(RV),
 }
 
 pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
-    HaltReason::Error(format!("{} at line {}", msg, line + 1))
+    HaltReason::GenericError(format!("{} at line {}", msg, line + 1))
 }
-
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum LoopState {
@@ -219,8 +225,8 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, HaltReason> {
-        self.execute_block(statements, Some(environment))
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, CallableError> {
+        self.execute_block(statements, Some(environment)).map_err(| err | From::from(err))
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
@@ -262,7 +268,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Variable(_, tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
             Expr::Assignment(_, tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
+                if let Err(HaltReason::GenericError(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line);
                     exit(1);
                 }
@@ -290,13 +296,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
-                        Err(HaltReason::Error(msg))=> panic!("{}", msg),
-                        Err(HaltReason::Return(unpacked_val)) => {
-                            unpacked_val
-                        }
                         Ok(unpacked_val) => {
                             unpacked_val
-                        }
+                        },
+                        Err(err)=> exit(-1)
                     }
                 }
                 else {
@@ -326,7 +329,9 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                 }
             },
-            Stmt::Block(statements) => { return Ok(self.execute_block(statements, None))?; },
+            Stmt::Block(statements) => { 
+                return Ok(self.execute_block(statements, None))?;
+            },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(if_stmt)?;

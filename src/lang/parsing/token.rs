@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use phf::phf_map;
-use rustc_hash::FxHashMap;
 use crate::lang::parsing::types::RV;
 
 #[derive(Debug, Clone, Eq, PartialEq)]

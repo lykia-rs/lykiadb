@@ -42,7 +42,7 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().assign(name, value);
         }
 
-        Err(HaltReason::Error(format!("Assignment to an undefined variable '{}'", &name)))
+        Err(HaltReason::GenericError(format!("Assignment to an undefined variable '{}'", &name)))
     }
 
     pub fn read(&mut self, name: &String) -> Result<RV, HaltReason> {
@@ -55,6 +55,6 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().read(name);
         }
 
-        Err(HaltReason::Error(format!("Variable '{}' was not found.", &name)))
+        Err(HaltReason::GenericError(format!("Variable '{}' was not found.", &name)))
     }
 }
