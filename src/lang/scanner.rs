@@ -244,7 +244,7 @@ mod test {
         assert_tokens("123 123.456 \"hello world\" true false helloIdentifier", vec![
             Token {tok_type: TokenType::Num, lexeme: lexm!("123"), literal: Some(Num(123.0)), line: 0},
             Token {tok_type: TokenType::Num, lexeme: lexm!("123.456"), literal: Some(Num(123.456)), line: 0},
-            Token {tok_type: TokenType::Str, lexeme: lexm!("hello world"), literal: Some(:Str(Rc::new("hello world".to_string()))), line: 0},
+            Token {tok_type: TokenType::Str, lexeme: lexm!("hello world"), literal: Some(Str(Rc::new("hello world".to_string()))), line: 0},
             Token {tok_type: TokenType::True, lexeme: lexm!("true"), literal: None, line: 0},
             Token {tok_type: TokenType::False, lexeme: lexm!("false"), literal: None, line: 0},
             Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("helloIdentifier"), literal: Some(Str(Rc::new("helloIdentifier".to_string()))), line: 0},
