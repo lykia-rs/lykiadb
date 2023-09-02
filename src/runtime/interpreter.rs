@@ -35,7 +35,7 @@ pub enum LoopState {
     Continue,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Context {
     ongoing_loops: Option<Vec<LoopState>>,
 }
@@ -80,7 +80,7 @@ impl Context {
         self.push_loop(to);
     }
 }
-#[derive(PartialEq)]
+
 pub struct Interpreter {
     env: Shared<Environment>,
     call_stack: Vec<Context>,
