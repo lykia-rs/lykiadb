@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use crate::runtime::interpreter::{HaltReason, runtime_err};
 use crate::lang::ast::{Expr, Stmt, Visitor};
 use crate::lang::token::Token;
-use crate::lang::types::RV;
+use crate::runtime::types::RV;
 use uuid::Uuid;
 
 pub struct Resolver {

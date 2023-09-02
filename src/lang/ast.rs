@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use uuid::Uuid;
 use crate::lang::token::Token;
-use crate::lang::types::RV;
+use crate::runtime::types::RV;
 
 pub trait Visitor<T, Q> {
     fn visit_expr(&mut self, e: &Expr) -> T;

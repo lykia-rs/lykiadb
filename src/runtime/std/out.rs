@@ -1,7 +1,7 @@
-use crate::runtime::interpreter::Interpreter;
-use crate::lang::types::{RV, CallableError};
+use crate::runtime::interpreter::{HaltReason, Interpreter};
+use crate::runtime::types::RV;
 
-pub fn nt_print(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, CallableError> {
+pub fn nt_print(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
     for arg in args {
         print!("{:?} ", arg);
     }

@@ -2,16 +2,17 @@ use ::std::collections::HashMap;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
 use crate::lang::scanner::Scanner;
-use crate::lang::types::{RV, Function};
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::std::fib::nt_fib;
 use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
 use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
+use crate::runtime::types::{Function, RV};
 
 pub mod interpreter;
 pub mod environment;
+pub mod types;
 mod std;
 mod resolver;
 

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use phf::phf_map;
-use crate::lang::types::RV;
+use crate::runtime::types::RV;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Symbol {

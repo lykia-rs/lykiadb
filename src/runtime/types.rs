@@ -4,18 +4,13 @@ use rustc_hash::FxHashMap;
 use std::fmt::{Debug, Formatter, Display};
 use std::process::exit;
 use crate::runtime::environment::{Environment, Shared};
-use crate::runtime::interpreter::Interpreter;
+use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::lang::ast::Stmt;
-
-#[derive(PartialEq, Debug)]
-pub enum CallableError {
-    GenericError(String),
-}
 
 #[derive(Clone)]
 pub enum Function {
     Native {
-        function: fn(&mut Interpreter, &[RV]) -> Result<RV, CallableError> 
+        function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>
     },
     UserDefined {
         name: String,
@@ -61,7 +56,7 @@ impl Display for Function {
 }
 
 impl Function {
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, CallableError> {
+    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
             Function::Native { function } => function(interpreter, arguments),
             Function::UserDefined { name: _, parameters, closure, body }  => {

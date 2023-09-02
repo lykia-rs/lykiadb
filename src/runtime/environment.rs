@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use crate::runtime::interpreter::HaltReason;
-use crate::lang::types::RV;
+use crate::runtime::types::RV;
 
 pub type Shared<T> = Rc<RefCell<T>>;
 

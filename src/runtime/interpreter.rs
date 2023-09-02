@@ -8,9 +8,9 @@ use crate::lang::token::TokenType;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::Symbol;
-use crate::lang::types::{RV, CallableError, Function};
-use crate::lang::types::RV::*;
 use crate::lang::token::Token;
+use crate::runtime::types::{Function, RV};
+use crate::runtime::types::RV::Callable;
 
 macro_rules! bool2num {
     ($val: expr) => {
@@ -18,16 +18,9 @@ macro_rules! bool2num {
     }
 }
 
-impl From<HaltReason> for CallableError {
-    fn from(err: HaltReason) -> CallableError {
-        CallableError::GenericError(format!("{:?}", err))
-    }
-}
-
 #[derive(Debug)]
 pub enum HaltReason {
     GenericError(String),
-    CallableError(CallableError),
     Return(RV),
 }
 
@@ -232,13 +225,8 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, CallableError> {
-        match self.execute_block(statements, Some(environment)) {
-            Ok(ok) => Ok(ok),
-            Err(HaltReason::Return(rv)) => Ok(rv),
-            Err(HaltReason::GenericError(msg)) => Err(CallableError::GenericError(msg)),
-            Err(HaltReason::CallableError(err)) => Err(err),
-        }
+    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, HaltReason> {
+        self.execute_block(statements, Some(environment))
     }
 
     pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
@@ -309,6 +297,9 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
+                        Err(HaltReason::Return(ret_val)) => {
+                            ret_val
+                        }
                         Ok(unpacked_val) => {
                             unpacked_val
                         },
