@@ -63,6 +63,7 @@ impl Function {
                 let fn_env = Environment::new(Some(Rc::clone(&closure)));
 
                 for (i, param) in parameters.iter().enumerate() {
+                    // TODO: Remove clone here
                     fn_env.borrow_mut().declare(param.to_string(), arguments.get(i).unwrap().clone());
                 }
 
