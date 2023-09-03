@@ -16,27 +16,58 @@ pub enum SqlDistinct {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlResultColumns {
-
+    All,
+    AllColumnsOf{
+        table: Token
+    },
+    Complex {
+        expr: SqlExpr, 
+        alias: Option<Token>
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlTableSubquery {
+    Simple {
+        namespace: Option<Token>,
+        table: Token,
+        alias: Option<Token>
+    },
+    From {
+        from: SqlFrom
+    },
+    Select {
+        stmt: SelectStmt,
+        alias: Option<Token>
+    }
+}
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinType {
+    Left,
+    LeftOuter,
+    Right,
+    Inner
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlJoinClause {
-
+    None(SqlTableSubquery),
+    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>)
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlCompoundOperator {
-
+    Union,
+    UnionAll,
+    Intersect,
+    Except
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlOrderingTerm {
-
+pub enum SqlOrdering {
+    Asc,
+    Desc
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -45,29 +76,32 @@ pub enum SqlFrom {
     JoinClause(Box<SqlJoinClause>)
 }
 
-pub enum SqlCore {
-
-}
-
 #[derive(Debug, Eq, PartialEq)]
 struct SelectCore {
     distinct: SqlDistinct,
     result_columns: Vec<SqlResultColumns>,
     from: SqlFrom,
-    r#where: Option<Box<Expr>>,
-    group_by: Option<Box<Expr>>,
-    having: Option<Box<Expr>>,
+    r#where: Option<SqlExpr>,
+    group_by: Option<SqlExpr>,
+    having: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SelectStmt {
+    core: SelectCore,
+    compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
+    order_by: (SqlExpr, Option<SqlOrdering>),
+    limit: Option<SqlExpr>,
+    offset: Option<SqlExpr>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlStmt {
-    Select {
-        core: SelectCore,
-        compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
-        order_by_clause: Option<SqlOrderingTerm>,
-        limit_clause: Option<Box<Expr>>,
-        offset_clause: Option<Box<Expr>>,
-    }
+    Select(SelectStmt)
+}
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlExpr {
+    Default(Expr)
 }
 
 #[derive(Debug, Eq, PartialEq)]
