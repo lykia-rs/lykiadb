@@ -77,22 +77,22 @@ pub enum SqlFrom {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct SelectCore {
-    distinct: SqlDistinct,
-    result_columns: Vec<SqlResultColumns>,
-    from: SqlFrom,
-    r#where: Option<SqlExpr>,
-    group_by: Option<SqlExpr>,
-    having: Option<SqlExpr>,
+pub struct SelectCore {
+    pub distinct: SqlDistinct,
+    pub result_columns: Vec<SqlResultColumns>,
+    pub from: SqlFrom,
+    pub r#where: Option<SqlExpr>,
+    pub group_by: Option<SqlExpr>,
+    pub having: Option<SqlExpr>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlSelect {
-    core: SelectCore,
-    compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
-    order_by: (SqlExpr, Option<SqlOrdering>),
-    limit: Option<SqlExpr>,
-    offset: Option<SqlExpr>,
+    pub core: Box<SelectCore>,
+    pub compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
+    pub order_by: Option<(SqlExpr, Option<SqlOrdering>)>,
+    pub limit: Option<SqlExpr>,
+    pub offset: Option<SqlExpr>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -144,6 +144,11 @@ impl Expr {
     pub fn new_binary(op: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Binary(Uuid::new_v4(), op, left, right))
     }
+
+    pub fn new_select(select: Box<SqlSelect>) -> Box<Expr> {
+        Box::new(Expr::Select(Uuid::new_v4(), select))
+    }
+
     pub fn new_grouping(expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Grouping(Uuid::new_v4(), expr))
     }
