@@ -1,11 +1,13 @@
 use std::rc::Rc;
+
 use crate::{kw, sym};
-use crate::lang::parsing::ast::{Expr, Stmt};
-use crate::lang::parsing::ast::Expr::Variable;
-use crate::lang::parsing::token::{LiteralValue, Token, TokenType};
-use crate::lang::parsing::token::TokenType::*;
-use crate::lang::parsing::token::Keyword::*;
-use crate::lang::parsing::token::Symbol::*;
+use crate::lang::ast::{Expr, Stmt};
+use crate::lang::ast::Expr::Variable;
+use crate::lang::token::{Token, TokenType};
+use crate::lang::token::TokenType::*;
+use crate::lang::token::Keyword::*;
+use crate::lang::token::Symbol::*;
+use crate::runtime::types::RV;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -203,7 +205,7 @@ impl<'a> Parser<'a> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => Expr::new_literal(LiteralValue::Nil)
+            false => Expr::new_literal(RV::Null)
         };
         self.expected(sym!(Semicolon))?;
         Ok(Stmt::Declaration(token, expr))
@@ -306,9 +308,9 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Ok(Expr::new_literal(LiteralValue::Bool(true))),
-            False => Ok(Expr::new_literal(LiteralValue::Bool(false))),
-            Nil => Ok(Expr::new_literal(LiteralValue::Nil)),
+            True => Ok(Expr::new_literal(RV::Bool(true))),
+            False => Ok(Expr::new_literal(RV::Bool(false))),
+            Null => Ok(Expr::new_literal(RV::Null)),
             Str | Num => Ok(Expr::new_literal(tok.literal.clone().unwrap())),
             Identifier { dollar: _ } => Ok(Expr::new_variable(tok.clone())),
             Symbol(LeftParen) => {
@@ -377,7 +379,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
 
-    use crate::lang::parsing::{scanner::Scanner, token::{Token, LiteralValue}, ast::{Stmt, Expr}};
+    use crate::lang::{ast::{Expr, Stmt}, scanner::Scanner, token::Token};
 
     use crate::lexm;
 
@@ -397,7 +399,7 @@ mod test {
     fn test_parse_literal_expression() {
         compare_parsed_to_expected("1;", vec![
             Stmt::Expression(
-                Expr::new_literal(LiteralValue::Num(1.0))
+                Expr::new_literal(RV::Num(1.0))
             )
         ]);
     }
@@ -408,7 +410,7 @@ mod test {
             Stmt::Expression(
                 Expr::new_unary(
                     Token {tok_type: sym!(Minus), lexeme: lexm!("-"), literal: None, line: 0},
-                    Expr::new_literal(LiteralValue::Num(1.0)
+                    Expr::new_literal(RV::Num(1.0)
                 )
             )
         )]);

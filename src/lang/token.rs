@@ -1,15 +1,6 @@
 use std::rc::Rc;
 use phf::phf_map;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum LiteralValue {
-    Str(Rc<String>),
-    Num(f64),
-    Bool(bool),
-    Nil
-}
-
-impl Eq for LiteralValue {}
+use crate::runtime::types::RV;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Symbol {
@@ -38,7 +29,7 @@ pub enum Symbol {
 pub enum TokenType {
     Str,
     Num,
-    Nil,
+    Null,
     False,
     True,
     //
@@ -193,7 +184,7 @@ pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => kw!(Keyword::While),
     "loop" => kw!(Keyword::Loop),
     //
-    "nil" =>  TokenType::Nil,
+    "null" =>  TokenType::Null,
     "false" => TokenType::False,
     "true" => TokenType::True,
 };
@@ -256,6 +247,6 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<Rc<String>>,
-    pub literal: Option<LiteralValue>,
+    pub literal: Option<RV>,
     pub line: u32
 }

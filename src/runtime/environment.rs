@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
-use crate::lang::execution::primitives::{HaltReason, RV};
+use crate::runtime::interpreter::HaltReason;
+use crate::runtime::types::RV;
 
 pub type Shared<T> = Rc<RefCell<T>>;
 
@@ -41,7 +42,7 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().assign(name, value);
         }
 
-        Err(HaltReason::Error(format!("Assignment to an undefined variable '{}'", &name)))
+        Err(HaltReason::GenericError(format!("Assignment to an undefined variable '{}'", &name)))
     }
 
     pub fn read(&mut self, name: &String) -> Result<RV, HaltReason> {
@@ -54,6 +55,6 @@ impl Environment {
             return self.parent.as_mut().unwrap().borrow_mut().read(name);
         }
 
-        Err(HaltReason::Error(format!("Variable '{}' was not found.", &name)))
+        Err(HaltReason::GenericError(format!("Variable '{}' was not found.", &name)))
     }
 }

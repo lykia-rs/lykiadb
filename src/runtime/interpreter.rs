@@ -1,21 +1,31 @@
+use std::collections::HashMap;
 use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
-use crate::lang::execution::environment::{Environment, Shared};
-use crate::lang::parsing::ast::{Expr, Stmt, Visitor};
-use crate::lang::execution::primitives::{Function, HaltReason, runtime_err, RV};
-use crate::lang::execution::primitives::RV::Callable;
-use crate::lang::parsing::token::TokenType;
-use crate::lang::parsing::token::Keyword::*;
-use crate::lang::parsing::token::Symbol::*;
-use crate::lang::parsing::token::TokenType::Symbol;
-use crate::lang::parsing::token::LiteralValue::{Bool, Nil, Num, Str};
-use crate::lang::parsing::token::Token;
+use crate::runtime::environment::{Environment, Shared};
+use crate::lang::ast::{Expr, Stmt, Visitor};
+use crate::lang::token::TokenType;
+use crate::lang::token::Keyword::*;
+use crate::lang::token::Symbol::*;
+use crate::lang::token::TokenType::Symbol;
+use crate::lang::token::Token;
+use crate::runtime::types::{Function, RV};
+use crate::runtime::types::RV::Callable;
 
 macro_rules! bool2num {
     ($val: expr) => {
         if $val { 1.0 } else { 0.0 }
     }
+}
+
+#[derive(Debug)]
+pub enum HaltReason {
+    GenericError(String),
+    Return(RV),
+}
+
+pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
+    HaltReason::GenericError(format!("{} at line {}", msg, line + 1))
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -81,7 +91,7 @@ fn is_value_truthy(rv: RV) -> bool {
         RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
         RV::Str(value) => !value.is_empty(),
         RV::Bool(value) => value,
-        RV::Nil |
+        RV::Null |
         RV::Undefined |
         RV::NaN => false,
         _ => true
@@ -93,6 +103,12 @@ impl Interpreter {
         Interpreter {
             env,
             call_stack: vec![Context::new()]
+        }
+    }
+
+    pub fn define_native_fns(&mut self, fns: HashMap<&str, RV>) {
+        for (name, value) in fns {
+            self.env.borrow_mut().declare(name.to_string(), value);
         }
     }
 
@@ -127,11 +143,11 @@ impl Interpreter {
         };
 
         match (left_coerced, tok_type, right_coerced) {
-            (RV::Nil, Symbol(EqualEqual), RV::Nil) => RV::Bool(true),
-            (RV::Nil, Symbol(BangEqual), RV::Nil) => RV::Bool(false),
+            (RV::Null, Symbol(EqualEqual), RV::Null) => RV::Bool(true),
+            (RV::Null, Symbol(BangEqual), RV::Null) => RV::Bool(false),
             //
-            (_, Symbol(EqualEqual), RV::Nil) |
-            (RV::Nil, Symbol(EqualEqual), _) => RV::Bool(false),
+            (_, Symbol(EqualEqual), RV::Null) |
+            (RV::Null, Symbol(EqualEqual), _) => RV::Bool(false),
             //
             (RV::NaN, Symbol(Plus), _) | (_, Symbol(Plus), RV::NaN) |
             (RV::NaN, Symbol(Minus), _) | (_, Symbol(Minus), RV::NaN) |
@@ -186,6 +202,7 @@ impl Interpreter {
         }
     }
 }
+
 
 impl Interpreter {
     fn is_loop_at(&self, state: LoopState) -> bool {
@@ -244,17 +261,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
-            Expr::Literal(_, Str(value)) => RV::Str(value.clone()),
-            Expr::Literal(_, Num(value)) => RV::Num(*value),
-            Expr::Literal(_, Bool(value)) => RV::Bool(*value),
-            Expr::Literal(_, Nil) => RV::Nil,
+            Expr::Literal(_, value) => value.clone(),
             Expr::Grouping(_, expr) => self.visit_expr(expr),
             Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
             Expr::Binary(_, tok, left, right) => self.eval_binary(left, right, tok),
             Expr::Variable(_, tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
             Expr::Assignment(_, tok, expr) => {
                 let evaluated = self.visit_expr(expr);
-                if let Err(HaltReason::Error(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
+                if let Err(HaltReason::GenericError(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line);
                     exit(1);
                 }
@@ -279,15 +293,19 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                     let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
                     self.call_stack.insert(0, Context::new());
+                    
                     let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
-                        Err(HaltReason::Error(msg))=> panic!("{}", msg),
-                        Err(HaltReason::Return(unpacked_val)) => {
-                            unpacked_val
+                        Err(HaltReason::Return(ret_val)) => {
+                            ret_val
                         }
                         Ok(unpacked_val) => {
                             unpacked_val
+                        },
+                        Err(err)=> { 
+                            println!("{:?}", err);
+                            exit(-1) 
                         }
                     }
                 }
@@ -318,7 +336,9 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                 }
             },
-            Stmt::Block(statements) => { return Ok(self.execute_block(statements, None))?; },
+            Stmt::Block(statements) => { 
+                return Ok(self.execute_block(statements, None))?;
+            },
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(condition)) {
                     self.visit_stmt(if_stmt)?;
@@ -357,14 +377,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
             },
             Stmt::Function(token, parameters, body) => {
                 let name = token.lexeme.as_ref().unwrap().to_string();
-                let fun = Function::UserDefined(
-                    name.clone(),
-                    Rc::clone(body),
-                    parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
-                    self.env.clone(),
-                );
+                let fun = Function::UserDefined {
+                    name: name.clone(),
+                    body: Rc::clone(body),
+                    parameters:parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
+                    closure: self.env.clone(),
+                };
 
-                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), Rc::new(fun)));
+                self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun.into()));
             }
         }
         Ok(RV::Undefined)

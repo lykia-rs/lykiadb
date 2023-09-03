@@ -1,7 +1,7 @@
-
 use std::rc::Rc;
-use crate::lang::parsing::token::{LiteralValue, Token};
 use uuid::Uuid;
+use crate::lang::token::Token;
+use crate::runtime::types::RV;
 
 pub trait Visitor<T, Q> {
     fn visit_expr(&mut self, e: &Expr) -> T;
@@ -9,10 +9,23 @@ pub trait Visitor<T, Q> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum Stmt {
+    Expression(Box<Expr>),
+    Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
+    Declaration(Token, Box<Expr>),
+    Block(Vec<Stmt>),
+    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
+    Loop(Option<Box<Expr>>, Box<Stmt>, Option<Box<Stmt>>),
+    Break(Token),
+    Continue(Token),
+    Return(Token, Option<Box<Expr>>)
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
     Binary(Uuid, Token, Box<Expr>, Box<Expr>),
     Grouping(Uuid, Box<Expr>),
-    Literal(Uuid, LiteralValue),
+    Literal(Uuid, RV),
     Unary(Uuid, Token, Box<Expr>),
     Variable(Uuid, Token),
     Assignment(Uuid, Token, Box<Expr>),
@@ -40,7 +53,7 @@ impl Expr {
     pub fn new_grouping(expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Grouping(Uuid::new_v4(), expr))
     }
-    pub fn new_literal(value: LiteralValue) -> Box<Expr> {
+    pub fn new_literal(value: RV) -> Box<Expr> {
         Box::new(Expr::Literal(Uuid::new_v4(), value))
     }
     pub fn new_unary(op: Token, expr: Box<Expr>) -> Box<Expr> {
@@ -58,17 +71,4 @@ impl Expr {
     pub fn new_call(callee: Box<Expr>, paren: Token, arguments: Vec<Box<Expr>>) -> Box<Expr> {
         Box::new(Expr::Call(Uuid::new_v4(), callee, paren, arguments))
     }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Stmt {
-    Expression(Box<Expr>),
-    Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
-    Declaration(Token, Box<Expr>),
-    Block(Vec<Stmt>),
-    If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
-    Loop(Option<Box<Expr>>, Box<Stmt>, Option<Box<Stmt>>),
-    Break(Token),
-    Continue(Token),
-    Return(Token, Option<Box<Expr>>)
 }

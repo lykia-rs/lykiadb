@@ -1,7 +1,8 @@
 extern crate core;
 
-mod lang;
 mod cli;
+pub mod runtime;
+pub mod lang;
 
 fn main() {
     cli::init();

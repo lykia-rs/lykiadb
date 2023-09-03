@@ -1,8 +1,8 @@
 use std::rc::Rc;
-use crate::lang::parsing::token::*;
-use crate::lang::parsing::token::LiteralValue::{Num, Str};
-use crate::lang::parsing::token::Symbol::*;
-use crate::lang::parsing::token::TokenType::*;
+use crate::lang::token::*;
+use crate::lang::token::Symbol::*;
+use crate::lang::token::TokenType::{Eof, Identifier};
+use crate::runtime::types::RV::*;
 use crate::sym;
 
 pub struct Scanner {
@@ -66,24 +66,6 @@ impl Scanner {
         });
     }
 
-    fn add_str_literal(&mut self, value: &str) {
-        self.tokens.push(Token {
-            tok_type: TokenType::Str,
-            lexeme: Some(Rc::new(value.to_string())),
-            literal: Some(Str(Rc::new(value.to_string()))),
-            line: self.line
-        });
-    }
-
-    fn add_num_literal(&mut self, value: &str) {
-        self.tokens.push(Token {
-            tok_type: TokenType::Num,
-            lexeme: Some(Rc::new(value.to_string())),
-            literal: Some(Num(value.parse::<f64>().unwrap())),
-            line: self.line
-        });
-    }
-
     fn add_double_token(&mut self, lexeme_prefix: &str, expected_second: char, token_single: TokenType, token_double: TokenType) {
         if self.match_next(expected_second) {
             let concat = lexeme_prefix.to_string() + &expected_second.to_string();
@@ -112,8 +94,15 @@ impl Scanner {
 
         self.advance();
 
-        let span: String = self.chars[self.start + 1..self.current -1].iter().collect();
-        self.add_str_literal(&span);
+        let span: String = self.chars[self.start + 1..self.current -1].iter().collect();        
+        let value = Rc::new(span.to_string());
+
+        self.tokens.push(Token {
+            tok_type: TokenType::Str,
+            lexeme: Some(value.clone()),
+            literal: Some(Str(value)),
+            line: self.line
+        });
         Ok(())
     }
 
@@ -138,7 +127,13 @@ impl Scanner {
         }
 
         let span: String = self.chars[self.start..self.current].iter().collect();
-        self.add_num_literal(&span);
+        let parsed = span.parse::<f64>().unwrap();
+        self.tokens.push(Token {
+            tok_type: TokenType::Num,
+            lexeme: Some(Rc::new(span)),
+            literal: Some(Num(parsed)),
+            line: self.line
+        });
         Ok(())
     }
 
@@ -152,10 +147,11 @@ impl Scanner {
         } else if CASE_INS_KEYWORDS.contains_key(&span.to_ascii_uppercase()) {
             self.add_token(&span,CASE_INS_KEYWORDS.get(&span.to_ascii_uppercase()).unwrap().clone());
         } else {
+            let value = Rc::new(span.to_string());
             self.tokens.push(Token {
                 tok_type: Identifier { dollar: is_dollar },
-                lexeme: Some(Rc::new(span.to_string())),
-                literal: Some(Str(Rc::new(span.to_string()))),
+                lexeme: Some(value.clone()),
+                literal: Some(Str(value)),
                 line: self.line
             });
         }
@@ -208,6 +204,7 @@ impl Scanner {
 #[cfg(test)]
 mod test {
     use crate::{kw, lexm, skw};
+    use crate::lang::token::TokenType::Eof;
 
     use super::*;
 

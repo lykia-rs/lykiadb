@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{BufReader, Read, stdin, stdout, Write};
-use crate::lang::execution::runtime::{Runtime, RuntimeMode};
+use crate::runtime::{Runtime, RuntimeMode};
 
 pub fn init() {
     println!("lykia v0");
