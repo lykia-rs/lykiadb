@@ -101,7 +101,8 @@ impl Visitor<RV, HaltReason> for Resolver {
                 for argument in arguments {
                     self.resolve_expr(argument);
                 }
-            }
+            },
+            Expr::Select(_, _) => (),
         };
         RV::Undefined
     }
@@ -146,7 +147,6 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             },
-            Stmt::Sql(_) => (), // TODO(vck): needs to be implemented
         }
         Ok(RV::Undefined)
     }

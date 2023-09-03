@@ -37,7 +37,7 @@ pub enum SqlTableSubquery {
         from: SqlFrom
     },
     Select {
-        stmt: SelectStmt,
+        stmt: SqlSelect,
         alias: Option<Token>
     }
 }
@@ -87,7 +87,7 @@ struct SelectCore {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct SelectStmt {
+pub struct SqlSelect {
     core: SelectCore,
     compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
     order_by: (SqlExpr, Option<SqlOrdering>),
@@ -96,10 +96,6 @@ struct SelectStmt {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlStmt {
-    Select(SelectStmt)
-}
-#[derive(Debug, Eq, PartialEq)]
 pub enum SqlExpr {
     Default(Expr)
 }
@@ -107,7 +103,6 @@ pub enum SqlExpr {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(Box<Expr>),
-    Sql(Box<SqlStmt>),
     Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
     Declaration(Token, Box<Expr>),
     Block(Vec<Stmt>),
@@ -120,6 +115,7 @@ pub enum Stmt {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
+    Select(Uuid, Box<SqlSelect>),
     Binary(Uuid, Token, Box<Expr>, Box<Expr>),
     Grouping(Uuid, Box<Expr>),
     Literal(Uuid, RV),
@@ -133,6 +129,7 @@ pub enum Expr {
 impl Expr {
     pub fn id(&self) -> Uuid {
         match self {
+            Expr::Select(id, _) => *id,
             Expr::Binary(id, _, _, _) => *id,
             Expr::Grouping(id, _) => *id,
             Expr::Literal(id, _) => *id,
