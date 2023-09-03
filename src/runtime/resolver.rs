@@ -145,7 +145,8 @@ impl Visitor<RV, HaltReason> for Resolver {
                 }
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
-            }
+            },
+            Stmt::Sql(_) => (), // TODO(vck): needs to be implemented
         }
         Ok(RV::Undefined)
     }

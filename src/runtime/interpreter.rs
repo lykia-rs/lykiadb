@@ -385,7 +385,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 };
 
                 self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun.into()));
-            }
+            },
+            Stmt::Sql(_) => (), // TODO(vck): needs to be implemented
         }
         Ok(RV::Undefined)
     }
