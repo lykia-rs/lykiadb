@@ -9,8 +9,71 @@ pub trait Visitor<T, Q> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum SqlDistinct {
+    All,
+    Distinct
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlResultColumns {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlTableSubquery {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinClause {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlCompoundOperator {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlOrderingTerm {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlFrom {
+    TableSubquery(Vec<SqlTableSubquery>),
+    JoinClause(Box<SqlJoinClause>)
+}
+
+pub enum SqlCore {
+
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct SelectCore {
+    distinct: SqlDistinct,
+    result_columns: Vec<SqlResultColumns>,
+    from: SqlFrom,
+    r#where: Option<Box<Expr>>,
+    group_by: Option<Box<Expr>>,
+    having: Option<Box<Expr>>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlStmt {
+    Select {
+        core: SelectCore,
+        compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
+        order_by_clause: Option<SqlOrderingTerm>,
+        limit_clause: Option<Box<Expr>>,
+        offset_clause: Option<Box<Expr>>,
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(Box<Expr>),
+    Sql(Box<SqlStmt>),
     Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
     Declaration(Token, Box<Expr>),
     Block(Vec<Stmt>),
