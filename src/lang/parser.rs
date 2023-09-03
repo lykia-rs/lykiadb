@@ -1,13 +1,18 @@
 use std::rc::Rc;
+use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlTableSubquery, SqlDistinct};
 
-use crate::{kw, sym};
+use crate::{kw, sym, skw};
 use crate::lang::ast::{Expr, Stmt};
 use crate::lang::ast::Expr::Variable;
 use crate::lang::token::{Token, TokenType};
 use crate::lang::token::TokenType::*;
+use crate::lang::token::Keyword;
 use crate::lang::token::Keyword::*;
+use crate::lang::token::SqlKeyword::*;
 use crate::lang::token::Symbol::*;
 use crate::runtime::types::RV;
+
+use super::ast::{SqlSelect, SqlProjection, SqlFrom};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -216,7 +221,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.or()?;
+        let expr = self.select()?;
 
         if self.match_next(sym!(Equal)) {
             let equals = self.peek_bw(1);
@@ -233,9 +238,52 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
+    fn select(&mut self) -> ParseResult<Box<Expr>> {
+        if !self.cmp_tok(&skw!(Select)) {
+            return self.or();
+        }
+        let core = self.select_core()?;
+        let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
+        while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
+            let op = self.peek_bw(1);
+            let mut compound_op = SqlCompoundOperator::Union;
+            if &op.tok_type == &skw!(Union) && !self.cmp_tok(&skw!(All)) {
+                compound_op = SqlCompoundOperator::UnionAll;
+            }
+            else {
+                compound_op = match op.tok_type {
+                    SqlKeyword(Union) => SqlCompoundOperator::Union,
+                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
+                    SqlKeyword(Except) => SqlCompoundOperator::Except,
+                    _ => return Err(ParseError::UnexpectedToken { line: op.line, token: op.clone() })
+                }
+            }
+            let secondary_core = self.select_core()?;
+            compounds.push((compound_op, secondary_core))
+        }
+        return Ok(Expr::new_select(Box::new(SqlSelect {
+            core,
+            compound: compounds,
+            order_by: None,
+            limit: None,
+            offset: None,
+        })));
+    }
+
+    fn select_core(&mut self) -> ParseResult<Box<SelectCore>> {
+        Ok(Box::new(SelectCore {
+            distinct: SqlDistinct::All,
+            projection: vec![SqlProjection::All],
+            from: SqlFrom::TableSubquery(vec![]),
+            r#where: None,
+            group_by: None,
+            having: None,
+        }))
+    }
+
     fn or(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.and()?;
-        if self.match_next(kw!(Or)) {
+        if self.match_next(kw!(Keyword::Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
             return Ok(Expr::new_logical(expr, op.clone(), right));
@@ -245,7 +293,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.equality()?;
-        if self.match_next(kw!(And)) {
+        if self.match_next(kw!(Keyword::And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
             return Ok(Expr::new_logical(expr, op.clone(), right));
@@ -310,7 +358,7 @@ impl<'a> Parser<'a> {
         match &tok.tok_type {
             True => Ok(Expr::new_literal(RV::Bool(true))),
             False => Ok(Expr::new_literal(RV::Bool(false))),
-            Null => Ok(Expr::new_literal(RV::Null)),
+            TokenType::Null => Ok(Expr::new_literal(RV::Null)),
             Str | Num => Ok(Expr::new_literal(tok.literal.clone().unwrap())),
             Identifier { dollar: _ } => Ok(Expr::new_variable(tok.clone())),
             Symbol(LeftParen) => {

@@ -15,7 +15,7 @@ pub enum SqlDistinct {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlResultColumns {
+pub enum SqlProjection {
     All,
     AllColumnsOf{
         table: Token
@@ -79,7 +79,7 @@ pub enum SqlFrom {
 #[derive(Debug, Eq, PartialEq)]
 pub struct SelectCore {
     pub distinct: SqlDistinct,
-    pub result_columns: Vec<SqlResultColumns>,
+    pub projection: Vec<SqlProjection>,
     pub from: SqlFrom,
     pub r#where: Option<SqlExpr>,
     pub group_by: Option<SqlExpr>,
