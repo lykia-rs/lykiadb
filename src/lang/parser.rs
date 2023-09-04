@@ -250,18 +250,41 @@ impl<'a> Parser<'a> {
     }
 
     fn and(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.select()?;
+        let expr = self.equality()?;
         if self.match_next(kw!(Keyword::And)) {
             let op = self.peek_bw(1);
-            let right = self.select()?;
+            let right = self.equality()?;
             return Ok(Expr::new_logical(expr, op.clone(), right));
         }
         Ok(expr)
     }
 
+    fn equality(&mut self) -> ParseResult<Box<Expr>> {
+        binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+    }
+
+    fn comparison(&mut self) -> ParseResult<Box<Expr>> {
+        binary!(self, [sym!(Greater), sym!(GreaterEqual), sym!(Less), sym!(LessEqual)], term);
+    }
+
+    fn term(&mut self) -> ParseResult<Box<Expr>> {
+        binary!(self, [sym!(Plus), sym!(Minus)], factor);
+    }
+
+    fn factor(&mut self) -> ParseResult<Box<Expr>> {
+        binary!(self, [sym!(Star), sym!(Slash)], unary);
+    }
+
+    fn unary(&mut self) -> ParseResult<Box<Expr>> {
+        if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
+            return Ok(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?));
+        }
+        self.select()
+    }
+
     fn select(&mut self) -> ParseResult<Box<Expr>> {
         if !self.cmp_tok(&skw!(Select)) {
-            return self.equality();
+            return self.call();
         }
         let core = self.select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
@@ -344,29 +367,6 @@ impl<'a> Parser<'a> {
             return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
         }
         Ok(None)
-    }
-
-    fn equality(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
-    }
-
-    fn comparison(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self, [sym!(Greater), sym!(GreaterEqual), sym!(Less), sym!(LessEqual)], term);
-    }
-
-    fn term(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self, [sym!(Plus), sym!(Minus)], factor);
-    }
-
-    fn factor(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self, [sym!(Star), sym!(Slash)], unary);
-    }
-
-    fn unary(&mut self) -> ParseResult<Box<Expr>> {
-        if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
-            return Ok(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?));
-        }
-        self.call()
     }
 
     fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
