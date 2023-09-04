@@ -1,4 +1,4 @@
-use std::process::exit;
+
 use std::rc::Rc;
 use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlDistinct};
 
