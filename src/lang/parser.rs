@@ -268,7 +268,7 @@ impl<'a> Parser<'a> {
         while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
             let op = self.peek_bw(1);
             let mut compound_op = SqlCompoundOperator::Union;
-            if &op.tok_type == &skw!(Union) && !self.cmp_tok(&skw!(All)) {
+            if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
                 compound_op = SqlCompoundOperator::UnionAll;
             }
             else {
