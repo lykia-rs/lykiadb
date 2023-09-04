@@ -1,5 +1,6 @@
+use std::process::exit;
 use std::rc::Rc;
-use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlTableSubquery, SqlDistinct};
+use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlDistinct};
 
 use crate::{kw, sym, skw};
 use crate::lang::ast::{Expr, Stmt};
@@ -12,7 +13,7 @@ use crate::lang::token::SqlKeyword::*;
 use crate::lang::token::Symbol::*;
 use crate::runtime::types::RV;
 
-use super::ast::{SqlSelect, SqlProjection, SqlFrom};
+use super::ast::{SqlSelect, SqlProjection, SqlFrom, SqlExpr, SqlTableSubquery};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -221,7 +222,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.select()?;
+        let expr = self.or()?;
 
         if self.match_next(sym!(Equal)) {
             let equals = self.peek_bw(1);
@@ -238,9 +239,29 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
+    fn or(&mut self) -> ParseResult<Box<Expr>> {
+        let expr = self.and()?;
+        if self.match_next(kw!(Keyword::Or)) {
+            let op = self.peek_bw(1);
+            let right = self.and()?;
+            return Ok(Expr::new_logical(expr, op.clone(), right));
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> ParseResult<Box<Expr>> {
+        let expr = self.select()?;
+        if self.match_next(kw!(Keyword::And)) {
+            let op = self.peek_bw(1);
+            let right = self.select()?;
+            return Ok(Expr::new_logical(expr, op.clone(), right));
+        }
+        Ok(expr)
+    }
+
     fn select(&mut self) -> ParseResult<Box<Expr>> {
         if !self.cmp_tok(&skw!(Select)) {
-            return self.or();
+            return self.equality();
         }
         let core = self.select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
@@ -261,44 +282,68 @@ impl<'a> Parser<'a> {
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
-        return Ok(Expr::new_select(Box::new(SqlSelect {
+        Ok(Expr::new_select(Box::new(SqlSelect {
             core,
             compound: compounds,
             order_by: None,
             limit: None,
             offset: None,
-        })));
+        })))
     }
 
     fn select_core(&mut self) -> ParseResult<Box<SelectCore>> {
+        self.expected(skw!(Select))?;
+        let mut distinct = SqlDistinct::All;
+        if self.match_next(skw!(Distinct)) {
+            distinct = SqlDistinct::Distinct;
+        }
+        else if self.match_next(skw!(All)) {
+            distinct = SqlDistinct::All;
+        }
+        let projection = self.sql_projection();
+        let from = self.sql_from()?;
         Ok(Box::new(SelectCore {
-            distinct: SqlDistinct::All,
-            projection: vec![SqlProjection::All],
-            from: SqlFrom::TableSubquery(vec![]),
+            distinct,
+            projection,
+            from,
             r#where: None,
             group_by: None,
             having: None,
         }))
     }
 
-    fn or(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.and()?;
-        if self.match_next(kw!(Keyword::Or)) {
-            let op = self.peek_bw(1);
-            let right = self.and()?;
-            return Ok(Expr::new_logical(expr, op.clone(), right));
+    fn sql_projection(&mut self) -> Vec<SqlProjection> {
+        let mut projections: Vec<SqlProjection> = vec![];
+        loop {
+            if self.match_next(sym!(Star)) {
+                projections.push(SqlProjection::All);
+            }
+            else {
+                let expr = self.expression().unwrap();
+                let mut alias: Option<Token> = None;
+                if self.match_next(skw!(As)) {
+                    let token = self.expected(Identifier { dollar: false });
+                    alias = Some(token.unwrap().clone());
+                }
+                else if self.match_next(Identifier { dollar: false }) {
+                    let token = self.peek_bw(1);
+                    alias = Some(token.clone());
+                }
+                projections.push(SqlProjection::Complex { expr: SqlExpr::Default(*expr), alias });
+            }
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
         }
-        Ok(expr)
-    }
+        projections
+    }   
 
-    fn and(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.equality()?;
-        if self.match_next(kw!(Keyword::And)) {
-            let op = self.peek_bw(1);
-            let right = self.equality()?;
-            return Ok(Expr::new_logical(expr, op.clone(), right));
+    fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
+        if self.match_next(skw!(From)) {
+            let token = self.expected(Identifier { dollar: false });
+            return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
         }
-        Ok(expr)
+        Ok(None)
     }
 
     fn equality(&mut self) -> ParseResult<Box<Expr>> {
