@@ -343,15 +343,17 @@ impl<'a> Parser<'a> {
             }
             else {
                 let expr = self.expression().unwrap();
-                let mut alias: Option<Token> = None;
-                if self.match_next(skw!(As)) {
+                let alias: Option<Token> = if self.match_next(skw!(As)) {
                     let token = self.expected(Identifier { dollar: false });
-                    alias = Some(token.unwrap().clone());
+                    Some(token.unwrap().clone())
                 }
                 else if self.match_next(Identifier { dollar: false }) {
                     let token = self.peek_bw(1);
-                    alias = Some(token.clone());
+                    Some(token.clone())
                 }
+                else {
+                    None
+                };
                 projections.push(SqlProjection::Complex { expr: SqlExpr::Default(*expr), alias });
             }
             if !self.match_next(sym!(Comma)) {
