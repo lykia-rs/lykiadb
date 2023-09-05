@@ -306,18 +306,17 @@ impl<'a> Parser<'a> {
         let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
         while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
             let op = self.peek_bw(1);
-            let mut compound_op = SqlCompoundOperator::Union;
-            if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
-                compound_op = SqlCompoundOperator::UnionAll;
+            let compound_op = if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
+                SqlCompoundOperator::UnionAll
             }
             else {
-                compound_op = match op.tok_type {
+                match op.tok_type {
                     SqlKeyword(Union) => SqlCompoundOperator::Union,
                     SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
                     SqlKeyword(Except) => SqlCompoundOperator::Except,
                     _ => return Err(ParseError::UnexpectedToken { line: op.line, token: op.clone() })
                 }
-            }
+            };
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
@@ -332,19 +331,20 @@ impl<'a> Parser<'a> {
 
     fn select_core(&mut self) -> ParseResult<Box<SelectCore>> {
         self.expected(skw!(Select))?;
-        let mut distinct = SqlDistinct::All;
-        if self.match_next(skw!(Distinct)) {
-            distinct = SqlDistinct::Distinct;
+        let distinct = if self.match_next(skw!(Distinct)) {
+            SqlDistinct::Distinct
         }
         else if self.match_next(skw!(All)) {
-            distinct = SqlDistinct::All;
+            SqlDistinct::All
         }
-        let projection = self.sql_projection();
-        let from = self.sql_from()?;
+        else {
+            SqlDistinct::All
+        };
+
         Ok(Box::new(SelectCore {
             distinct,
-            projection,
-            from,
+            projection: self.sql_projection(),
+            from: self.sql_from()?,
             r#where: None,
             group_by: None,
             having: None,
