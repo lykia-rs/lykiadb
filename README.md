@@ -15,9 +15,9 @@ Lykia is a toy document database basically written for educational purposes. It 
 - [ ] A minimal standard library (in progress)
 - [ ] SQL parsing (in progress)
 - [ ] Query planning
-- [ ] Event loop for communication
+- [ ] Async runtime/event loop
 - [ ] In-memory storage engine
-- [ ] Bitcask storage engine
+- [ ] Persistent storage engine (Bitcask)
 - [ ] Transaction management with MVCC
 - [ ] B-Tree implementation for indexes
 - [ ] Basic replication with Raft
