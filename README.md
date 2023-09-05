@@ -8,7 +8,6 @@ Lykia is a toy document database basically written for educational purposes. It 
 - In-disk and in-memory storage
 - ACID compliance
 - Replication
-- A handy scripting language that is easy to use and provides a rich set of functions. 
 
 ## Roadmap
 
