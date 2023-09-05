@@ -48,6 +48,22 @@ macro_rules! match_next {
     }
 }
 
+macro_rules! optional_with_expected {
+    ($self: ident, $optional: expr, $expected: expr) => {
+        if $self.match_next($optional) {
+            let token = $self.expected($expected);
+            Some(token.unwrap().clone())
+        }
+        else if $self.match_next($expected) {
+            let token = $self.peek_bw(1);
+            Some(token.clone())
+        }
+        else {
+            None
+        }
+    };
+}
+
 impl<'a> Parser<'a> {
 
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Vec<Stmt>> {
@@ -343,17 +359,7 @@ impl<'a> Parser<'a> {
             }
             else {
                 let expr = self.expression().unwrap();
-                let alias: Option<Token> = if self.match_next(skw!(As)) {
-                    let token = self.expected(Identifier { dollar: false });
-                    Some(token.unwrap().clone())
-                }
-                else if self.match_next(Identifier { dollar: false }) {
-                    let token = self.peek_bw(1);
-                    Some(token.clone())
-                }
-                else {
-                    None
-                };
+                let alias: Option<Token> = optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Complex { expr: SqlExpr::Default(*expr), alias });
             }
             if !self.match_next(sym!(Comma)) {
