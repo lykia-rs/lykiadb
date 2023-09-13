@@ -82,7 +82,7 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
-            expr @ Expr::Variable(tok) => {
+            Expr::Variable(tok) => {
                 if !self.scopes.is_empty() &&
                     !*(self.scopes.last().unwrap().get(&tok.lexeme.as_ref().unwrap().to_string()).unwrap()) {
                     runtime_err(&"Can't read local variable in its own initializer.", tok.line);
@@ -91,7 +91,7 @@ impl Visitor<RV, HaltReason> for Resolver {
                 // Resolving eidx may be a bit weird here
                 self.resolve_local(eidx, tok);
             },
-            expr @ Expr::Assignment(name, value) => {
+            Expr::Assignment(name, value) => {
                 self.resolve_expr(*value);
                 // Resolving eidx may be a bit weird here
                 self.resolve_local(eidx, name);
