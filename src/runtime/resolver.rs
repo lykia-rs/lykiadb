@@ -1,21 +1,23 @@
 use std::process::exit;
+use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use crate::runtime::interpreter::{HaltReason, runtime_err};
-use crate::lang::ast::{Expr, Stmt, Visitor};
+use crate::lang::ast::{Expr, Stmt, Visitor, ParserArena, StmtId, ExprId};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
-use uuid::Uuid;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<Uuid, usize>,
+    locals: FxHashMap<usize, usize>,
+    arena: Rc<ParserArena>,
 }
 
 impl Resolver {
-    pub fn new() -> Resolver {
+    pub fn new(arena: Rc<ParserArena>) -> Resolver {
         Resolver {
             scopes: vec![],
-            locals: FxHashMap::default()
+            locals: FxHashMap::default(),
+            arena
         }
     }
 
@@ -27,24 +29,24 @@ impl Resolver {
         self.scopes.pop();
     }
 
-    pub fn resolve_stmts(&mut self, statements: &Vec<Stmt>) {
+    pub fn resolve_stmts(&mut self, statements: &Vec<StmtId>) {
         for statement in statements {
-            self.resolve_stmt(statement);
+            self.resolve_stmt(*statement);
         }
     }
 
-    pub fn resolve_stmt(&mut self, statement: &Stmt) {
+    pub fn resolve_stmt(&mut self, statement: StmtId) {
         self.visit_stmt(statement);
     }
 
-    pub fn resolve_expr(&mut self, expr: &Box<Expr>) {
+    pub fn resolve_expr(&mut self, expr: ExprId) {
         self.visit_expr(expr);
     }
 
-    pub fn resolve_local(&mut self, expr: &Expr, name: &Token) {
+    pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for (i, scope) in self.scopes.iter().rev().enumerate() {
             if scope.contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
-                self.locals.insert(expr.id(), self.scopes.len() - 1 - i);
+                self.locals.insert(expr, self.scopes.len() - 1 - i);
                 return;
             }
         }
@@ -69,54 +71,59 @@ impl Resolver {
 
 impl Visitor<RV, HaltReason> for Resolver {
 
-    fn visit_expr(&mut self, e: &Expr) -> RV {
+    fn visit_expr(&mut self, eidx: ExprId) -> RV {
+        let a = Rc::clone(&self.arena);
+        let e = a.get_expression(eidx);
         match e {
-            Expr::Literal(_, _) => (),
-            Expr::Grouping(_, expr) => self.resolve_expr(expr),
-            Expr::Unary(_, _tok, expr) => self.resolve_expr(expr),
-            Expr::Binary(_, _tok, left, right) => {
-                self.resolve_expr(left);
-                self.resolve_expr(right);
+            Expr::Literal(_) => (),
+            Expr::Grouping(expr) => self.resolve_expr(*expr),
+            Expr::Unary(_tok, expr) => self.resolve_expr(*expr),
+            Expr::Binary(_tok, left, right) => {
+                self.resolve_expr(*left);
+                self.resolve_expr(*right);
             }
-            expr @ Expr::Variable(_, tok) => {
+            expr @ Expr::Variable(tok) => {
                 if !self.scopes.is_empty() &&
                     !*(self.scopes.last().unwrap().get(&tok.lexeme.as_ref().unwrap().to_string()).unwrap()) {
                     runtime_err(&"Can't read local variable in its own initializer.", tok.line);
                     exit(1);
                 }
-
-                self.resolve_local(expr, tok);
+                // Resolving eidx may be a bit weird here
+                self.resolve_local(eidx, tok);
             },
-            expr @ Expr::Assignment(_, name, value) => {
-                self.resolve_expr(value);
-                self.resolve_local(expr, name);
+            expr @ Expr::Assignment(name, value) => {
+                self.resolve_expr(*value);
+                // Resolving eidx may be a bit weird here
+                self.resolve_local(eidx, name);
             },
-            Expr::Logical(_, left, _tok, right) => {
-                self.resolve_expr(left);
-                self.resolve_expr(right);
+            Expr::Logical(left, _tok, right) => {
+                self.resolve_expr(*left);
+                self.resolve_expr(*right);
             },
-            Expr::Call(_, callee, _paren, arguments) => {
-                self.resolve_expr(callee);
+            Expr::Call(callee, _paren, arguments) => {
+                self.resolve_expr(*callee);
 
                 for argument in arguments {
-                    self.resolve_expr(argument);
+                    self.resolve_expr(*argument);
                 }
             },
-            Expr::Select(_, _) => (),
+            Expr::Select(_) => (),
         };
         RV::Undefined
     }
 
-    fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {
 
-        match e {
+        let a = Rc::clone(&self.arena);
+        let s = a.get_statement(sidx);
+        match s {
             Stmt::Break(_token) |
             Stmt::Continue(_token) => (),
             Stmt::Expression(expr) => {
-                self.resolve_expr(expr);
+                self.resolve_expr(*expr);
             },
             Stmt::Declaration(_tok, expr) => {
-                self.resolve_expr(expr);
+                self.resolve_expr(*expr);
             },
             Stmt::Block(statements) => {
                 self.begin_scope();
@@ -124,18 +131,18 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.end_scope();
             },
             Stmt::If(condition, if_stmt, else_optional) => {
-                self.resolve_expr(condition);
-                self.resolve_stmt(if_stmt);
-                self.resolve_stmt(else_optional.as_ref().unwrap());
+                self.resolve_expr(*condition);
+                self.resolve_stmt(*if_stmt);
+                self.resolve_stmt(*else_optional.as_ref().unwrap());
             },
             Stmt::Loop(condition, stmt, post_body) => {
-                self.resolve_expr(condition.as_ref().unwrap());
-                self.resolve_stmt(stmt);
-                self.resolve_stmt(post_body.as_ref().unwrap());
+                self.resolve_expr(*condition.as_ref().unwrap());
+                self.resolve_stmt(*stmt);
+                self.resolve_stmt(*post_body.as_ref().unwrap());
             },
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
-                    self.resolve_expr(&expr.as_ref().unwrap());
+                    self.resolve_expr(expr.unwrap());
                 }
             },
             Stmt::Function(_token, parameters, body) => {
