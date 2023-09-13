@@ -323,9 +323,9 @@ impl<'a> Parser<'a> {
         Ok(Expr::new_select(Box::new(SqlSelect {
             core,
             compound: compounds,
-            order_by: None,
-            limit: None,
-            offset: None,
+            order_by: None, // TODO(vck)
+            limit: None, // TODO(vck)
+            offset: None, // TODO(vck)
         })))
     }
 
@@ -346,8 +346,8 @@ impl<'a> Parser<'a> {
             projection: self.sql_projection(),
             from: self.sql_from()?,
             r#where: self.sql_where()?,
-            group_by: None,
-            having: None,
+            group_by: None, // TODO(vck)
+            having: None, // TODO(vck)
         }))
     }
 
@@ -366,6 +366,7 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
+        // TODO(vck): Add support for table selectors
         projections
     }   
 
@@ -374,6 +375,7 @@ impl<'a> Parser<'a> {
             let token = self.expected(Identifier { dollar: false });
             return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
         }
+        // TODO(vck): Joins
         Ok(None)
     }
 
