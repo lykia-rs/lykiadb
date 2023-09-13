@@ -15,6 +15,7 @@ use self::environment::Shared;
 pub mod interpreter;
 pub mod environment;
 pub mod types;
+mod eval;
 mod std;
 mod resolver;
 
