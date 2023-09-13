@@ -1,13 +1,19 @@
-use std::rc::Rc;
 
-use crate::{kw, sym};
+use std::rc::Rc;
+use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlDistinct};
+
+use crate::{kw, sym, skw};
 use crate::lang::ast::{Expr, Stmt};
 use crate::lang::ast::Expr::Variable;
 use crate::lang::token::{Token, TokenType};
 use crate::lang::token::TokenType::*;
+use crate::lang::token::Keyword;
 use crate::lang::token::Keyword::*;
+use crate::lang::token::SqlKeyword::*;
 use crate::lang::token::Symbol::*;
 use crate::runtime::types::RV;
+
+use super::ast::{SqlSelect, SqlProjection, SqlFrom, SqlExpr, SqlTableSubquery};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -40,6 +46,22 @@ macro_rules! match_next {
             return $self.$callee();
         }
     }
+}
+
+macro_rules! optional_with_expected {
+    ($self: ident, $optional: expr, $expected: expr) => {
+        if $self.match_next($optional) {
+            let token = $self.expected($expected);
+            Some(token.unwrap().clone())
+        }
+        else if $self.match_next($expected) {
+            let token = $self.peek_bw(1);
+            Some(token.clone())
+        }
+        else {
+            None
+        }
+    };
 }
 
 impl<'a> Parser<'a> {
@@ -235,7 +257,7 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.and()?;
-        if self.match_next(kw!(Or)) {
+        if self.match_next(kw!(Keyword::Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
             return Ok(Expr::new_logical(expr, op.clone(), right));
@@ -245,7 +267,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.equality()?;
-        if self.match_next(kw!(And)) {
+        if self.match_next(kw!(Keyword::And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
             return Ok(Expr::new_logical(expr, op.clone(), right));
@@ -273,7 +295,96 @@ impl<'a> Parser<'a> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
             return Ok(Expr::new_unary((*self.peek_bw(1)).clone(), self.unary()?));
         }
-        self.call()
+        self.select()
+    }
+
+    fn select(&mut self) -> ParseResult<Box<Expr>> {
+        if !self.cmp_tok(&skw!(Select)) {
+            return self.call();
+        }
+        let core = self.select_core()?;
+        let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
+        while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
+            let op = self.peek_bw(1);
+            let compound_op = if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
+                SqlCompoundOperator::UnionAll
+            }
+            else {
+                match op.tok_type {
+                    SqlKeyword(Union) => SqlCompoundOperator::Union,
+                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
+                    SqlKeyword(Except) => SqlCompoundOperator::Except,
+                    _ => return Err(ParseError::UnexpectedToken { line: op.line, token: op.clone() })
+                }
+            };
+            let secondary_core = self.select_core()?;
+            compounds.push((compound_op, secondary_core))
+        }
+        Ok(Expr::new_select(Box::new(SqlSelect {
+            core,
+            compound: compounds,
+            order_by: None, // TODO(vck)
+            limit: None, // TODO(vck)
+            offset: None, // TODO(vck)
+        })))
+    }
+
+    fn select_core(&mut self) -> ParseResult<Box<SelectCore>> {
+        self.expected(skw!(Select))?;
+        let distinct = if self.match_next(skw!(Distinct)) {
+            SqlDistinct::Distinct
+        }
+        else if self.match_next(skw!(All)) {
+            SqlDistinct::All
+        }
+        else {
+            SqlDistinct::All
+        };
+
+        Ok(Box::new(SelectCore {
+            distinct,
+            projection: self.sql_projection(),
+            from: self.sql_from()?,
+            r#where: self.sql_where()?,
+            group_by: None, // TODO(vck)
+            having: None, // TODO(vck)
+        }))
+    }
+
+    fn sql_projection(&mut self) -> Vec<SqlProjection> {
+        let mut projections: Vec<SqlProjection> = vec![];
+        loop {
+            if self.match_next(sym!(Star)) {
+                projections.push(SqlProjection::All);
+            }
+            else {
+                let expr = self.expression().unwrap();
+                let alias: Option<Token> = optional_with_expected!(self, skw!(As), Identifier { dollar: false });
+                projections.push(SqlProjection::Complex { expr: SqlExpr::Default(*expr), alias });
+            }
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+        // TODO(vck): Add support for table selectors
+        projections
+    }   
+
+    fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
+        if self.match_next(skw!(From)) {
+            let token = self.expected(Identifier { dollar: false });
+            return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
+        }
+        // TODO(vck): Joins
+        Ok(None)
+    }
+
+    fn sql_where(&mut self) -> ParseResult<Option<SqlExpr>> {
+        if self.match_next(skw!(Where)) {
+            let expr = self.expression()?;
+            return Ok(Some(SqlExpr::Default(*expr)));
+        }
+        Ok(None)
     }
 
     fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
@@ -310,7 +421,7 @@ impl<'a> Parser<'a> {
         match &tok.tok_type {
             True => Ok(Expr::new_literal(RV::Bool(true))),
             False => Ok(Expr::new_literal(RV::Bool(false))),
-            Null => Ok(Expr::new_literal(RV::Null)),
+            TokenType::Null => Ok(Expr::new_literal(RV::Null)),
             Str | Num => Ok(Expr::new_literal(tok.literal.clone().unwrap())),
             Identifier { dollar: _ } => Ok(Expr::new_variable(tok.clone())),
             Symbol(LeftParen) => {

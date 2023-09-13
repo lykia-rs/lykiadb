@@ -261,6 +261,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, e: &Expr) -> RV {
         match e {
+            Expr::Select(_, val) => RV::Str(Rc::new(format!("{:?}", val))),
             Expr::Literal(_, value) => value.clone(),
             Expr::Grouping(_, expr) => self.visit_expr(expr),
             Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
@@ -385,7 +386,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 };
 
                 self.env.borrow_mut().declare(name, Callable(Some(parameters.len()), fun.into()));
-            }
+            },
         }
         Ok(RV::Undefined)
     }

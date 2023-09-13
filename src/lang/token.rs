@@ -134,6 +134,12 @@ pub enum SqlKeyword {
     Unique,
     Read,
     Write,
+    //
+    Union,
+    All,
+    Intersect,
+    Except,
+    Distinct
 }
 
 #[macro_export] macro_rules! kw {
@@ -191,6 +197,11 @@ pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 
 pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     //
+    "ALL" => skw!(SqlKeyword::All),
+    "DISTINCT" => skw!(SqlKeyword::Distinct),
+    "UNION" => skw!(SqlKeyword::Union),
+    "INTERSECT" => skw!(SqlKeyword::Intersect),
+    "EXCEPT" => skw!(SqlKeyword::Except),
     "BEGIN" => skw!(SqlKeyword::Begin),
     "TRANSACTION" => skw!(SqlKeyword::Transaction),
     "ROLLBACK" => skw!(SqlKeyword::Rollback),

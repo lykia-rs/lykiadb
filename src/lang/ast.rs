@@ -9,6 +9,98 @@ pub trait Visitor<T, Q> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum SqlDistinct {
+    All,
+    Distinct
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlProjection {
+    All,
+    /*AllColumnsOf{
+        table: Token
+    },*/
+    Complex {
+        expr: SqlExpr, 
+        alias: Option<Token>
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlTableSubquery {
+    Simple {
+        namespace: Option<Token>,
+        table: Token,
+        alias: Option<Token>
+    },
+    From {
+        from: SqlFrom
+    },
+    Select {
+        stmt: SqlSelect,
+        alias: Option<Token>
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinType {
+    Left,
+    LeftOuter,
+    Right,
+    Inner
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinClause {
+    None(SqlTableSubquery),
+    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlCompoundOperator {
+    Union,
+    UnionAll,
+    Intersect,
+    Except
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlOrdering {
+    Asc,
+    Desc
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlFrom {
+    TableSubquery(Vec<SqlTableSubquery>),
+    JoinClause(Box<SqlJoinClause>)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SelectCore {
+    pub distinct: SqlDistinct,
+    pub projection: Vec<SqlProjection>,
+    pub from: Option<SqlFrom>,
+    pub r#where: Option<SqlExpr>,
+    pub group_by: Option<SqlExpr>,
+    pub having: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlSelect {
+    pub core: Box<SelectCore>,
+    pub compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
+    pub order_by: Option<(SqlExpr, Option<SqlOrdering>)>,
+    pub limit: Option<SqlExpr>,
+    pub offset: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlExpr {
+    Default(Expr)
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(Box<Expr>),
     Function(Token, Vec<Token>, Rc<Vec<Stmt>>),
@@ -23,6 +115,7 @@ pub enum Stmt {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
+    Select(Uuid, Box<SqlSelect>),
     Binary(Uuid, Token, Box<Expr>, Box<Expr>),
     Grouping(Uuid, Box<Expr>),
     Literal(Uuid, RV),
@@ -36,6 +129,7 @@ pub enum Expr {
 impl Expr {
     pub fn id(&self) -> Uuid {
         match self {
+            Expr::Select(id, _) => *id,
             Expr::Binary(id, _, _, _) => *id,
             Expr::Grouping(id, _) => *id,
             Expr::Literal(id, _) => *id,
@@ -50,6 +144,11 @@ impl Expr {
     pub fn new_binary(op: Token, left: Box<Expr>, right: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Binary(Uuid::new_v4(), op, left, right))
     }
+
+    pub fn new_select(select: Box<SqlSelect>) -> Box<Expr> {
+        Box::new(Expr::Select(Uuid::new_v4(), select))
+    }
+
     pub fn new_grouping(expr: Box<Expr>) -> Box<Expr> {
         Box::new(Expr::Grouping(Uuid::new_v4(), expr))
     }
