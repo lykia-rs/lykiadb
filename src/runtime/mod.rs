@@ -10,6 +10,7 @@ use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
 use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 use crate::runtime::types::{Function, RV};
+use self::environment::Shared;
 
 pub mod interpreter;
 pub mod environment;
@@ -18,7 +19,7 @@ mod std;
 mod resolver;
 
 pub struct Runtime {
-    interpreter: Interpreter,
+    env: Shared<Environment>,
     mode: RuntimeMode
 }
 
@@ -31,7 +32,6 @@ pub enum RuntimeMode {
 impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
         let env = Environment::new(None);
-        let mut interpreter = Interpreter::new(env);
 
         let native_fns = HashMap::from([
             ("clock", RV::Callable(Some(0), Rc::new(Function::Native{ function: nt_clock }))),
@@ -41,19 +41,23 @@ impl Runtime {
             ("json_decode", RV::Callable(Some(1),Rc::new(Function::Native{ function: nt_json_decode }))),
         ]);
 
-        interpreter.define_native_fns(native_fns);
+        for (name, value) in native_fns {
+            env.borrow_mut().declare(name.to_string(), value);
+        }
 
         Runtime {
-            interpreter,
+            env,
             mode
         }
     }
 
     pub fn interpret(&mut self, source: &str) {
         let tokens = Scanner::scan(source).unwrap();
-        let stmts = Parser::parse(&tokens).unwrap();
-        for stmt in stmts {
-            let out = self.interpreter.visit_stmt(&stmt);
+        let parsed = Parser::parse(&tokens);
+        let arena = Rc::clone(&parsed.arena);
+        let mut interpreter = Interpreter::new(self.env.clone(), arena);
+        for stmt in parsed.statements.unwrap() {
+            let out = interpreter.visit_stmt(stmt);
             if self.mode == RuntimeMode::Repl {
                 println!("{:?}", out);
             }
