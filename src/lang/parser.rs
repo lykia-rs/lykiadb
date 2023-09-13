@@ -345,7 +345,7 @@ impl<'a> Parser<'a> {
             distinct,
             projection: self.sql_projection(),
             from: self.sql_from()?,
-            r#where: None,
+            r#where: self.sql_where()?,
             group_by: None,
             having: None,
         }))
@@ -373,6 +373,14 @@ impl<'a> Parser<'a> {
         if self.match_next(skw!(From)) {
             let token = self.expected(Identifier { dollar: false });
             return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
+        }
+        Ok(None)
+    }
+
+    fn sql_where(&mut self) -> ParseResult<Option<SqlExpr>> {
+        if self.match_next(skw!(Where)) {
+            let expr = self.expression()?;
+            return Ok(Some(SqlExpr::Default(*expr)));
         }
         Ok(None)
     }

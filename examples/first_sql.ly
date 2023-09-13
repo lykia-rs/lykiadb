@@ -4,4 +4,6 @@ SELECT *, $i as five FROM extremely_good_songs
 UNION ALL
 SELECT *, 6 as six FROM extremely_bad_songs;
 
-print($q);
+var $p = SELECT $b FROM hello_darkness where id != 5;
+
+print($p);
