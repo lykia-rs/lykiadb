@@ -87,8 +87,8 @@ pub struct SelectCore {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlSelect {
-    pub core: Box<SelectCore>,
-    pub compound: Vec<(SqlCompoundOperator, Box<SelectCore>)>,
+    pub core: SelectCore,
+    pub compound: Vec<(SqlCompoundOperator, SelectCore)>,
     pub order_by: Option<(SqlExpr, Option<SqlOrdering>)>,
     pub limit: Option<SqlExpr>,
     pub offset: Option<SqlExpr>,
@@ -114,7 +114,7 @@ pub enum Stmt {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
-    Select(Box<SqlSelect>),
+    Select(SqlSelect),
     Binary(Token, ExprId, ExprId),
     Grouping(ExprId),
     Literal(RV),
@@ -129,7 +129,7 @@ impl Expr {
     pub fn new_binary(op: Token, left: ExprId, right: ExprId) -> Expr {
         Expr::Binary(op, left, right)
     }
-    pub fn new_select(select: Box<SqlSelect>) -> Expr {
+    pub fn new_select(select: SqlSelect) -> Expr {
         Expr::Select(select)
     }
     pub fn new_grouping(expr: ExprId) -> Expr {

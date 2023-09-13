@@ -327,7 +327,7 @@ impl<'a> Parser<'a> {
             return self.call();
         }
         let core = self.select_core()?;
-        let mut compounds: Vec<(SqlCompoundOperator, Box<SelectCore>)> = vec![];
+        let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
         while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
             let op = self.peek_bw(1);
             let compound_op = if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
@@ -344,16 +344,16 @@ impl<'a> Parser<'a> {
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
-        Ok(self.arena.expression(Expr::new_select(Box::new(SqlSelect {
+        Ok(self.arena.expression(Expr::new_select(SqlSelect {
             core,
             compound: compounds,
             order_by: None, // TODO(vck)
             limit: None, // TODO(vck)
             offset: None, // TODO(vck)
-        }))))
+        })))
     }
 
-    fn select_core(&mut self) -> ParseResult<Box<SelectCore>> {
+    fn select_core(&mut self) -> ParseResult<SelectCore> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
@@ -365,14 +365,14 @@ impl<'a> Parser<'a> {
             SqlDistinct::All
         };
 
-        Ok(Box::new(SelectCore {
+        Ok(SelectCore {
             distinct,
             projection: self.sql_projection(),
             from: self.sql_from()?,
             r#where: self.sql_where()?,
             group_by: None, // TODO(vck)
             having: None, // TODO(vck)
-        }))
+        })
     }
 
     fn sql_projection(&mut self) -> Vec<SqlProjection> {
