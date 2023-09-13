@@ -165,6 +165,7 @@ impl Interpreter {
 impl Visitor<RV, HaltReason> for Interpreter {
 
     fn visit_expr(&mut self, eidx: ExprId) -> RV {
+        // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
@@ -229,6 +230,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
         if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() != LoopState::Go {
             return Ok(RV::Undefined);
         }
+        // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
