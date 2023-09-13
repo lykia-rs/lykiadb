@@ -3,7 +3,7 @@ use std::process::exit;
 use std::rc::Rc;
 use crate::{kw, sym};
 use crate::runtime::environment::{Environment, Shared};
-use crate::lang::ast::{Expr, Stmt, Visitor};
+use crate::lang::ast::{Expr, Stmt, Visitor, ExprId, StmtId, ParserArena};
 use crate::lang::token::TokenType;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
@@ -83,6 +83,7 @@ impl Context {
 
 pub struct Interpreter {
     env: Shared<Environment>,
+    arena: Rc<ParserArena>,
     call_stack: Vec<Context>,
 }
 
@@ -99,9 +100,10 @@ fn is_value_truthy(rv: RV) -> bool {
 }
 
 impl Interpreter {
-    pub fn new(env: Shared<Environment>) -> Interpreter {
+    pub fn new(env: Shared<Environment>, arena: Rc<ParserArena>) -> Interpreter {
         Interpreter {
             env,
+            arena,
             call_stack: vec![Context::new()]
         }
     }
@@ -112,9 +114,9 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, tok: &Token, expr: &Box<Expr>) -> RV {
+    fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> RV {
         if tok.tok_type == sym!(Minus) {
-            let val = self.visit_expr(expr);
+            let val = self.visit_expr(eidx);
             match val {
                 RV::Num(value) => RV::Num(-value),
                 RV::Bool(true) => RV::Num(-1.0),
@@ -123,13 +125,13 @@ impl Interpreter {
             }
         }
         else {
-            RV::Bool(is_value_truthy(self.visit_expr(expr)))
+            RV::Bool(is_value_truthy(self.visit_expr(eidx)))
         }
     }
 
-    fn eval_binary(&mut self, left: &Box<Expr>, right: &Box<Expr>, tok: &Token) -> RV {
-        let left_eval = self.visit_expr(left);
-        let right_eval = self.visit_expr(right);
+    fn eval_binary(&mut self, lidx: ExprId, ridx: ExprId, tok: &Token) -> RV {
+        let left_eval = self.visit_expr(lidx);
+        let right_eval = self.visit_expr(ridx);
         let tok_type = tok.tok_type.clone();
 
         let (left_coerced, right_coerced) = match (&left_eval, &tok_type, &right_eval) {
@@ -141,6 +143,7 @@ impl Interpreter {
             (RV::Bool(l), Symbol(Slash), RV::Bool(r)) => (RV::Num(bool2num!(*l)), RV::Num(bool2num!(*r))),
             (_, _, _) => (left_eval, right_eval)
         };
+
 
         match (left_coerced, tok_type, right_coerced) {
             (RV::Null, Symbol(EqualEqual), RV::Null) => RV::Bool(true),
@@ -225,11 +228,11 @@ impl Interpreter {
         true
     }
 
-    pub fn user_fn_call(&mut self, statements: &Vec<Stmt>, environment: Shared<Environment>) -> Result<RV, HaltReason> {
+    pub fn user_fn_call(&mut self, statements: &Vec<StmtId>, environment: Shared<Environment>) -> Result<RV, HaltReason> {
         self.execute_block(statements, Some(environment))
     }
 
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
+    pub fn execute_block(&mut self, statements: &Vec<StmtId>, env_opt: Option<Shared<Environment>>) -> Result<RV, HaltReason> {
         let mut env_tmp: Option<Shared<Environment>> = None;
 
         if let Some(env_opt_unwrapped) = env_opt {
@@ -242,7 +245,7 @@ impl Interpreter {
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
-            ret = self.visit_stmt(statement);
+            ret = self.visit_stmt(*statement);
             if ret.is_err() {
                 break;
             }
@@ -259,40 +262,42 @@ impl Interpreter {
 
 impl Visitor<RV, HaltReason> for Interpreter {
 
-    fn visit_expr(&mut self, e: &Expr) -> RV {
+    fn visit_expr(&mut self, eidx: ExprId) -> RV {
+        let a = Rc::clone(&self.arena);
+        let e = a.get_expression(eidx);
         match e {
-            Expr::Select(_, val) => RV::Str(Rc::new(format!("{:?}", val))),
-            Expr::Literal(_, value) => value.clone(),
-            Expr::Grouping(_, expr) => self.visit_expr(expr),
-            Expr::Unary(_, tok, expr) => self.eval_unary(tok, expr),
-            Expr::Binary(_, tok, left, right) => self.eval_binary(left, right, tok),
-            Expr::Variable(_, tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
-            Expr::Assignment(_, tok, expr) => {
-                let evaluated = self.visit_expr(expr);
+            Expr::Select(val) => RV::Str(Rc::new(format!("{:?}", val))),
+            Expr::Literal(value) => value.clone(),
+            Expr::Grouping(expr) => self.visit_expr(*expr),
+            Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
+            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
+            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
+            Expr::Assignment(tok, expr) => {
+                let evaluated = self.visit_expr(*expr);
                 if let Err(HaltReason::GenericError(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
                     runtime_err(&msg, tok.line);
                     exit(1);
                 }
                 evaluated
             },
-            Expr::Logical(_, left, tok, right) => {
-                let is_true = is_value_truthy(self.visit_expr(left));
+            Expr::Logical(left, tok, right) => {
+                let is_true = is_value_truthy(self.visit_expr(*left));
 
                 if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
                     return RV::Bool(is_true);
                 }
 
-                RV::Bool(is_value_truthy(self.visit_expr(right)))
+                RV::Bool(is_value_truthy(self.visit_expr(*right)))
             },
-            Expr::Call(_, callee, paren, arguments) => {
-                let eval = self.visit_expr(callee);
+            Expr::Call(callee, paren, arguments) => {
+                let eval = self.visit_expr(*callee);
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != arguments.len() {
                         runtime_err(&format!("Function expects {} arguments, while provided {}.", arity.unwrap(), arguments.len()), paren.line);
                         exit(1);
                     }
-                    let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(arg)).collect();
+                    let args_evaluated: Vec<RV> = arguments.iter().map(|arg| self.visit_expr(*arg)).collect();
                     self.call_stack.insert(0, Context::new());
                     
                     let val = callable.call(self, args_evaluated.as_slice());
@@ -318,18 +323,20 @@ impl Visitor<RV, HaltReason> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, e: &Stmt) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {
         if !self.call_stack[0].is_loops_empty() && *self.call_stack[0].get_last_loop().unwrap() != LoopState::Go {
             return Ok(RV::Undefined);
         }
-        match e {
+        let a = Rc::clone(&self.arena);
+        let s = a.get_statement(sidx);
+        match s {
             Stmt::Expression(expr) => {
-                return Ok(self.visit_expr(expr));
+                return Ok(self.visit_expr(*expr));
             },
             Stmt::Declaration(tok, expr) => {
                 match &tok.lexeme {
                     Some(var_name) => {
-                        let evaluated = self.visit_expr(expr);
+                        let evaluated = self.visit_expr(*expr);
                         self.env.borrow_mut().declare(var_name.to_string(), evaluated);
                     },
                     None => {
@@ -338,23 +345,23 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Block(statements) => { 
-                return Ok(self.execute_block(statements, None))?;
+                return Ok(self.execute_block(&statements, None))?;
             },
             Stmt::If(condition, if_stmt, else_optional) => {
-                if is_value_truthy(self.visit_expr(condition)) {
-                    self.visit_stmt(if_stmt)?;
+                if is_value_truthy(self.visit_expr(*condition)) {
+                    self.visit_stmt(*if_stmt)?;
                 }
                 else if let Some(else_stmt) = else_optional {
-                    self.visit_stmt(else_stmt)?;
+                    self.visit_stmt(*else_stmt)?;
                 }
             },
             Stmt::Loop(condition, stmt, post_body) => {
                 self.call_stack[0].push_loop(LoopState::Go);
-                while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.as_ref().unwrap()))) {
-                    self.visit_stmt(stmt)?;
+                while !self.is_loop_at(LoopState::Broken) && (condition.is_none() || is_value_truthy(self.visit_expr(condition.unwrap()))) {
+                    self.visit_stmt(*stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post) = post_body {
-                        self.visit_stmt(post)?;
+                        self.visit_stmt(*post)?;
                     }
                 }
                 self.call_stack[0].pop_loop();
@@ -371,7 +378,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             },
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
-                    let ret = self.visit_expr(expr.as_ref().unwrap());
+                    let ret = self.visit_expr(expr.unwrap());
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
