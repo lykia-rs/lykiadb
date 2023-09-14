@@ -2,10 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use std::fmt::{Debug, Formatter, Display};
-use std::process::exit;
 use crate::runtime::environment::{Environment, Shared};
 use crate::runtime::interpreter::{HaltReason, Interpreter};
-use crate::lang::ast::Stmt;
+use crate::lang::ast::StmtId;
 
 #[derive(Clone)]
 pub enum Function {
@@ -16,7 +15,7 @@ pub enum Function {
         name: String,
         parameters: Vec<String>, 
         closure: Shared<Environment>,
-        body: Rc<Vec<Stmt>>
+        body: Rc<Vec<StmtId>>
     },
 }
 
@@ -25,7 +24,6 @@ impl Function {
         match self {
             Function::Native { function: _ } => write!(f, "<native_fn>"),
             Function::UserDefined { name, parameters: _, closure: _, body: _ } => write!(f, "{}", name),
-            _ => exit(1)
         }
     }
 }
@@ -69,7 +67,6 @@ impl Function {
 
                 interpreter.user_fn_call(&body, fn_env)
             }
-            _ => exit(1)
         }
     }
 }
