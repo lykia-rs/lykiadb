@@ -6,5 +6,4 @@ fun fib($n) {
 
 var $start = clock();
 print(fib(35) == 9227465);
-print("elapsed:");
-print(clock() - $start);
+print("elapsed:", clock() - $start);

@@ -1,9 +1,13 @@
 var $i = 5;
-var $q = 
-SELECT *, $i as five FROM extremely_good_songs
-UNION ALL
-SELECT *, 6 as six FROM extremely_bad_songs;
 
-var $p = SELECT $b FROM hello_darkness where id != 5;
+var $p = SELECT *, $i as five FROM some_collection
+         UNION
+         SELECT *, 6 as six FROM some_other_collection;
+
+var $q = SELECT * FROM users where id != 5;
+
+var $r = SELECT "darkness" as my_old_friend;
 
 print($p);
+print($q);
+print($r);

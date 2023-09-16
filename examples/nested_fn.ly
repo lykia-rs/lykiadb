@@ -9,6 +9,6 @@ fun makeCounter() {
 }
 var $start = clock();
 var $counter = makeCounter();
-$counter(); // "1".
-$counter(); // "2".
+$counter("1");
+$counter("2");
 print(clock() - $start);

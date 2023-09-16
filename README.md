@@ -28,12 +28,12 @@ To use Lykia, you can download the latest release from the GitHub releases page.
 REPL:
 
 ```shell
-$ lykia
+$ cargo run
 ```
 Alternatively, you can run a Lykia script by passing its name as the first argument.
 
 ```shell 
-$ lykia hello.ly
+$ cargo run examples/fib.ly
 ```
 
 ## License

@@ -2,15 +2,15 @@ fun helloWorld ($message) {
     print("Hello world!", $message);
     {
         {
-            return "bonsoir";
+            return "and returning from here.";
             {
-                print("asfas");
-                print("asfas");
-                print("asfas");
+                print("inner");
+                print("inner");
+                print("inner");
             }
-            print("asfas");
-            print("asfas");
-            print("asfas");
+            print("outer");
+            print("outer");
+            print("outer");
         }
     }
 }
