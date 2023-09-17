@@ -12,7 +12,7 @@ fn indent(level: u32, str: &str, terminate: bool) -> String {
 impl Parsed {
     
     fn visit_expr(&self, eidx: ExprId, level: u32) -> Result<String, ()> {
-        Ok(indent(level, &format!("{:?}", self.arena.get_expression(eidx)), false))
+        Ok(indent(level, &format!("{:?}", self.arena.get_expression(eidx)), true))
     }
 
     fn visit_stmt(&self, sidx: StmtId, level: u32) -> Result<String, ()> {
@@ -21,29 +21,31 @@ impl Parsed {
          let s = a.get_statement(sidx);
          match s {
             Stmt::Expression(expr) => {
-                return Ok(self.visit_expr(*expr, level + 1)?);
+                let mut buf = indent(level, "ExprStmt", false);
+                buf.push_str(&self.visit_expr(*expr, level + 1)?);
+                return Ok(buf);
             },
             Stmt::Declaration(tok, expr) => {
+                let mut buf = indent(level, &format!("Declaration ({})", tok.lexeme.as_ref().unwrap()), false);
                 match &tok.lexeme {
-                    Some(var_name) => {
-                        let evaluated = self.visit_expr(*expr, level + 1);
-                    },
+                    Some(_) => buf.push_str(&self.visit_expr(*expr, level + 1)?),
                     _ => ()
                 }
+                return Ok(buf);
             },
             Stmt::Block(statements) => { 
-                let mut buf = String::new();
-                buf.push_str(&indent(level, "Block", false));
+                let mut buf = indent(level, "Block", false);                
                 for statement in statements {
                     buf.push_str(&self.visit_stmt(*statement, level + 1)?);
                 }
                 return Ok(buf);
             },
             Stmt::If(condition, if_stmt, else_optional) => {
-                let mut buf = String::new();
-                buf.push_str(&indent(level, "If", false));
-                buf.push_str(&self.visit_expr(*condition, level + 1)?);
-                buf.push_str(&self.visit_stmt(*if_stmt, level + 1)?);
+                let mut buf = format!("{}{}{}",
+                    &indent(level, "If", false),
+                    &self.visit_expr(*condition, level + 1)?,
+                    &self.visit_stmt(*if_stmt, level + 1)?,
+                );
                 if let Some(else_stmt) = else_optional {
                     buf.push_str(&indent(level, &self.visit_stmt(*else_stmt, level + 1)?, false));
                 }
@@ -51,45 +53,44 @@ impl Parsed {
                 return Ok(buf)
             },
             Stmt::Loop(condition, stmt, post_body) => {
-                let mut buf = String::new();
-                buf.push_str(&indent(level, "Loop", false));
-                buf.push_str(&self.visit_expr(*condition.as_ref().unwrap(), level + 1)?);
-                buf.push_str(&self.visit_stmt(*stmt, level + 1)?);
-                buf.push_str(&self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?);
-                return Ok(buf);
+                return Ok(format!("{}{}{}{}", 
+                    &indent(level, "Loop", false),
+                    &self.visit_expr(*condition.as_ref().unwrap(), level + 1)?,
+                    &self.visit_stmt(*stmt, level + 1)?,
+                    &self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?
+                ));
             },
-            Stmt::Break(token) => {
+            Stmt::Break(_) => {
                 return Ok(indent(level, &"Break".to_string(), false));
             },
-            Stmt::Continue(token) => {
+            Stmt::Continue(_) => {
                 return Ok(indent(level, &"Continue".to_string(), false));
             },
-            Stmt::Return(_token, expr) => {
+            Stmt::Return(_, expr) => {
+                let mut buf = indent(level, "Return", false);                
                 if expr.is_some() {
-                    return Ok(self.visit_expr(expr.unwrap(), level + 1)?);
+                    buf.push_str(&self.visit_expr(expr.unwrap(), level + 1)?);
                 }
-                return Ok("Return".to_owned());
+                return Ok(buf);
             },
-            Stmt::Function(token, parameters, body) => {
-                let name = token.lexeme.as_ref().unwrap().to_string();
-                /*
-                let fun = Function::UserDefined {
-                    name: name.clone(),
-                    body: Rc::clone(body),
-                    parameters:parameters.into_iter().map(|x| x.lexeme.as_ref().unwrap().to_string()).collect(),
-                    closure: self.env.clone(),
-                }; */
+            Stmt::Function(tok, args, body) => {
+                let mut buf = indent(level, &format!("FunctionDeclaration [{} (", tok.lexeme.as_ref().unwrap()), false);
+                for arg in args {
+                    buf.push_str(arg.lexeme.as_ref().unwrap())
+                }
+                buf.push_str(")]");
+                for expr in body.as_ref() {
+                    buf.push_str(&self.visit_stmt(*expr, level + 1)?);
+                }
+                return Ok(buf);
             },
         }
-         return Ok(format!("{:?}", s));
     }
 
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut buf = String::new();
-        buf.push_str("Program");
+        let mut buf = "Program".to_owned();
         for stmt in self.statements.as_ref().unwrap() {
-            let result = self.visit_stmt(*stmt, 0).unwrap();
-            buf.push_str(&result);
+            buf.push_str(&self.visit_stmt(*stmt, 0).unwrap());
         }
         writeln!(f, "{}", buf)?;
         Ok(())
