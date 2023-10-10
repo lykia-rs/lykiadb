@@ -32,7 +32,7 @@ impl Parsed {
             },
             Expr::Binary(tok, left, right) => {
                 format!("{}{}{}", 
-                    &indent(level, &format!("Binary {:?}", tok.lexeme.as_ref().unwrap()), false),
+                    &indent(level, &format!("Binary ({})", tok.lexeme.as_ref().unwrap()), false),
                     &self.visit_expr(*left, level + 1)?,
                     &self.visit_expr(*right, level + 1)?
                 )
@@ -41,9 +41,8 @@ impl Parsed {
                 indent(level, &format!("Variable ({})", tok.lexeme.as_ref().unwrap()), false)
             },
             Expr::Assignment(tok, expr) => {
-                let buf = format!("{}{}{}",
-                    &indent(level, "Assignment", false),
-                    &indent(level + 1, &format!("{:?}", tok), false),
+                let buf = format!("{}{}",
+                    &indent(level + 1, &format!("Assignment ({})", tok.lexeme.as_ref().unwrap()), false),
                     &self.visit_expr(*expr, level + 1)?,
                 );
                 buf
