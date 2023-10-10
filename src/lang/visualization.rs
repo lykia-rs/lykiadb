@@ -1,6 +1,8 @@
 use std::{rc::Rc, fmt::{Debug, Display, Formatter}};
 
-use super::{parser::Parsed, ast::{ExprId, StmtId, Stmt}};
+use crate::runtime::types::RV;
+
+use super::{parser::Parsed, ast::{ExprId, StmtId, Stmt, Expr}};
 
 fn indent(level: u32, str: &str, terminate: bool) -> String {
     if terminate {
@@ -12,7 +14,62 @@ fn indent(level: u32, str: &str, terminate: bool) -> String {
 impl Parsed {
     
     fn visit_expr(&self, eidx: ExprId, level: u32) -> Result<String, ()> {
-        Ok(indent(level, &format!("{:?}", self.arena.get_expression(eidx)), true))
+        // TODO: Remove clone here
+        let a = Rc::clone(&self.arena);
+        let e = a.get_expression(eidx);
+        
+        let matched: String = match e {
+            Expr::Select(val) => format!("Select ({:?})", val),
+            Expr::Literal(val) => indent(level, &format!("Literal ({:?})", val), true),
+            Expr::Grouping(expr) => self.visit_expr(*expr, level + 1)?,
+            Expr::Unary(tok, expr) => {
+                let buf = format!("{}{}{}",
+                    &indent(level, "Unary", false),
+                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &self.visit_expr(*expr, level + 1)?,
+                );
+                buf
+            },
+            Expr::Binary(tok, left, right) => {
+                format!("{}{}{}", 
+                    &indent(level, &format!("Binary {:?}", tok.lexeme.as_ref().unwrap()), false),
+                    &self.visit_expr(*left, level + 1)?,
+                    &self.visit_expr(*right, level + 1)?
+                )
+            },
+            Expr::Variable(tok) => {
+                indent(level, &format!("Variable ({})", tok.lexeme.as_ref().unwrap()), false)
+            },
+            Expr::Assignment(tok, expr) => {
+                let buf = format!("{}{}{}",
+                    &indent(level, "Assignment", false),
+                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &self.visit_expr(*expr, level + 1)?,
+                );
+                buf
+            },
+            Expr::Logical(left, tok, right) => {
+                let mut buf = format!("{}{}{}",
+                    &indent(level, "Logical", false),
+                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &self.visit_expr(*left, level + 1)?,
+                );
+                buf.push_str(&self.visit_expr(*right, level + 1)?);
+                buf
+            },
+            Expr::Call(callee, paren, arguments) => {
+                let mut buf = format!("{}{}",
+                    &indent(level, "Call", false),
+                    &self.visit_expr(*callee, level + 1)?,
+                );
+                for arg in arguments {
+                    buf.push_str(&self.visit_expr(*arg, level + 1)?);
+                }
+                buf
+            },
+        };
+
+        Ok(matched)
     }
 
     fn visit_stmt(&self, sidx: StmtId, level: u32) -> Result<String, ()> {
