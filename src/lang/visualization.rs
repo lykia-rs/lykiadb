@@ -103,7 +103,7 @@ impl Parsed {
                     &self.visit_stmt(*if_stmt, level + 1)?,
                 );
                 if let Some(else_stmt) = else_optional {
-                    buf.push_str(&indent(level, &self.visit_stmt(*else_stmt, level + 1)?, false));
+                    buf.push_str(&indent(level, &format!("Else {}", &self.visit_stmt(*else_stmt, level + 1)?), false));
                 }
                 buf.push_str(&indent(level, "", false));
                 return Ok(buf)
@@ -132,7 +132,7 @@ impl Parsed {
             Stmt::Function(tok, args, body) => {
                 let mut buf = indent(level, &format!("FunctionDeclaration [{} (", tok.lexeme.as_ref().unwrap()), false);
                 for arg in args {
-                    buf.push_str(arg.lexeme.as_ref().unwrap())
+                    buf.push_str(&format!("{},", arg.lexeme.as_ref().unwrap()));
                 }
                 buf.push_str(")]");
                 for expr in body.as_ref() {
