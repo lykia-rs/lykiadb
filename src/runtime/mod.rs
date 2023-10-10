@@ -55,6 +55,7 @@ impl Runtime {
     pub fn interpret(&mut self, source: &str) {
         let tokens = Scanner::scan(source).unwrap();
         let parsed = Parser::parse(&tokens);
+        println!("{:?}", parsed);
         let arena = Rc::clone(&parsed.arena);
         let mut interpreter = Interpreter::new(self.env.clone(), arena);
         for stmt in parsed.statements.unwrap() {
