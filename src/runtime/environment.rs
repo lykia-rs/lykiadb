@@ -45,16 +45,25 @@ impl Environment {
         Err(HaltReason::GenericError(format!("Assignment to an undefined variable '{}'", &name)))
     }
 
-    pub fn read(&mut self, name: &String) -> Result<RV, HaltReason> {
+    pub fn read(&self, name: &String) -> Result<RV, HaltReason> {
         if self.map.contains_key(name) {
             // TODO(vck): Remove clone
             return Ok(self.map.get(name).unwrap().clone());
         }
 
         if self.parent.is_some() {
-            return self.parent.as_mut().unwrap().borrow_mut().read(name);
+            return self.parent.as_ref().unwrap().borrow().read(name);
         }
 
         Err(HaltReason::GenericError(format!("Variable '{}' was not found.", &name)))
+    }
+
+    pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
+        // TODO(vck): Remove clone
+        return Ok(self.ancestor(distance).borrow().map.get(name).unwrap().clone());
+    }
+
+    pub fn ancestor(&self, distance: usize) -> Shared<&Environment> {
+        // TODO(vck): Not implemented yet
     }
 }
