@@ -10,6 +10,7 @@ use crate::lang::token::Token;
 use crate::runtime::types::{Function, RV};
 use crate::runtime::types::RV::Callable;
 use super::eval::{coerce2number, is_value_truthy, eval_binary};
+use super::resolver::Resolver;
 
 
 #[derive(Debug)]
@@ -79,15 +80,17 @@ pub struct Interpreter {
     env: Shared<Environment>,
     arena: Rc<ParserArena>,
     call_stack: Vec<Context>,
+    resolver: Rc<Resolver>
 }
 
 
 impl Interpreter {
-    pub fn new(env: Shared<Environment>, arena: Rc<ParserArena>) -> Interpreter {
+    pub fn new(env: Shared<Environment>, arena: Rc<ParserArena>, resolver: Rc<Resolver>) -> Interpreter {
         Interpreter {
             env,
-            arena,
-            call_stack: vec![Context::new()]
+            arena: Rc::clone(&arena),
+            call_stack: vec![Context::new()],
+            resolver
         }
     }
 
@@ -105,6 +108,16 @@ impl Interpreter {
         let right_eval = self.visit_expr(ridx);
 
         eval_binary(left_eval, right_eval, tok)
+    }
+
+    fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
+        let distance = self.resolver.get_distance(eid);
+        if distance.is_some() {
+            self.env.borrow().read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
+        } else {
+            self.env.borrow().read(&name.lexeme.unwrap().to_owned())
+        }
+        
     }
 }
 

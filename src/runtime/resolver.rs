@@ -21,6 +21,10 @@ impl Resolver {
         }
     }
 
+    pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
+        self.locals.get(&eid).copied()
+    }
+
     pub fn begin_scope(&mut self) {
         self.scopes.push(FxHashMap::default());
     }
@@ -52,20 +56,21 @@ impl Resolver {
         }
     }
 
-    pub fn declare(&mut self, _name: &Token) {
+    pub fn declare(&mut self, name: &Token) {
         if self.scopes.is_empty() {
             return;
         }
-        // self.scopes.last().as_mut().unwrap().insert(name.lexeme.unwrap().to_string(), false);
+        let last =  self.scopes.last_mut();
+        last.unwrap().insert(name.lexeme.as_ref().unwrap().to_string(), false);
     }
 
-    pub fn define(&mut self, _name: &Token) {
+    pub fn define(&mut self, name: &Token) {
         if self.scopes.is_empty() {
             return;
         }
-        /*let mut last = self.scopes.last().as_mut().unwrap();
-        last.insert(name.lexeme.as_mut().unwrap().to_string(), true);
-        */
+        let last = self.scopes.last_mut();
+        last.unwrap().insert(name.lexeme.as_ref().unwrap().to_string(), true);
+        
     }
 }
 

@@ -11,6 +11,7 @@ use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 use crate::runtime::types::{Function, RV};
 use self::environment::Shared;
+use self::resolver::Resolver;
 
 pub mod interpreter;
 pub mod environment;
@@ -62,7 +63,9 @@ impl Runtime {
         let tokens = Scanner::scan(source).unwrap();
         let parsed = Parser::parse(&tokens);
         let arena = Rc::clone(&parsed.arena);
-        let mut interpreter = Interpreter::new(self.env.clone(), arena);
+        let mut resolver = Resolver::new(arena);
+        resolver.resolve_stmts(&parsed.statements.unwrap());
+        let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
         for stmt in parsed.statements.unwrap() {
             let out = interpreter.visit_stmt(stmt);
             if self.mode == RuntimeMode::Repl {
