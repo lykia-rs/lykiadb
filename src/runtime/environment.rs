@@ -1,3 +1,4 @@
+use core::panic;
 use std::cell::RefCell;
 use std::rc::Rc;
 use rustc_hash::FxHashMap;
@@ -60,10 +61,21 @@ impl Environment {
 
     pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
         // TODO(vck): Remove clone
-        return Ok(self.ancestor(distance).borrow().map.get(name).unwrap().clone());
+        let ancestor = self.ancestor(distance);
+        if ancestor.is_some() {
+            return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
+        }
+        return Ok(self.map.get(name).unwrap().clone());
     }
 
-    pub fn ancestor(&self, distance: usize) -> Shared<&Environment> {
-        // TODO(vck): Not implemented yet
+    pub fn ancestor(&self, distance: usize) -> Option<Shared<Environment>> {
+        if distance == 0 {
+            return None;
+        }
+        if self.parent.is_some() {
+            let pref = self.parent.as_ref().unwrap().borrow_mut();
+            return pref.ancestor(distance - 1);
+        }
+        panic!("Ancestor not found");
     }
 }

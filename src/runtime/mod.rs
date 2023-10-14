@@ -63,11 +63,14 @@ impl Runtime {
         let tokens = Scanner::scan(source).unwrap();
         let parsed = Parser::parse(&tokens);
         let arena = Rc::clone(&parsed.arena);
-        let mut resolver = Resolver::new(arena);
-        resolver.resolve_stmts(&parsed.statements.unwrap());
+        //
+        let mut resolver = Resolver::new(arena.clone());
+        let stmts = &parsed.statements.unwrap().clone();
+        resolver.resolve_stmts(stmts);
+        //
         let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
-        for stmt in parsed.statements.unwrap() {
-            let out = interpreter.visit_stmt(stmt);
+        for stmt in stmts {
+            let out = interpreter.visit_stmt(*stmt);
             if self.mode == RuntimeMode::Repl {
                 println!("{:?}", out);
             }
