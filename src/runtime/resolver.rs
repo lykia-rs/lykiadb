@@ -49,6 +49,7 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for (i, scope) in self.scopes.iter().rev().enumerate() {
+            println!("Resolved local variable: {}, {}, {}", name.lexeme.as_ref().unwrap(), expr, self.scopes.len() - 1 - i);
             if scope.contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
                 self.locals.insert(expr, self.scopes.len() - 1 - i);
                 return;
@@ -88,8 +89,11 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(*right);
             }
             Expr::Variable(tok) => {
+                let last_scope = self.scopes.last().unwrap();
+                let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
+                
                 if !self.scopes.is_empty() &&
-                    !*(self.scopes.last().unwrap().get(&tok.lexeme.as_ref().unwrap().to_string()).unwrap()) {
+                    value.is_some() && *value.unwrap() == false {
                     runtime_err(&"Can't read local variable in its own initializer.", tok.line);
                     exit(1);
                 }

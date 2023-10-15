@@ -112,6 +112,7 @@ impl Interpreter {
 
     fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
+        println!("distance: {:?}, {}", distance, eid);
         if distance.is_some() {
             self.env.borrow().read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
         } else {
@@ -187,7 +188,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(*expr),
             Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
             Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
-            Expr::Variable(tok) => self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap(),
+            Expr::Variable(tok) => {
+                self.look_up_variable(tok.clone(), eidx).unwrap()
+                // self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap()
+            },
             Expr::Assignment(tok, expr) => {
                 let evaluated = self.visit_expr(*expr);
                 if let Err(HaltReason::GenericError(msg)) = self.env.borrow_mut().assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone()) {
