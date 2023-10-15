@@ -132,7 +132,9 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(*expr);
             },
             Stmt::Declaration(_tok, expr) => {
+                self.declare(_tok);
                 self.resolve_expr(*expr);
+                self.define(_tok);
             },
             Stmt::Block(statements) => {
                 self.begin_scope();
