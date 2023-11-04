@@ -40,7 +40,7 @@ impl Resolver {
     }
 
     pub fn resolve_stmt(&mut self, statement: StmtId) {
-        self.visit_stmt(statement);
+        self.visit_stmt(statement).unwrap();
     }
 
     pub fn resolve_expr(&mut self, expr: ExprId) {
@@ -48,10 +48,11 @@ impl Resolver {
     }
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
-        for (i, scope) in self.scopes.iter().rev().enumerate() {
-            println!("Resolved local variable: {}, {}, {}", name.lexeme.as_ref().unwrap(), expr, self.scopes.len() - 1 - i);
-            if scope.contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
-                self.locals.insert(expr, self.scopes.len() - 1 - i);
+        for i in (0..self.scopes.len()).rev() {
+            println!("\tSearching for local variable: {:?}, {:?}, {}, {}, {}", self.scopes, self.locals, name.lexeme.as_ref().unwrap().to_string(), expr, i);
+            if self.scopes[i].contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
+                self.locals.insert(expr, i);
+                println!("\tFound local variable: {:?}, {:?}, {}, {}, {}", self.scopes, self.locals, name.lexeme.as_ref().unwrap().to_string(), expr, i);
                 return;
             }
         }
@@ -97,12 +98,12 @@ impl Visitor<RV, HaltReason> for Resolver {
                     runtime_err(&"Can't read local variable in its own initializer.", tok.line);
                     exit(1);
                 }
-                // Resolving eidx may be a bit weird here
+                println!("Resolving Expr::Variable: {}", tok.lexeme.as_ref().unwrap());
                 self.resolve_local(eidx, tok);
             },
             Expr::Assignment(name, value) => {
                 self.resolve_expr(*value);
-                // Resolving eidx may be a bit weird here
+                println!("Resolving Expr::Assignment: {}", name.lexeme.as_ref().unwrap());
                 self.resolve_local(eidx, name);
             },
             Expr::Logical(left, _tok, right) => {

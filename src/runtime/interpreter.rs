@@ -112,10 +112,11 @@ impl Interpreter {
 
     fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
-        println!("distance: {:?}, {}", distance, eid);
+        println!("Distance of {} ({}): {:?}", &name.lexeme.clone().unwrap(), eid, distance);
         if distance.is_some() {
             self.env.borrow().read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
         } else {
+            // TODO(vck): should read from the root 
             self.env.borrow().read(&name.lexeme.unwrap().to_owned())
         }
         
