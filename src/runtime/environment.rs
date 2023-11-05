@@ -65,6 +65,7 @@ impl Environment {
         if ancestor.is_some() {
             return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
         }
+        println!("{:?}, {}, {:?}, {}", ancestor, distance, self.map, name);
         return Ok(self.map.get(name).unwrap().clone());
     }
 
@@ -74,6 +75,7 @@ impl Environment {
         }
         if self.parent.is_some() {
             let pref = self.parent.as_ref().unwrap().borrow_mut();
+            println!("returning some");
             return pref.ancestor(distance - 1);
         }
         panic!("Ancestor not found");

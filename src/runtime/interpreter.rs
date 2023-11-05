@@ -78,6 +78,7 @@ impl Context {
 
 pub struct Interpreter {
     env: Shared<Environment>,
+    root_env: Shared<Environment>,
     arena: Rc<ParserArena>,
     call_stack: Vec<Context>,
     resolver: Rc<Resolver>
@@ -87,7 +88,8 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(env: Shared<Environment>, arena: Rc<ParserArena>, resolver: Rc<Resolver>) -> Interpreter {
         Interpreter {
-            env,
+            env: env.clone(),
+            root_env: env,
             arena: Rc::clone(&arena),
             call_stack: vec![Context::new()],
             resolver
@@ -117,7 +119,7 @@ impl Interpreter {
             self.env.borrow().read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
         } else {
             // TODO(vck): should read from the root 
-            self.env.borrow().read(&name.lexeme.unwrap().to_owned())
+            self.root_env.borrow().read(&name.lexeme.unwrap().to_owned())
         }
         
     }

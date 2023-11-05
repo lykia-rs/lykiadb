@@ -158,6 +158,8 @@ impl Visitor<RV, HaltReason> for Resolver {
                 }
             },
             Stmt::Function(_token, parameters, body) => {
+                self.declare(_token);
+                self.define(_token);
                 self.begin_scope();
                 for param in parameters {
                     self.declare(param);
