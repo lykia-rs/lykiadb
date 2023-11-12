@@ -1,6 +1,6 @@
-use std::rc::Rc;
-use phf::phf_map;
 use crate::runtime::types::RV;
+use phf::phf_map;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Symbol {
@@ -33,15 +33,13 @@ pub enum TokenType {
     False,
     True,
     //
-    Identifier {
-        dollar: bool,
-    },
+    Identifier { dollar: bool },
     //
     Symbol(Symbol),
     Keyword(Keyword),
     SqlKeyword(SqlKeyword),
     //
-    Eof
+    Eof,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -139,25 +137,28 @@ pub enum SqlKeyword {
     All,
     Intersect,
     Except,
-    Distinct
+    Distinct,
 }
 
-#[macro_export] macro_rules! kw {
+#[macro_export]
+macro_rules! kw {
     ($val: expr) => {
         TokenType::Keyword($val)
-    }
+    };
 }
 
-#[macro_export] macro_rules! skw {
+#[macro_export]
+macro_rules! skw {
     ($val: expr) => {
         TokenType::SqlKeyword($val)
-    }
+    };
 }
 
-#[macro_export] macro_rules! sym {
+#[macro_export]
+macro_rules! sym {
     ($val: expr) => {
         TokenType::Symbol($val)
-    }
+    };
 }
 
 pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
@@ -259,5 +260,5 @@ pub struct Token {
     pub tok_type: TokenType,
     pub lexeme: Option<Rc<String>>,
     pub literal: Option<RV>,
-    pub line: u32
+    pub line: u32,
 }

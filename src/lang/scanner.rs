@@ -1,23 +1,23 @@
-use std::rc::Rc;
-use crate::lang::token::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::{Eof, Identifier};
+use crate::lang::token::*;
 use crate::runtime::types::RV::*;
 use crate::sym;
+use std::rc::Rc;
 
 pub struct Scanner {
     chars: Vec<char>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
-    line: u32
+    line: u32,
 }
 
 #[derive(Debug)]
 pub enum ScanError {
     UnexpectedCharacter { line: u32, chr: char },
     UnterminatedString { line: u32, string: String },
-    MalformedNumberLiteral { line: u32, string: String }
+    MalformedNumberLiteral { line: u32, string: String },
 }
 
 impl Scanner {
@@ -27,7 +27,7 @@ impl Scanner {
             tokens: vec![],
             start: 0,
             current: 0,
-            line: 0
+            line: 0,
         };
         scanner.scan_tokens()?;
         Ok(scanner.tokens)
@@ -62,11 +62,17 @@ impl Scanner {
             tok_type: token,
             lexeme: Some(Rc::new(lexeme.to_string())),
             literal: None,
-            line: self.line
+            line: self.line,
         });
     }
 
-    fn add_double_token(&mut self, lexeme_prefix: &str, expected_second: char, token_single: TokenType, token_double: TokenType) {
+    fn add_double_token(
+        &mut self,
+        lexeme_prefix: &str,
+        expected_second: char,
+        token_single: TokenType,
+        token_double: TokenType,
+    ) {
         if self.match_next(expected_second) {
             let concat = lexeme_prefix.to_string() + &expected_second.to_string();
             self.add_token(&concat, token_double);
@@ -88,30 +94,41 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            let err_span: String = self.chars[self.start + 1..self.current -1].iter().collect();
-            return Err(ScanError::UnterminatedString {line: self.line, string: err_span});
+            let err_span: String = self.chars[self.start + 1..self.current - 1]
+                .iter()
+                .collect();
+            return Err(ScanError::UnterminatedString {
+                line: self.line,
+                string: err_span,
+            });
         }
 
         self.advance();
 
-        let span: String = self.chars[self.start + 1..self.current -1].iter().collect();        
+        let span: String = self.chars[self.start + 1..self.current - 1]
+            .iter()
+            .collect();
         let value = Rc::new(span.to_string());
 
         self.tokens.push(Token {
             tok_type: TokenType::Str,
             lexeme: Some(value.clone()),
             literal: Some(Str(value)),
-            line: self.line
+            line: self.line,
         });
         Ok(())
     }
 
     fn number(&mut self) -> Result<(), ScanError> {
-        while self.peek(0).is_ascii_digit() { self.advance(); }
+        while self.peek(0).is_ascii_digit() {
+            self.advance();
+        }
 
         if self.peek(0) == '.' && self.peek(1).is_ascii_digit() {
             self.advance();
-            while self.peek(0).is_ascii_digit() { self.advance(); }
+            while self.peek(0).is_ascii_digit() {
+                self.advance();
+            }
         }
 
         if self.peek(0).to_ascii_lowercase() == 'e' {
@@ -121,9 +138,14 @@ impl Scanner {
             }
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
                 let err_span: String = self.chars[self.start..self.current].iter().collect();
-                return Err(ScanError::MalformedNumberLiteral {line: self.line, string: err_span});
+                return Err(ScanError::MalformedNumberLiteral {
+                    line: self.line,
+                    string: err_span,
+                });
             }
-            while self.peek(0).is_ascii_digit() { self.advance(); }
+            while self.peek(0).is_ascii_digit() {
+                self.advance();
+            }
         }
 
         let span: String = self.chars[self.start..self.current].iter().collect();
@@ -132,7 +154,7 @@ impl Scanner {
             tok_type: TokenType::Num,
             lexeme: Some(Rc::new(span)),
             literal: Some(Num(parsed)),
-            line: self.line
+            line: self.line,
         });
         Ok(())
     }
@@ -145,14 +167,20 @@ impl Scanner {
         if CASE_SNS_KEYWORDS.contains_key(&span) {
             self.add_token(&span, CASE_SNS_KEYWORDS.get(&span).unwrap().clone());
         } else if CASE_INS_KEYWORDS.contains_key(&span.to_ascii_uppercase()) {
-            self.add_token(&span,CASE_INS_KEYWORDS.get(&span.to_ascii_uppercase()).unwrap().clone());
+            self.add_token(
+                &span,
+                CASE_INS_KEYWORDS
+                    .get(&span.to_ascii_uppercase())
+                    .unwrap()
+                    .clone(),
+            );
         } else {
             let value = Rc::new(span.to_string());
             self.tokens.push(Token {
                 tok_type: Identifier { dollar: is_dollar },
                 lexeme: Some(value.clone()),
                 literal: Some(Str(value)),
-                line: self.line
+                line: self.line,
             });
         }
     }
@@ -166,24 +194,27 @@ impl Scanner {
             '0'..='9' => self.number()?,
             'A'..='z' => self.identifier(false),
             '$' => self.identifier(true),
-            '!' => self.add_double_token(&c.to_string(),'=', sym!(Bang), sym!(BangEqual)),
-            '=' => self.add_double_token(&c.to_string(),'=', sym!(Equal), sym!(EqualEqual)),
-            '<' => self.add_double_token(&c.to_string(),'=', sym!(Less), sym!(LessEqual)),
-            '>' => self.add_double_token(&c.to_string(),'=', sym!(Greater), sym!(GreaterEqual)),
+            '!' => self.add_double_token(&c.to_string(), '=', sym!(Bang), sym!(BangEqual)),
+            '=' => self.add_double_token(&c.to_string(), '=', sym!(Equal), sym!(EqualEqual)),
+            '<' => self.add_double_token(&c.to_string(), '=', sym!(Less), sym!(LessEqual)),
+            '>' => self.add_double_token(&c.to_string(), '=', sym!(Greater), sym!(GreaterEqual)),
             '/' => {
                 if self.match_next('/') {
                     while !self.is_at_end() && self.peek(0) != '\n' {
                         self.advance();
                     }
                 } else {
-                    self.add_token(&c.to_string(),sym!(Slash));
+                    self.add_token(&c.to_string(), sym!(Slash));
                 }
-            },
+            }
             other => {
                 if let Some(sym) = SYMBOLS.get(&other) {
                     self.add_token(&other.to_string(), sym.clone());
                 } else {
-                    return Err(ScanError::UnexpectedCharacter {line: self.line, chr: c})
+                    return Err(ScanError::UnexpectedCharacter {
+                        line: self.line,
+                        chr: c,
+                    });
                 }
             }
         }
@@ -203,8 +234,8 @@ impl Scanner {
 
 #[cfg(test)]
 mod test {
-    use crate::{kw, lexm, skw};
     use crate::lang::token::TokenType::Eof;
+    use crate::{kw, lexm, skw};
 
     use super::*;
 
@@ -219,88 +250,388 @@ mod test {
 
     #[test]
     fn test_single_char_tokens() {
-        assert_tokens("(){};,+-*/.", vec![
-            Token {tok_type: sym!(LeftParen), lexeme: lexm!("("), literal: None, line: 0},
-            Token {tok_type: sym!(RightParen), lexeme: lexm!(")"), literal: None, line: 0},
-            Token {tok_type: sym!(LeftBrace), lexeme: lexm!("{"), literal: None, line: 0},
-            Token {tok_type: sym!(RightBrace), lexeme: lexm!("}"), literal: None, line: 0},
-            Token {tok_type: sym!(Semicolon), lexeme: lexm!(";"), literal: None, line: 0},
-            Token {tok_type: sym!(Comma), lexeme: lexm!(","), literal: None, line: 0},
-            Token {tok_type: sym!(Plus), lexeme: lexm!("+"), literal: None, line: 0},
-            Token {tok_type: sym!(Minus), lexeme: lexm!("-"), literal: None, line: 0},
-            Token {tok_type: sym!(Star), lexeme: lexm!("*"), literal: None, line: 0},
-            Token {tok_type: sym!(Slash), lexeme: lexm!("/"), literal: None, line: 0},
-            Token {tok_type: sym!(Dot), lexeme: lexm!("."), literal: None, line: 0},
-            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
-        ]);
+        assert_tokens(
+            "(){};,+-*/.",
+            vec![
+                Token {
+                    tok_type: sym!(LeftParen),
+                    lexeme: lexm!("("),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(RightParen),
+                    lexeme: lexm!(")"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(LeftBrace),
+                    lexeme: lexm!("{"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(RightBrace),
+                    lexeme: lexm!("}"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Semicolon),
+                    lexeme: lexm!(";"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Comma),
+                    lexeme: lexm!(","),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Plus),
+                    lexeme: lexm!("+"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Minus),
+                    lexeme: lexm!("-"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Star),
+                    lexeme: lexm!("*"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Slash),
+                    lexeme: lexm!("/"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: sym!(Dot),
+                    lexeme: lexm!("."),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: lexm!(" "),
+                    literal: None,
+                    line: 0,
+                },
+            ],
+        );
     }
 
     #[test]
     fn test_mixed_arbitrary() {
-        assert_tokens("123 123.456 \"hello world\" true false helloIdentifier", vec![
-            Token {tok_type: TokenType::Num, lexeme: lexm!("123"), literal: Some(Num(123.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("123.456"), literal: Some(Num(123.456)), line: 0},
-            Token {tok_type: TokenType::Str, lexeme: lexm!("hello world"), literal: Some(Str(Rc::new("hello world".to_string()))), line: 0},
-            Token {tok_type: TokenType::True, lexeme: lexm!("true"), literal: None, line: 0},
-            Token {tok_type: TokenType::False, lexeme: lexm!("false"), literal: None, line: 0},
-            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("helloIdentifier"), literal: Some(Str(Rc::new("helloIdentifier".to_string()))), line: 0},
-            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
-        ]);
+        assert_tokens(
+            "123 123.456 \"hello world\" true false helloIdentifier",
+            vec![
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("123"),
+                    literal: Some(Num(123.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("123.456"),
+                    literal: Some(Num(123.456)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("hello world"),
+                    literal: Some(Str(Rc::new("hello world".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::True,
+                    lexeme: lexm!("true"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::False,
+                    lexeme: lexm!("false"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Identifier { dollar: false },
+                    lexeme: lexm!("helloIdentifier"),
+                    literal: Some(Str(Rc::new("helloIdentifier".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: lexm!(" "),
+                    literal: None,
+                    line: 0,
+                },
+            ],
+        );
     }
     #[test]
     fn test_identifiers() {
-        assert_tokens("$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function", vec![
-            Token {tok_type: TokenType::Identifier { dollar: true }, lexeme: lexm!("$myPreciseVariable"), literal: Some(Str(Rc::new("$myPreciseVariable".to_string()))), line: 0},
-            Token {tok_type: TokenType::Identifier { dollar: true }, lexeme: lexm!("$my_precise_variable"), literal: Some(Str(Rc::new("$my_precise_variable".to_string()))), line: 0},
-            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("myPreciseFunction"), literal: Some(Str(Rc::new("myPreciseFunction".to_string()))), line: 0},
-            Token {tok_type: TokenType::Identifier { dollar: false }, lexeme: lexm!("my_precise_function"), literal: Some(Str(Rc::new("my_precise_function".to_string()))), line: 0},
-            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
-        ]);
+        assert_tokens(
+            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function",
+            vec![
+                Token {
+                    tok_type: TokenType::Identifier { dollar: true },
+                    lexeme: lexm!("$myPreciseVariable"),
+                    literal: Some(Str(Rc::new("$myPreciseVariable".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Identifier { dollar: true },
+                    lexeme: lexm!("$my_precise_variable"),
+                    literal: Some(Str(Rc::new("$my_precise_variable".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Identifier { dollar: false },
+                    lexeme: lexm!("myPreciseFunction"),
+                    literal: Some(Str(Rc::new("myPreciseFunction".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Identifier { dollar: false },
+                    lexeme: lexm!("my_precise_function"),
+                    literal: Some(Str(Rc::new("my_precise_function".to_string()))),
+                    line: 0,
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: lexm!(" "),
+                    literal: None,
+                    line: 0,
+                },
+            ],
+        );
     }
 
     #[test]
     fn test_number_literals() {
-        assert_tokens("0 1 2 3 4 5 6 7 8 9 10 100 500 1000 1.7976931348623157E+308 1.7976931348623157E-308", vec![
-            Token {tok_type: TokenType::Num, lexeme: lexm!("0"), literal: Some(Num(0.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("1"), literal: Some(Num(1.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("2"), literal: Some(Num(2.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("3"), literal: Some(Num(3.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("4"), literal: Some(Num(4.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("5"), literal: Some(Num(5.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("6"), literal: Some(Num(6.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("7"), literal: Some(Num(7.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("8"), literal: Some(Num(8.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("9"), literal: Some(Num(9.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("10"), literal: Some(Num(10.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("100"), literal: Some(Num(100.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("500"), literal: Some(Num(500.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("1000"), literal: Some(Num(1000.0)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("1.7976931348623157E+308"), literal: Some(Num(1.7976931348623157E+308)), line: 0},
-            Token {tok_type: TokenType::Num, lexeme: lexm!("1.7976931348623157E-308"), literal: Some(Num(1.7976931348623157E-308)), line: 0},
-            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
-        ]);
+        assert_tokens(
+            "0 1 2 3 4 5 6 7 8 9 10 100 500 1000 1.7976931348623157E+308 1.7976931348623157E-308",
+            vec![
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("0"),
+                    literal: Some(Num(0.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("1"),
+                    literal: Some(Num(1.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("2"),
+                    literal: Some(Num(2.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("3"),
+                    literal: Some(Num(3.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("4"),
+                    literal: Some(Num(4.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("5"),
+                    literal: Some(Num(5.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("6"),
+                    literal: Some(Num(6.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("7"),
+                    literal: Some(Num(7.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("8"),
+                    literal: Some(Num(8.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("9"),
+                    literal: Some(Num(9.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("10"),
+                    literal: Some(Num(10.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("100"),
+                    literal: Some(Num(100.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("500"),
+                    literal: Some(Num(500.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("1000"),
+                    literal: Some(Num(1000.0)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("1.7976931348623157E+308"),
+                    literal: Some(Num(1.7976931348623157E+308)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: TokenType::Num,
+                    lexeme: lexm!("1.7976931348623157E-308"),
+                    literal: Some(Num(1.7976931348623157E-308)),
+                    line: 0,
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: lexm!(" "),
+                    literal: None,
+                    line: 0,
+                },
+            ],
+        );
     }
 
     #[test]
     fn test_keywords() {
-        assert_tokens("and or class else for fun if break continue return super this var while loop", vec![
-            Token {tok_type: kw!(Keyword::And), lexeme: lexm!("and"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Or), lexeme: lexm!("or"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Class), lexeme: lexm!("class"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Else), lexeme: lexm!("else"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::For), lexeme: lexm!("for"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Fun), lexeme: lexm!("fun"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::If), lexeme: lexm!("if"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Break), lexeme: lexm!("break"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Continue), lexeme: lexm!("continue"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Return), lexeme: lexm!("return"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Super), lexeme: lexm!("super"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::This), lexeme: lexm!("this"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Var), lexeme: lexm!("var"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::While), lexeme: lexm!("while"), literal: None, line: 0},
-            Token {tok_type: kw!(Keyword::Loop), lexeme: lexm!("loop"), literal: None, line: 0},
-            Token {tok_type: Eof, lexeme: lexm!(" "), literal: None, line: 0}
-        ]);
+        assert_tokens(
+            "and or class else for fun if break continue return super this var while loop",
+            vec![
+                Token {
+                    tok_type: kw!(Keyword::And),
+                    lexeme: lexm!("and"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Or),
+                    lexeme: lexm!("or"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Class),
+                    lexeme: lexm!("class"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Else),
+                    lexeme: lexm!("else"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::For),
+                    lexeme: lexm!("for"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Fun),
+                    lexeme: lexm!("fun"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::If),
+                    lexeme: lexm!("if"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Break),
+                    lexeme: lexm!("break"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Continue),
+                    lexeme: lexm!("continue"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Return),
+                    lexeme: lexm!("return"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Super),
+                    lexeme: lexm!("super"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::This),
+                    lexeme: lexm!("this"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Var),
+                    lexeme: lexm!("var"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::While),
+                    lexeme: lexm!("while"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: kw!(Keyword::Loop),
+                    lexeme: lexm!("loop"),
+                    literal: None,
+                    line: 0,
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: lexm!(" "),
+                    literal: None,
+                    line: 0,
+                },
+            ],
+        );
     }
 
     #[test]

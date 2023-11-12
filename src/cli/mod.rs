@@ -1,6 +1,6 @@
-use std::fs::File;
-use std::io::{BufReader, Read, stdin, stdout, Write};
 use crate::runtime::{Runtime, RuntimeMode};
+use std::fs::File;
+use std::io::{stdin, stdout, BufReader, Read, Write};
 
 use clap::Parser;
 #[derive(Parser, Debug)]
@@ -8,7 +8,7 @@ use clap::Parser;
 struct Args {
     /// Path to the script to be executed
     filename: Option<String>,
-    
+
     #[clap(short, long, default_value = "false")]
     print_ast: bool,
 }
@@ -17,25 +17,24 @@ pub fn init() {
     let args = Args::parse();
     match args.filename {
         Some(filename) => run_file(&filename, args.print_ast),
-        None => run_repl()
+        None => run_repl(),
     }
 }
 
 fn run_file(filename: &str, print_ast: bool) {
-    let file = File::open(filename)
-        .expect("File couldn't be opened.");
+    let file = File::open(filename).expect("File couldn't be opened.");
 
     let mut content: String = String::new();
 
-    BufReader::new(file).read_to_string(&mut content)
+    BufReader::new(file)
+        .read_to_string(&mut content)
         .expect("File couldn't be read.");
 
     let mut runtime = Runtime::new(RuntimeMode::File);
 
     if print_ast {
         runtime.print_ast(&content);
-    }
-    else {
+    } else {
         runtime.interpret(&content);
     }
 }

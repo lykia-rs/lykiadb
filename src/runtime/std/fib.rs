@@ -12,5 +12,7 @@ pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltRea
     if let RV::Num(n) = args[0] {
         return Ok(RV::Num(_calculate(n)));
     }
-    Err(HaltReason::GenericError("Unexpected types for bench function".to_owned()))
+    Err(HaltReason::GenericError(
+        "Unexpected types for bench function".to_owned(),
+    ))
 }

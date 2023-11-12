@@ -1,45 +1,52 @@
-
 use std::rc::Rc;
 
-use crate::lang::ast::{SqlCompoundOperator, SelectCore, SqlDistinct};
+use crate::lang::ast::{SelectCore, SqlCompoundOperator, SqlDistinct};
 
-use crate::{kw, sym, skw};
-use crate::lang::ast::{Expr, Stmt};
+use super::ast::{
+    ExprId, ParserArena, SqlExpr, SqlFrom, SqlProjection, SqlSelect, SqlTableSubquery, StmtId,
+};
 use crate::lang::ast::Expr::Variable;
-use crate::lang::token::{Token, TokenType};
-use crate::lang::token::TokenType::*;
+use crate::lang::ast::{Expr, Stmt};
 use crate::lang::token::Keyword;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::SqlKeyword::*;
 use crate::lang::token::Symbol::*;
+use crate::lang::token::TokenType::*;
+use crate::lang::token::{Token, TokenType};
 use crate::runtime::types::RV;
-use super::ast::{ParserArena, SqlSelect, SqlProjection, SqlFrom, SqlExpr, SqlTableSubquery, ExprId, StmtId};
+use crate::{kw, skw, sym};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
-    arena: ParserArena
+    arena: ParserArena,
 }
 
 pub struct Parsed {
     pub statements: ParseResult<Vec<StmtId>>,
-    pub arena: Rc<ParserArena>
+    pub arena: Rc<ParserArena>,
 }
 
 impl Parsed {
     pub fn new(statements: ParseResult<Vec<StmtId>>, arena: Rc<ParserArena>) -> Parsed {
-        Parsed {
-            statements,
-            arena
-        }
+        Parsed { statements, arena }
     }
 }
 
 #[derive(Debug)]
 pub enum ParseError {
-    UnexpectedToken { line: u32, token: Token },
-    MissingToken { line: u32, token: Token, description: String},
-    InvalidAssignmentTarget { line: u32 }
+    UnexpectedToken {
+        line: u32,
+        token: Token,
+    },
+    MissingToken {
+        line: u32,
+        token: Token,
+        description: String,
+    },
+    InvalidAssignmentTarget {
+        line: u32,
+    },
 }
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -63,7 +70,7 @@ macro_rules! match_next {
         if $self.match_next($t) {
             return $self.$callee();
         }
-    }
+    };
 }
 
 macro_rules! optional_with_expected {
@@ -71,19 +78,16 @@ macro_rules! optional_with_expected {
         if $self.match_next($optional) {
             let token = $self.expected($expected);
             Some(token.unwrap().clone())
-        }
-        else if $self.match_next($expected) {
+        } else if $self.match_next($expected) {
             let token = $self.peek_bw(1);
             Some(token.clone())
-        }
-        else {
+        } else {
             None
         }
     };
 }
 
 impl<'a> Parser<'a> {
-
     pub fn parse(tokens: &Vec<Token>) -> Parsed {
         let arena = ParserArena::new();
         let mut parser = Parser {
@@ -129,7 +133,9 @@ impl<'a> Parser<'a> {
 
         if self.match_next(kw!(Else)) {
             let else_branch = self.statement()?;
-            return Ok(self.arena.statement(Stmt::If(condition, if_branch, Some(else_branch))));
+            return Ok(self
+                .arena
+                .statement(Stmt::If(condition, if_branch, Some(else_branch))));
         }
         Ok(self.arena.statement(Stmt::If(condition, if_branch, None)))
     }
@@ -145,7 +151,9 @@ impl<'a> Parser<'a> {
         self.expected(sym!(RightParen))?;
         let inner_stmt = self.declaration()?;
 
-        Ok(self.arena.statement(Stmt::Loop(Some(condition), inner_stmt, None)))
+        Ok(self
+            .arena
+            .statement(Stmt::Loop(Some(condition), inner_stmt, None)))
     }
 
     fn return_statement(&mut self) -> ParseResult<StmtId> {
@@ -162,17 +170,23 @@ impl<'a> Parser<'a> {
     fn for_statement(&mut self) -> ParseResult<StmtId> {
         self.expected(sym!(LeftParen))?;
 
-        let initializer = if self.match_next(sym!(Semicolon)) { None } else { Some(self.declaration()?) };
+        let initializer = if self.match_next(sym!(Semicolon)) {
+            None
+        } else {
+            Some(self.declaration()?)
+        };
 
-        let condition = if self.match_next(sym!(Semicolon)) { None }
-        else {
+        let condition = if self.match_next(sym!(Semicolon)) {
+            None
+        } else {
             let wrapped = self.expression()?;
             self.expected(sym!(Semicolon))?;
             Some(wrapped)
         };
 
-        let increment = if self.match_next(sym!(RightParen)) { None }
-        else {
+        let increment = if self.match_next(sym!(RightParen)) {
+            None
+        } else {
             let wrapped = self.expression()?;
             self.expected(sym!(RightParen))?;
             Some(self.arena.statement(Stmt::Expression(wrapped)))
@@ -181,13 +195,16 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.declaration()?;
 
         if initializer.is_none() {
-            return Ok(self.arena.statement(Stmt::Loop(condition, inner_stmt, increment)));
+            return Ok(self
+                .arena
+                .statement(Stmt::Loop(condition, inner_stmt, increment)));
         }
-        let loop_stmt = self.arena.statement(Stmt::Loop(condition, inner_stmt, increment));
-        Ok(self.arena.statement(Stmt::Block(vec![
-            initializer.unwrap(),
-            loop_stmt
-        ])))
+        let loop_stmt = self
+            .arena
+            .statement(Stmt::Loop(condition, inner_stmt, increment));
+        Ok(self
+            .arena
+            .statement(Stmt::Block(vec![initializer.unwrap(), loop_stmt])))
     }
 
     fn block(&mut self) -> ParseResult<StmtId> {
@@ -240,17 +257,19 @@ impl<'a> Parser<'a> {
 
         let body: Vec<usize> = match block {
             Stmt::Block(stmts) => stmts.clone(),
-            _ => vec![]
+            _ => vec![],
         };
 
-        Ok(self.arena.statement(Stmt::Function(token, parameters, Rc::new(body))))
+        Ok(self
+            .arena
+            .statement(Stmt::Function(token, parameters, Rc::new(body))))
     }
 
     fn var_declaration(&mut self) -> ParseResult<StmtId> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => self.arena.expression(Expr::new_literal(RV::Null))
+            false => self.arena.expression(Expr::new_literal(RV::Null)),
         };
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Declaration(token, expr)))
@@ -268,11 +287,13 @@ impl<'a> Parser<'a> {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
                 Variable(tok) => {
-                    return Ok(self.arena.expression(Expr::new_assignment(tok.clone(), value)));
-                },
+                    return Ok(self
+                        .arena
+                        .expression(Expr::new_assignment(tok.clone(), value)));
+                }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget { line: equals.line });
-                },
+                }
             }
         }
         Ok(expr)
@@ -283,7 +304,9 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(Keyword::Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(self.arena.expression(Expr::new_logical(expr, op.clone(), right)));
+            return Ok(self
+                .arena
+                .expression(Expr::new_logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -293,7 +316,9 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(Keyword::And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(self.arena.expression(Expr::new_logical(expr, op.clone(), right)));
+            return Ok(self
+                .arena
+                .expression(Expr::new_logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -303,7 +328,16 @@ impl<'a> Parser<'a> {
     }
 
     fn comparison(&mut self) -> ParseResult<ExprId> {
-        binary!(self, [sym!(Greater), sym!(GreaterEqual), sym!(Less), sym!(LessEqual)], term);
+        binary!(
+            self,
+            [
+                sym!(Greater),
+                sym!(GreaterEqual),
+                sym!(Less),
+                sym!(LessEqual)
+            ],
+            term
+        );
     }
 
     fn term(&mut self) -> ParseResult<ExprId> {
@@ -317,7 +351,9 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> ParseResult<ExprId> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
             let unary = self.unary()?.clone();
-            return Ok(self.arena.expression(Expr::new_unary((*self.peek_bw(1)).clone(), unary)));
+            return Ok(self
+                .arena
+                .expression(Expr::new_unary((*self.peek_bw(1)).clone(), unary)));
         }
         self.select()
     }
@@ -328,17 +364,21 @@ impl<'a> Parser<'a> {
         }
         let core = self.select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
-        while self.match_next_multi(&vec![ skw!(Union), skw!(Intersect), skw!(Except) ]) {
+        while self.match_next_multi(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if &op.tok_type == &skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
-            }
-            else {
+            } else {
                 match op.tok_type {
                     SqlKeyword(Union) => SqlCompoundOperator::Union,
                     SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
                     SqlKeyword(Except) => SqlCompoundOperator::Except,
-                    _ => return Err(ParseError::UnexpectedToken { line: op.line, token: op.clone() })
+                    _ => {
+                        return Err(ParseError::UnexpectedToken {
+                            line: op.line,
+                            token: op.clone(),
+                        })
+                    }
                 }
             };
             let secondary_core = self.select_core()?;
@@ -348,8 +388,8 @@ impl<'a> Parser<'a> {
             core,
             compound: compounds,
             order_by: None, // TODO(vck)
-            limit: None, // TODO(vck)
-            offset: None, // TODO(vck)
+            limit: None,    // TODO(vck)
+            offset: None,   // TODO(vck)
         })))
     }
 
@@ -357,11 +397,9 @@ impl<'a> Parser<'a> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
-        }
-        else if self.match_next(skw!(All)) {
+        } else if self.match_next(skw!(All)) {
             SqlDistinct::All
-        }
-        else {
+        } else {
             SqlDistinct::All
         };
 
@@ -371,7 +409,7 @@ impl<'a> Parser<'a> {
             from: self.sql_from()?,
             r#where: self.sql_where()?,
             group_by: None, // TODO(vck)
-            having: None, // TODO(vck)
+            having: None,   // TODO(vck)
         })
     }
 
@@ -380,11 +418,14 @@ impl<'a> Parser<'a> {
         loop {
             if self.match_next(sym!(Star)) {
                 projections.push(SqlProjection::All);
-            }
-            else {
+            } else {
                 let expr = self.expression().unwrap();
-                let alias: Option<Token> = optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                projections.push(SqlProjection::Complex { expr: SqlExpr::Default(expr), alias });
+                let alias: Option<Token> =
+                    optional_with_expected!(self, skw!(As), Identifier { dollar: false });
+                projections.push(SqlProjection::Complex {
+                    expr: SqlExpr::Default(expr),
+                    alias,
+                });
             }
             if !self.match_next(sym!(Comma)) {
                 break;
@@ -392,12 +433,18 @@ impl<'a> Parser<'a> {
         }
         // TODO(vck): Add support for table selectors
         projections
-    }   
+    }
 
     fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
         if self.match_next(skw!(From)) {
             let token = self.expected(Identifier { dollar: false });
-            return Ok(Some(SqlFrom::TableSubquery(vec![SqlTableSubquery::Simple { namespace: None, table: token.unwrap().clone(), alias: None }])));
+            return Ok(Some(SqlFrom::TableSubquery(vec![
+                SqlTableSubquery::Simple {
+                    namespace: None,
+                    table: token.unwrap().clone(),
+                    alias: None,
+                },
+            ])));
         }
         // TODO(vck): Joins
         Ok(None)
@@ -421,7 +468,9 @@ impl<'a> Parser<'a> {
         }
         let paren = self.expected(sym!(RightParen))?.clone();
 
-        Ok(self.arena.expression(Expr::new_call(callee, paren, arguments)))
+        Ok(self
+            .arena
+            .expression(Expr::new_call(callee, paren, arguments)))
     }
 
     fn call(&mut self) -> ParseResult<ExprId> {
@@ -430,8 +479,7 @@ impl<'a> Parser<'a> {
         loop {
             if self.match_next(sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;
-            }
-            else {
+            } else {
                 break;
             }
         }
@@ -446,16 +494,19 @@ impl<'a> Parser<'a> {
             True => Ok(self.arena.expression(Expr::new_literal(RV::Bool(true)))),
             False => Ok(self.arena.expression(Expr::new_literal(RV::Bool(false)))),
             TokenType::Null => Ok(self.arena.expression(Expr::new_literal(RV::Null))),
-            Str | Num => Ok(self.arena.expression(Expr::new_literal(tok.literal.clone().unwrap()))),
+            Str | Num => Ok(self
+                .arena
+                .expression(Expr::new_literal(tok.literal.clone().unwrap()))),
             Identifier { dollar: _ } => Ok(self.arena.expression(Expr::new_variable(tok.clone()))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
                 Ok(self.arena.expression(Expr::new_grouping(expr)))
-            },
-            _ => {
-                Err(ParseError::UnexpectedToken { line: tok.line, token: tok.clone() })
-            },
+            }
+            _ => Err(ParseError::UnexpectedToken {
+                line: tok.line,
+                token: tok.clone(),
+            }),
         }
     }
 
@@ -467,7 +518,11 @@ impl<'a> Parser<'a> {
         Err(ParseError::MissingToken {
             line: prev_token.line,
             token: prev_token.clone(),
-            description: format!("Expected '{:?}' after {:?}", expected_tok_type, self.peek_bw(1))
+            description: format!(
+                "Expected '{:?}' after {:?}",
+                expected_tok_type,
+                self.peek_bw(1)
+            ),
         })
     }
 
@@ -510,7 +565,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-/* 
+/*
 #[cfg(test)]
 mod test {
 

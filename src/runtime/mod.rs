@@ -1,5 +1,5 @@
-use ::std::collections::HashMap;
-use ::std::rc::Rc;
+use self::environment::Shared;
+use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
 use crate::lang::scanner::Scanner;
@@ -10,25 +10,25 @@ use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
 use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 use crate::runtime::types::{Function, RV};
-use self::environment::Shared;
-use self::resolver::Resolver;
+use ::std::collections::HashMap;
+use ::std::rc::Rc;
 
-pub mod interpreter;
 pub mod environment;
-pub mod types;
 mod eval;
-mod std;
+pub mod interpreter;
 mod resolver;
+mod std;
+pub mod types;
 
 pub struct Runtime {
     env: Shared<Environment>,
-    mode: RuntimeMode
+    mode: RuntimeMode,
 }
 
 #[derive(Eq, PartialEq)]
 pub enum RuntimeMode {
     Repl,
-    File
+    File,
 }
 
 impl Runtime {
@@ -36,21 +36,43 @@ impl Runtime {
         let env = Environment::new(None);
 
         let native_fns = HashMap::from([
-            ("clock", RV::Callable(Some(0), Rc::new(Function::Native{ function: nt_clock }))),
-            ("print", RV::Callable(None, Rc::new(Function::Native{ function: nt_print }))),
-            ("fib_nat", RV::Callable(Some(1), Rc::new(Function::Native{ function: nt_fib }))),
-            ("json_encode", RV::Callable(Some(1),Rc::new(Function::Native{ function: nt_json_encode }))),
-            ("json_decode", RV::Callable(Some(1),Rc::new(Function::Native{ function: nt_json_decode }))),
+            (
+                "clock",
+                RV::Callable(Some(0), Rc::new(Function::Native { function: nt_clock })),
+            ),
+            (
+                "print",
+                RV::Callable(None, Rc::new(Function::Native { function: nt_print })),
+            ),
+            (
+                "fib_nat",
+                RV::Callable(Some(1), Rc::new(Function::Native { function: nt_fib })),
+            ),
+            (
+                "json_encode",
+                RV::Callable(
+                    Some(1),
+                    Rc::new(Function::Native {
+                        function: nt_json_encode,
+                    }),
+                ),
+            ),
+            (
+                "json_decode",
+                RV::Callable(
+                    Some(1),
+                    Rc::new(Function::Native {
+                        function: nt_json_decode,
+                    }),
+                ),
+            ),
         ]);
 
         for (name, value) in native_fns {
             env.borrow_mut().declare(name.to_string(), value);
         }
 
-        Runtime {
-            env,
-            mode
-        }
+        Runtime { env, mode }
     }
 
     pub fn print_ast(&mut self, source: &str) {
