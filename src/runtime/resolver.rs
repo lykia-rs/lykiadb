@@ -76,7 +76,7 @@ impl Resolver {
 }
 
 impl Visitor<RV, HaltReason> for Resolver {
-    fn visit_expr(&mut self, eidx: ExprId) -> RV {
+    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
@@ -119,7 +119,7 @@ impl Visitor<RV, HaltReason> for Resolver {
             }
             Expr::Select(_) => (),
         };
-        RV::Undefined
+        Ok(RV::Undefined)
     }
 
     fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {

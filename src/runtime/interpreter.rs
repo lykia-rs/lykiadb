@@ -9,8 +9,8 @@ use crate::runtime::environment::{Environment, Shared};
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::{kw, sym};
-use std::process::exit;
 use std::rc::Rc;
+use std::vec;
 
 #[derive(Debug)]
 pub enum HaltReason {
@@ -98,24 +98,23 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> RV {
+    fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> Result<RV, HaltReason> {
         if tok.tok_type == sym!(Minus) {
-            coerce2number(self.visit_expr(eidx))
+            Ok(coerce2number(self.visit_expr(eidx)?))
         } else {
-            RV::Bool(is_value_truthy(self.visit_expr(eidx)))
+            Ok(RV::Bool(is_value_truthy(self.visit_expr(eidx)?)))
         }
     }
 
-    fn eval_binary(&mut self, lidx: ExprId, ridx: ExprId, tok: &Token) -> RV {
-        let left_eval = self.visit_expr(lidx);
-        let right_eval = self.visit_expr(ridx);
+    fn eval_binary(&mut self, lidx: ExprId, ridx: ExprId, tok: &Token) -> Result<RV, HaltReason> {
+        let left_eval = self.visit_expr(lidx)?;
+        let right_eval = self.visit_expr(ridx)?;
 
-        eval_binary(left_eval, right_eval, tok)
+        Ok(eval_binary(left_eval, right_eval, tok))
     }
 
     fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
-        // println!("Distance of {} ({}): {:?}", &name.lexeme.clone().unwrap(), eid, distance);
         if distance.is_some() {
             self.env
                 .borrow()
@@ -187,73 +186,71 @@ impl Interpreter {
 }
 
 impl Visitor<RV, HaltReason> for Interpreter {
-    fn visit_expr(&mut self, eidx: ExprId) -> RV {
+    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
-            Expr::Select(val) => RV::Str(Rc::new(format!("{:?}", val))),
-            Expr::Literal(value) => value.clone(),
+            Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
+            Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
             Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
             Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
             Expr::Variable(tok) => {
-                self.look_up_variable(tok.clone(), eidx).unwrap()
-                // self.env.borrow_mut().read(tok.lexeme.as_ref().unwrap()).unwrap()
+                self.look_up_variable(tok.clone(), eidx)
             }
             Expr::Assignment(tok, expr) => {
-                let evaluated = self.visit_expr(*expr);
+                let evaluated = self.visit_expr(*expr)?;
                 if let Err(HaltReason::GenericError(msg)) = self
                     .env
                     .borrow_mut()
                     .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 {
-                    runtime_err(&msg, tok.line);
-                    exit(1);
+                    return Err(runtime_err(&msg, tok.line));
                 }
-                evaluated
+                Ok(evaluated)
             }
             Expr::Logical(left, tok, right) => {
-                let is_true = is_value_truthy(self.visit_expr(*left));
+                let is_true = is_value_truthy(self.visit_expr(*left)?);
 
                 if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
-                    return RV::Bool(is_true);
+                    return Ok(RV::Bool(is_true));
                 }
 
-                RV::Bool(is_value_truthy(self.visit_expr(*right)))
+                Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
             }
             Expr::Call(callee, paren, arguments) => {
-                let eval = self.visit_expr(*callee);
+                let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != arguments.len() {
-                        runtime_err(
+                        return Err(runtime_err(
                             &format!(
                                 "Function expects {} arguments, while provided {}.",
                                 arity.unwrap(),
                                 arguments.len()
                             ),
                             paren.line,
-                        );
-                        exit(1);
+                        ));
                     }
-                    let args_evaluated: Vec<RV> =
-                        arguments.iter().map(|arg| self.visit_expr(*arg)).collect();
+
+                    let mut args_evaluated: Vec<RV> = vec![];
+
+                    for arg in arguments.iter() {
+                        args_evaluated.push(self.visit_expr(*arg)?);
+                    }
+
                     self.call_stack.insert(0, Context::new());
 
                     let val = callable.call(self, args_evaluated.as_slice());
                     self.call_stack.remove(0);
                     match val {
-                        Err(HaltReason::Return(ret_val)) => ret_val,
-                        Ok(unpacked_val) => unpacked_val,
-                        Err(err) => {
-                            println!("{:?}", err);
-                            exit(-1)
-                        }
+                        Err(HaltReason::Return(ret_val)) => Ok(ret_val),
+                        Ok(unpacked_val) => Ok(unpacked_val),
+                        other_err @ Err(_) => other_err
                     }
                 } else {
-                    runtime_err("Expression does not yield a callable", paren.line);
-                    exit(1);
+                    return Err(runtime_err("Expression does not yield a callable", paren.line));
                 }
             }
         }
@@ -270,11 +267,11 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let s = a.get_statement(sidx);
         match s {
             Stmt::Expression(expr) => {
-                return Ok(self.visit_expr(*expr));
+                return Ok(self.visit_expr(*expr)?);
             }
             Stmt::Declaration(tok, expr) => match &tok.lexeme {
                 Some(var_name) => {
-                    let evaluated = self.visit_expr(*expr);
+                    let evaluated = self.visit_expr(*expr)?;
                     self.env
                         .borrow_mut()
                         .declare(var_name.to_string(), evaluated);
@@ -287,7 +284,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 return Ok(self.execute_block(&statements, None))?;
             }
             Stmt::If(condition, if_stmt, else_optional) => {
-                if is_value_truthy(self.visit_expr(*condition)) {
+                if is_value_truthy(self.visit_expr(*condition)?) {
                     self.visit_stmt(*if_stmt)?;
                 } else if let Some(else_stmt) = else_optional {
                     self.visit_stmt(*else_stmt)?;
@@ -296,7 +293,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Stmt::Loop(condition, stmt, post_body) => {
                 self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken)
-                    && (condition.is_none() || is_value_truthy(self.visit_expr(condition.unwrap())))
+                    && (condition.is_none() || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
                     self.visit_stmt(*stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
@@ -318,7 +315,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {
-                    let ret = self.visit_expr(expr.unwrap());
+                    let ret = self.visit_expr(expr.unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));

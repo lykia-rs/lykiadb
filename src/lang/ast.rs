@@ -3,7 +3,7 @@ use crate::runtime::types::RV;
 use std::rc::Rc;
 
 pub trait Visitor<T, Q> {
-    fn visit_expr(&mut self, e: ExprId) -> T;
+    fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
 }
 
