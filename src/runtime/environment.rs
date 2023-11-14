@@ -71,34 +71,26 @@ impl Environment {
     }
 
     pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
-        // TODO(vck): Remove clone
         let ancestor = self.ancestor(distance);
 
         if ancestor.is_some() {
-            println!(
-                "SOME => {:?}, {:?}",
-                ancestor.clone().unwrap().borrow().map,
-                ancestor
-            );
+            // TODO(vck): Remove clone
             return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
         }
-        println!("NONE => {:?}, {:?}", self.map, self.parent);
         return Ok(self.map.get(name).unwrap().clone());
     }
 
     pub fn ancestor(&self, distance: usize) -> Option<Shared<Environment>> {
-        println!("DISTANCE <- {}", distance);
         if distance == 0 {
             return None;
         }
         if distance == 1 {
-            // return None;
             return Some(self.parent.as_ref().unwrap().clone());
         }
         if self.parent.is_some() {
             let pref = self.parent.as_ref().unwrap().borrow_mut();
             return pref.ancestor(distance - 1);
         }
-        panic!("AAAA");
+        panic!("Invalid variable distance.");
     }
 }

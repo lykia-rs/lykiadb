@@ -49,33 +49,11 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
-            println!(
-                "\tSearching for local variable: {:?}, {:?}, {}, {}, {}",
-                self.scopes,
-                self.locals,
-                name.lexeme.as_ref().unwrap().to_string(),
-                expr,
-                self.scopes.len() - 1 - i
-            );
             if self.scopes[i].contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
                 self.locals.insert(expr, self.scopes.len() - 1 - i);
-                println!(
-                    "\tFound local variable: {:?}, {:?}, {}, {}, {}",
-                    self.scopes,
-                    self.locals,
-                    name.lexeme.as_ref().unwrap().to_string(),
-                    expr,
-                    self.scopes.len() - 1 - i
-                );
                 return;
             }
         }
-        // for i in (0..self.scopes.len()).rev() {
-        //     if self.scopes[i].contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
-        //         self.locals.insert(expr, self.scopes.len() - 1 - i);
-        //         return;
-        //     }
-        // }
     }
 
     pub fn declare(&mut self, name: &Token) {
@@ -110,25 +88,22 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(*right);
             }
             Expr::Variable(tok) => {
-                let last_scope = self.scopes.last().unwrap();
-                let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
+                if !self.scopes.is_empty() { 
+                    let last_scope = self.scopes.last().unwrap();
+                    let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
 
-                if !self.scopes.is_empty() && value.is_some() && *value.unwrap() == false {
-                    runtime_err(
-                        &"Can't read local variable in its own initializer.",
-                        tok.line,
-                    );
-                    exit(1);
+                    if value.is_some() && *value.unwrap() == false {
+                        runtime_err(
+                            &"Can't read local variable in its own initializer.",
+                            tok.line,
+                        );
+                        exit(1);
+                    }
                 }
-                println!("Resolving Expr::Variable: {}", tok.lexeme.as_ref().unwrap());
                 self.resolve_local(eidx, tok);
             }
             Expr::Assignment(name, value) => {
                 self.resolve_expr(*value);
-                println!(
-                    "Resolving Expr::Assignment: {}",
-                    name.lexeme.as_ref().unwrap()
-                );
                 self.resolve_local(eidx, name);
             }
             Expr::Logical(left, _tok, right) => {
@@ -168,12 +143,16 @@ impl Visitor<RV, HaltReason> for Resolver {
             Stmt::If(condition, if_stmt, else_optional) => {
                 self.resolve_expr(*condition);
                 self.resolve_stmt(*if_stmt);
-                self.resolve_stmt(*else_optional.as_ref().unwrap());
+                if else_optional.is_some() {
+                    self.resolve_stmt(*else_optional.as_ref().unwrap());
+                }
             }
             Stmt::Loop(condition, stmt, post_body) => {
                 self.resolve_expr(*condition.as_ref().unwrap());
                 self.resolve_stmt(*stmt);
-                self.resolve_stmt(*post_body.as_ref().unwrap());
+                if post_body.is_some() {
+                    self.resolve_stmt(*post_body.as_ref().unwrap());
+                }
             }
             Stmt::Return(_token, expr) => {
                 if expr.is_some() {

@@ -1,0 +1,1 @@
+print(fib_nat(40));
