@@ -92,7 +92,7 @@ impl Visitor<RV, HaltReason> for Resolver {
                     let last_scope = self.scopes.last().unwrap();
                     let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
 
-                    if value.is_some() && *value.unwrap() == false {
+                    if value.is_some() && !(*value.unwrap()) {
                         runtime_err(
                             "Can't read local variable in its own initializer.",
                             tok.line,

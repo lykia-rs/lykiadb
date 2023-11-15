@@ -83,7 +83,7 @@ impl Parsed {
                 buf.push_str(&self.visit_expr(*right, level + 1)?);
                 buf
             }
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call(callee, _paren, arguments) => {
                 let mut buf = format!(
                     "{}{}",
                     &indent(level, "Call", false),

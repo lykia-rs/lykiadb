@@ -340,7 +340,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     name: name.clone(),
                     body: Rc::clone(body),
                     parameters: parameters
-                        .into_iter()
+                        .iter()
                         .map(|x| x.lexeme.as_ref().unwrap().to_string())
                         .collect(),
                     closure: self.env.clone(),

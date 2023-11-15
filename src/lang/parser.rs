@@ -398,12 +398,12 @@ impl<'a> Parser<'a> {
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
         }
-        /* else if self.match_next(skw!(All)) {
-            SqlDistinct::All
-        }*/
         else {
             SqlDistinct::All
         };
+        /* else if self.match_next(skw!(All)) {
+            SqlDistinct::All
+        }*/
 
         Ok(SelectCore {
             distinct,
