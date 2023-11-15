@@ -200,11 +200,18 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 self.look_up_variable(tok.clone(), eidx)
             }
             Expr::Assignment(tok, expr) => {
+                let distance = self.resolver.get_distance(*expr);
                 let evaluated = self.visit_expr(*expr)?;
-                if let Err(HaltReason::GenericError(msg)) = self
-                    .env
-                    .borrow_mut()
-                    .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
+                let result = if distance.is_some() {
+                    self.env
+                        .borrow_mut()
+                        .assign_at(distance.unwrap(), tok.lexeme.as_ref().unwrap(), evaluated.clone())
+                } else {
+                    self.root_env
+                        .borrow_mut()
+                        .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
+                };
+                if let Err(HaltReason::GenericError(msg)) = result
                 {
                     return Err(runtime_err(&msg, tok.line));
                 }

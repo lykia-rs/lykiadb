@@ -54,6 +54,19 @@ impl Environment {
         )))
     }
 
+    pub fn assign_at(&mut self, distance: usize, name: &str, value: RV) -> Result<bool, HaltReason> {
+        let ancestor = self.ancestor(distance);
+
+        if ancestor.is_some() {
+            ancestor.unwrap().borrow_mut().map.insert(name.to_string(), value);
+        }
+        else {
+            self.map.insert(name.to_string(), value);
+        }
+
+        return Ok(true);
+    }
+
     pub fn read(&self, name: &String) -> Result<RV, HaltReason> {
         if self.map.contains_key(name) {
             // TODO(vck): Remove clone
