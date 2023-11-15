@@ -14,14 +14,14 @@ fn indent(level: u32, str: &str, terminate: bool) -> String {
             "{}{}└──{}",
             "\n".to_owned(),
             "│  ".repeat(level as usize).as_str(),
-            str.to_string()
+            str
         );
     }
     format!(
         "{}{}├──{}",
         "\n".to_owned(),
         "│  ".repeat(level as usize).as_str(),
-        str.to_string()
+        str
     )
 }
 
@@ -115,9 +115,8 @@ impl Parsed {
                     &format!("Declaration ({})", tok.lexeme.as_ref().unwrap()),
                     false,
                 );
-                match &tok.lexeme {
-                    Some(_) => buf.push_str(&self.visit_expr(*expr, level + 1)?),
-                    _ => (),
+                if tok.lexeme.is_some() {
+                    buf.push_str(&self.visit_expr(*expr, level + 1)?)
                 }
                 Ok(buf)
             }

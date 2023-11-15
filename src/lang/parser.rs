@@ -350,7 +350,7 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> ParseResult<ExprId> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
-            let unary = self.unary()?.clone();
+            let unary = self.unary()?;
             return Ok(self
                 .arena
                 .expression(Expr::new_unary((*self.peek_bw(1)).clone(), unary)));
@@ -397,8 +397,7 @@ impl<'a> Parser<'a> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
-        }
-        else {
+        } else {
             SqlDistinct::All
         };
         /* else if self.match_next(skw!(All)) {
