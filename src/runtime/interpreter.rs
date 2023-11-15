@@ -196,23 +196,22 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Grouping(expr) => self.visit_expr(*expr),
             Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
             Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
-            Expr::Variable(tok) => {
-                self.look_up_variable(tok.clone(), eidx)
-            }
+            Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
                 let distance = self.resolver.get_distance(*expr);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if distance.is_some() {
-                    self.env
-                        .borrow_mut()
-                        .assign_at(distance.unwrap(), tok.lexeme.as_ref().unwrap(), evaluated.clone())
+                    self.env.borrow_mut().assign_at(
+                        distance.unwrap(),
+                        tok.lexeme.as_ref().unwrap(),
+                        evaluated.clone(),
+                    )
                 } else {
                     self.root_env
                         .borrow_mut()
                         .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 };
-                if let Err(HaltReason::GenericError(msg)) = result
-                {
+                if let Err(HaltReason::GenericError(msg)) = result {
                     return Err(runtime_err(&msg, tok.line));
                 }
                 Ok(evaluated)
@@ -254,10 +253,13 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
                         Ok(unpacked_val) => Ok(unpacked_val),
-                        other_err @ Err(_) => other_err
+                        other_err @ Err(_) => other_err,
                     }
                 } else {
-                    return Err(runtime_err("Expression does not yield a callable", paren.line));
+                    return Err(runtime_err(
+                        "Expression does not yield a callable",
+                        paren.line,
+                    ));
                 }
             }
         }
@@ -300,7 +302,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Stmt::Loop(condition, stmt, post_body) => {
                 self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken)
-                    && (condition.is_none() || is_value_truthy(self.visit_expr(condition.unwrap())?))
+                    && (condition.is_none()
+                        || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
                     self.visit_stmt(*stmt)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));

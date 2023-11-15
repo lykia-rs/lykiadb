@@ -54,13 +54,21 @@ impl Environment {
         )))
     }
 
-    pub fn assign_at(&mut self, distance: usize, name: &str, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign_at(
+        &mut self,
+        distance: usize,
+        name: &str,
+        value: RV,
+    ) -> Result<bool, HaltReason> {
         let ancestor = self.ancestor(distance);
 
         if ancestor.is_some() {
-            ancestor.unwrap().borrow_mut().map.insert(name.to_string(), value);
-        }
-        else {
+            ancestor
+                .unwrap()
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
+        } else {
             self.map.insert(name.to_string(), value);
         }
 

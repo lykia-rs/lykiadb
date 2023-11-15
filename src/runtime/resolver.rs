@@ -88,7 +88,7 @@ impl Visitor<RV, HaltReason> for Resolver {
                 self.resolve_expr(*right);
             }
             Expr::Variable(tok) => {
-                if !self.scopes.is_empty() { 
+                if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
                     let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
 
