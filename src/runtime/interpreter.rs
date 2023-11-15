@@ -198,7 +198,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
-                let distance = self.resolver.get_distance(*expr);
+                let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if distance.is_some() {
                     self.env.borrow_mut().assign_at(
@@ -211,6 +211,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         .borrow_mut()
                         .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 };
+                if result.is_err() {
+                    println!("{:?}, {:?}, {:?}", result, distance, self.env);
+                    panic!("Error while assigning variable");
+                }
                 if let Err(HaltReason::GenericError(msg)) = result {
                     return Err(runtime_err(&msg, tok.line));
                 }
