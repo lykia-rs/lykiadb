@@ -1,8 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use rustc_hash::FxHashMap;
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
+use core::panic;
+use rustc_hash::FxHashMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub type Shared<T> = Rc<RefCell<T>>;
 
@@ -13,14 +14,14 @@ pub fn alloc_shared<T>(obj: T) -> Shared<T> {
 #[derive(Debug)]
 pub struct Environment {
     map: FxHashMap<String, RV>,
-    pub parent: Option<Shared<Environment>>
+    pub parent: Option<Shared<Environment>>,
 }
 
 impl Environment {
     pub fn new(parent: Option<Shared<Environment>>) -> Shared<Environment> {
         alloc_shared(Environment {
             map: FxHashMap::default(),
-            parent
+            parent,
         })
     }
 
@@ -39,22 +40,78 @@ impl Environment {
         }
 
         if self.parent.is_some() {
-            return self.parent.as_mut().unwrap().borrow_mut().assign(name, value);
+            return self
+                .parent
+                .as_mut()
+                .unwrap()
+                .borrow_mut()
+                .assign(name, value);
         }
 
-        Err(HaltReason::GenericError(format!("Assignment to an undefined variable '{}'", &name)))
+        Err(HaltReason::GenericError(format!(
+            "Assignment to an undefined variable '{}'",
+            &name
+        )))
     }
 
-    pub fn read(&mut self, name: &String) -> Result<RV, HaltReason> {
+    pub fn assign_at(
+        &mut self,
+        distance: usize,
+        name: &str,
+        value: RV,
+    ) -> Result<bool, HaltReason> {
+        let ancestor = self.ancestor(distance);
+
+        if ancestor.is_some() {
+            ancestor
+                .unwrap()
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
+        } else {
+            self.map.insert(name.to_string(), value);
+        }
+
+        return Ok(true);
+    }
+
+    pub fn read(&self, name: &String) -> Result<RV, HaltReason> {
         if self.map.contains_key(name) {
             // TODO(vck): Remove clone
             return Ok(self.map.get(name).unwrap().clone());
         }
 
         if self.parent.is_some() {
-            return self.parent.as_mut().unwrap().borrow_mut().read(name);
+            return self.parent.as_ref().unwrap().borrow().read(name);
         }
 
-        Err(HaltReason::GenericError(format!("Variable '{}' was not found.", &name)))
+        Err(HaltReason::GenericError(format!(
+            "Variable '{}' was not found.",
+            &name
+        )))
+    }
+
+    pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
+        let ancestor = self.ancestor(distance);
+
+        if ancestor.is_some() {
+            // TODO(vck): Remove clone
+            return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
+        }
+        return Ok(self.map.get(name).unwrap().clone());
+    }
+
+    pub fn ancestor(&self, distance: usize) -> Option<Shared<Environment>> {
+        if distance == 0 {
+            return None;
+        }
+        if distance == 1 {
+            return Some(self.parent.as_ref().unwrap().clone());
+        }
+        if self.parent.is_some() {
+            let pref = self.parent.as_ref().unwrap().borrow_mut();
+            return pref.ancestor(distance - 1);
+        }
+        panic!("Invalid variable distance.");
     }
 }

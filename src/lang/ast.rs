@@ -1,16 +1,16 @@
-use std::rc::Rc;
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
+use std::rc::Rc;
 
 pub trait Visitor<T, Q> {
-    fn visit_expr(&mut self, e: ExprId) -> T;
+    fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlDistinct {
     All,
-    Distinct
+    Distinct,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -19,10 +19,7 @@ pub enum SqlProjection {
     /*AllColumnsOf{
         table: Token
     },*/
-    Complex {
-        expr: SqlExpr, 
-        alias: Option<Token>
-    }
+    Complex { expr: SqlExpr, alias: Option<Token> },
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -30,15 +27,15 @@ pub enum SqlTableSubquery {
     Simple {
         namespace: Option<Token>,
         table: Token,
-        alias: Option<Token>
+        alias: Option<Token>,
     },
     From {
-        from: SqlFrom
+        from: SqlFrom,
     },
     Select {
         stmt: SqlSelect,
-        alias: Option<Token>
-    }
+        alias: Option<Token>,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -46,13 +43,13 @@ pub enum SqlJoinType {
     Left,
     LeftOuter,
     Right,
-    Inner
+    Inner,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlJoinClause {
     None(SqlTableSubquery),
-    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>)
+    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -60,19 +57,19 @@ pub enum SqlCompoundOperator {
     Union,
     UnionAll,
     Intersect,
-    Except
+    Except,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlOrdering {
     Asc,
-    Desc
+    Desc,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlFrom {
     TableSubquery(Vec<SqlTableSubquery>),
-    JoinClause(Box<SqlJoinClause>)
+    JoinClause(Box<SqlJoinClause>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -96,7 +93,7 @@ pub struct SqlSelect {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlExpr {
-    Default(ExprId)
+    Default(ExprId),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -109,7 +106,7 @@ pub enum Stmt {
     Loop(Option<ExprId>, StmtId, Option<StmtId>),
     Break(Token),
     Continue(Token),
-    Return(Token, Option<ExprId>)
+    Return(Token, Option<ExprId>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -154,7 +151,6 @@ impl Expr {
         Expr::Call(callee, paren, arguments)
     }
 }
-
 
 pub type ExprId = usize;
 pub type StmtId = usize;
