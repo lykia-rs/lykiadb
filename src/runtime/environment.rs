@@ -62,17 +62,13 @@ impl Environment {
     ) -> Result<bool, HaltReason> {
         let ancestor = self.ancestor(distance);
 
-        if ancestor.is_some() {
-            ancestor
-                .unwrap()
-                .borrow_mut()
-                .map
-                .insert(name.to_string(), value);
+        if let Some(unwrapped) = ancestor {
+            unwrapped.borrow_mut().map.insert(name.to_string(), value);
         } else {
             self.map.insert(name.to_string(), value);
         }
 
-        return Ok(true);
+        Ok(true)
     }
 
     pub fn read(&self, name: &String) -> Result<RV, HaltReason> {

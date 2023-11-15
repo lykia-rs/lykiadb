@@ -107,7 +107,7 @@ impl Parsed {
             Stmt::Expression(expr) => {
                 let mut buf = indent(level, "ExprStmt", false);
                 buf.push_str(&self.visit_expr(*expr, level + 1)?);
-                return Ok(buf);
+                Ok(buf)
             }
             Stmt::Declaration(tok, expr) => {
                 let mut buf = indent(
@@ -119,14 +119,14 @@ impl Parsed {
                     Some(_) => buf.push_str(&self.visit_expr(*expr, level + 1)?),
                     _ => (),
                 }
-                return Ok(buf);
+                Ok(buf)
             }
             Stmt::Block(statements) => {
                 let mut buf = indent(level, "Block", false);
                 for statement in statements {
                     buf.push_str(&self.visit_stmt(*statement, level + 1)?);
                 }
-                return Ok(buf);
+                Ok(buf)
             }
             Stmt::If(condition, if_stmt, else_optional) => {
                 let mut buf = format!(
@@ -143,29 +143,23 @@ impl Parsed {
                     ));
                 }
                 buf.push_str(&indent(level, "", false));
-                return Ok(buf);
+                Ok(buf)
             }
-            Stmt::Loop(condition, stmt, post_body) => {
-                return Ok(format!(
-                    "{}{}{}{}",
-                    &indent(level, "Loop", false),
-                    &self.visit_expr(*condition.as_ref().unwrap(), level + 1)?,
-                    &self.visit_stmt(*stmt, level + 1)?,
-                    &self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?
-                ));
-            }
-            Stmt::Break(_) => {
-                return Ok(indent(level, &"Break".to_string(), false));
-            }
-            Stmt::Continue(_) => {
-                return Ok(indent(level, &"Continue".to_string(), false));
-            }
+            Stmt::Loop(condition, stmt, post_body) => Ok(format!(
+                "{}{}{}{}",
+                &indent(level, "Loop", false),
+                &self.visit_expr(*condition.as_ref().unwrap(), level + 1)?,
+                &self.visit_stmt(*stmt, level + 1)?,
+                &self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?
+            )),
+            Stmt::Break(_) => Ok(indent(level, "Break", false)),
+            Stmt::Continue(_) => Ok(indent(level, "Continue", false)),
             Stmt::Return(_, expr) => {
                 let mut buf = indent(level, "Return", false);
                 if expr.is_some() {
                     buf.push_str(&self.visit_expr(expr.unwrap(), level + 1)?);
                 }
-                return Ok(buf);
+                Ok(buf)
             }
             Stmt::Function(tok, args, body) => {
                 let mut buf = indent(
@@ -180,7 +174,7 @@ impl Parsed {
                 for expr in body.as_ref() {
                     buf.push_str(&self.visit_stmt(*expr, level + 1)?);
                 }
-                return Ok(buf);
+                Ok(buf)
             }
         }
     }

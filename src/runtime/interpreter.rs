@@ -115,10 +115,10 @@ impl Interpreter {
 
     fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
-        if distance.is_some() {
+        if let Some(unwrapped) = distance {
             self.env
                 .borrow()
-                .read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
+                .read_at(unwrapped, &name.lexeme.unwrap().to_owned())
         } else {
             self.root_env
                 .borrow()
@@ -195,14 +195,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
             Expr::Unary(tok, expr) => self.eval_unary(tok, *expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
+            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, tok),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
-                let result = if distance.is_some() {
+                let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
-                        distance.unwrap(),
+                        distance_unv,
                         tok.lexeme.as_ref().unwrap(),
                         evaluated.clone(),
                     )
@@ -260,10 +260,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    return Err(runtime_err(
+                    Err(runtime_err(
                         "Expression does not yield a callable",
                         paren.line,
-                    ));
+                    ))
                 }
             }
         }
