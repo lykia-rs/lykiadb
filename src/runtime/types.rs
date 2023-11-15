@@ -78,7 +78,7 @@ impl Function {
                 closure,
                 body,
             } => {
-                let fn_env = Environment::new(Some(Rc::clone(&closure)));
+                let fn_env = Environment::new(Some(Rc::clone(closure)));
 
                 for (i, param) in parameters.iter().enumerate() {
                     // TODO: Remove clone here
@@ -87,7 +87,7 @@ impl Function {
                         .declare(param.to_string(), arguments.get(i).unwrap().clone());
                 }
 
-                interpreter.user_fn_call(&body, fn_env)
+                interpreter.user_fn_call(body, fn_env)
             }
         }
     }

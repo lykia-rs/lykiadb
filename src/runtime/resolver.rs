@@ -44,7 +44,7 @@ impl Resolver {
     }
 
     pub fn resolve_expr(&mut self, expr: ExprId) {
-        self.visit_expr(expr);
+        self.visit_expr(expr).unwrap();
     }
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
@@ -94,7 +94,7 @@ impl Visitor<RV, HaltReason> for Resolver {
 
                     if value.is_some() && *value.unwrap() == false {
                         runtime_err(
-                            &"Can't read local variable in its own initializer.",
+                            "Can't read local variable in its own initializer.",
                             tok.line,
                         );
                         exit(1);

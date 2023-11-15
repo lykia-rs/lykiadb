@@ -94,9 +94,9 @@ impl Environment {
     pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
         let ancestor = self.ancestor(distance);
 
-        if ancestor.is_some() {
+        if let Some(unwrapped) = ancestor {
             // TODO(vck): Remove clone
-            return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
+            return Ok(unwrapped.borrow().map.get(name).unwrap().clone());
         }
         return Ok(self.map.get(name).unwrap().clone());
     }

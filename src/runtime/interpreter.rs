@@ -194,7 +194,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
-            Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
+            Expr::Unary(tok, expr) => self.eval_unary(tok, *expr),
             Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
@@ -294,7 +294,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Block(statements) => {
-                return Ok(self.execute_block(&statements, None))?;
+                return Ok(self.execute_block(statements, None))?;
             }
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
