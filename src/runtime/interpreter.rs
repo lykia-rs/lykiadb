@@ -484,4 +484,49 @@ mod test {
         out.borrow_mut().expect(RV::Num(2.0));
         out.borrow().assert();
     }
+
+    #[test]
+    fn test_blocks_0() {
+        let code = 
+        "var $a = \"global a\";
+        var $b = \"global b\";
+        var $c = \"global c\";
+        {
+           var $a = \"outer a\";
+           var $b = \"outer b\";
+           {
+              var $a = \"inner a\";
+              print($a);
+              print($b);
+              print($c);
+           }
+           print($a);
+           print($b);
+           print($c);
+        }
+        print($a);
+        print($b);
+        print($c);";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("inner a".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("outer b".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global c".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("outer a".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("outer b".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global c".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global a".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global b".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global c".to_string())));
+        out.borrow().assert();
+    }
 }
