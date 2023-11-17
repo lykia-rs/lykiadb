@@ -356,6 +356,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
 #[cfg(test)]
 mod test {
+    use std::rc::Rc;
+
     use crate::runtime::{tests::get_runtime, types::RV};
 
     #[test]
@@ -409,6 +411,26 @@ mod test {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
         out.borrow_mut().expect(RV::Num(0.0));
+        out.borrow().assert();
+    }
+
+    #[test]
+    fn test_if() {
+        let code = "var $a = 30;
+
+        if ($a > 50) {
+            print(\"> 50\");
+        }
+        else if ($a > 20) {
+            print(\"50 > $a > 20\");
+        }
+        else {
+            print(\"< 20\");
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("50 > $a > 20".to_string())));
         out.borrow().assert();
     }
 }
