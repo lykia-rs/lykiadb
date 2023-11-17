@@ -361,7 +361,7 @@ mod test {
     use crate::runtime::{tests::get_runtime, types::RV};
 
     #[test]
-    fn test_loop_statements() {
+    fn test_loop_statements_0() {
         let code = "for (var $i = 0; $i < 10; $i = $i + 1) {
             {
                 {
@@ -380,6 +380,45 @@ mod test {
         out.borrow_mut().expect(RV::Num(5.0));
         out.borrow_mut().expect(RV::Num(6.0));
         out.borrow_mut().expect(RV::Num(7.0));
+        out.borrow().assert();
+    }
+
+    #[test]
+    fn test_loop_statements_1() {
+        let code = "for (var $i = 0; $i < 10000000; $i = $i+1) {
+            if ($i > 17) break;
+            if ($i < 15) continue;
+            for (var $j = 0; $j < 10000000; $j = $j + 1) {
+                print($i + \":\" + $j);
+                if ($j > 2) break;
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("15:0".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("15:1".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("15:2".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("15:3".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("16:0".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("16:1".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("16:2".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("16:3".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("17:0".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("17:1".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("17:2".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("17:3".to_string())));
         out.borrow().assert();
     }
 
