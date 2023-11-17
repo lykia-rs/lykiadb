@@ -177,13 +177,12 @@ impl Visitor<RV, HaltReason> for Resolver {
 
 #[cfg(test)]
 mod test {
-    use std::rc::Rc;
     use crate::runtime::{tests::get_runtime, types::RV};
+    use std::rc::Rc;
 
     #[test]
     fn test_resolving_read_0() {
-        let code = 
-        "var $a = \"global\";
+        let code = "var $a = \"global\";
         {
           fun showA() {
             print($a);
@@ -195,15 +194,16 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
         out.borrow().assert();
     }
 
     #[test]
     fn test_resolving_read_1() {
-        let code = 
-        "var $a = \"global\";
+        let code = "var $a = \"global\";
         {
             fun showA() {
                 print($a);
@@ -219,16 +219,18 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("block".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("block".to_string())));
         out.borrow().assert();
     }
 
     #[test]
     fn test_resolving_read_2() {
-        let code = 
-        "{
+        let code = "{
             var $a = \"global\";
             {
               fun showA() {
@@ -242,15 +244,16 @@ mod test {
           }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
         out.borrow().assert();
     }
 
     #[test]
     fn test_resolving_write_0() {
-        let code = 
-        "var $a = \"global\";
+        let code = "var $a = \"global\";
         {
           fun showA() {
             print($a);
@@ -273,10 +276,14 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("block".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut().expect(RV::Str(Rc::new("test".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("block".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("global".to_string())));
+        out.borrow_mut()
+            .expect(RV::Str(Rc::new("test".to_string())));
         out.borrow().assert();
     }
 }

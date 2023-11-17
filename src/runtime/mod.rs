@@ -1,3 +1,4 @@
+use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
@@ -96,6 +97,9 @@ impl Runtime {
             let out = interpreter.visit_stmt(*stmt);
             if self.mode == RuntimeMode::Repl {
                 println!("{:?}", out);
+            }
+            if out.is_err() {
+                panic!("Interpreter errored {:?}", out.err().unwrap());
             }
         }
     }

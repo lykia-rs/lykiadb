@@ -213,8 +213,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
-                    println!("{:?}, {:?}, {:?}", result, distance, self.env);
-                    panic!("Error while assigning variable");
+                    return Err(result.err().unwrap());
                 }
                 if let Err(HaltReason::GenericError(msg)) = result {
                     return Err(runtime_err(&msg, tok.line));
@@ -250,7 +249,6 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     for arg in arguments.iter() {
                         args_evaluated.push(self.visit_expr(*arg)?);
                     }
-
                     self.call_stack.insert(0, Context::new());
 
                     let val = callable.call(self, args_evaluated.as_slice());
@@ -281,7 +279,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let s = a.get_statement(sidx);
         match s {
             Stmt::Expression(expr) => {
-                return Ok(self.visit_expr(*expr)?);
+                return self.visit_expr(*expr);
             }
             Stmt::Declaration(tok, expr) => match &tok.lexeme {
                 Some(var_name) => {
@@ -295,7 +293,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Block(statements) => {
-                return Ok(self.execute_block(statements, None))?;
+                return self.execute_block(statements, None);
             }
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
@@ -353,5 +351,64 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
         }
         Ok(RV::Undefined)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::runtime::{tests::get_runtime, types::RV};
+
+    #[test]
+    fn test_loop_statements() {
+        let code = "for (var $i = 0; $i < 10; $i = $i + 1) {
+            {
+                {
+                    if ($i == 2) continue;
+                    if ($i == 8) break;
+                    print($i);
+                }
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(RV::Num(0.0));
+        out.borrow_mut().expect(RV::Num(1.0));
+        out.borrow_mut().expect(RV::Num(3.0));
+        out.borrow_mut().expect(RV::Num(4.0));
+        out.borrow_mut().expect(RV::Num(5.0));
+        out.borrow_mut().expect(RV::Num(6.0));
+        out.borrow_mut().expect(RV::Num(7.0));
+        out.borrow().assert();
+    }
+
+    #[test]
+    fn test_loop_large_break() {
+        let code = "var $q = 0;
+
+        for (var $i = 0; $i < 10000000; $i = $i+1) {
+            break;
+            $q = $q + 1;
+            print(\"Shouldn't be shown\");
+        }
+        
+        {
+            {
+                {
+                    {
+                        {
+                            {
+                                {
+                                    print($q);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(RV::Num(0.0));
+        out.borrow().assert();
     }
 }
