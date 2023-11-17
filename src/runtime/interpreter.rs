@@ -433,4 +433,55 @@ mod test {
             .expect(RV::Str(Rc::new("50 > $a > 20".to_string())));
         out.borrow().assert();
     }
+
+    #[test]
+    fn test_higher_order_0() {
+        let code = 
+        "fun f($x, $q) {
+            $x($q);
+        }
+        
+        fun g($q) {
+            print($q);
+        }
+        
+        for (var $i=0; $i<10; $i = $i + 1) {
+            f(g, $i);
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(RV::Num(0.0));
+        out.borrow_mut().expect(RV::Num(1.0));
+        out.borrow_mut().expect(RV::Num(2.0));
+        out.borrow_mut().expect(RV::Num(3.0));
+        out.borrow_mut().expect(RV::Num(4.0));
+        out.borrow_mut().expect(RV::Num(5.0));
+        out.borrow_mut().expect(RV::Num(6.0));
+        out.borrow_mut().expect(RV::Num(7.0));
+        out.borrow_mut().expect(RV::Num(8.0));
+        out.borrow_mut().expect(RV::Num(9.0));
+        out.borrow().assert();
+    }
+
+    #[test]
+    fn test_high_order_1() {
+        let code = 
+        "fun makeCounter() {
+            var $i = 0;
+            fun count() {
+                $i = $i + 1;
+                print($i);
+            }
+        
+            return count;
+        }
+        var $count = makeCounter();
+        $count();
+        $count();";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(RV::Num(1.0));
+        out.borrow_mut().expect(RV::Num(2.0));
+        out.borrow().assert();
+    }
 }
