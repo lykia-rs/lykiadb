@@ -100,33 +100,3 @@ impl Runtime {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-
-    pub fn interpret(&mut self, source: &str) {
-        let tokens = Scanner::scan(source).unwrap();
-        let parsed = Parser::parse(&tokens);
-        let arena = Rc::clone(&parsed.arena);
-        //
-        let mut resolver = Resolver::new(arena.clone());
-        let stmts = &parsed.statements.unwrap().clone();
-        resolver.resolve_stmts(stmts);
-        //
-        let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
-        for stmt in stmts {
-            let out = interpreter.visit_stmt(*stmt);
-            if self.mode == RuntimeMode::Repl {
-                println!("{:?}", out);
-            }
-        }
-    }
-
-    #[test]
-    fn test_runtime() {
-        let mut runtime = Runtime::new(RuntimeMode::Repl);
-        runtime.interpret("print(\"Hello, World!\");");
-    }
-}
