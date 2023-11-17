@@ -1,15 +1,9 @@
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
+use crate::util::{Shared, alloc_shared};
 use core::panic;
 use rustc_hash::FxHashMap;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-pub type Shared<T> = Rc<RefCell<T>>;
-
-pub fn alloc_shared<T>(obj: T) -> Shared<T> {
-    Rc::new(RefCell::new(obj))
-}
 
 #[derive(Debug)]
 pub struct Environment {

@@ -1,4 +1,3 @@
-use self::environment::Shared;
 use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
@@ -10,6 +9,7 @@ use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
 use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 use crate::runtime::types::{Function, RV};
+use crate::util::Shared;
 use ::std::collections::HashMap;
 use ::std::rc::Rc;
 
@@ -18,8 +18,8 @@ mod eval;
 pub mod interpreter;
 mod resolver;
 mod std;
-pub mod types;
 mod tests;
+pub mod types;
 
 pub struct Runtime {
     env: Shared<Environment>,
@@ -39,21 +39,21 @@ impl Runtime {
         let native_fns = HashMap::from([
             (
                 "clock",
-                RV::Callable(Some(0), Rc::new(Function::Native { function: nt_clock })),
+                RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
             ),
             (
                 "print",
-                RV::Callable(None, Rc::new(Function::Native { function: nt_print })),
+                RV::Callable(None, Rc::new(Function::Lambda { function: nt_print })),
             ),
             (
                 "fib_nat",
-                RV::Callable(Some(1), Rc::new(Function::Native { function: nt_fib })),
+                RV::Callable(Some(1), Rc::new(Function::Lambda { function: nt_fib })),
             ),
             (
                 "json_encode",
                 RV::Callable(
                     Some(1),
-                    Rc::new(Function::Native {
+                    Rc::new(Function::Lambda {
                         function: nt_json_encode,
                     }),
                 ),
@@ -62,7 +62,7 @@ impl Runtime {
                 "json_decode",
                 RV::Callable(
                     Some(1),
-                    Rc::new(Function::Native {
+                    Rc::new(Function::Lambda {
                         function: nt_json_decode,
                     }),
                 ),
