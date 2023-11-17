@@ -4,21 +4,20 @@ use super::{Runtime, RuntimeMode};
 use crate::runtime::environment::Environment;
 use crate::runtime::std::fib::nt_fib;
 use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
-use crate::runtime::std::out::nt_print;
 use crate::runtime::std::time::nt_clock;
 use crate::runtime::types::{Function, RV};
-use crate::util::alloc_shared;
+use crate::util::{alloc_shared, Shared};
 use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Clone)]
-struct Output {
+pub struct Output {
     out: Vec<RV>,
     expected: Vec<RV>,
 }
 
 impl Output {
-    fn new() -> Output {
+    pub fn new() -> Output {
         Output {
             out: Vec::new(),
             expected: Vec::new(),
@@ -29,11 +28,11 @@ impl Output {
         self.out.push(rv);
     }
 
-    fn expect(&mut self, rv: RV) {
+    pub fn expect(&mut self, rv: RV) {
         self.expected.push(rv);
     }
 
-    fn assert(&self) {
+    pub fn assert(&self) {
         assert_eq!(self.out, self.expected);
     }
 }
@@ -47,23 +46,19 @@ impl Stateful for Output {
     }
 }
 
-pub fn get_runtime() -> Runtime {
+pub fn get_runtime() -> (Shared<Output>, Runtime) {
     let env = Environment::new(None);
 
     let out = alloc_shared(Output::new());
 
     let native_fns = HashMap::from([
         (
-            "collect",
-            RV::Callable(Some(0), Rc::new(Function::Stateful(out))),
-        ),
-        (
             "clock",
             RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
         ),
         (
             "print",
-            RV::Callable(None, Rc::new(Function::Lambda { function: nt_print })),
+            RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
         ),
         (
             "fib_nat",
@@ -93,8 +88,11 @@ pub fn get_runtime() -> Runtime {
         env.borrow_mut().declare(name.to_string(), value);
     }
 
-    Runtime {
-        env,
-        mode: RuntimeMode::File,
-    }
+    (
+        out,
+        Runtime {
+            env,
+            mode: RuntimeMode::File,
+        },
+    )
 }

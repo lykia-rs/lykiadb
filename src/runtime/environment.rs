@@ -1,9 +1,8 @@
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
-use crate::util::{Shared, alloc_shared};
+use crate::util::{alloc_shared, Shared};
 use core::panic;
 use rustc_hash::FxHashMap;
-
 
 #[derive(Debug)]
 pub struct Environment {
