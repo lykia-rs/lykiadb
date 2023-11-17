@@ -194,11 +194,10 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+        ]);
     }
 
     #[test]
@@ -219,13 +218,11 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("block".to_string())));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("block".to_string())),
+        ]);
     }
 
     #[test]
@@ -244,11 +241,10 @@ mod test {
           }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+        ]);
     }
 
     #[test]
@@ -276,14 +272,11 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("block".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("test".to_string())));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("block".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("test".to_string())),
+        ]);
     }
 }

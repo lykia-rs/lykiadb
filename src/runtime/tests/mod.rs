@@ -13,27 +13,19 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,
-    expected: Vec<RV>,
 }
 
 impl Output {
     pub fn new() -> Output {
-        Output {
-            out: Vec::new(),
-            expected: Vec::new(),
-        }
+        Output { out: Vec::new() }
     }
 
     pub fn push(&mut self, rv: RV) {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: RV) {
-        self.expected.push(rv);
-    }
-
-    pub fn assert(&self) {
-        assert_eq!(self.out, self.expected);
+    pub fn expect(&mut self, rv: Vec<RV>) {
+        assert_eq!(self.out, rv);
     }
 }
 

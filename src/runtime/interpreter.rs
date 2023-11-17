@@ -373,14 +373,15 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Num(0.0));
-        out.borrow_mut().expect(RV::Num(1.0));
-        out.borrow_mut().expect(RV::Num(3.0));
-        out.borrow_mut().expect(RV::Num(4.0));
-        out.borrow_mut().expect(RV::Num(5.0));
-        out.borrow_mut().expect(RV::Num(6.0));
-        out.borrow_mut().expect(RV::Num(7.0));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Num(0.0),
+            RV::Num(1.0),
+            RV::Num(3.0),
+            RV::Num(4.0),
+            RV::Num(5.0),
+            RV::Num(6.0),
+            RV::Num(7.0),
+        ]);
     }
 
     #[test]
@@ -394,32 +395,23 @@ mod test {
             }
         }";
         let (out, mut runtime) = get_runtime();
+
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("15:0".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("15:1".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("15:2".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("15:3".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("16:0".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("16:1".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("16:2".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("16:3".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("17:0".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("17:1".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("17:2".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("17:3".to_string())));
-        out.borrow().assert();
+
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("15:0".to_string())),
+            RV::Str(Rc::new("15:1".to_string())),
+            RV::Str(Rc::new("15:2".to_string())),
+            RV::Str(Rc::new("15:3".to_string())),
+            RV::Str(Rc::new("16:0".to_string())),
+            RV::Str(Rc::new("16:1".to_string())),
+            RV::Str(Rc::new("16:2".to_string())),
+            RV::Str(Rc::new("16:3".to_string())),
+            RV::Str(Rc::new("17:0".to_string())),
+            RV::Str(Rc::new("17:1".to_string())),
+            RV::Str(Rc::new("17:2".to_string())),
+            RV::Str(Rc::new("17:3".to_string())),
+        ]);
     }
 
     #[test]
@@ -449,8 +441,7 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Num(0.0));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![RV::Num(0.0)]);
     }
 
     #[test]
@@ -469,14 +460,12 @@ mod test {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
         out.borrow_mut()
-            .expect(RV::Str(Rc::new("50 > $a > 20".to_string())));
-        out.borrow().assert();
+            .expect(vec![RV::Str(Rc::new("50 > $a > 20".to_string()))]);
     }
 
     #[test]
     fn test_higher_order_0() {
-        let code = 
-        "fun f($x, $q) {
+        let code = "fun f($x, $q) {
             $x($q);
         }
         
@@ -489,23 +478,23 @@ mod test {
         }";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Num(0.0));
-        out.borrow_mut().expect(RV::Num(1.0));
-        out.borrow_mut().expect(RV::Num(2.0));
-        out.borrow_mut().expect(RV::Num(3.0));
-        out.borrow_mut().expect(RV::Num(4.0));
-        out.borrow_mut().expect(RV::Num(5.0));
-        out.borrow_mut().expect(RV::Num(6.0));
-        out.borrow_mut().expect(RV::Num(7.0));
-        out.borrow_mut().expect(RV::Num(8.0));
-        out.borrow_mut().expect(RV::Num(9.0));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Num(0.0),
+            RV::Num(1.0),
+            RV::Num(2.0),
+            RV::Num(3.0),
+            RV::Num(4.0),
+            RV::Num(5.0),
+            RV::Num(6.0),
+            RV::Num(7.0),
+            RV::Num(8.0),
+            RV::Num(9.0),
+        ]);
     }
 
     #[test]
     fn test_high_order_1() {
-        let code = 
-        "fun makeCounter() {
+        let code = "fun makeCounter() {
             var $i = 0;
             fun count() {
                 $i = $i + 1;
@@ -519,15 +508,12 @@ mod test {
         $count();";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(RV::Num(1.0));
-        out.borrow_mut().expect(RV::Num(2.0));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![RV::Num(1.0), RV::Num(2.0)]);
     }
 
     #[test]
     fn test_blocks_0() {
-        let code = 
-        "var $a = \"global a\";
+        let code = "var $a = \"global a\";
         var $b = \"global b\";
         var $c = \"global c\";
         {
@@ -548,24 +534,16 @@ mod test {
         print($c);";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("inner a".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("outer b".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global c".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("outer a".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("outer b".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global c".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global a".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global b".to_string())));
-        out.borrow_mut()
-            .expect(RV::Str(Rc::new("global c".to_string())));
-        out.borrow().assert();
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("inner a".to_string())),
+            RV::Str(Rc::new("outer b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+            RV::Str(Rc::new("outer a".to_string())),
+            RV::Str(Rc::new("outer b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+            RV::Str(Rc::new("global a".to_string())),
+            RV::Str(Rc::new("global b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+        ]);
     }
 }
