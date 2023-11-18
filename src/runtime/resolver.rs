@@ -44,7 +44,7 @@ impl Resolver {
     }
 
     pub fn resolve_expr(&mut self, expr: ExprId) {
-        self.visit_expr(expr);
+        self.visit_expr(expr).unwrap();
     }
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
@@ -92,9 +92,9 @@ impl Visitor<RV, HaltReason> for Resolver {
                     let last_scope = self.scopes.last().unwrap();
                     let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
 
-                    if value.is_some() && *value.unwrap() == false {
+                    if value.is_some() && !(*value.unwrap()) {
                         runtime_err(
-                            &"Can't read local variable in its own initializer.",
+                            "Can't read local variable in its own initializer.",
                             tok.line,
                         );
                         exit(1);
@@ -172,5 +172,111 @@ impl Visitor<RV, HaltReason> for Resolver {
             }
         }
         Ok(RV::Undefined)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::runtime::{tests::get_runtime, types::RV};
+    use std::rc::Rc;
+
+    #[test]
+    fn test_resolving_read_0() {
+        let code = "var $a = \"global\";
+        {
+          fun showA() {
+            print($a);
+          }
+        
+          showA();
+          var $a = \"block\";
+          showA();
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn test_resolving_read_1() {
+        let code = "var $a = \"global\";
+        {
+            fun showA() {
+                print($a);
+            }
+
+            showA();
+            var $a = \"block\";
+            showA();
+            fun showB() {
+                print($a);
+            }
+            showB();
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("block".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn test_resolving_read_2() {
+        let code = "{
+            var $a = \"global\";
+            {
+              fun showA() {
+                print($a);
+              }
+          
+              showA();
+              var $a = \"block\";
+              showA();
+            }
+          }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn test_resolving_write_0() {
+        let code = "var $a = \"global\";
+        {
+          fun showA() {
+            print($a);
+          }
+        
+          var $a = \"block\";
+          
+          fun showB() {
+            print($a);
+          }
+        
+          //
+          showA();
+          showB();
+          //
+          $a = \"test\";
+          //
+          showA();
+          showB();
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("block".to_string())),
+            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Rc::new("test".to_string())),
+        ]);
     }
 }

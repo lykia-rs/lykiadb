@@ -1,16 +1,22 @@
 use crate::lang::ast::StmtId;
-use crate::runtime::environment::{Environment, Shared};
+use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
+use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
 
+pub trait Stateful {
+    fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
+}
+
 #[derive(Clone)]
 pub enum Function {
-    Native {
+    Lambda {
         function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
     },
+    Stateful(Shared<dyn Stateful>),
     UserDefined {
         name: String,
         parameters: Vec<String>,
@@ -22,7 +28,7 @@ pub enum Function {
 impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Function::Native { function: _ } => write!(f, "<native_fn>"),
+            Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
             Function::UserDefined {
                 name,
                 parameters: _,
@@ -36,7 +42,7 @@ impl Function {
 impl PartialEq for Function {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Function::Native { function: _ }, Function::Native { function: _ }) => false,
+            (Function::Lambda { function: _ }, Function::Lambda { function: _ }) => false,
             (
                 a @ Function::UserDefined {
                     name: _,
@@ -71,14 +77,15 @@ impl Display for Function {
 impl Function {
     pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
-            Function::Native { function } => function(interpreter, arguments),
+            Function::Stateful(stateful) => stateful.borrow_mut().call(interpreter, arguments),
+            Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
                 parameters,
                 closure,
                 body,
             } => {
-                let fn_env = Environment::new(Some(Rc::clone(&closure)));
+                let fn_env = Environment::new(Some(Rc::clone(closure)));
 
                 for (i, param) in parameters.iter().enumerate() {
                     // TODO: Remove clone here
@@ -87,7 +94,7 @@ impl Function {
                         .declare(param.to_string(), arguments.get(i).unwrap().clone());
                 }
 
-                interpreter.user_fn_call(&body, fn_env)
+                interpreter.user_fn_call(body, fn_env)
             }
         }
     }

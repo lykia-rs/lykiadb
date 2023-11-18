@@ -5,7 +5,7 @@ use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::runtime::types::RV;
 
 pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
-    return Ok(RV::Str(Rc::new(json!(args[0]).to_string())));
+    Ok(RV::Str(Rc::new(json!(args[0]).to_string())))
 }
 
 pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {

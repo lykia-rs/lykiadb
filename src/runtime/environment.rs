@@ -1,15 +1,8 @@
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
+use crate::util::{alloc_shared, Shared};
 use core::panic;
 use rustc_hash::FxHashMap;
-use std::cell::RefCell;
-use std::rc::Rc;
-
-pub type Shared<T> = Rc<RefCell<T>>;
-
-pub fn alloc_shared<T>(obj: T) -> Shared<T> {
-    Rc::new(RefCell::new(obj))
-}
 
 #[derive(Debug)]
 pub struct Environment {
@@ -62,17 +55,13 @@ impl Environment {
     ) -> Result<bool, HaltReason> {
         let ancestor = self.ancestor(distance);
 
-        if ancestor.is_some() {
-            ancestor
-                .unwrap()
-                .borrow_mut()
-                .map
-                .insert(name.to_string(), value);
+        if let Some(unwrapped) = ancestor {
+            unwrapped.borrow_mut().map.insert(name.to_string(), value);
         } else {
             self.map.insert(name.to_string(), value);
         }
 
-        return Ok(true);
+        Ok(true)
     }
 
     pub fn read(&self, name: &String) -> Result<RV, HaltReason> {
@@ -94,9 +83,9 @@ impl Environment {
     pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
         let ancestor = self.ancestor(distance);
 
-        if ancestor.is_some() {
+        if let Some(unwrapped) = ancestor {
             // TODO(vck): Remove clone
-            return Ok(ancestor.unwrap().borrow().map.get(name).unwrap().clone());
+            return Ok(unwrapped.borrow().map.get(name).unwrap().clone());
         }
         return Ok(self.map.get(name).unwrap().clone());
     }

@@ -5,9 +5,10 @@ use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::Token;
 use crate::lang::token::TokenType;
-use crate::runtime::environment::{Environment, Shared};
+use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
+use crate::util::Shared;
 use crate::{kw, sym};
 use std::rc::Rc;
 use std::vec;
@@ -115,10 +116,10 @@ impl Interpreter {
 
     fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
-        if distance.is_some() {
+        if let Some(unwrapped) = distance {
             self.env
                 .borrow()
-                .read_at(distance.unwrap(), &name.lexeme.unwrap().to_owned())
+                .read_at(unwrapped, &name.lexeme.unwrap().to_owned())
         } else {
             self.root_env
                 .borrow()
@@ -194,15 +195,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
-            Expr::Unary(tok, expr) => self.eval_unary(&tok, *expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, &tok),
+            Expr::Unary(tok, expr) => self.eval_unary(tok, *expr),
+            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, tok),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
-                let result = if distance.is_some() {
+                let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
-                        distance.unwrap(),
+                        distance_unv,
                         tok.lexeme.as_ref().unwrap(),
                         evaluated.clone(),
                     )
@@ -212,8 +213,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
-                    println!("{:?}, {:?}, {:?}", result, distance, self.env);
-                    panic!("Error while assigning variable");
+                    return Err(result.err().unwrap());
                 }
                 if let Err(HaltReason::GenericError(msg)) = result {
                     return Err(runtime_err(&msg, tok.line));
@@ -249,7 +249,6 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     for arg in arguments.iter() {
                         args_evaluated.push(self.visit_expr(*arg)?);
                     }
-
                     self.call_stack.insert(0, Context::new());
 
                     let val = callable.call(self, args_evaluated.as_slice());
@@ -260,10 +259,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    return Err(runtime_err(
+                    Err(runtime_err(
                         "Expression does not yield a callable",
                         paren.line,
-                    ));
+                    ))
                 }
             }
         }
@@ -280,7 +279,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let s = a.get_statement(sidx);
         match s {
             Stmt::Expression(expr) => {
-                return Ok(self.visit_expr(*expr)?);
+                return self.visit_expr(*expr);
             }
             Stmt::Declaration(tok, expr) => match &tok.lexeme {
                 Some(var_name) => {
@@ -294,7 +293,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
             },
             Stmt::Block(statements) => {
-                return Ok(self.execute_block(&statements, None))?;
+                return self.execute_block(statements, None);
             }
             Stmt::If(condition, if_stmt, else_optional) => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
@@ -340,7 +339,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     name: name.clone(),
                     body: Rc::clone(body),
                     parameters: parameters
-                        .into_iter()
+                        .iter()
                         .map(|x| x.lexeme.as_ref().unwrap().to_string())
                         .collect(),
                     closure: self.env.clone(),
@@ -352,5 +351,199 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
         }
         Ok(RV::Undefined)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::rc::Rc;
+
+    use crate::runtime::{tests::get_runtime, types::RV};
+
+    #[test]
+    fn test_loop_statements_0() {
+        let code = "for (var $i = 0; $i < 10; $i = $i + 1) {
+            {
+                {
+                    if ($i == 2) continue;
+                    if ($i == 8) break;
+                    print($i);
+                }
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Num(0.0),
+            RV::Num(1.0),
+            RV::Num(3.0),
+            RV::Num(4.0),
+            RV::Num(5.0),
+            RV::Num(6.0),
+            RV::Num(7.0),
+        ]);
+    }
+
+    #[test]
+    fn test_loop_statements_1() {
+        let code = "for (var $i = 0; $i < 10000000; $i = $i+1) {
+            if ($i > 17) break;
+            if ($i < 15) continue;
+            for (var $j = 0; $j < 10000000; $j = $j + 1) {
+                print($i + \":\" + $j);
+                if ($j > 2) break;
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+
+        runtime.interpret(&code);
+
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("15:0".to_string())),
+            RV::Str(Rc::new("15:1".to_string())),
+            RV::Str(Rc::new("15:2".to_string())),
+            RV::Str(Rc::new("15:3".to_string())),
+            RV::Str(Rc::new("16:0".to_string())),
+            RV::Str(Rc::new("16:1".to_string())),
+            RV::Str(Rc::new("16:2".to_string())),
+            RV::Str(Rc::new("16:3".to_string())),
+            RV::Str(Rc::new("17:0".to_string())),
+            RV::Str(Rc::new("17:1".to_string())),
+            RV::Str(Rc::new("17:2".to_string())),
+            RV::Str(Rc::new("17:3".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn test_loop_large_break() {
+        let code = "var $q = 0;
+
+        for (var $i = 0; $i < 10000000; $i = $i+1) {
+            break;
+            $q = $q + 1;
+            print(\"Shouldn't be shown\");
+        }
+        
+        {
+            {
+                {
+                    {
+                        {
+                            {
+                                {
+                                    print($q);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![RV::Num(0.0)]);
+    }
+
+    #[test]
+    fn test_if() {
+        let code = "var $a = 30;
+
+        if ($a > 50) {
+            print(\"> 50\");
+        }
+        else if ($a > 20) {
+            print(\"50 > $a > 20\");
+        }
+        else {
+            print(\"< 20\");
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut()
+            .expect(vec![RV::Str(Rc::new("50 > $a > 20".to_string()))]);
+    }
+
+    #[test]
+    fn test_higher_order_0() {
+        let code = "fun f($x, $q) {
+            $x($q);
+        }
+        
+        fun g($q) {
+            print($q);
+        }
+        
+        for (var $i=0; $i<10; $i = $i + 1) {
+            f(g, $i);
+        }";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Num(0.0),
+            RV::Num(1.0),
+            RV::Num(2.0),
+            RV::Num(3.0),
+            RV::Num(4.0),
+            RV::Num(5.0),
+            RV::Num(6.0),
+            RV::Num(7.0),
+            RV::Num(8.0),
+            RV::Num(9.0),
+        ]);
+    }
+
+    #[test]
+    fn test_high_order_1() {
+        let code = "fun makeCounter() {
+            var $i = 0;
+            fun count() {
+                $i = $i + 1;
+                print($i);
+            }
+        
+            return count;
+        }
+        var $count = makeCounter();
+        $count();
+        $count();";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![RV::Num(1.0), RV::Num(2.0)]);
+    }
+
+    #[test]
+    fn test_blocks_0() {
+        let code = "var $a = \"global a\";
+        var $b = \"global b\";
+        var $c = \"global c\";
+        {
+           var $a = \"outer a\";
+           var $b = \"outer b\";
+           {
+              var $a = \"inner a\";
+              print($a);
+              print($b);
+              print($c);
+           }
+           print($a);
+           print($b);
+           print($c);
+        }
+        print($a);
+        print($b);
+        print($c);";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Str(Rc::new("inner a".to_string())),
+            RV::Str(Rc::new("outer b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+            RV::Str(Rc::new("outer a".to_string())),
+            RV::Str(Rc::new("outer b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+            RV::Str(Rc::new("global a".to_string())),
+            RV::Str(Rc::new("global b".to_string())),
+            RV::Str(Rc::new("global c".to_string())),
+        ]);
     }
 }
