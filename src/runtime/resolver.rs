@@ -273,7 +273,7 @@ mod test {
           showB();
         }";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
+        runtime.interpret(code);
         out.borrow_mut().expect(vec![
             RV::Str(Rc::new("global".to_string())),
             RV::Str(Rc::new("block".to_string())),
