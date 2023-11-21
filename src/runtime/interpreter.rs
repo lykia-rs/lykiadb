@@ -121,9 +121,7 @@ impl Interpreter {
                 .borrow()
                 .read_at(unwrapped, &name.span.lexeme.to_owned())
         } else {
-            self.root_env
-                .borrow()
-                .read(&name.span.lexeme.to_owned())
+            self.root_env.borrow().read(&name.span.lexeme.to_owned())
         }
     }
 }
@@ -286,7 +284,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 self.env
                     .borrow_mut()
                     .declare(tok.span.lexeme.to_string(), evaluated);
-            },
+            }
             Stmt::Block(statements) => {
                 return self.execute_block(statements, None);
             }
@@ -318,7 +316,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
-                    return Err(runtime_err("Unexpected continue statement", token.span.line));
+                    return Err(runtime_err(
+                        "Unexpected continue statement",
+                        token.span.line,
+                    ));
                 }
             }
             Stmt::Return(_token, expr) => {

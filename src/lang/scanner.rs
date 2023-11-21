@@ -65,7 +65,7 @@ impl Scanner {
                 line: self.line,
                 start: self.start,
                 lexeme: Rc::new(lexeme.to_string()),
-            }
+            },
         });
     }
 

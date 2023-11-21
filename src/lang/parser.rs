@@ -283,7 +283,10 @@ impl<'a> Parser<'a> {
                         .expression(Expr::new_assignment(tok.clone(), value)));
                 }
                 _ => {
-                    return Err(ParseError::InvalidAssignmentTarget { token: equals.clone(), message: format!("Invalid assignment target `{}`", equals.span.lexeme) });
+                    return Err(ParseError::InvalidAssignmentTarget {
+                        token: equals.clone(),
+                        message: format!("Invalid assignment target `{}`", equals.span.lexeme),
+                    });
                 }
             }
         }
