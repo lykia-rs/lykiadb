@@ -22,10 +22,9 @@ pub fn report_error(filename: &str, source: &str, error: ScanError) {
             .with_code(3)
             .with_message(message)
             .with_label(
-                Label::new((filename, span.start..span.start + span.lexeme.len()))
+                Label::new((filename, span.start..(span.start + span.lexeme.len())))
                     .with_message(format!(
-                        "The values are outputs of this {} expression",
-                        "match".fg(out),
+                        "Terminate the string with a double quote (\")",
                     ))
                     .with_color(out),
             )

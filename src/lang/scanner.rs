@@ -232,7 +232,7 @@ impl Scanner {
                     self.add_token(&other.to_string(), sym.clone());
                 } else {
                     return Err(ScanError::UnexpectedCharacter {
-                        message: format!("Unexpected charachter `{}`", c),
+                        message: format!("Unexpected character `{}`", c),
                         span: Span {
                             start: self.start,
                             line: self.line,
