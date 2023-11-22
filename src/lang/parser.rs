@@ -49,7 +49,7 @@ macro_rules! binary {
             let a = (*$self.peek_bw(1)).clone();
             let b = current_expr;
             let c = $self.$builder()?;
-            current_expr = $self.arena.expression(Expr::new_binary(a, b, c));
+            current_expr = $self.arena.expression(Expr::Binary(a, b, c));
         }
         return Ok(current_expr);
     }
@@ -260,7 +260,7 @@ impl<'a> Parser<'a> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => self.arena.expression(Expr::new_literal(RV::Null)),
+            false => self.arena.expression(Expr::Literal(RV::Null)),
         };
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Declaration(token, expr)))
@@ -280,7 +280,7 @@ impl<'a> Parser<'a> {
                 Variable(tok) => {
                     return Ok(self
                         .arena
-                        .expression(Expr::new_assignment(tok.clone(), value)));
+                        .expression(Expr::Assignment(tok.clone(), value)));
                 }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
@@ -300,7 +300,7 @@ impl<'a> Parser<'a> {
             let right = self.and()?;
             return Ok(self
                 .arena
-                .expression(Expr::new_logical(expr, op.clone(), right)));
+                .expression(Expr::Logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -312,7 +312,7 @@ impl<'a> Parser<'a> {
             let right = self.equality()?;
             return Ok(self
                 .arena
-                .expression(Expr::new_logical(expr, op.clone(), right)));
+                .expression(Expr::Logical(expr, op.clone(), right)));
         }
         Ok(expr)
     }
@@ -347,7 +347,7 @@ impl<'a> Parser<'a> {
             let unary = self.unary()?;
             return Ok(self
                 .arena
-                .expression(Expr::new_unary((*self.peek_bw(1)).clone(), unary)));
+                .expression(Expr::Unary((*self.peek_bw(1)).clone(), unary)));
         }
         self.select()
     }
@@ -378,7 +378,7 @@ impl<'a> Parser<'a> {
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
-        Ok(self.arena.expression(Expr::new_select(SqlSelect {
+        Ok(self.arena.expression(Expr::Select(SqlSelect {
             core,
             compound: compounds,
             order_by: None, // TODO(vck)
@@ -465,7 +465,7 @@ impl<'a> Parser<'a> {
 
         Ok(self
             .arena
-            .expression(Expr::new_call(callee, paren, arguments)))
+            .expression(Expr::Call(callee, paren, arguments)))
     }
 
     fn call(&mut self) -> ParseResult<ExprId> {
@@ -486,17 +486,17 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Ok(self.arena.expression(Expr::new_literal(RV::Bool(true)))),
-            False => Ok(self.arena.expression(Expr::new_literal(RV::Bool(false)))),
-            TokenType::Null => Ok(self.arena.expression(Expr::new_literal(RV::Null))),
+            True => Ok(self.arena.expression(Expr::Literal(RV::Bool(true)))),
+            False => Ok(self.arena.expression(Expr::Literal(RV::Bool(false)))),
+            TokenType::Null => Ok(self.arena.expression(Expr::Literal(RV::Null))),
             Str | Num => Ok(self
                 .arena
-                .expression(Expr::new_literal(tok.literal.clone().unwrap()))),
-            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::new_variable(tok.clone()))),
+                .expression(Expr::Literal(tok.literal.clone().unwrap()))),
+            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::Variable(tok.clone()))),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(self.arena.expression(Expr::new_grouping(expr)))
+                Ok(self.arena.expression(Expr::Grouping(expr)))
             }
             _ => Err(ParseError::UnexpectedToken {
                 message: format!("Unexpected token `{}`", tok.span.lexeme),
@@ -583,7 +583,7 @@ mod test {
     fn test_parse_literal_expression() {
         compare_parsed_to_expected("1;", vec![
             Stmt::Expression(
-                Expr::new_literal(RV::Num(1.0))
+                Expr::Literal(RV::Num(1.0))
             )
         ]);
     }
@@ -592,9 +592,9 @@ mod test {
     fn test_parse_unary_expression() {
         compare_parsed_to_expected("-1;", vec![
             Stmt::Expression(
-                Expr::new_unary(
+                Expr::Unary(
                     Token {tok_type: sym!(Minus), lexeme: lexm!("-"), literal: None, line: 0},
-                    Expr::new_literal(RV::Num(1.0)
+                    Expr::Literal(RV::Num(1.0)
                 )
             )
         )]);

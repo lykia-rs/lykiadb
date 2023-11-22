@@ -122,35 +122,6 @@ pub enum Expr {
     Call(ExprId, Token, Vec<ExprId>),
 }
 
-impl Expr {
-    pub fn new_binary(op: Token, left: ExprId, right: ExprId) -> Expr {
-        Expr::Binary(op, left, right)
-    }
-    pub fn new_select(select: SqlSelect) -> Expr {
-        Expr::Select(select)
-    }
-    pub fn new_grouping(expr: ExprId) -> Expr {
-        Expr::Grouping(expr)
-    }
-    pub fn new_literal(value: RV) -> Expr {
-        Expr::Literal(value)
-    }
-    pub fn new_unary(op: Token, expr: ExprId) -> Expr {
-        Expr::Unary(op, expr)
-    }
-    pub fn new_variable(name: Token) -> Expr {
-        Expr::Variable(name)
-    }
-    pub fn new_assignment(name: Token, value: ExprId) -> Expr {
-        Expr::Assignment(name, value)
-    }
-    pub fn new_logical(left: ExprId, op: Token, right: ExprId) -> Expr {
-        Expr::Logical(left, op, right)
-    }
-    pub fn new_call(callee: ExprId, paren: Token, arguments: Vec<ExprId>) -> Expr {
-        Expr::Call(callee, paren, arguments)
-    }
-}
 
 pub type ExprId = usize;
 pub type StmtId = usize;
