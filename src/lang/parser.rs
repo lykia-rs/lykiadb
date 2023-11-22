@@ -35,9 +35,9 @@ impl Parsed {
 
 #[derive(Debug)]
 pub enum ParseError {
-    UnexpectedToken { token: Token, message: String },
-    MissingToken { token: Token, message: String },
-    InvalidAssignmentTarget { token: Token, message: String },
+    UnexpectedToken { token: Token },
+    MissingToken { token: Token, expected: TokenType },
+    InvalidAssignmentTarget { left: Token },
 }
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -282,8 +282,8 @@ impl<'a> Parser<'a> {
                 }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
-                        token: equals.clone(),
-                        message: format!("Invalid assignment target `{}`", equals.span.lexeme),
+                        left: equals.clone(),
+                        // message: format!("Invalid assignment target `{}`", equals.span.lexeme),
                     });
                 }
             }
@@ -367,9 +367,9 @@ impl<'a> Parser<'a> {
                     SqlKeyword(Except) => SqlCompoundOperator::Except,
                     _ => {
                         return Err(ParseError::UnexpectedToken {
-                            message: format!("Unexpected token `{}`", op.span.lexeme),
+                            // message: format!("Unexpected token `{}`", op.span.lexeme),
                             token: op.clone(),
-                        })
+                        });
                     }
                 }
             };
@@ -495,7 +495,7 @@ impl<'a> Parser<'a> {
                 Ok(self.arena.expression(Expr::Grouping(expr)))
             }
             _ => Err(ParseError::UnexpectedToken {
-                message: format!("Unexpected token `{}`", tok.span.lexeme),
+                // message: format!("Unexpected token `{}`", tok.span.lexeme),
                 token: tok.clone(),
             }),
         }
@@ -508,11 +508,11 @@ impl<'a> Parser<'a> {
         let prev_token = self.peek_bw(1);
         Err(ParseError::MissingToken {
             token: prev_token.clone(),
-            message: format!(
-                "Expected '{:?}' after {:?}",
-                expected_tok_type,
-                self.peek_bw(1)
-            ),
+            expected: expected_tok_type, /* message: format!(
+                                             "Expected '{:?}' after {:?}",
+                                             expected_tok_type,
+                                             self.peek_bw(1)
+                                         ),*/
         })
     }
 
