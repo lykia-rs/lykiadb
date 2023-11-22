@@ -1,4 +1,11 @@
-# lykia-db
+# λykiaDB
+[![CI](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml)
+
+<p align="center">
+    <img alt="LykiaDB logo" height="200" width="200" src="https://vcankeklik.com/assets/img/logo.svg">
+</p>
+
+
 Lykia is a toy document database basically written for educational purposes. It is planned to be a modest mixture of popular kids in town (e.g. SurrealDB).
 
 ## Overview
