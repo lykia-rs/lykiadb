@@ -1,15 +1,18 @@
 use crate::lang::ast::{Expr, ExprId, ParserArena, Stmt, StmtId, Visitor};
 use crate::lang::token::Token;
-use crate::runtime::interpreter::{runtime_err, HaltReason};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
-use std::process::exit;
 use std::rc::Rc;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
     arena: Rc<ParserArena>,
+}
+
+#[derive(Debug)]
+pub enum ResolveError {
+    GenericError { token: Token, message: String },
 }
 
 impl Resolver {
@@ -49,7 +52,7 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
-            if self.scopes[i].contains_key(&name.lexeme.as_ref().unwrap().to_string()) {
+            if self.scopes[i].contains_key(&name.span.lexeme.as_ref().to_string()) {
                 self.locals.insert(expr, self.scopes.len() - 1 - i);
                 return;
             }
@@ -62,7 +65,7 @@ impl Resolver {
         }
         let last = self.scopes.last_mut();
         last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), false);
+            .insert(name.span.lexeme.as_ref().to_string(), false);
     }
 
     pub fn define(&mut self, name: &Token) {
@@ -71,12 +74,12 @@ impl Resolver {
         }
         let last = self.scopes.last_mut();
         last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), true);
+            .insert(name.span.lexeme.as_ref().to_string(), true);
     }
 }
 
-impl Visitor<RV, HaltReason> for Resolver {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
+impl Visitor<RV, ResolveError> for Resolver {
+    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
@@ -90,14 +93,13 @@ impl Visitor<RV, HaltReason> for Resolver {
             Expr::Variable(tok) => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
-                    let value = last_scope.get(&tok.lexeme.as_ref().unwrap().to_string());
-
+                    let value = last_scope.get(&tok.span.lexeme.to_string());
                     if value.is_some() && !(*value.unwrap()) {
-                        runtime_err(
-                            "Can't read local variable in its own initializer.",
-                            tok.line,
-                        );
-                        exit(1);
+                        return Err(ResolveError::GenericError {
+                            token: tok.clone(),
+                            message: "Can't read local variable in its own initializer."
+                                .to_string(),
+                        });
                     }
                 }
                 self.resolve_local(eidx, tok);
@@ -122,7 +124,7 @@ impl Visitor<RV, HaltReason> for Resolver {
         Ok(RV::Undefined)
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, ResolveError> {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
@@ -271,7 +273,7 @@ mod test {
           showB();
         }";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
+        runtime.interpret(code);
         out.borrow_mut().expect(vec![
             RV::Str(Rc::new("global".to_string())),
             RV::Str(Rc::new("block".to_string())),

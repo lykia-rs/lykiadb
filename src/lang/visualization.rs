@@ -49,7 +49,7 @@ impl Parsed {
                     "{}{}{}",
                     &indent(
                         level,
-                        &format!("Binary ({})", tok.lexeme.as_ref().unwrap()),
+                        &format!("Binary ({})", tok.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*left, level + 1)?,
@@ -58,7 +58,7 @@ impl Parsed {
             }
             Expr::Variable(tok) => indent(
                 level,
-                &format!("Variable ({})", tok.lexeme.as_ref().unwrap()),
+                &format!("Variable ({})", tok.span.lexeme.as_ref()),
                 false,
             ),
             Expr::Assignment(tok, expr) => {
@@ -66,7 +66,7 @@ impl Parsed {
                     "{}{}",
                     &indent(
                         level + 1,
-                        &format!("Assignment ({})", tok.lexeme.as_ref().unwrap()),
+                        &format!("Assignment ({})", tok.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*expr, level + 1)?,
@@ -112,12 +112,10 @@ impl Parsed {
             Stmt::Declaration(tok, expr) => {
                 let mut buf = indent(
                     level,
-                    &format!("Declaration ({})", tok.lexeme.as_ref().unwrap()),
+                    &format!("Declaration ({})", tok.span.lexeme.as_ref()),
                     false,
                 );
-                if tok.lexeme.is_some() {
-                    buf.push_str(&self.visit_expr(*expr, level + 1)?)
-                }
+                buf.push_str(&self.visit_expr(*expr, level + 1)?);
                 Ok(buf)
             }
             Stmt::Block(statements) => {
@@ -163,11 +161,11 @@ impl Parsed {
             Stmt::Function(tok, args, body) => {
                 let mut buf = indent(
                     level,
-                    &format!("FunctionDeclaration [{} (", tok.lexeme.as_ref().unwrap()),
+                    &format!("FunctionDeclaration [{} (", tok.span.lexeme.as_ref()),
                     false,
                 );
                 for arg in args {
-                    buf.push_str(&format!("{},", arg.lexeme.as_ref().unwrap()));
+                    buf.push_str(&format!("{},", arg.span.lexeme.as_ref()));
                 }
                 buf.push_str(")]");
                 for expr in body.as_ref() {

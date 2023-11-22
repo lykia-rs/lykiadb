@@ -119,11 +119,9 @@ impl Interpreter {
         if let Some(unwrapped) = distance {
             self.env
                 .borrow()
-                .read_at(unwrapped, &name.lexeme.unwrap().to_owned())
+                .read_at(unwrapped, &name.span.lexeme.to_owned())
         } else {
-            self.root_env
-                .borrow()
-                .read(&name.lexeme.unwrap().to_owned())
+            self.root_env.borrow().read(&name.span.lexeme.to_owned())
         }
     }
 }
@@ -204,19 +202,19 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
                         distance_unv,
-                        tok.lexeme.as_ref().unwrap(),
+                        tok.span.lexeme.as_ref(),
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env
                         .borrow_mut()
-                        .assign(tok.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
+                        .assign(tok.span.lexeme.as_ref().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
                 }
                 if let Err(HaltReason::GenericError(msg)) = result {
-                    return Err(runtime_err(&msg, tok.line));
+                    return Err(runtime_err(&msg, tok.span.line));
                 }
                 Ok(evaluated)
             }
@@ -240,7 +238,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                                 arity.unwrap(),
                                 arguments.len()
                             ),
-                            paren.line,
+                            paren.span.line,
                         ));
                     }
 
@@ -261,7 +259,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 } else {
                     Err(runtime_err(
                         "Expression does not yield a callable",
-                        paren.line,
+                        paren.span.line,
                     ))
                 }
             }
@@ -281,17 +279,12 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Stmt::Expression(expr) => {
                 return self.visit_expr(*expr);
             }
-            Stmt::Declaration(tok, expr) => match &tok.lexeme {
-                Some(var_name) => {
-                    let evaluated = self.visit_expr(*expr)?;
-                    self.env
-                        .borrow_mut()
-                        .declare(var_name.to_string(), evaluated);
-                }
-                None => {
-                    return Err(runtime_err("Variable name cannot be empty", tok.line));
-                }
-            },
+            Stmt::Declaration(tok, expr) => {
+                let evaluated = self.visit_expr(*expr)?;
+                self.env
+                    .borrow_mut()
+                    .declare(tok.span.lexeme.to_string(), evaluated);
+            }
             Stmt::Block(statements) => {
                 return self.execute_block(statements, None);
             }
@@ -318,12 +311,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
-                    return Err(runtime_err("Unexpected break statement", token.line));
+                    return Err(runtime_err("Unexpected break statement", token.span.line));
                 }
             }
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
-                    return Err(runtime_err("Unexpected continue statement", token.line));
+                    return Err(runtime_err(
+                        "Unexpected continue statement",
+                        token.span.line,
+                    ));
                 }
             }
             Stmt::Return(_token, expr) => {
@@ -334,13 +330,13 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 return Err(HaltReason::Return(RV::Undefined));
             }
             Stmt::Function(token, parameters, body) => {
-                let name = token.lexeme.as_ref().unwrap().to_string();
+                let name = token.span.lexeme.as_ref().to_string();
                 let fun = Function::UserDefined {
                     name: name.clone(),
                     body: Rc::clone(body),
                     parameters: parameters
                         .iter()
-                        .map(|x| x.lexeme.as_ref().unwrap().to_string())
+                        .map(|x| x.span.lexeme.as_ref().to_string())
                         .collect(),
                     closure: self.env.clone(),
                 };

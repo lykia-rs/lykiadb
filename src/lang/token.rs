@@ -258,7 +258,13 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Token {
     pub tok_type: TokenType,
-    pub lexeme: Option<Rc<String>>,
     pub literal: Option<RV>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Span {
+    pub lexeme: Rc<String>,
+    pub start: usize,
     pub line: u32,
 }

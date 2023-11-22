@@ -35,18 +35,9 @@ impl Parsed {
 
 #[derive(Debug)]
 pub enum ParseError {
-    UnexpectedToken {
-        line: u32,
-        token: Token,
-    },
-    MissingToken {
-        line: u32,
-        token: Token,
-        description: String,
-    },
-    InvalidAssignmentTarget {
-        line: u32,
-    },
+    UnexpectedToken { token: Token, message: String },
+    MissingToken { token: Token, message: String },
+    InvalidAssignmentTarget { token: Token, message: String },
 }
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -292,7 +283,10 @@ impl<'a> Parser<'a> {
                         .expression(Expr::new_assignment(tok.clone(), value)));
                 }
                 _ => {
-                    return Err(ParseError::InvalidAssignmentTarget { line: equals.line });
+                    return Err(ParseError::InvalidAssignmentTarget {
+                        token: equals.clone(),
+                        message: format!("Invalid assignment target `{}`", equals.span.lexeme),
+                    });
                 }
             }
         }
@@ -375,7 +369,7 @@ impl<'a> Parser<'a> {
                     SqlKeyword(Except) => SqlCompoundOperator::Except,
                     _ => {
                         return Err(ParseError::UnexpectedToken {
-                            line: op.line,
+                            message: format!("Unexpected token `{}`", op.span.lexeme),
                             token: op.clone(),
                         })
                     }
@@ -505,7 +499,7 @@ impl<'a> Parser<'a> {
                 Ok(self.arena.expression(Expr::new_grouping(expr)))
             }
             _ => Err(ParseError::UnexpectedToken {
-                line: tok.line,
+                message: format!("Unexpected token `{}`", tok.span.lexeme),
                 token: tok.clone(),
             }),
         }
@@ -517,9 +511,8 @@ impl<'a> Parser<'a> {
         };
         let prev_token = self.peek_bw(1);
         Err(ParseError::MissingToken {
-            line: prev_token.line,
             token: prev_token.clone(),
-            description: format!(
+            message: format!(
                 "Expected '{:?}' after {:?}",
                 expected_tok_type,
                 self.peek_bw(1)

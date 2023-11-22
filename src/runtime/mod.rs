@@ -1,4 +1,3 @@
-use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
@@ -15,6 +14,7 @@ use ::std::collections::HashMap;
 use ::std::rc::Rc;
 
 pub mod environment;
+mod error;
 mod eval;
 pub mod interpreter;
 mod resolver;
