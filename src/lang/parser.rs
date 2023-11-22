@@ -278,9 +278,7 @@ impl<'a> Parser<'a> {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
                 Variable(tok) => {
-                    return Ok(self
-                        .arena
-                        .expression(Expr::Assignment(tok.clone(), value)));
+                    return Ok(self.arena.expression(Expr::Assignment(tok.clone(), value)));
                 }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
@@ -463,9 +461,7 @@ impl<'a> Parser<'a> {
         }
         let paren = self.expected(sym!(RightParen))?.clone();
 
-        Ok(self
-            .arena
-            .expression(Expr::Call(callee, paren, arguments)))
+        Ok(self.arena.expression(Expr::Call(callee, paren, arguments)))
     }
 
     fn call(&mut self) -> ParseResult<ExprId> {

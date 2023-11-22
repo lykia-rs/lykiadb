@@ -1,3 +1,4 @@
+use self::error::report_error;
 use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
@@ -84,8 +85,12 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) {
-        let tokens = Scanner::scan(source).unwrap();
-        let parsed = Parser::parse(&tokens);
+        let tokens = Scanner::scan(source);
+        if tokens.is_err() {
+            report_error("filename", source, tokens.err().unwrap());
+            return;
+        }
+        let parsed = Parser::parse(&tokens.unwrap());
         let arena = Rc::clone(&parsed.arena);
         //
         let mut resolver = Resolver::new(arena.clone());

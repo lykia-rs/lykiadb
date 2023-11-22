@@ -122,7 +122,6 @@ pub enum Expr {
     Call(ExprId, Token, Vec<ExprId>),
 }
 
-
 pub type ExprId = usize;
 pub type StmtId = usize;
 

@@ -97,7 +97,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            let err_span: String = self.chars[self.start + 1..self.current - 1]
+            let err_span: String = self.chars[self.start + 1..self.current]
                 .iter()
                 .collect();
             return Err(ScanError::UnterminatedString {
