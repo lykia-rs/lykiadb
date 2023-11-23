@@ -87,14 +87,27 @@ impl Runtime {
     pub fn interpret(&mut self, source: &str) {
         let tokens = Scanner::scan(source);
         if tokens.is_err() {
-            report_error("filename", source, tokens.err().unwrap());
+            report_error(
+                "filename",
+                source,
+                error::ExecutionError::Scan(tokens.err().unwrap()),
+            );
             return;
         }
         let parsed = Parser::parse(&tokens.unwrap());
-        let arena = Rc::clone(&parsed.arena);
+        if parsed.is_err() {
+            report_error(
+                "filename",
+                source,
+                error::ExecutionError::Parse(parsed.err().unwrap()),
+            );
+            return;
+        }
+        let parsed_unw = parsed.unwrap();
+        let arena = Rc::clone(&parsed_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
-        let stmts = &parsed.statements.unwrap().clone();
+        let stmts = &parsed_unw.statements.clone();
         resolver.resolve_stmts(stmts);
         //
         let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));

@@ -23,12 +23,12 @@ pub struct Parser<'a> {
 }
 
 pub struct Parsed {
-    pub statements: ParseResult<Vec<StmtId>>,
+    pub statements: Vec<StmtId>,
     pub arena: Rc<ParserArena>,
 }
 
 impl Parsed {
-    pub fn new(statements: ParseResult<Vec<StmtId>>, arena: Rc<ParserArena>) -> Parsed {
+    pub fn new(statements: Vec<StmtId>, arena: Rc<ParserArena>) -> Parsed {
         Parsed { statements, arena }
     }
 }
@@ -79,14 +79,15 @@ macro_rules! optional_with_expected {
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(tokens: &Vec<Token>) -> Parsed {
+    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Parsed> {
         let arena = ParserArena::new();
         let mut parser = Parser {
             tokens,
             current: 0,
             arena,
         };
-        Parsed::new(parser.program(), Rc::new(parser.arena))
+        let statements = parser.program()?;
+        Ok(Parsed::new(statements, Rc::new(parser.arena)))
     }
 
     fn program(&mut self) -> ParseResult<Vec<StmtId>> {
@@ -274,7 +275,6 @@ impl<'a> Parser<'a> {
         let expr = self.or()?;
 
         if self.match_next(sym!(Equal)) {
-            let equals = self.peek_bw(1);
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
                 Variable(tok) => {
@@ -282,7 +282,7 @@ impl<'a> Parser<'a> {
                 }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
-                        left: equals.clone(),
+                        left: self.peek_bw(3).clone(),
                         // message: format!("Invalid assignment target `{}`", equals.span.lexeme),
                     });
                 }
@@ -508,11 +508,7 @@ impl<'a> Parser<'a> {
         let prev_token = self.peek_bw(1);
         Err(ParseError::MissingToken {
             token: prev_token.clone(),
-            expected: expected_tok_type, /* message: format!(
-                                             "Expected '{:?}' after {:?}",
-                                             expected_tok_type,
-                                             self.peek_bw(1)
-                                         ),*/
+            expected: expected_tok_type,
         })
     }
 

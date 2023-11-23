@@ -8,7 +8,7 @@ pub enum ExecutionError {
     Resolve(ResolveError),
 }
 
-pub fn report_error(filename: &str, source: &str, error: ScanError) {
+pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
     use ariadne::{Color, Label, Report, ReportKind, Source};
 
     // Generate & choose some colours for each of our elements
@@ -29,22 +29,47 @@ pub fn report_error(filename: &str, source: &str, error: ScanError) {
     };
 
     match error {
-        ScanError::UnexpectedCharacter { span } => {
+        ExecutionError::Scan(ScanError::UnexpectedCharacter { span }) => {
             print(&"Unexpected character", &"Remove this character", span);
         }
-        ScanError::UnterminatedString { span } => {
+        ExecutionError::Scan(ScanError::UnterminatedString { span }) => {
             print(
                 &"Unterminated string",
                 &"Terminate the string with a double quote (\").",
                 span,
             );
         }
-        ScanError::MalformedNumberLiteral { span } => {
+        ExecutionError::Scan(ScanError::MalformedNumberLiteral { span }) => {
             print(
                 &"Malformed number literal",
                 &"Make sure that number literal is up to spec.",
                 span,
             );
         }
+        ExecutionError::Parse(ParseError::MissingToken { token, expected }) => {
+            print(
+                "Missing token",
+                &format!(
+                    "Add a {:?} token after \"{}\".",
+                    expected, token.span.lexeme
+                ),
+                token.span,
+            );
+        }
+        ExecutionError::Parse(ParseError::InvalidAssignmentTarget { left }) => {
+            print(
+                "Invalid assignment target",
+                &format!("No values can be assigned to {}", left.span.lexeme),
+                left.span,
+            );
+        }
+        ExecutionError::Parse(ParseError::UnexpectedToken { token }) => {
+            print(
+                "Unexpected token",
+                &format!("Unexpected token {}.", token.span.lexeme),
+                token.span,
+            );
+        }
+        _ => {}
     }
 }
