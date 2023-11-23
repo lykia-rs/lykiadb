@@ -5,13 +5,24 @@ use super::sql::SqlSelect;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
     Select(SqlSelect),
-    Binary(Token, ExprId, ExprId),
+    Binary {
+        left: ExprId,
+        token: Token,
+        right: ExprId,
+    },
     Grouping(ExprId),
     Literal(RV),
-    Unary(Token, ExprId),
+    Unary {
+        token: Token,
+        expr: ExprId,
+    },
     Variable(Token),
     Assignment(Token, ExprId),
-    Logical(ExprId, Token, ExprId),
+    Logical {
+        left: ExprId,
+        token: Token,
+        right: ExprId,
+    },
     Call(ExprId, Token, Vec<ExprId>),
 }
 

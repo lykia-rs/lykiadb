@@ -53,10 +53,10 @@ macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: ExprId = $self.$builder()?;
         while $self.match_next_multi(&vec![$($operator,)*]) {
-            let a = (*$self.peek_bw(1)).clone();
-            let b = current_expr;
-            let c = $self.$builder()?;
-            current_expr = $self.arena.expression(Expr::Binary(a, b, c));
+            let token = (*$self.peek_bw(1)).clone();
+            let left = current_expr;
+            let right = $self.$builder()?;
+            current_expr = $self.arena.expression(Expr::Binary { left, token, right });
         }
         return Ok(current_expr);
     }
@@ -303,9 +303,11 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(Keyword::Or)) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(self
-                .arena
-                .expression(Expr::Logical(expr, op.clone(), right)));
+            return Ok(self.arena.expression(Expr::Logical {
+                left: expr,
+                token: op.clone(),
+                right,
+            }));
         }
         Ok(expr)
     }
@@ -315,9 +317,11 @@ impl<'a> Parser<'a> {
         if self.match_next(kw!(Keyword::And)) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(self
-                .arena
-                .expression(Expr::Logical(expr, op.clone(), right)));
+            return Ok(self.arena.expression(Expr::Logical {
+                left: expr,
+                token: op.clone(),
+                right,
+            }));
         }
         Ok(expr)
     }
@@ -349,10 +353,9 @@ impl<'a> Parser<'a> {
 
     fn unary(&mut self) -> ParseResult<ExprId> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
+            let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
-            return Ok(self
-                .arena
-                .expression(Expr::Unary((*self.peek_bw(1)).clone(), unary)));
+            return Ok(self.arena.expression(Expr::Unary { expr: unary, token }));
         }
         self.select()
     }

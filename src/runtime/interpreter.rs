@@ -195,8 +195,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, *expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, tok),
+            Expr::Unary { token, expr } => self.eval_unary(token, *expr),
+            Expr::Binary { token, left, right } => self.eval_binary(*left, *right, token),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
             Expr::Assignment(tok, expr) => {
                 let distance = self.resolver.get_distance(eidx);
@@ -220,10 +220,12 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
                 Ok(evaluated)
             }
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical { left, token, right } => {
                 let is_true = is_value_truthy(self.visit_expr(*left)?);
 
-                if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
+                if (token.tok_type == kw!(Or) && is_true)
+                    || (token.tok_type == kw!(And) && !is_true)
+                {
                     return Ok(RV::Bool(is_true));
                 }
 

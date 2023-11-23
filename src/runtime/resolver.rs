@@ -87,8 +87,12 @@ impl Visitor<RV, ResolveError> for Resolver {
         match e {
             Expr::Literal(_) => (),
             Expr::Grouping(expr) => self.resolve_expr(*expr),
-            Expr::Unary(_tok, expr) => self.resolve_expr(*expr),
-            Expr::Binary(_tok, left, right) => {
+            Expr::Unary { token: _, expr } => self.resolve_expr(*expr),
+            Expr::Binary {
+                token: _,
+                left,
+                right,
+            } => {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
@@ -110,7 +114,11 @@ impl Visitor<RV, ResolveError> for Resolver {
                 self.resolve_expr(*value);
                 self.resolve_local(eidx, name);
             }
-            Expr::Logical(left, _tok, right) => {
+            Expr::Logical {
+                left,
+                token: _,
+                right,
+            } => {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }

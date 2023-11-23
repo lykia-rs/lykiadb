@@ -34,21 +34,21 @@ impl Parsed {
             Expr::Select(val) => format!("Select ({:?})", val),
             Expr::Literal(val) => indent(level, &format!("Literal ({:?})", val), true),
             Expr::Grouping(expr) => self.visit_expr(*expr, level + 1)?,
-            Expr::Unary(tok, expr) => {
+            Expr::Unary { token, expr } => {
                 let buf = format!(
                     "{}{}{}",
                     &indent(level, "Unary", false),
-                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &indent(level + 1, &format!("{:?}", token), false),
                     &self.visit_expr(*expr, level + 1)?,
                 );
                 buf
             }
-            Expr::Binary(tok, left, right) => {
+            Expr::Binary { token, left, right } => {
                 format!(
                     "{}{}{}",
                     &indent(
                         level,
-                        &format!("Binary ({})", tok.span.lexeme.as_ref()),
+                        &format!("Binary ({})", token.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*left, level + 1)?,
@@ -72,11 +72,11 @@ impl Parsed {
                 );
                 buf
             }
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical { left, token, right } => {
                 let mut buf = format!(
                     "{}{}{}",
                     &indent(level, "Logical", false),
-                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &indent(level + 1, &format!("{:?}", token), false),
                     &self.visit_expr(*left, level + 1)?,
                 );
                 buf.push_str(&self.visit_expr(*right, level + 1)?);
