@@ -5,25 +5,32 @@ use super::sql::SqlSelect;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
     Select(SqlSelect),
+    Variable(Token),
+    Grouping(ExprId),
+    Literal(RV),
     Binary {
         left: ExprId,
         token: Token,
         right: ExprId,
     },
-    Grouping(ExprId),
-    Literal(RV),
     Unary {
         token: Token,
         expr: ExprId,
     },
-    Variable(Token),
-    Assignment(Token, ExprId),
+    Assignment {
+        var_tok: Token, 
+        expr: ExprId,
+    },
     Logical {
         left: ExprId,
         token: Token,
         right: ExprId,
     },
-    Call(ExprId, Token, Vec<ExprId>),
+    Call {
+        callee: ExprId,
+        paren: Token,
+        args: Vec<ExprId> 
+    },
 }
 
 pub type ExprId = usize;

@@ -60,12 +60,12 @@ impl Parsed {
                 &format!("Variable ({})", tok.span.lexeme.as_ref()),
                 false,
             ),
-            Expr::Assignment(tok, expr) => {
+            Expr::Assignment {var_tok, expr } => {
                 let buf = format!(
                     "{}{}",
                     &indent(
                         level + 1,
-                        &format!("Assignment ({})", tok.span.lexeme.as_ref()),
+                        &format!("Assignment ({})", var_tok.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*expr, level + 1)?,
@@ -82,13 +82,13 @@ impl Parsed {
                 buf.push_str(&self.visit_expr(*right, level + 1)?);
                 buf
             }
-            Expr::Call(callee, _paren, arguments) => {
+            Expr::Call { callee, paren: _, args } => {
                 let mut buf = format!(
                     "{}{}",
                     &indent(level, "Call", false),
                     &self.visit_expr(*callee, level + 1)?,
                 );
-                for arg in arguments {
+                for arg in args {
                     buf.push_str(&self.visit_expr(*arg, level + 1)?);
                 }
                 buf

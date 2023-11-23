@@ -198,25 +198,25 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Unary { token, expr } => self.eval_unary(token, *expr),
             Expr::Binary { token, left, right } => self.eval_binary(*left, *right, token),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
-            Expr::Assignment(tok, expr) => {
+            Expr::Assignment { var_tok, expr } => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
                         distance_unv,
-                        tok.span.lexeme.as_ref(),
+                        var_tok.span.lexeme.as_ref(),
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env
                         .borrow_mut()
-                        .assign(tok.span.lexeme.as_ref().to_string(), evaluated.clone())
+                        .assign(var_tok.span.lexeme.as_ref().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
                 }
                 if let Err(HaltReason::GenericError(msg)) = result {
-                    return Err(runtime_err(&msg, tok.span.line));
+                    return Err(runtime_err(&msg, var_tok.span.line));
                 }
                 Ok(evaluated)
             }
@@ -231,16 +231,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
             }
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call { callee, paren, args } => {
                 let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
-                    if arity.is_some() && arity.unwrap() != arguments.len() {
+                    if arity.is_some() && arity.unwrap() != args.len() {
                         return Err(runtime_err(
                             &format!(
                                 "Function expects {} arguments, while provided {}.",
                                 arity.unwrap(),
-                                arguments.len()
+                                args.len()
                             ),
                             paren.span.line,
                         ));
@@ -248,7 +248,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                     let mut args_evaluated: Vec<RV> = vec![];
 
-                    for arg in arguments.iter() {
+                    for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(*arg)?);
                     }
                     self.call_stack.insert(0, Context::new());

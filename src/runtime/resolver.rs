@@ -110,9 +110,9 @@ impl Visitor<RV, ResolveError> for Resolver {
                 }
                 self.resolve_local(eidx, tok);
             }
-            Expr::Assignment(name, value) => {
-                self.resolve_expr(*value);
-                self.resolve_local(eidx, name);
+            Expr::Assignment { var_tok, expr } => {
+                self.resolve_expr(*expr);
+                self.resolve_local(eidx, var_tok);
             }
             Expr::Logical {
                 left,
@@ -122,10 +122,10 @@ impl Visitor<RV, ResolveError> for Resolver {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
-            Expr::Call(callee, _paren, arguments) => {
+            Expr::Call { callee, paren: _, args } => {
                 self.resolve_expr(*callee);
 
-                for argument in arguments {
+                for argument in args {
                     self.resolve_expr(*argument);
                 }
             }
