@@ -1,4 +1,6 @@
-use crate::lang::ast::{Expr, ExprId, ParserArena, Stmt, StmtId, Visitor};
+use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::ast::{ParserArena, Visitor};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;

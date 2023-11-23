@@ -1,11 +1,6 @@
 use crate::lang::token::Token;
-use crate::runtime::types::RV;
-use std::rc::Rc;
 
-pub trait Visitor<T, Q> {
-    fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
-    fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
-}
+use super::expr::ExprId;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlDistinct {
@@ -94,65 +89,4 @@ pub struct SqlSelect {
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlExpr {
     Default(ExprId),
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Stmt {
-    Expression(ExprId),
-    Function(Token, Vec<Token>, Rc<Vec<StmtId>>),
-    Declaration(Token, ExprId),
-    Block(Vec<StmtId>),
-    If(ExprId, StmtId, Option<StmtId>),
-    Loop(Option<ExprId>, StmtId, Option<StmtId>),
-    Break(Token),
-    Continue(Token),
-    Return(Token, Option<ExprId>),
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum Expr {
-    Select(SqlSelect),
-    Binary(Token, ExprId, ExprId),
-    Grouping(ExprId),
-    Literal(RV),
-    Unary(Token, ExprId),
-    Variable(Token),
-    Assignment(Token, ExprId),
-    Logical(ExprId, Token, ExprId),
-    Call(ExprId, Token, Vec<ExprId>),
-}
-
-pub type ExprId = usize;
-pub type StmtId = usize;
-
-pub struct ParserArena {
-    expressions: Vec<Expr>,
-    statements: Vec<Stmt>,
-}
-
-impl ParserArena {
-    pub fn new() -> ParserArena {
-        ParserArena {
-            expressions: Vec::new(),
-            statements: Vec::new(),
-        }
-    }
-
-    pub fn expression(&mut self, expr: Expr) -> ExprId {
-        self.expressions.push(expr);
-        self.expressions.len() - 1
-    }
-
-    pub fn statement(&mut self, stmt: Stmt) -> StmtId {
-        self.statements.push(stmt);
-        self.statements.len() - 1
-    }
-
-    pub fn get_expression(&self, idx: ExprId) -> &Expr {
-        &self.expressions[idx]
-    }
-
-    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
-        &self.statements[idx]
-    }
 }

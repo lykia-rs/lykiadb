@@ -1,6 +1,8 @@
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
-use crate::lang::ast::{Expr, ExprId, ParserArena, Stmt, StmtId, Visitor};
+use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::ast::{ParserArena, Visitor};
 use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::Token;

@@ -1,12 +1,5 @@
 use std::rc::Rc;
 
-use crate::lang::ast::{SelectCore, SqlCompoundOperator, SqlDistinct};
-
-use super::ast::{
-    ExprId, ParserArena, SqlExpr, SqlFrom, SqlProjection, SqlSelect, SqlTableSubquery, StmtId,
-};
-use crate::lang::ast::Expr::Variable;
-use crate::lang::ast::{Expr, Stmt};
 use crate::lang::token::Keyword;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::SqlKeyword::*;
@@ -15,6 +8,20 @@ use crate::lang::token::TokenType::*;
 use crate::lang::token::{Token, TokenType};
 use crate::runtime::types::RV;
 use crate::{kw, skw, sym};
+
+use super::ast::expr::Expr;
+use super::ast::expr::ExprId;
+use super::ast::sql::SelectCore;
+use super::ast::sql::SqlCompoundOperator;
+use super::ast::sql::SqlDistinct;
+use super::ast::sql::SqlExpr;
+use super::ast::sql::SqlFrom;
+use super::ast::sql::SqlProjection;
+use super::ast::sql::SqlSelect;
+use super::ast::sql::SqlTableSubquery;
+use super::ast::stmt::Stmt;
+use super::ast::stmt::StmtId;
+use super::ast::ParserArena;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -277,7 +284,7 @@ impl<'a> Parser<'a> {
         if self.match_next(sym!(Equal)) {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
-                Variable(tok) => {
+                Expr::Variable(tok) => {
                     return Ok(self.arena.expression(Expr::Assignment(tok.clone(), value)));
                 }
                 _ => {

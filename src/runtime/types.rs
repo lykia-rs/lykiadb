@@ -1,4 +1,4 @@
-use crate::lang::ast::StmtId;
+use crate::lang::ast::stmt::StmtId;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;

@@ -3,10 +3,9 @@ use std::{
     rc::Rc,
 };
 
-use super::{
-    ast::{Expr, ExprId, Stmt, StmtId},
-    parser::Parsed,
-};
+use super::parser::Parsed;
+use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::stmt::{Stmt, StmtId};
 
 fn indent(level: u32, str: &str, terminate: bool) -> String {
     if terminate {
