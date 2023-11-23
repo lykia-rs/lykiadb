@@ -178,7 +178,7 @@ impl Parsed {
 
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut buf = "Program".to_owned();
-        for stmt in self.statements.as_ref().unwrap() {
+        for stmt in &self.statements {
             buf.push_str(&self.visit_stmt(*stmt, 0).unwrap());
         }
         writeln!(f, "{}", buf)?;
