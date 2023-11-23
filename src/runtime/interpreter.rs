@@ -555,7 +555,7 @@ mod test {
     }
 
     #[test]
-    fn test_evaluation() {
+    fn test_unary_evaluation() {
         let code = "
             print(-2);
             print(-(-2));
@@ -568,6 +568,49 @@ mod test {
         out.borrow_mut().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
+            RV::Bool(false),
+            RV::Bool(true),
+            RV::Bool(false),
+        ]);
+    }
+    #[test]
+    fn test_binary_evaluation() {
+        let code = "
+            print(5-(-2));
+            print((5 + 2) * 4);
+            print(5 + 2 * 4);
+            print((13 + 4) * (7 + 3));
+            print(-5-2);
+        ";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Num(7.0),
+            RV::Num(28.0),
+            RV::Num(13.0),
+            RV::Num(170.0),
+            RV::Num(-7.0),
+        ]);
+    }
+
+    #[test]
+    fn test_logical_evaluation() {
+        let code = "
+            print(5 and 1);
+            print(5 or 1);
+            print(5 and 0);
+            print(5 or 0);
+            print(!(5 or 0));
+            print(!(5 or 0) or 1);
+            print(!(5 or 0) or (1 and 0));
+        ";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Bool(true),
+            RV::Bool(true),
+            RV::Bool(false),
+            RV::Bool(true),
             RV::Bool(false),
             RV::Bool(true),
             RV::Bool(false),
