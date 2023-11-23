@@ -122,7 +122,11 @@ impl Visitor<RV, ResolveError> for Resolver {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
-            Expr::Call { callee, paren: _, args } => {
+            Expr::Call {
+                callee,
+                paren: _,
+                args,
+            } => {
                 self.resolve_expr(*callee);
 
                 for argument in args {

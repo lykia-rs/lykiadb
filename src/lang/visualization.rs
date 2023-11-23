@@ -60,7 +60,7 @@ impl Parsed {
                 &format!("Variable ({})", tok.span.lexeme.as_ref()),
                 false,
             ),
-            Expr::Assignment {var_tok, expr } => {
+            Expr::Assignment { var_tok, expr } => {
                 let buf = format!(
                     "{}{}",
                     &indent(
@@ -82,7 +82,11 @@ impl Parsed {
                 buf.push_str(&self.visit_expr(*right, level + 1)?);
                 buf
             }
-            Expr::Call { callee, paren: _, args } => {
+            Expr::Call {
+                callee,
+                paren: _,
+                args,
+            } => {
                 let mut buf = format!(
                     "{}{}",
                     &indent(level, "Call", false),

@@ -18,7 +18,7 @@ pub enum Expr {
         expr: ExprId,
     },
     Assignment {
-        var_tok: Token, 
+        var_tok: Token,
         expr: ExprId,
     },
     Logical {
@@ -29,7 +29,7 @@ pub enum Expr {
     Call {
         callee: ExprId,
         paren: Token,
-        args: Vec<ExprId> 
+        args: Vec<ExprId>,
     },
 }
 

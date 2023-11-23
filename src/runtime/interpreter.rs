@@ -103,9 +103,12 @@ impl Interpreter {
 
     fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> Result<RV, HaltReason> {
         if tok.tok_type == sym!(Minus) {
-            Ok(coerce2number(self.visit_expr(eidx)?))
+            if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
+                return Ok(RV::Num(-num));
+            }
+            Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(is_value_truthy(self.visit_expr(eidx)?)))
+            Ok(RV::Bool(!is_value_truthy(self.visit_expr(eidx)?)))
         }
     }
 
@@ -231,7 +234,11 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
             }
-            Expr::Call { callee, paren, args } => {
+            Expr::Call {
+                callee,
+                paren,
+                args,
+            } => {
                 let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
@@ -544,6 +551,26 @@ mod test {
             RV::Str(Rc::new("global a".to_string())),
             RV::Str(Rc::new("global b".to_string())),
             RV::Str(Rc::new("global c".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn test_evaluation() {
+        let code = "
+            print(-2);
+            print(-(-2));
+            print(!3);
+            print(!!3);
+            print(!!!3);
+        ";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
+            RV::Num(-2.0),
+            RV::Num(2.0),
+            RV::Bool(false),
+            RV::Bool(true),
+            RV::Bool(false),
         ]);
     }
 }

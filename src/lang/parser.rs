@@ -285,7 +285,10 @@ impl<'a> Parser<'a> {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
                 Expr::Variable(tok) => {
-                    return Ok(self.arena.expression(Expr::Assignment { var_tok: tok.clone(), expr: value }));
+                    return Ok(self.arena.expression(Expr::Assignment {
+                        var_tok: tok.clone(),
+                        expr: value,
+                    }));
                 }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
@@ -471,7 +474,11 @@ impl<'a> Parser<'a> {
         }
         let paren = self.expected(sym!(RightParen))?.clone();
 
-        Ok(self.arena.expression(Expr::Call { callee, paren, args: arguments}))
+        Ok(self.arena.expression(Expr::Call {
+            callee,
+            paren,
+            args: arguments,
+        }))
     }
 
     fn call(&mut self) -> ParseResult<ExprId> {
