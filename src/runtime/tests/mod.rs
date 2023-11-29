@@ -10,6 +10,11 @@ use crate::util::{alloc_shared, Shared};
 use std::collections::HashMap;
 use std::rc::Rc;
 
+mod blocks;
+mod functions;
+mod ifs;
+mod loops;
+
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,
@@ -87,4 +92,10 @@ pub fn get_runtime() -> (Shared<Output>, Runtime) {
             mode: RuntimeMode::File,
         },
     )
+}
+
+pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
+    let (out, mut runtime) = get_runtime();
+    runtime.interpret(&code);
+    out.borrow_mut().expect(output);
 }
