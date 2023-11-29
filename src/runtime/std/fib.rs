@@ -1,4 +1,4 @@
-use crate::runtime::interpreter::{HaltReason, Interpreter};
+use crate::runtime::interpreter::{HaltReason, InterpretError, Interpreter};
 use crate::runtime::types::RV;
 
 fn _calculate(n: f64) -> f64 {
@@ -12,7 +12,7 @@ pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltRea
     if let RV::Num(n) = args[0] {
         return Ok(RV::Num(_calculate(n)));
     }
-    Err(HaltReason::GenericError(
-        "Unexpected types for bench function".to_owned(),
-    ))
+    Err(HaltReason::Error(InterpretError::Other {
+        message: format!("fib_nat: Unexpected argument '{:?}'", args[0]),
+    }))
 }

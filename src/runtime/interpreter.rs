@@ -15,14 +15,34 @@ use crate::{kw, sym};
 use std::rc::Rc;
 use std::vec;
 
-#[derive(Debug)]
-pub enum HaltReason {
-    GenericError(String),
-    Return(RV),
+#[derive(Debug, Clone)]
+pub enum InterpretError {
+    NotCallable {
+        token: Token,
+    },
+    ArityMismatch {
+        token: Token,
+        expected: usize,
+        found: usize,
+    },
+    UnexpectedStatement {
+        token: Token,
+    },
+    AssignmentToUndefined {
+        token: Token,
+    },
+    VariableNotFound {
+        token: Token,
+    },
+    Other {
+        message: String,
+    }, // TODO(vck): Refactor this
 }
 
-pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
-    HaltReason::GenericError(format!("{} at line {}", msg, line + 1))
+#[derive(Debug)]
+pub enum HaltReason {
+    Error(InterpretError),
+    Return(RV),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -218,8 +238,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 if result.is_err() {
                     return Err(result.err().unwrap());
                 }
-                if let Err(HaltReason::GenericError(msg)) = result {
-                    return Err(runtime_err(&msg, var_tok.span.line));
+                if let Err(HaltReason::Error(msg)) = result {
+                    return Err(HaltReason::Error(InterpretError::AssignmentToUndefined {
+                        token: var_tok.clone(),
+                    }));
                 }
                 Ok(evaluated)
             }
@@ -243,14 +265,11 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
-                        return Err(runtime_err(
-                            &format!(
-                                "Function expects {} arguments, while provided {}.",
-                                arity.unwrap(),
-                                args.len()
-                            ),
-                            paren.span.line,
-                        ));
+                        return Err(HaltReason::Error(InterpretError::ArityMismatch {
+                            token: paren.clone(),
+                            expected: arity.unwrap(),
+                            found: args.len(),
+                        }));
                     }
 
                     let mut args_evaluated: Vec<RV> = vec![];
@@ -268,10 +287,9 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    Err(runtime_err(
-                        "Expression does not yield a callable",
-                        paren.span.line,
-                    ))
+                    Err(HaltReason::Error(InterpretError::NotCallable {
+                        token: paren.clone(),
+                    }))
                 }
             }
         }
@@ -322,15 +340,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
-                    return Err(runtime_err("Unexpected break statement", token.span.line));
+                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
+                        token: token.clone(),
+                    }));
                 }
             }
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
-                    return Err(runtime_err(
-                        "Unexpected continue statement",
-                        token.span.line,
-                    ));
+                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
+                        token: token.clone(),
+                    }));
                 }
             }
             Stmt::Return(_token, expr) => {

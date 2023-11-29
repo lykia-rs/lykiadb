@@ -12,7 +12,7 @@ pub struct Resolver {
     arena: Rc<ParserArena>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResolveError {
     GenericError { token: Token, message: String },
 }

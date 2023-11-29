@@ -1,11 +1,15 @@
+use std::rc::Rc;
+
 use crate::lang::{parser::ParseError, scanner::ScanError, token::Span};
 
-use super::resolver::ResolveError;
+use super::{interpreter::InterpretError, resolver::ResolveError};
 
+#[derive(Debug, Clone)]
 pub enum ExecutionError {
     Scan(ScanError),
     Parse(ParseError),
     Resolve(ResolveError),
+    Interpret(InterpretError),
 }
 
 pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
@@ -68,6 +72,65 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 "Unexpected token",
                 &format!("Unexpected token {}.", token.span.lexeme),
                 token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::ArityMismatch {
+            token,
+            expected,
+            found,
+        }) => {
+            print(
+                "Function arity mismatch",
+                &format!(
+                    "Function expects {} arguments, while provided {}.",
+                    expected, found
+                ),
+                token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::UnexpectedStatement { token }) => {
+            print(
+                "Unexpected statement",
+                &format!("Unexpected \"{}\" statement.", token.span.lexeme,),
+                token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::NotCallable { token }) => {
+            print(
+                "Not callable",
+                &format!(
+                    "Expression does not yield a callable {}.",
+                    token.span.lexeme,
+                ),
+                token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
+            print(
+                "Assignment to an undefined variable",
+                &format!(
+                    "{} is undefined, so no value can be assigned to it.",
+                    token.span.lexeme,
+                ),
+                token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::VariableNotFound { token }) => {
+            print(
+                "Variable not found",
+                &format!("{} is not defined, cannot be evaluated.", token.span.lexeme,),
+                token.span,
+            );
+        }
+        ExecutionError::Interpret(InterpretError::Other { message }) => {
+            print(
+                &message,
+                &"",
+                Span {
+                    start: 0,
+                    lexeme: Rc::new("".to_string()),
+                    line: 0,
+                },
             );
         }
         _ => {}

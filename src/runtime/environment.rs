@@ -4,6 +4,8 @@ use crate::util::{alloc_shared, Shared};
 use core::panic;
 use rustc_hash::FxHashMap;
 
+use super::interpreter::InterpretError;
+
 #[derive(Debug)]
 pub struct Environment {
     map: FxHashMap<String, RV>,
@@ -40,11 +42,9 @@ impl Environment {
                 .borrow_mut()
                 .assign(name, value);
         }
-
-        Err(HaltReason::GenericError(format!(
-            "Assignment to an undefined variable '{}'",
-            &name
-        )))
+        Err(HaltReason::Error(InterpretError::Other {
+            message: format!("Assignment to an undefined variable '{}'", &name),
+        }))
     }
 
     pub fn assign_at(
@@ -74,10 +74,9 @@ impl Environment {
             return self.parent.as_ref().unwrap().borrow().read(name);
         }
 
-        Err(HaltReason::GenericError(format!(
-            "Variable '{}' was not found.",
-            &name
-        )))
+        Err(HaltReason::Error(InterpretError::Other {
+            message: format!("Variable '{}' was not found", &name),
+        }))
     }
 
     pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
