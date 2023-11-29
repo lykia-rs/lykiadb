@@ -128,8 +128,7 @@ impl Runtime {
                     return Err(error);
                 }
             }
-        }
-        else {
+        } else {
             return Ok(out.unwrap());
         }
     }

@@ -105,7 +105,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 token.span,
             );
         }
-        ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
+        /*ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
             print(
                 "Assignment to an undefined variable",
                 &format!(
@@ -121,7 +121,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 &format!("{} is not defined, cannot be evaluated.", token.span.lexeme,),
                 token.span,
             );
-        }
+        }*/
         ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(
                 &message,

@@ -28,12 +28,12 @@ pub enum InterpretError {
     UnexpectedStatement {
         token: Token,
     },
-    AssignmentToUndefined {
+    /*AssignmentToUndefined {
         token: Token,
     },
     VariableNotFound {
         token: Token,
-    },
+    },*/
     Other {
         message: String,
     }, // TODO(vck): Refactor this
@@ -237,11 +237,6 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
-                }
-                if let Err(HaltReason::Error(msg)) = result {
-                    return Err(HaltReason::Error(InterpretError::AssignmentToUndefined {
-                        token: var_tok.clone(),
-                    }));
                 }
                 Ok(evaluated)
             }
