@@ -27,19 +27,19 @@ impl ParserArena {
 
     pub fn expression(&mut self, expr: Expr) -> ExprId {
         self.expressions.push(expr);
-        self.expressions.len() - 1
+        ExprId(self.expressions.len() - 1)
     }
 
     pub fn statement(&mut self, stmt: Stmt) -> StmtId {
         self.statements.push(stmt);
-        self.statements.len() - 1
+        StmtId(self.statements.len() - 1)
     }
 
     pub fn get_expression(&self, idx: ExprId) -> &Expr {
-        &self.expressions[idx]
+        &self.expressions[idx.0]
     }
 
     pub fn get_statement(&self, idx: StmtId) -> &Stmt {
-        &self.statements[idx]
+        &self.statements[idx.0]
     }
 }

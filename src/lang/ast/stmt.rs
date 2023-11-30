@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::lang::token::Token;
 
 use super::expr::ExprId;
@@ -7,7 +5,6 @@ use super::expr::ExprId;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(ExprId),
-    Function(Token, Vec<Token>, Rc<Vec<StmtId>>),
     Declaration(Token, ExprId),
     Block(Vec<StmtId>),
     If(ExprId, StmtId, Option<StmtId>),
@@ -17,4 +14,5 @@ pub enum Stmt {
     Return(Token, Option<ExprId>),
 }
 
-pub type StmtId = usize;
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct StmtId(pub usize);

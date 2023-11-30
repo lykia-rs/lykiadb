@@ -27,7 +27,7 @@ impl Resolver {
     }
 
     pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
-        self.locals.get(&eid).copied()
+        self.locals.get(&eid.0).copied()
     }
 
     pub fn begin_scope(&mut self) {
@@ -55,7 +55,7 @@ impl Resolver {
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
             if self.scopes[i].contains_key(&name.span.lexeme.as_ref().to_string()) {
-                self.locals.insert(expr, self.scopes.len() - 1 - i);
+                self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
         }
@@ -133,6 +133,17 @@ impl Visitor<RV, ResolveError> for Resolver {
                     self.resolve_expr(*argument);
                 }
             }
+            Expr::Function(_token, parameters, body) => {
+                self.declare(_token);
+                self.define(_token);
+                self.begin_scope();
+                for param in parameters {
+                    self.declare(param);
+                    self.define(param);
+                }
+                self.resolve_stmts(body.as_ref());
+                self.end_scope();
+            }
             Expr::Select(_) => (),
         };
         Ok(RV::Undefined)
@@ -174,17 +185,6 @@ impl Visitor<RV, ResolveError> for Resolver {
                 if expr.is_some() {
                     self.resolve_expr(expr.unwrap());
                 }
-            }
-            Stmt::Function(_token, parameters, body) => {
-                self.declare(_token);
-                self.define(_token);
-                self.begin_scope();
-                for param in parameters {
-                    self.declare(param);
-                    self.define(param);
-                }
-                self.resolve_stmts(body.as_ref());
-                self.end_scope();
             }
         }
         Ok(RV::Undefined)

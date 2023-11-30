@@ -97,6 +97,21 @@ impl Parsed {
                 }
                 buf
             }
+            Expr::Function(tok, args, body) => {
+                let mut buf = indent(
+                    level,
+                    &format!("FunctionDeclaration [{} (", tok.span.lexeme.as_ref()),
+                    false,
+                );
+                for arg in args {
+                    buf.push_str(&format!("{},", arg.span.lexeme.as_ref()));
+                }
+                buf.push_str(")]");
+                for stmt in body.as_ref() {
+                    buf.push_str(&self.visit_stmt(stmt.clone(), level + 1)?);
+                }
+                buf
+            }
         };
 
         Ok(matched)
@@ -158,21 +173,6 @@ impl Parsed {
                 let mut buf = indent(level, "Return", false);
                 if expr.is_some() {
                     buf.push_str(&self.visit_expr(expr.unwrap(), level + 1)?);
-                }
-                Ok(buf)
-            }
-            Stmt::Function(tok, args, body) => {
-                let mut buf = indent(
-                    level,
-                    &format!("FunctionDeclaration [{} (", tok.span.lexeme.as_ref()),
-                    false,
-                );
-                for arg in args {
-                    buf.push_str(&format!("{},", arg.span.lexeme.as_ref()));
-                }
-                buf.push_str(")]");
-                for expr in body.as_ref() {
-                    buf.push_str(&self.visit_stmt(*expr, level + 1)?);
                 }
                 Ok(buf)
             }

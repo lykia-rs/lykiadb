@@ -9,11 +9,11 @@ mod test {
         exec_assert(
             "fun f($x, $q) {
             $x($q);
-        }
+        };
         
         fun g($q) {
             print($q);
-        }
+        };
         
         for (var $i=0; $i<10; $i = $i + 1) {
             f(g, $i);
@@ -41,10 +41,10 @@ mod test {
             fun count() {
                 $i = $i + 1;
                 print($i);
-            }
+            };
         
             return count;
-        }
+        };
         var $count = makeCounter();
         $count();
         $count();",
@@ -59,7 +59,7 @@ mod test {
         {
           fun showA() {
             print($a);
-          }
+          };
         
           showA();
           var $a = \"block\";
@@ -79,14 +79,14 @@ mod test {
         {
             fun showA() {
                 print($a);
-            }
+            };
 
             showA();
             var $a = \"block\";
             showA();
             fun showB() {
                 print($a);
-            }
+            };
             showB();
         }",
             vec![
@@ -105,7 +105,7 @@ mod test {
             {
               fun showA() {
                 print($a);
-              }
+              };
           
               showA();
               var $a = \"block\";
@@ -126,13 +126,13 @@ mod test {
         {
           fun showA() {
             print($a);
-          }
+          };
         
           var $a = \"block\";
           
           fun showB() {
             print($a);
-          }
+          };
         
           //
           showA();
@@ -149,6 +149,32 @@ mod test {
                 RV::Str(Rc::new("global".to_string())),
                 RV::Str(Rc::new("test".to_string())),
             ],
+        );
+    }
+
+    #[test]
+    fn test_anonymous_fn_0() {
+        exec_assert(
+            "var $pr = fun a() {
+                    print(\"hello\");
+                };
+
+                $pr();
+          ",
+            vec![
+                RV::Str(Rc::new("hello".to_string())),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_anonymous_fn_1() {
+        exec_assert(
+            "(fun a() {
+                    print(\"hello\");
+                  })();
+          ",
+            vec![RV::Str(Rc::new("hello".to_string()))],
         );
     }
 }

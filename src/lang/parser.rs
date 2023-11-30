@@ -108,7 +108,6 @@ impl<'a> Parser<'a> {
 
     fn declaration(&mut self) -> ParseResult<StmtId> {
         match_next!(self, kw!(Var), var_declaration);
-        match_next!(self, kw!(Fun), fun_declaration);
         self.statement()
     }
 
@@ -236,7 +235,17 @@ impl<'a> Parser<'a> {
         Ok(self.arena.statement(Stmt::Expression(expr)))
     }
 
-    fn fun_declaration(&mut self) -> ParseResult<StmtId> {
+    fn var_declaration(&mut self) -> ParseResult<StmtId> {
+        let token = self.expected(Identifier { dollar: true })?.clone();
+        let expr = match self.match_next(sym!(Equal)) {
+            true => self.expression()?,
+            false => self.arena.expression(Expr::Literal(RV::Null)),
+        };
+        self.expected(sym!(Semicolon))?;
+        Ok(self.arena.statement(Stmt::Declaration(token, expr)))
+    }
+
+    fn fun_declaration(&mut self) -> ParseResult<ExprId> {
         let token = self.expected(Identifier { dollar: false })?.clone();
         self.expected(sym!(LeftParen))?;
         let mut parameters: Vec<Token> = vec![];
@@ -254,27 +263,18 @@ impl<'a> Parser<'a> {
 
         let block = self.arena.get_statement(bidx);
 
-        let body: Vec<usize> = match block {
+        let body: Vec<StmtId> = match block {
             Stmt::Block(stmts) => stmts.clone(),
             _ => vec![],
         };
 
         Ok(self
             .arena
-            .statement(Stmt::Function(token, parameters, Rc::new(body))))
-    }
-
-    fn var_declaration(&mut self) -> ParseResult<StmtId> {
-        let token = self.expected(Identifier { dollar: true })?.clone();
-        let expr = match self.match_next(sym!(Equal)) {
-            true => self.expression()?,
-            false => self.arena.expression(Expr::Literal(RV::Null)),
-        };
-        self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Declaration(token, expr)))
+            .expression(Expr::Function(token, parameters, Rc::new(body))))
     }
 
     fn expression(&mut self) -> ParseResult<ExprId> {
+        match_next!(self, kw!(Fun), fun_declaration);
         self.assignment()
     }
 

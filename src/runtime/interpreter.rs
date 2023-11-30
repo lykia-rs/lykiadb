@@ -287,6 +287,25 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }))
                 }
             }
+            Expr::Function(token, parameters, body) => {
+                let name = token.span.lexeme.as_ref().to_string();
+                let fun = Function::UserDefined {
+                    name: name.clone(),
+                    body: Rc::clone(body),
+                    parameters: parameters
+                        .iter()
+                        .map(|x| x.span.lexeme.as_ref().to_string())
+                        .collect(),
+                    closure: self.env.clone(),
+                };
+
+                let callable = Callable(Some(parameters.len()), fun.into());
+
+                // TODO(vck): Callable shouldn't be cloned here
+                self.env.borrow_mut().declare(name, callable.clone());
+
+                return Ok(callable);
+            }
         }
     }
 
@@ -353,22 +372,6 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
-            }
-            Stmt::Function(token, parameters, body) => {
-                let name = token.span.lexeme.as_ref().to_string();
-                let fun = Function::UserDefined {
-                    name: name.clone(),
-                    body: Rc::clone(body),
-                    parameters: parameters
-                        .iter()
-                        .map(|x| x.span.lexeme.as_ref().to_string())
-                        .collect(),
-                    closure: self.env.clone(),
-                };
-
-                self.env
-                    .borrow_mut()
-                    .declare(name, Callable(Some(parameters.len()), fun.into()));
             }
         }
         Ok(RV::Undefined)

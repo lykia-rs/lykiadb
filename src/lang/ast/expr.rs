@@ -1,6 +1,8 @@
+use std::rc::Rc;
+
 use crate::{lang::token::Token, runtime::types::RV};
 
-use super::sql::SqlSelect;
+use super::{sql::SqlSelect, stmt::StmtId};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
@@ -8,6 +10,7 @@ pub enum Expr {
     Variable(Token),
     Grouping(ExprId),
     Literal(RV),
+    Function(Token, Vec<Token>, Rc<Vec<StmtId>>),
     Binary {
         left: ExprId,
         token: Token,
@@ -32,5 +35,5 @@ pub enum Expr {
         args: Vec<ExprId>,
     },
 }
-
-pub type ExprId = usize;
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct ExprId(pub usize);
