@@ -208,4 +208,37 @@ mod test {
             vec![RV::Str(Rc::new("hello".to_string()))],
         );
     }
+
+    #[test]
+    fn test_resolving_write_1() {
+        exec_assert(
+            "var $a = \"global\";
+        {
+          var $showA = fun() {
+            print($a);
+          };
+        
+          var $a = \"block\";
+          
+          var $showB = fun() {
+            print($a);
+          };
+        
+          //
+          $showA();
+          $showB();
+          //
+          $a = \"test\";
+          //
+          $showA();
+          $showB();
+        }",
+            vec![
+                RV::Str(Rc::new("global".to_string())),
+                RV::Str(Rc::new("block".to_string())),
+                RV::Str(Rc::new("global".to_string())),
+                RV::Str(Rc::new("test".to_string())),
+            ],
+        );
+    }
 }
