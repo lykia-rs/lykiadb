@@ -97,14 +97,19 @@ impl Parsed {
                 }
                 buf
             }
-            Expr::Function(tok, args, body) => {
-                let mut buf = indent(
-                    level,
-                    &format!("FunctionDeclaration [{} (", tok.span.lexeme.as_ref()),
-                    false,
-                );
-                for arg in args {
-                    buf.push_str(&format!("{},", arg.span.lexeme.as_ref()));
+            Expr::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                let fn_name = if name.is_some() {
+                    name.as_ref().unwrap().span.lexeme.as_ref()
+                } else {
+                    "<anonymous>"
+                };
+                let mut buf = indent(level, &format!("FunctionDeclaration [{} (", fn_name), false);
+                for param in parameters {
+                    buf.push_str(&format!("{},", param.span.lexeme.as_ref()));
                 }
                 buf.push_str(")]");
                 for stmt in body.as_ref() {

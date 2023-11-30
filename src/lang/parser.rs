@@ -246,7 +246,12 @@ impl<'a> Parser<'a> {
     }
 
     fn fun_declaration(&mut self) -> ParseResult<ExprId> {
-        let token = self.expected(Identifier { dollar: false })?.clone();
+        let token = if self.cmp_tok(&Identifier { dollar: false }) {
+            Some(self.expected(Identifier { dollar: false })?.clone())
+        } else {
+            None
+        };
+
         self.expected(sym!(LeftParen))?;
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
@@ -268,9 +273,11 @@ impl<'a> Parser<'a> {
             _ => vec![],
         };
 
-        Ok(self
-            .arena
-            .expression(Expr::Function(token, parameters, Rc::new(body))))
+        Ok(self.arena.expression(Expr::Function {
+            name: token,
+            parameters,
+            body: Rc::new(body),
+        }))
     }
 
     fn expression(&mut self) -> ParseResult<ExprId> {

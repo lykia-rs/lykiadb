@@ -133,9 +133,15 @@ impl Visitor<RV, ResolveError> for Resolver {
                     self.resolve_expr(*argument);
                 }
             }
-            Expr::Function(_token, parameters, body) => {
-                self.declare(_token);
-                self.define(_token);
+            Expr::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                if name.is_some() {
+                    self.declare(name.as_ref().unwrap());
+                    self.define(name.as_ref().unwrap());
+                }
                 self.begin_scope();
                 for param in parameters {
                     self.declare(param);

@@ -160,9 +160,11 @@ mod test {
                 };
 
                 $pr();
+                a();
           ",
             vec![
                 RV::Str(Rc::new("hello".to_string())),
+                RV::Str(Rc::new("hello".to_string()))
             ],
         );
     }
@@ -171,6 +173,35 @@ mod test {
     fn test_anonymous_fn_1() {
         exec_assert(
             "(fun a() {
+                    print(\"hello\");
+                  })();
+
+                  a();
+          ",
+          vec![
+            RV::Str(Rc::new("hello".to_string())),
+            RV::Str(Rc::new("hello".to_string()))
+        ],
+        );
+    }
+
+    #[test]
+    fn test_anonymous_fn_2() {
+        exec_assert(
+            "var $pr = fun() {
+                    print(\"hello\");
+                };
+
+                $pr();
+          ",
+            vec![RV::Str(Rc::new("hello".to_string()))],
+        );
+    }
+
+    #[test]
+    fn test_anonymous_fn_3() {
+        exec_assert(
+            "(fun() {
                     print(\"hello\");
                   })();
           ",

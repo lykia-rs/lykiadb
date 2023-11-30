@@ -10,7 +10,11 @@ pub enum Expr {
     Variable(Token),
     Grouping(ExprId),
     Literal(RV),
-    Function(Token, Vec<Token>, Rc<Vec<StmtId>>),
+    Function {
+        name: Option<Token>,
+        parameters: Vec<Token>,
+        body: Rc<Vec<StmtId>>,
+    },
     Binary {
         left: ExprId,
         token: Token,

@@ -287,10 +287,18 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }))
                 }
             }
-            Expr::Function(token, parameters, body) => {
-                let name = token.span.lexeme.as_ref().to_string();
+            Expr::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                let fn_name = if name.is_some() {
+                    name.as_ref().unwrap().span.lexeme.as_ref()
+                } else {
+                    "<anonymous>"
+                };
                 let fun = Function::UserDefined {
-                    name: name.clone(),
+                    name: fn_name.to_string(),
                     body: Rc::clone(body),
                     parameters: parameters
                         .iter()
@@ -301,8 +309,13 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
                 let callable = Callable(Some(parameters.len()), fun.into());
 
-                // TODO(vck): Callable shouldn't be cloned here
-                self.env.borrow_mut().declare(name, callable.clone());
+                if name.is_some() {
+                    // TODO(vck): Callable shouldn't be cloned here
+                    self.env.borrow_mut().declare(
+                        name.as_ref().unwrap().span.lexeme.to_string(),
+                        callable.clone(),
+                    );
+                }
 
                 return Ok(callable);
             }
