@@ -300,7 +300,6 @@ impl<'a> Parser<'a> {
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
                         left: self.peek_bw(3).clone(),
-                        // message: format!("Invalid assignment target `{}`", equals.span.lexeme),
                     });
                 }
             }
@@ -386,10 +385,7 @@ impl<'a> Parser<'a> {
                     SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
                     SqlKeyword(Except) => SqlCompoundOperator::Except,
                     _ => {
-                        return Err(ParseError::UnexpectedToken {
-                            // message: format!("Unexpected token `{}`", op.span.lexeme),
-                            token: op.clone(),
-                        });
+                        return Err(ParseError::UnexpectedToken { token: op.clone() });
                     }
                 }
             };
@@ -518,10 +514,7 @@ impl<'a> Parser<'a> {
                 self.expected(sym!(RightParen))?;
                 Ok(self.arena.expression(Expr::Grouping(expr)))
             }
-            _ => Err(ParseError::UnexpectedToken {
-                // message: format!("Unexpected token `{}`", tok.span.lexeme),
-                token: tok.clone(),
-            }),
+            _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),
         }
     }
 

@@ -116,7 +116,9 @@ impl Runtime {
                 break;
             }
         }
-        if out.is_err() {
+        if let Ok(val) = out {
+            Ok(val)
+        } else {
             let err = out.err().unwrap();
             match err {
                 HaltReason::Return(rv) => Ok(rv),
@@ -126,8 +128,6 @@ impl Runtime {
                     Err(error)
                 }
             }
-        } else {
-            Ok(out.unwrap())
         }
     }
 }
