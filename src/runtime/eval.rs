@@ -27,12 +27,12 @@ pub fn is_value_truthy(rv: RV) -> bool {
 }
 
 #[inline(always)]
-pub fn coerce2number(val: RV) -> RV {
+pub fn coerce2number(val: RV) -> Option<f64> {
     match val {
-        RV::Num(value) => RV::Num(-value),
-        RV::Bool(true) => RV::Num(-1.0),
-        RV::Bool(false) => RV::Num(0.0),
-        _ => RV::NaN,
+        RV::Num(value) => Some(value),
+        RV::Bool(true) => Some(1.0),
+        RV::Bool(false) => Some(0.0),
+        _ => None,
     }
 }
 

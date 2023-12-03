@@ -1,6 +1,8 @@
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
-use crate::lang::ast::{Expr, ExprId, ParserArena, Stmt, StmtId, Visitor};
+use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::ast::{ParserArena, Visitor};
 use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::Token;
@@ -13,14 +15,34 @@ use crate::{kw, sym};
 use std::rc::Rc;
 use std::vec;
 
-#[derive(Debug)]
-pub enum HaltReason {
-    GenericError(String),
-    Return(RV),
+#[derive(Debug, Clone)]
+pub enum InterpretError {
+    NotCallable {
+        token: Token,
+    },
+    ArityMismatch {
+        token: Token,
+        expected: usize,
+        found: usize,
+    },
+    UnexpectedStatement {
+        token: Token,
+    },
+    /*AssignmentToUndefined {
+        token: Token,
+    },
+    VariableNotFound {
+        token: Token,
+    },*/
+    Other {
+        message: String,
+    }, // TODO(vck): Refactor this
 }
 
-pub fn runtime_err(msg: &str, line: u32) -> HaltReason {
-    HaltReason::GenericError(format!("{} at line {}", msg, line + 1))
+#[derive(Debug)]
+pub enum HaltReason {
+    Error(InterpretError),
+    Return(RV),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -101,9 +123,12 @@ impl Interpreter {
 
     fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> Result<RV, HaltReason> {
         if tok.tok_type == sym!(Minus) {
-            Ok(coerce2number(self.visit_expr(eidx)?))
+            if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
+                return Ok(RV::Num(-num));
+            }
+            Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(is_value_truthy(self.visit_expr(eidx)?)))
+            Ok(RV::Bool(!is_value_truthy(self.visit_expr(eidx)?)))
         }
     }
 
@@ -193,58 +218,58 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Grouping(expr) => self.visit_expr(*expr),
-            Expr::Unary(tok, expr) => self.eval_unary(tok, *expr),
-            Expr::Binary(tok, left, right) => self.eval_binary(*left, *right, tok),
+            Expr::Unary { token, expr } => self.eval_unary(token, *expr),
+            Expr::Binary { token, left, right } => self.eval_binary(*left, *right, token),
             Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
-            Expr::Assignment(tok, expr) => {
+            Expr::Assignment { var_tok, expr } => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
                         distance_unv,
-                        tok.span.lexeme.as_ref(),
+                        var_tok.span.lexeme.as_ref(),
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env
                         .borrow_mut()
-                        .assign(tok.span.lexeme.as_ref().to_string(), evaluated.clone())
+                        .assign(var_tok.span.lexeme.as_ref().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
                 }
-                if let Err(HaltReason::GenericError(msg)) = result {
-                    return Err(runtime_err(&msg, tok.span.line));
-                }
                 Ok(evaluated)
             }
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical { left, token, right } => {
                 let is_true = is_value_truthy(self.visit_expr(*left)?);
 
-                if (tok.tok_type == kw!(Or) && is_true) || (tok.tok_type == kw!(And) && !is_true) {
+                if (token.tok_type == kw!(Or) && is_true)
+                    || (token.tok_type == kw!(And) && !is_true)
+                {
                     return Ok(RV::Bool(is_true));
                 }
 
                 Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
             }
-            Expr::Call(callee, paren, arguments) => {
+            Expr::Call {
+                callee,
+                paren,
+                args,
+            } => {
                 let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
-                    if arity.is_some() && arity.unwrap() != arguments.len() {
-                        return Err(runtime_err(
-                            &format!(
-                                "Function expects {} arguments, while provided {}.",
-                                arity.unwrap(),
-                                arguments.len()
-                            ),
-                            paren.span.line,
-                        ));
+                    if arity.is_some() && arity.unwrap() != args.len() {
+                        return Err(HaltReason::Error(InterpretError::ArityMismatch {
+                            token: paren.clone(),
+                            expected: arity.unwrap(),
+                            found: args.len(),
+                        }));
                     }
 
                     let mut args_evaluated: Vec<RV> = vec![];
 
-                    for arg in arguments.iter() {
+                    for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(*arg)?);
                     }
                     self.call_stack.insert(0, Context::new());
@@ -257,11 +282,42 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    Err(runtime_err(
-                        "Expression does not yield a callable",
-                        paren.span.line,
-                    ))
+                    Err(HaltReason::Error(InterpretError::NotCallable {
+                        token: paren.clone(),
+                    }))
                 }
+            }
+            Expr::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                let fn_name = if name.is_some() {
+                    name.as_ref().unwrap().span.lexeme.as_ref()
+                } else {
+                    "<anonymous>"
+                };
+                let fun = Function::UserDefined {
+                    name: fn_name.to_string(),
+                    body: Rc::clone(body),
+                    parameters: parameters
+                        .iter()
+                        .map(|x| x.span.lexeme.as_ref().to_string())
+                        .collect(),
+                    closure: self.env.clone(),
+                };
+
+                let callable = Callable(Some(parameters.len()), fun.into());
+
+                if name.is_some() {
+                    // TODO(vck): Callable shouldn't be cloned here
+                    self.env.borrow_mut().declare(
+                        name.as_ref().unwrap().span.lexeme.to_string(),
+                        callable.clone(),
+                    );
+                }
+
+                Ok(callable)
             }
         }
     }
@@ -279,71 +335,64 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Stmt::Expression(expr) => {
                 return self.visit_expr(*expr);
             }
-            Stmt::Declaration(tok, expr) => {
+            Stmt::Declaration { token, expr } => {
                 let evaluated = self.visit_expr(*expr)?;
                 self.env
                     .borrow_mut()
-                    .declare(tok.span.lexeme.to_string(), evaluated);
+                    .declare(token.span.lexeme.to_string(), evaluated);
             }
             Stmt::Block(statements) => {
                 return self.execute_block(statements, None);
             }
-            Stmt::If(condition, if_stmt, else_optional) => {
+            Stmt::If {
+                condition,
+                body,
+                r#else,
+            } => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
-                    self.visit_stmt(*if_stmt)?;
-                } else if let Some(else_stmt) = else_optional {
+                    self.visit_stmt(*body)?;
+                } else if let Some(else_stmt) = r#else {
                     self.visit_stmt(*else_stmt)?;
                 }
             }
-            Stmt::Loop(condition, stmt, post_body) => {
+            Stmt::Loop {
+                condition,
+                body,
+                post,
+            } => {
                 self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
                         || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
-                    self.visit_stmt(*stmt)?;
+                    self.visit_stmt(*body)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
-                    if let Some(post) = post_body {
-                        self.visit_stmt(*post)?;
+                    if let Some(post_id) = post {
+                        self.visit_stmt(*post_id)?;
                     }
                 }
                 self.call_stack[0].pop_loop();
             }
             Stmt::Break(token) => {
                 if !self.set_loop_state(LoopState::Broken, None) {
-                    return Err(runtime_err("Unexpected break statement", token.span.line));
+                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
+                        token: token.clone(),
+                    }));
                 }
             }
             Stmt::Continue(token) => {
                 if !self.set_loop_state(LoopState::Continue, None) {
-                    return Err(runtime_err(
-                        "Unexpected continue statement",
-                        token.span.line,
-                    ));
+                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
+                        token: token.clone(),
+                    }));
                 }
             }
-            Stmt::Return(_token, expr) => {
+            Stmt::Return { token: _, expr } => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
-            }
-            Stmt::Function(token, parameters, body) => {
-                let name = token.span.lexeme.as_ref().to_string();
-                let fun = Function::UserDefined {
-                    name: name.clone(),
-                    body: Rc::clone(body),
-                    parameters: parameters
-                        .iter()
-                        .map(|x| x.span.lexeme.as_ref().to_string())
-                        .collect(),
-                    closure: self.env.clone(),
-                };
-
-                self.env
-                    .borrow_mut()
-                    .declare(name, Callable(Some(parameters.len()), fun.into()));
             }
         }
         Ok(RV::Undefined)
@@ -352,194 +401,68 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
 #[cfg(test)]
 mod test {
-    use std::rc::Rc;
-
-    use crate::runtime::{tests::get_runtime, types::RV};
+    use crate::runtime::{tests::helpers::get_runtime, types::RV};
 
     #[test]
-    fn test_loop_statements_0() {
-        let code = "for (var $i = 0; $i < 10; $i = $i + 1) {
-            {
-                {
-                    if ($i == 2) continue;
-                    if ($i == 8) break;
-                    print($i);
-                }
-            }
-        }";
+    fn test_unary_evaluation() {
+        let code = "
+            print(-2);
+            print(-(-2));
+            print(!3);
+            print(!!3);
+            print(!!!3);
+        ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
         out.borrow_mut().expect(vec![
-            RV::Num(0.0),
-            RV::Num(1.0),
-            RV::Num(3.0),
-            RV::Num(4.0),
-            RV::Num(5.0),
-            RV::Num(6.0),
-            RV::Num(7.0),
-        ]);
-    }
-
-    #[test]
-    fn test_loop_statements_1() {
-        let code = "for (var $i = 0; $i < 10000000; $i = $i+1) {
-            if ($i > 17) break;
-            if ($i < 15) continue;
-            for (var $j = 0; $j < 10000000; $j = $j + 1) {
-                print($i + \":\" + $j);
-                if ($j > 2) break;
-            }
-        }";
-        let (out, mut runtime) = get_runtime();
-
-        runtime.interpret(&code);
-
-        out.borrow_mut().expect(vec![
-            RV::Str(Rc::new("15:0".to_string())),
-            RV::Str(Rc::new("15:1".to_string())),
-            RV::Str(Rc::new("15:2".to_string())),
-            RV::Str(Rc::new("15:3".to_string())),
-            RV::Str(Rc::new("16:0".to_string())),
-            RV::Str(Rc::new("16:1".to_string())),
-            RV::Str(Rc::new("16:2".to_string())),
-            RV::Str(Rc::new("16:3".to_string())),
-            RV::Str(Rc::new("17:0".to_string())),
-            RV::Str(Rc::new("17:1".to_string())),
-            RV::Str(Rc::new("17:2".to_string())),
-            RV::Str(Rc::new("17:3".to_string())),
-        ]);
-    }
-
-    #[test]
-    fn test_loop_large_break() {
-        let code = "var $q = 0;
-
-        for (var $i = 0; $i < 10000000; $i = $i+1) {
-            break;
-            $q = $q + 1;
-            print(\"Shouldn't be shown\");
-        }
-        
-        {
-            {
-                {
-                    {
-                        {
-                            {
-                                {
-                                    print($q);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
-        out.borrow_mut().expect(vec![RV::Num(0.0)]);
-    }
-
-    #[test]
-    fn test_if() {
-        let code = "var $a = 30;
-
-        if ($a > 50) {
-            print(\"> 50\");
-        }
-        else if ($a > 20) {
-            print(\"50 > $a > 20\");
-        }
-        else {
-            print(\"< 20\");
-        }";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
-        out.borrow_mut()
-            .expect(vec![RV::Str(Rc::new("50 > $a > 20".to_string()))]);
-    }
-
-    #[test]
-    fn test_higher_order_0() {
-        let code = "fun f($x, $q) {
-            $x($q);
-        }
-        
-        fun g($q) {
-            print($q);
-        }
-        
-        for (var $i=0; $i<10; $i = $i + 1) {
-            f(g, $i);
-        }";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
-            RV::Num(0.0),
-            RV::Num(1.0),
+            RV::Num(-2.0),
             RV::Num(2.0),
-            RV::Num(3.0),
-            RV::Num(4.0),
-            RV::Num(5.0),
-            RV::Num(6.0),
+            RV::Bool(false),
+            RV::Bool(true),
+            RV::Bool(false),
+        ]);
+    }
+    #[test]
+    fn test_binary_evaluation() {
+        let code = "
+            print(5-(-2));
+            print((5 + 2) * 4);
+            print(5 + 2 * 4);
+            print((13 + 4) * (7 + 3));
+            print(-5-2);
+        ";
+        let (out, mut runtime) = get_runtime();
+        runtime.interpret(&code);
+        out.borrow_mut().expect(vec![
             RV::Num(7.0),
-            RV::Num(8.0),
-            RV::Num(9.0),
+            RV::Num(28.0),
+            RV::Num(13.0),
+            RV::Num(170.0),
+            RV::Num(-7.0),
         ]);
     }
 
     #[test]
-    fn test_high_order_1() {
-        let code = "fun makeCounter() {
-            var $i = 0;
-            fun count() {
-                $i = $i + 1;
-                print($i);
-            }
-        
-            return count;
-        }
-        var $count = makeCounter();
-        $count();
-        $count();";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
-        out.borrow_mut().expect(vec![RV::Num(1.0), RV::Num(2.0)]);
-    }
-
-    #[test]
-    fn test_blocks_0() {
-        let code = "var $a = \"global a\";
-        var $b = \"global b\";
-        var $c = \"global c\";
-        {
-           var $a = \"outer a\";
-           var $b = \"outer b\";
-           {
-              var $a = \"inner a\";
-              print($a);
-              print($b);
-              print($c);
-           }
-           print($a);
-           print($b);
-           print($c);
-        }
-        print($a);
-        print($b);
-        print($c);";
+    fn test_logical_evaluation() {
+        let code = "
+            print(5 and 1);
+            print(5 or 1);
+            print(5 and 0);
+            print(5 or 0);
+            print(!(5 or 0));
+            print(!(5 or 0) or 1);
+            print(!(5 or 0) or (1 and 0));
+        ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
         out.borrow_mut().expect(vec![
-            RV::Str(Rc::new("inner a".to_string())),
-            RV::Str(Rc::new("outer b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
-            RV::Str(Rc::new("outer a".to_string())),
-            RV::Str(Rc::new("outer b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
-            RV::Str(Rc::new("global a".to_string())),
-            RV::Str(Rc::new("global b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
+            RV::Bool(true),
+            RV::Bool(true),
+            RV::Bool(false),
+            RV::Bool(true),
+            RV::Bool(false),
+            RV::Bool(true),
+            RV::Bool(false),
         ]);
     }
 }

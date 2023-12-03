@@ -13,7 +13,7 @@ pub struct Scanner {
     line: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ScanError {
     UnexpectedCharacter { span: Span },
     UnterminatedString { span: Span },
@@ -99,7 +99,6 @@ impl Scanner {
         if self.is_at_end() {
             let err_span: String = self.chars[self.start + 1..self.current].iter().collect();
             return Err(ScanError::UnterminatedString {
-                // message: format!("Unterminated string `{}`", err_span),
                 span: Span {
                     start: self.start + 1,
                     lexeme: Rc::new(err_span),
@@ -147,7 +146,6 @@ impl Scanner {
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
                 let err_span: String = self.chars[self.start..self.current].iter().collect();
                 return Err(ScanError::MalformedNumberLiteral {
-                    // message: format!("Malformed number literal `{}`", err_span),
                     span: Span {
                         start: self.start,
                         lexeme: Rc::new(err_span),
@@ -230,7 +228,6 @@ impl Scanner {
                     self.add_token(&other.to_string(), sym.clone());
                 } else {
                     return Err(ScanError::UnexpectedCharacter {
-                        // message: format!("Unexpected character `{}`", c),
                         span: Span {
                             start: self.start,
                             line: self.line,

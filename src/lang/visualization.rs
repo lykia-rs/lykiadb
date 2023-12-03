@@ -3,10 +3,9 @@ use std::{
     rc::Rc,
 };
 
-use super::{
-    ast::{Expr, ExprId, Stmt, StmtId},
-    parser::Parsed,
-};
+use super::parser::Parsed;
+use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::stmt::{Stmt, StmtId};
 
 fn indent(level: u32, str: &str, terminate: bool) -> String {
     if terminate {
@@ -35,21 +34,21 @@ impl Parsed {
             Expr::Select(val) => format!("Select ({:?})", val),
             Expr::Literal(val) => indent(level, &format!("Literal ({:?})", val), true),
             Expr::Grouping(expr) => self.visit_expr(*expr, level + 1)?,
-            Expr::Unary(tok, expr) => {
+            Expr::Unary { token, expr } => {
                 let buf = format!(
                     "{}{}{}",
                     &indent(level, "Unary", false),
-                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &indent(level + 1, &format!("{:?}", token), false),
                     &self.visit_expr(*expr, level + 1)?,
                 );
                 buf
             }
-            Expr::Binary(tok, left, right) => {
+            Expr::Binary { token, left, right } => {
                 format!(
                     "{}{}{}",
                     &indent(
                         level,
-                        &format!("Binary ({})", tok.span.lexeme.as_ref()),
+                        &format!("Binary ({})", token.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*left, level + 1)?,
@@ -61,36 +60,60 @@ impl Parsed {
                 &format!("Variable ({})", tok.span.lexeme.as_ref()),
                 false,
             ),
-            Expr::Assignment(tok, expr) => {
+            Expr::Assignment { var_tok, expr } => {
                 let buf = format!(
                     "{}{}",
                     &indent(
                         level + 1,
-                        &format!("Assignment ({})", tok.span.lexeme.as_ref()),
+                        &format!("Assignment ({})", var_tok.span.lexeme.as_ref()),
                         false
                     ),
                     &self.visit_expr(*expr, level + 1)?,
                 );
                 buf
             }
-            Expr::Logical(left, tok, right) => {
+            Expr::Logical { left, token, right } => {
                 let mut buf = format!(
                     "{}{}{}",
                     &indent(level, "Logical", false),
-                    &indent(level + 1, &format!("{:?}", tok), false),
+                    &indent(level + 1, &format!("{:?}", token), false),
                     &self.visit_expr(*left, level + 1)?,
                 );
                 buf.push_str(&self.visit_expr(*right, level + 1)?);
                 buf
             }
-            Expr::Call(callee, _paren, arguments) => {
+            Expr::Call {
+                callee,
+                paren: _,
+                args,
+            } => {
                 let mut buf = format!(
                     "{}{}",
                     &indent(level, "Call", false),
                     &self.visit_expr(*callee, level + 1)?,
                 );
-                for arg in arguments {
+                for arg in args {
                     buf.push_str(&self.visit_expr(*arg, level + 1)?);
+                }
+                buf
+            }
+            Expr::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                let fn_name = if name.is_some() {
+                    name.as_ref().unwrap().span.lexeme.as_ref()
+                } else {
+                    "<anonymous>"
+                };
+                let mut buf = indent(level, &format!("FunctionDeclaration [{} (", fn_name), false);
+                for param in parameters {
+                    buf.push_str(&format!("{},", param.span.lexeme.as_ref()));
+                }
+                buf.push_str(")]");
+                for stmt in body.as_ref() {
+                    buf.push_str(&self.visit_stmt(*stmt, level + 1)?);
                 }
                 buf
             }
@@ -109,10 +132,10 @@ impl Parsed {
                 buf.push_str(&self.visit_expr(*expr, level + 1)?);
                 Ok(buf)
             }
-            Stmt::Declaration(tok, expr) => {
+            Stmt::Declaration { token, expr } => {
                 let mut buf = indent(
                     level,
-                    &format!("Declaration ({})", tok.span.lexeme.as_ref()),
+                    &format!("Declaration ({})", token.span.lexeme.as_ref()),
                     false,
                 );
                 buf.push_str(&self.visit_expr(*expr, level + 1)?);
@@ -125,14 +148,18 @@ impl Parsed {
                 }
                 Ok(buf)
             }
-            Stmt::If(condition, if_stmt, else_optional) => {
+            Stmt::If {
+                condition,
+                body,
+                r#else,
+            } => {
                 let mut buf = format!(
                     "{}{}{}",
                     &indent(level, "If", false),
                     &self.visit_expr(*condition, level + 1)?,
-                    &self.visit_stmt(*if_stmt, level + 1)?,
+                    &self.visit_stmt(*body, level + 1)?,
                 );
-                if let Some(else_stmt) = else_optional {
+                if let Some(else_stmt) = r#else {
                     buf.push_str(&indent(
                         level,
                         &format!("Else {}", &self.visit_stmt(*else_stmt, level + 1)?),
@@ -142,34 +169,23 @@ impl Parsed {
                 buf.push_str(&indent(level, "", false));
                 Ok(buf)
             }
-            Stmt::Loop(condition, stmt, post_body) => Ok(format!(
+            Stmt::Loop {
+                condition,
+                body,
+                post,
+            } => Ok(format!(
                 "{}{}{}{}",
                 &indent(level, "Loop", false),
                 &self.visit_expr(*condition.as_ref().unwrap(), level + 1)?,
-                &self.visit_stmt(*stmt, level + 1)?,
-                &self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?
+                &self.visit_stmt(*body, level + 1)?,
+                &self.visit_stmt(*post.as_ref().unwrap(), level + 1)?
             )),
             Stmt::Break(_) => Ok(indent(level, "Break", false)),
             Stmt::Continue(_) => Ok(indent(level, "Continue", false)),
-            Stmt::Return(_, expr) => {
+            Stmt::Return { token: _, expr } => {
                 let mut buf = indent(level, "Return", false);
                 if expr.is_some() {
                     buf.push_str(&self.visit_expr(expr.unwrap(), level + 1)?);
-                }
-                Ok(buf)
-            }
-            Stmt::Function(tok, args, body) => {
-                let mut buf = indent(
-                    level,
-                    &format!("FunctionDeclaration [{} (", tok.span.lexeme.as_ref()),
-                    false,
-                );
-                for arg in args {
-                    buf.push_str(&format!("{},", arg.span.lexeme.as_ref()));
-                }
-                buf.push_str(")]");
-                for expr in body.as_ref() {
-                    buf.push_str(&self.visit_stmt(*expr, level + 1)?);
                 }
                 Ok(buf)
             }

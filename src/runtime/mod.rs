@@ -1,4 +1,5 @@
-use self::error::report_error;
+use self::error::{report_error, ExecutionError};
+use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use crate::lang::ast::Visitor;
 use crate::lang::parser::Parser;
@@ -84,24 +85,18 @@ impl Runtime {
         println!("{:?}", parsed);
     }
 
-    pub fn interpret(&mut self, source: &str) {
+    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let tokens = Scanner::scan(source);
         if tokens.is_err() {
-            report_error(
-                "filename",
-                source,
-                error::ExecutionError::Scan(tokens.err().unwrap()),
-            );
-            return;
+            let error = error::ExecutionError::Scan(tokens.err().unwrap());
+            report_error("filename", source, error.clone());
+            return Err(error);
         }
         let parsed = Parser::parse(&tokens.unwrap());
         if parsed.is_err() {
-            report_error(
-                "filename",
-                source,
-                error::ExecutionError::Parse(parsed.err().unwrap()),
-            );
-            return;
+            let error = error::ExecutionError::Parse(parsed.err().unwrap());
+            report_error("filename", source, error.clone());
+            return Err(error);
         }
         let parsed_unw = parsed.unwrap();
         let arena = Rc::clone(&parsed_unw.arena);
@@ -110,14 +105,28 @@ impl Runtime {
         let stmts = &parsed_unw.statements.clone();
         resolver.resolve_stmts(stmts);
         //
+        let mut out = Ok(RV::Undefined);
         let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
         for stmt in stmts {
-            let out = interpreter.visit_stmt(*stmt);
+            out = interpreter.visit_stmt(*stmt);
             if self.mode == RuntimeMode::Repl {
                 println!("{:?}", out);
             }
             if out.is_err() {
-                panic!("Interpreter errored {:?}", out.err().unwrap());
+                break;
+            }
+        }
+        if let Ok(val) = out {
+            Ok(val)
+        } else {
+            let err = out.err().unwrap();
+            match err {
+                HaltReason::Return(rv) => Ok(rv),
+                HaltReason::Error(interpret_err) => {
+                    let error = error::ExecutionError::Interpret(interpret_err);
+                    report_error("filename", source, error.clone());
+                    Err(error)
+                }
             }
         }
     }

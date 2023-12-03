@@ -13,7 +13,7 @@ fun helloWorld ($message) {
             print("outer");
         }
     }
-}
+};
 
 for (var $i = 0; $i < 10; $i = $i + 1) {
     print(helloWorld("My name is Lykia."));
