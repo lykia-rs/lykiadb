@@ -131,16 +131,26 @@ impl<'a> Parser<'a> {
 
         if self.match_next(kw!(Else)) {
             let else_branch = self.statement()?;
-            return Ok(self
-                .arena
-                .statement(Stmt::If(condition, if_branch, Some(else_branch))));
+            return Ok(self.arena.statement(Stmt::If {
+                condition,
+                body: if_branch,
+                r#else: Some(else_branch),
+            }));
         }
-        Ok(self.arena.statement(Stmt::If(condition, if_branch, None)))
+        Ok(self.arena.statement(Stmt::If {
+            condition,
+            body: if_branch,
+            r#else: None,
+        }))
     }
 
     fn loop_statement(&mut self) -> ParseResult<StmtId> {
         let inner_stmt = self.declaration()?;
-        Ok(self.arena.statement(Stmt::Loop(None, inner_stmt, None)))
+        Ok(self.arena.statement(Stmt::Loop {
+            condition: None,
+            body: inner_stmt,
+            post: None,
+        }))
     }
 
     fn while_statement(&mut self) -> ParseResult<StmtId> {
@@ -149,20 +159,25 @@ impl<'a> Parser<'a> {
         self.expected(sym!(RightParen))?;
         let inner_stmt = self.declaration()?;
 
-        Ok(self
-            .arena
-            .statement(Stmt::Loop(Some(condition), inner_stmt, None)))
+        Ok(self.arena.statement(Stmt::Loop {
+            condition: Some(condition),
+            body: inner_stmt,
+            post: None,
+        }))
     }
 
     fn return_statement(&mut self) -> ParseResult<StmtId> {
-        let tok = self.peek_bw(1);
+        let token = self.peek_bw(1);
         let mut expr: Option<ExprId> = None;
         if !self.cmp_tok(&sym!(Semicolon)) {
             expr = Some(self.expression()?);
         }
         self.expected(sym!(Semicolon))?;
 
-        Ok(self.arena.statement(Stmt::Return(tok.clone(), expr)))
+        Ok(self.arena.statement(Stmt::Return {
+            token: token.clone(),
+            expr,
+        }))
     }
 
     fn for_statement(&mut self) -> ParseResult<StmtId> {
@@ -193,13 +208,17 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.declaration()?;
 
         if initializer.is_none() {
-            return Ok(self
-                .arena
-                .statement(Stmt::Loop(condition, inner_stmt, increment)));
+            return Ok(self.arena.statement(Stmt::Loop {
+                condition,
+                body: inner_stmt,
+                post: increment,
+            }));
         }
-        let loop_stmt = self
-            .arena
-            .statement(Stmt::Loop(condition, inner_stmt, increment));
+        let loop_stmt = self.arena.statement(Stmt::Loop {
+            condition,
+            body: inner_stmt,
+            post: increment,
+        });
         Ok(self
             .arena
             .statement(Stmt::Block(vec![initializer.unwrap(), loop_stmt])))
@@ -242,7 +261,7 @@ impl<'a> Parser<'a> {
             false => self.arena.expression(Expr::Literal(RV::Null)),
         };
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Declaration(token, expr)))
+        Ok(self.arena.statement(Stmt::Declaration { token, expr }))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<ExprId> {

@@ -163,31 +163,39 @@ impl Visitor<RV, ResolveError> for Resolver {
             Stmt::Expression(expr) => {
                 self.resolve_expr(*expr);
             }
-            Stmt::Declaration(_tok, expr) => {
-                self.declare(_tok);
+            Stmt::Declaration { token, expr } => {
+                self.declare(token);
                 self.resolve_expr(*expr);
-                self.define(_tok);
+                self.define(token);
             }
             Stmt::Block(statements) => {
                 self.begin_scope();
                 self.resolve_stmts(statements);
                 self.end_scope();
             }
-            Stmt::If(condition, if_stmt, else_optional) => {
+            Stmt::If {
+                condition,
+                body,
+                r#else,
+            } => {
                 self.resolve_expr(*condition);
-                self.resolve_stmt(*if_stmt);
-                if else_optional.is_some() {
-                    self.resolve_stmt(*else_optional.as_ref().unwrap());
+                self.resolve_stmt(*body);
+                if r#else.is_some() {
+                    self.resolve_stmt(*r#else.as_ref().unwrap());
                 }
             }
-            Stmt::Loop(condition, stmt, post_body) => {
+            Stmt::Loop {
+                condition,
+                body,
+                post,
+            } => {
                 self.resolve_expr(*condition.as_ref().unwrap());
-                self.resolve_stmt(*stmt);
-                if post_body.is_some() {
-                    self.resolve_stmt(*post_body.as_ref().unwrap());
+                self.resolve_stmt(*body);
+                if post.is_some() {
+                    self.resolve_stmt(*post.as_ref().unwrap());
                 }
             }
-            Stmt::Return(_token, expr) => {
+            Stmt::Return { token: _, expr } => {
                 if expr.is_some() {
                     self.resolve_expr(expr.unwrap());
                 }

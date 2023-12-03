@@ -335,32 +335,40 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Stmt::Expression(expr) => {
                 return self.visit_expr(*expr);
             }
-            Stmt::Declaration(tok, expr) => {
+            Stmt::Declaration { token, expr } => {
                 let evaluated = self.visit_expr(*expr)?;
                 self.env
                     .borrow_mut()
-                    .declare(tok.span.lexeme.to_string(), evaluated);
+                    .declare(token.span.lexeme.to_string(), evaluated);
             }
             Stmt::Block(statements) => {
                 return self.execute_block(statements, None);
             }
-            Stmt::If(condition, if_stmt, else_optional) => {
+            Stmt::If {
+                condition,
+                body,
+                r#else,
+            } => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
-                    self.visit_stmt(*if_stmt)?;
-                } else if let Some(else_stmt) = else_optional {
+                    self.visit_stmt(*body)?;
+                } else if let Some(else_stmt) = r#else {
                     self.visit_stmt(*else_stmt)?;
                 }
             }
-            Stmt::Loop(condition, stmt, post_body) => {
+            Stmt::Loop {
+                condition,
+                body,
+                post,
+            } => {
                 self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
                         || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
-                    self.visit_stmt(*stmt)?;
+                    self.visit_stmt(*body)?;
                     self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
-                    if let Some(post) = post_body {
-                        self.visit_stmt(*post)?;
+                    if let Some(post_id) = post {
+                        self.visit_stmt(*post_id)?;
                     }
                 }
                 self.call_stack[0].pop_loop();
@@ -379,7 +387,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }));
                 }
             }
-            Stmt::Return(_token, expr) => {
+            Stmt::Return { token: _, expr } => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.unwrap())?;
                     return Err(HaltReason::Return(ret));

@@ -132,10 +132,10 @@ impl Parsed {
                 buf.push_str(&self.visit_expr(*expr, level + 1)?);
                 Ok(buf)
             }
-            Stmt::Declaration(tok, expr) => {
+            Stmt::Declaration { token, expr } => {
                 let mut buf = indent(
                     level,
-                    &format!("Declaration ({})", tok.span.lexeme.as_ref()),
+                    &format!("Declaration ({})", token.span.lexeme.as_ref()),
                     false,
                 );
                 buf.push_str(&self.visit_expr(*expr, level + 1)?);
@@ -148,14 +148,18 @@ impl Parsed {
                 }
                 Ok(buf)
             }
-            Stmt::If(condition, if_stmt, else_optional) => {
+            Stmt::If {
+                condition,
+                body,
+                r#else,
+            } => {
                 let mut buf = format!(
                     "{}{}{}",
                     &indent(level, "If", false),
                     &self.visit_expr(*condition, level + 1)?,
-                    &self.visit_stmt(*if_stmt, level + 1)?,
+                    &self.visit_stmt(*body, level + 1)?,
                 );
-                if let Some(else_stmt) = else_optional {
+                if let Some(else_stmt) = r#else {
                     buf.push_str(&indent(
                         level,
                         &format!("Else {}", &self.visit_stmt(*else_stmt, level + 1)?),
@@ -165,16 +169,20 @@ impl Parsed {
                 buf.push_str(&indent(level, "", false));
                 Ok(buf)
             }
-            Stmt::Loop(condition, stmt, post_body) => Ok(format!(
+            Stmt::Loop {
+                condition,
+                body,
+                post,
+            } => Ok(format!(
                 "{}{}{}{}",
                 &indent(level, "Loop", false),
                 &self.visit_expr(*condition.as_ref().unwrap(), level + 1)?,
-                &self.visit_stmt(*stmt, level + 1)?,
-                &self.visit_stmt(*post_body.as_ref().unwrap(), level + 1)?
+                &self.visit_stmt(*body, level + 1)?,
+                &self.visit_stmt(*post.as_ref().unwrap(), level + 1)?
             )),
             Stmt::Break(_) => Ok(indent(level, "Break", false)),
             Stmt::Continue(_) => Ok(indent(level, "Continue", false)),
-            Stmt::Return(_, expr) => {
+            Stmt::Return { token: _, expr } => {
                 let mut buf = indent(level, "Return", false);
                 if expr.is_some() {
                     buf.push_str(&self.visit_expr(expr.unwrap(), level + 1)?);

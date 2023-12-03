@@ -5,13 +5,27 @@ use super::expr::ExprId;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Expression(ExprId),
-    Declaration(Token, ExprId),
-    Block(Vec<StmtId>),
-    If(ExprId, StmtId, Option<StmtId>),
-    Loop(Option<ExprId>, StmtId, Option<StmtId>),
     Break(Token),
     Continue(Token),
-    Return(Token, Option<ExprId>),
+    Block(Vec<StmtId>),
+    Declaration {
+        token: Token,
+        expr: ExprId,
+    },
+    If {
+        condition: ExprId,
+        body: StmtId,
+        r#else: Option<StmtId>,
+    },
+    Loop {
+        condition: Option<ExprId>,
+        body: StmtId,
+        post: Option<StmtId>,
+    },
+    Return {
+        token: Token,
+        expr: Option<ExprId>,
+    },
 }
 
 #[repr(transparent)]
