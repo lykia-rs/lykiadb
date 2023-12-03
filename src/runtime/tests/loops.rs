@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::runtime::{tests::exec_assert, types::RV};
+    use crate::runtime::{tests::helpers::exec_assert, types::RV};
     use std::rc::Rc;
 
     #[test]

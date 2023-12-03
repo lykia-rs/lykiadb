@@ -113,7 +113,7 @@ impl Parsed {
                 }
                 buf.push_str(")]");
                 for stmt in body.as_ref() {
-                    buf.push_str(&self.visit_stmt(stmt.clone(), level + 1)?);
+                    buf.push_str(&self.visit_stmt(*stmt, level + 1)?);
                 }
                 buf
             }

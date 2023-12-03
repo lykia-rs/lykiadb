@@ -34,19 +34,19 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
 
     match error {
         ExecutionError::Scan(ScanError::UnexpectedCharacter { span }) => {
-            print(&"Unexpected character", &"Remove this character", span);
+            print("Unexpected character", "Remove this character", span);
         }
         ExecutionError::Scan(ScanError::UnterminatedString { span }) => {
             print(
-                &"Unterminated string",
-                &"Terminate the string with a double quote (\").",
+                "Unterminated string",
+                "Terminate the string with a double quote (\").",
                 span,
             );
         }
         ExecutionError::Scan(ScanError::MalformedNumberLiteral { span }) => {
             print(
-                &"Malformed number literal",
-                &"Make sure that number literal is up to spec.",
+                "Malformed number literal",
+                "Make sure that number literal is up to spec.",
                 span,
             );
         }
@@ -125,7 +125,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
         ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(
                 &message,
-                &"",
+                "",
                 Span {
                     start: 0,
                     lexeme: Rc::new("".to_string()),

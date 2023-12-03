@@ -119,17 +119,15 @@ impl Runtime {
         if out.is_err() {
             let err = out.err().unwrap();
             match err {
-                HaltReason::Return(rv) => {
-                    return Ok(rv);
-                }
+                HaltReason::Return(rv) => Ok(rv),
                 HaltReason::Error(interpret_err) => {
                     let error = error::ExecutionError::Interpret(interpret_err);
                     report_error("filename", source, error.clone());
-                    return Err(error);
+                    Err(error)
                 }
             }
         } else {
-            return Ok(out.unwrap());
+            Ok(out.unwrap())
         }
     }
 }

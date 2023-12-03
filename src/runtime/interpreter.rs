@@ -317,7 +317,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     );
                 }
 
-                return Ok(callable);
+                Ok(callable)
             }
         }
     }
@@ -393,7 +393,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
 
 #[cfg(test)]
 mod test {
-    use crate::runtime::{tests::get_runtime, types::RV};
+    use crate::runtime::{types::RV, tests::helpers::get_runtime};
 
     #[test]
     fn test_unary_evaluation() {

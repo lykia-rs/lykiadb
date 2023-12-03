@@ -14,5 +14,6 @@ pub enum Stmt {
     Return(Token, Option<ExprId>),
 }
 
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct StmtId(pub usize);

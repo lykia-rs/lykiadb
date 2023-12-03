@@ -39,5 +39,7 @@ pub enum Expr {
         args: Vec<ExprId>,
     },
 }
+
+#[repr(transparent)]
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct ExprId(pub usize);

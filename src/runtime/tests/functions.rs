@@ -2,7 +2,7 @@
 mod test {
     use std::rc::Rc;
 
-    use crate::runtime::{tests::exec_assert, types::RV};
+    use crate::runtime::{tests::helpers::exec_assert, types::RV};
 
     #[test]
     fn test_higher_order_0() {
@@ -164,7 +164,7 @@ mod test {
           ",
             vec![
                 RV::Str(Rc::new("hello".to_string())),
-                RV::Str(Rc::new("hello".to_string()))
+                RV::Str(Rc::new("hello".to_string())),
             ],
         );
     }
@@ -178,10 +178,10 @@ mod test {
 
                   a();
           ",
-          vec![
-            RV::Str(Rc::new("hello".to_string())),
-            RV::Str(Rc::new("hello".to_string()))
-        ],
+            vec![
+                RV::Str(Rc::new("hello".to_string())),
+                RV::Str(Rc::new("hello".to_string())),
+            ],
         );
     }
 

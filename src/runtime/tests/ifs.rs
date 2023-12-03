@@ -2,7 +2,7 @@
 mod test {
     use std::rc::Rc;
 
-    use crate::runtime::{tests::exec_assert, types::RV};
+    use crate::runtime::{tests::helpers::exec_assert, types::RV};
 
     #[test]
     fn test_if() {
