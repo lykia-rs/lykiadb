@@ -82,7 +82,7 @@ impl Runtime {
     pub fn print_ast(&mut self, source: &str) {
         let tokens = Scanner::scan(source).unwrap();
         let parsed = Parser::parse(&tokens);
-        println!("{:?}", parsed);
+        println!("{}", parsed.unwrap().serialize());
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
