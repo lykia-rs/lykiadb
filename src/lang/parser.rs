@@ -649,4 +649,110 @@ mod test {
             }),
         );
     }
+
+    #[test]
+    fn test_parse_binary_expression() {
+        compare_parsed_to_expected(
+            "1 + 2;",
+            json!({
+                "type": "Program",
+                "body": [
+                    {
+                        "type": "Stmt::Expression",
+                        "value": {
+                            "type": "Expr::Binary",
+                            "left": {
+                                "type": "Expr::Literal",
+                                "value": "Num(1.0)",
+                            },
+                            "operator": "+",
+                            "right": {
+                                "type": "Expr::Literal",
+                                "value": "Num(2.0)",
+                            }
+                        }
+                    }
+                ]
+            }),
+        );
+    }
+
+    #[test]
+    fn test_parse_grouping_expression() {
+        compare_parsed_to_expected(
+            "(1 + 2) * (3 / (4 - 7));",
+            json!({
+                "type": "Program",
+                "body": [
+                    {
+                        "type": "Stmt::Expression",
+                        "value": {
+                            "type": "Expr::Binary",
+                            "left": {
+                                "type": "Expr::Grouping",
+                                "value": {
+                                    "type": "Expr::Binary",
+                                    "left": {
+                                        "type": "Expr::Literal",
+                                        "value": "Num(1.0)",
+                                    },
+                                    "operator": "+",
+                                    "right": {
+                                        "type": "Expr::Literal",
+                                        "value": "Num(2.0)",
+                                    }
+                                }
+                            },
+                            "operator": "*",
+                            "right": {
+                                "type": "Expr::Grouping",
+                                "value": {
+                                    "type": "Expr::Binary",
+                                    "left": {
+                                        "type": "Expr::Literal",
+                                        "value": "Num(3.0)",
+                                    },
+                                    "operator": "/",
+                                    "right": {
+                                        "type": "Expr::Grouping",
+                                        "value": {
+                                            "type": "Expr::Binary",
+                                            "left": {
+                                                "type": "Expr::Literal",
+                                                "value": "Num(4.0)",
+                                            },
+                                            "operator": "-",
+                                            "right": {
+                                                "type": "Expr::Literal",
+                                                "value": "Num(7.0)",
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }),
+        );
+    }
+
+    #[test]
+    fn test_parse_variable_expression() {
+        compare_parsed_to_expected(
+            "a;",
+            json!({
+                "type": "Program",
+                "body": [
+                    {
+                        "type": "Stmt::Expression",
+                        "value": {
+                            "type": "Expr::Variable",
+                            "value": "a",
+                        }
+                    }
+                ]
+            }),
+        );
+    }
 }
