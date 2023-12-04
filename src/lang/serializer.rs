@@ -11,11 +11,14 @@ use super::{
 use std::rc::Rc;
 
 impl Parsed {
-    pub fn serialize(&mut self) -> String {
-        serde_json::to_string_pretty(&json!({
+    pub fn to_json(&mut self) -> Value {
+        json!({
             "type": "Program",
             "body": self.statements.clone().iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>()
-        })).unwrap()
+        })
+    }
+    pub fn serialize(&mut self) -> String {
+        serde_json::to_string_pretty(&self.to_json()).unwrap()
     }
 }
 

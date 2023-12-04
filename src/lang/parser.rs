@@ -587,13 +587,13 @@ impl<'a> Parser<'a> {
     }
 }
 
-/*
 #[cfg(test)]
 mod test {
 
-    use crate::lang::{ast::{Expr, Stmt}, scanner::Scanner, token::Token};
+    use assert_json_diff::assert_json_eq;
+    use serde_json::{json, Value};
 
-    use crate::lexm;
+    use crate::lang::{scanner::Scanner, token::Token};
 
     use super::*;
 
@@ -601,30 +601,52 @@ mod test {
         return Scanner::scan(source).unwrap();
     }
 
-    fn compare_parsed_to_expected(source: &str, expected: Vec<Stmt>) {
+    fn compare_parsed_to_expected(source: &str, expected: Value) {
         let tokens = get_tokens(source);
-        let parsed = Parser::parse(&tokens).unwrap();
-        assert_eq!(parsed, expected);
+        let mut parsed = Parser::parse(&tokens).unwrap();
+        let actual = parsed.to_json();
+        assert_json_eq!(actual, expected);
     }
 
     #[test]
     fn test_parse_literal_expression() {
-        compare_parsed_to_expected("1;", vec![
-            Stmt::Expression(
-                Expr::Literal(RV::Num(1.0))
-            )
-        ]);
+        compare_parsed_to_expected(
+            "1;",
+            json!({
+                "type": "Program",
+                "body": [
+                    {
+                        "type": "Stmt::Expression",
+                        "value": {
+                            "type": "Expr::Literal",
+                            "value": "Num(1.0)",
+                        }
+                    }
+                ]
+            }),
+        );
     }
 
     #[test]
     fn test_parse_unary_expression() {
-        compare_parsed_to_expected("-1;", vec![
-            Stmt::Expression(
-                Expr::Unary(
-                    Token {tok_type: sym!(Minus), lexeme: lexm!("-"), literal: None, line: 0},
-                    Expr::Literal(RV::Num(1.0)
-                )
-            )
-        )]);
+        compare_parsed_to_expected(
+            "-1;",
+            json!({
+                "type": "Program",
+                "body": [
+                    {
+                        "type": "Stmt::Expression",
+                        "value": {
+                            "type": "Expr::Unary",
+                            "operator": "-",
+                            "value": {
+                                "type": "Expr::Literal",
+                                "value": "Num(1.0)",
+                            }
+                        }
+                    }
+                ]
+            }),
+        );
     }
-}*/
+}
