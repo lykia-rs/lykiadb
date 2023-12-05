@@ -1,4 +1,5 @@
 # λykiaDB
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/57508acaeadf4b658f60a7ec839083d0)](https://app.codacy.com/gh/lykia-rs/lykiadb?utm_source=github.com&utm_medium=referral&utm_content=lykia-rs/lykiadb&utm_campaign=Badge_Grade)
 [![CI](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml)
 
 <p align="center">
