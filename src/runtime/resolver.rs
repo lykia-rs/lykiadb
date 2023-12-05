@@ -54,7 +54,7 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
-            if self.scopes[i].contains_key(&name.span.lexeme.as_ref().to_string()) {
+            if self.scopes[i].contains_key(name.lexeme.as_ref().unwrap()) {
                 self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
@@ -67,7 +67,7 @@ impl Resolver {
         }
         let last = self.scopes.last_mut();
         last.unwrap()
-            .insert(name.span.lexeme.as_ref().to_string(), false);
+            .insert(name.lexeme.as_ref().unwrap().to_string(), false);
     }
 
     pub fn define(&mut self, name: &Token) {
@@ -76,7 +76,7 @@ impl Resolver {
         }
         let last = self.scopes.last_mut();
         last.unwrap()
-            .insert(name.span.lexeme.as_ref().to_string(), true);
+            .insert(name.lexeme.as_ref().unwrap().to_string(), true);
     }
 }
 
@@ -85,47 +85,57 @@ impl Visitor<RV, ResolveError> for Resolver {
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
-            Expr::Literal(_) => (),
-            Expr::Grouping(expr) => self.resolve_expr(*expr),
-            Expr::Unary { token: _, expr } => self.resolve_expr(*expr),
+            Expr::Literal {
+                raw: _,
+                span: _,
+                value: _,
+            } => (),
+            Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
+            Expr::Unary {
+                symbol: _,
+                expr,
+                span: _,
+            } => self.resolve_expr(*expr),
             Expr::Binary {
-                token: _,
+                symbol: _,
                 left,
                 right,
+                span: _,
             } => {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
-            Expr::Variable(tok) => {
+            Expr::Variable { name, span: _ } => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
-                    let value = last_scope.get(&tok.span.lexeme.to_string());
+                    let value = last_scope.get(name.lexeme.as_ref().unwrap());
                     if value.is_some() && !(*value.unwrap()) {
                         return Err(ResolveError::GenericError {
-                            token: tok.clone(),
+                            token: name.clone(),
                             message: "Can't read local variable in its own initializer."
                                 .to_string(),
                         });
                     }
                 }
-                self.resolve_local(eidx, tok);
+                self.resolve_local(eidx, &name);
             }
-            Expr::Assignment { var_tok, expr } => {
+            Expr::Assignment { dst, expr, span: _ } => {
                 self.resolve_expr(*expr);
-                self.resolve_local(eidx, var_tok);
+                self.resolve_local(eidx, &dst);
             }
             Expr::Logical {
                 left,
-                token: _,
+                symbol: _,
                 right,
+                span: _,
             } => {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
             Expr::Call {
                 callee,
-                paren: _,
                 args,
+                span: _,
             } => {
                 self.resolve_expr(*callee);
 
@@ -137,6 +147,7 @@ impl Visitor<RV, ResolveError> for Resolver {
                 name,
                 parameters,
                 body,
+                span: _,
             } => {
                 if name.is_some() {
                     self.declare(name.as_ref().unwrap());
@@ -150,7 +161,7 @@ impl Visitor<RV, ResolveError> for Resolver {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             }
-            Expr::Select(_) => (),
+            Expr::Select { query: _, span: _ } => (),
         };
         Ok(RV::Undefined)
     }
@@ -159,24 +170,28 @@ impl Visitor<RV, ResolveError> for Resolver {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
-            Stmt::Break(_token) | Stmt::Continue(_token) => (),
-            Stmt::Expression(expr) => {
-                self.resolve_expr(*expr);
+            Stmt::Program { stmts, span: _ } => {
+                self.resolve_stmts(stmts);
             }
-            Stmt::Declaration { token, expr } => {
-                self.declare(token);
-                self.resolve_expr(*expr);
-                self.define(token);
-            }
-            Stmt::Block(statements) => {
+            Stmt::Block { stmts, span: _ } => {
                 self.begin_scope();
-                self.resolve_stmts(statements);
+                self.resolve_stmts(stmts);
                 self.end_scope();
+            }
+            Stmt::Break { span: _ } | Stmt::Continue { span: _ } => (),
+            Stmt::Expression { expr, span: _ } => {
+                self.resolve_expr(*expr);
+            }
+            Stmt::Declaration { dst, expr, span: _ } => {
+                self.declare(&dst);
+                self.resolve_expr(*expr);
+                self.define(&dst);
             }
             Stmt::If {
                 condition,
                 body,
                 r#else,
+                span: _,
             } => {
                 self.resolve_expr(*condition);
                 self.resolve_stmt(*body);
@@ -188,6 +203,7 @@ impl Visitor<RV, ResolveError> for Resolver {
                 condition,
                 body,
                 post,
+                span: _,
             } => {
                 self.resolve_expr(*condition.as_ref().unwrap());
                 self.resolve_stmt(*body);
@@ -195,7 +211,7 @@ impl Visitor<RV, ResolveError> for Resolver {
                     self.resolve_stmt(*post.as_ref().unwrap());
                 }
             }
-            Stmt::Return { token: _, expr } => {
+            Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
                     self.resolve_expr(expr.unwrap());
                 }

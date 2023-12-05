@@ -3,10 +3,10 @@ use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{ParserArena, Visitor};
-use crate::lang::token::Keyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::Token;
 use crate::lang::token::TokenType;
+use crate::lang::token::{Keyword::*, Span};
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
@@ -18,15 +18,15 @@ use std::vec;
 #[derive(Debug, Clone)]
 pub enum InterpretError {
     NotCallable {
-        token: Token,
+        span: Span,
     },
     ArityMismatch {
-        token: Token,
+        span: Span,
         expected: usize,
         found: usize,
     },
     UnexpectedStatement {
-        token: Token,
+        span: Span,
     },
     /*AssignmentToUndefined {
         token: Token,
@@ -121,8 +121,8 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, tok: &Token, eidx: ExprId) -> Result<RV, HaltReason> {
-        if tok.tok_type == sym!(Minus) {
+    fn eval_unary(&mut self, symbol: &TokenType, eidx: ExprId) -> Result<RV, HaltReason> {
+        if *symbol == sym!(Minus) {
             if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
                 return Ok(RV::Num(-num));
             }
@@ -132,21 +132,24 @@ impl Interpreter {
         }
     }
 
-    fn eval_binary(&mut self, lidx: ExprId, ridx: ExprId, tok: &Token) -> Result<RV, HaltReason> {
+    fn eval_binary(
+        &mut self,
+        lidx: ExprId,
+        ridx: ExprId,
+        symbol: TokenType,
+    ) -> Result<RV, HaltReason> {
         let left_eval = self.visit_expr(lidx)?;
         let right_eval = self.visit_expr(ridx)?;
 
-        Ok(eval_binary(left_eval, right_eval, tok))
+        Ok(eval_binary(left_eval, right_eval, &symbol))
     }
 
-    fn look_up_variable(&self, name: Token, eid: ExprId) -> Result<RV, HaltReason> {
+    fn look_up_variable(&self, name: &String, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
         if let Some(unwrapped) = distance {
-            self.env
-                .borrow()
-                .read_at(unwrapped, &name.span.lexeme.to_owned())
+            self.env.borrow().read_at(unwrapped, name)
         } else {
-            self.root_env.borrow().read(&name.span.lexeme.to_owned())
+            self.root_env.borrow().read(name)
         }
     }
 }
@@ -215,53 +218,67 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
-            Expr::Select(val) => Ok(RV::Str(Rc::new(format!("{:?}", val)))),
-            Expr::Literal(value) => Ok(value.clone()),
-            Expr::Grouping(expr) => self.visit_expr(*expr),
-            Expr::Unary { token, expr } => self.eval_unary(token, *expr),
-            Expr::Binary { token, left, right } => self.eval_binary(*left, *right, token),
-            Expr::Variable(tok) => self.look_up_variable(tok.clone(), eidx),
-            Expr::Assignment { var_tok, expr } => {
+            Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
+            Expr::Literal {
+                value,
+                raw,
+                span: _,
+            } => Ok(value.clone()),
+            Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
+            Expr::Unary {
+                symbol,
+                expr,
+                span: _,
+            } => self.eval_unary(&symbol, *expr),
+            Expr::Binary {
+                symbol,
+                left,
+                right,
+                span: _,
+            } => self.eval_binary(*left, *right, symbol.clone()),
+            Expr::Variable { name, span: _ } => {
+                self.look_up_variable(name.lexeme.as_ref().unwrap(), eidx)
+            }
+            Expr::Assignment { dst, expr, span: _ } => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env.borrow_mut().assign_at(
                         distance_unv,
-                        var_tok.span.lexeme.as_ref(),
+                        dst.lexeme.as_ref().unwrap(),
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env
                         .borrow_mut()
-                        .assign(var_tok.span.lexeme.as_ref().to_string(), evaluated.clone())
+                        .assign(dst.lexeme.as_ref().unwrap().to_string(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
                 }
                 Ok(evaluated)
             }
-            Expr::Logical { left, token, right } => {
+            Expr::Logical {
+                left,
+                symbol,
+                right,
+                span: _,
+            } => {
                 let is_true = is_value_truthy(self.visit_expr(*left)?);
 
-                if (token.tok_type == kw!(Or) && is_true)
-                    || (token.tok_type == kw!(And) && !is_true)
-                {
+                if (*symbol == kw!(Or) && is_true) || (*symbol == kw!(And) && !is_true) {
                     return Ok(RV::Bool(is_true));
                 }
 
                 Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
             }
-            Expr::Call {
-                callee,
-                paren,
-                args,
-            } => {
+            Expr::Call { callee, args, span } => {
                 let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
                         return Err(HaltReason::Error(InterpretError::ArityMismatch {
-                            token: paren.clone(),
+                            span: *span,
                             expected: arity.unwrap(),
                             found: args.len(),
                         }));
@@ -283,7 +300,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
-                        token: paren.clone(),
+                        span: *span,
                     }))
                 }
             }
@@ -291,9 +308,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 name,
                 parameters,
                 body,
+                span,
             } => {
                 let fn_name = if name.is_some() {
-                    name.as_ref().unwrap().span.lexeme.as_ref()
+                    name.as_ref().unwrap().lexeme.as_ref().unwrap()
                 } else {
                     "<anonymous>"
                 };
@@ -302,7 +320,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     body: Rc::clone(body),
                     parameters: parameters
                         .iter()
-                        .map(|x| x.span.lexeme.as_ref().to_string())
+                        .map(|x| x.lexeme.as_ref().unwrap().to_string())
                         .collect(),
                     closure: self.env.clone(),
                 };
@@ -312,7 +330,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
                     self.env.borrow_mut().declare(
-                        name.as_ref().unwrap().span.lexeme.to_string(),
+                        name.as_ref().unwrap().lexeme.as_ref().unwrap().to_string(),
                         callable.clone(),
                     );
                 }
@@ -332,22 +350,26 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
-            Stmt::Expression(expr) => {
+            Stmt::Program { stmts, span: _ } => {
+                return self.execute_block(stmts, Some(self.env.clone()));
+            }
+            Stmt::Expression { expr, span: _ } => {
                 return self.visit_expr(*expr);
             }
-            Stmt::Declaration { token, expr } => {
+            Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
                 self.env
                     .borrow_mut()
-                    .declare(token.span.lexeme.to_string(), evaluated);
+                    .declare(dst.lexeme.as_ref().unwrap().to_string(), evaluated.clone());
             }
-            Stmt::Block(statements) => {
-                return self.execute_block(statements, None);
+            Stmt::Block { stmts, span: _ } => {
+                return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
                 body,
                 r#else,
+                span: _,
             } => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
                     self.visit_stmt(*body)?;
@@ -359,6 +381,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 condition,
                 body,
                 post,
+                span: _,
             } => {
                 self.call_stack[0].push_loop(LoopState::Go);
                 while !self.is_loop_at(LoopState::Broken)
@@ -373,21 +396,21 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
                 self.call_stack[0].pop_loop();
             }
-            Stmt::Break(token) => {
+            Stmt::Break { span } => {
                 if !self.set_loop_state(LoopState::Broken, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        token: token.clone(),
+                        span: *span,
                     }));
                 }
             }
-            Stmt::Continue(token) => {
+            Stmt::Continue { span } => {
                 if !self.set_loop_state(LoopState::Continue, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        token: token.clone(),
+                        span: *span,
                     }));
                 }
             }
-            Stmt::Return { token: _, expr } => {
+            Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.unwrap())?;
                     return Err(HaltReason::Return(ret));

@@ -1,8 +1,8 @@
 use crate::runtime::types::RV;
 use phf::phf_map;
-use std::rc::Rc;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
     Comma,
     Semicolon,
@@ -25,7 +25,7 @@ pub enum Symbol {
     Star,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TokenType {
     Str,
     Num,
@@ -42,7 +42,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Keyword {
     And,
     Or,
@@ -61,7 +61,7 @@ pub enum Keyword {
     Loop,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SqlKeyword {
     /*
         Bool,
@@ -259,12 +259,25 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 pub struct Token {
     pub tok_type: TokenType,
     pub literal: Option<RV>,
+    pub lexeme: Option<String>,
     pub span: Span,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Span {
-    pub lexeme: Rc<String>,
     pub start: usize,
+    pub end: usize,
     pub line: u32,
+    pub line_end: u32,
+}
+
+impl Span {
+    pub fn merge(&self, other: &Span) -> Span {
+        Span {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+            line: self.line.min(other.line),
+            line_end: self.line_end.min(other.line_end),
+        }
+    }
 }

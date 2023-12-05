@@ -102,20 +102,15 @@ impl Runtime {
         let arena = Rc::clone(&parsed_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
-        let stmts = &parsed_unw.statements.clone();
-        resolver.resolve_stmts(stmts);
+        resolver.resolve_stmt(parsed_unw.program);
         //
-        let mut out = Ok(RV::Undefined);
         let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
-        for stmt in stmts {
-            out = interpreter.visit_stmt(*stmt);
-            if self.mode == RuntimeMode::Repl {
-                println!("{:?}", out);
-            }
-            if out.is_err() {
-                break;
-            }
+        let out = interpreter.visit_stmt(parsed_unw.program);
+
+        if self.mode == RuntimeMode::Repl {
+            println!("{:?}", out);
         }
+
         if let Ok(val) = out {
             Ok(val)
         } else {
@@ -124,7 +119,7 @@ impl Runtime {
                 HaltReason::Return(rv) => Ok(rv),
                 HaltReason::Error(interpret_err) => {
                     let error = error::ExecutionError::Interpret(interpret_err);
-                    report_error("filename", source, error.clone());
+                    report_error("<script>", source, error.clone());
                     Err(error)
                 }
             }

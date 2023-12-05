@@ -1,42 +1,63 @@
 use std::rc::Rc;
 
-use crate::{lang::token::Token, runtime::types::RV};
+use crate::{
+    lang::token::{Span, Token, TokenType},
+    runtime::types::RV,
+};
 
 use super::{sql::SqlSelect, stmt::StmtId};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
-    Select(SqlSelect),
-    Variable(Token),
-    Grouping(ExprId),
-    Literal(RV),
+    Select {
+        query: SqlSelect,
+        span: Span,
+    },
+    Variable {
+        name: Token,
+        span: Span,
+    },
+    Grouping {
+        expr: ExprId,
+        span: Span,
+    },
+    Literal {
+        value: RV,
+        raw: String,
+        span: Span,
+    },
     Function {
         name: Option<Token>,
         parameters: Vec<Token>,
         body: Rc<Vec<StmtId>>,
+        span: Span,
     },
     Binary {
         left: ExprId,
-        token: Token,
+        symbol: TokenType,
         right: ExprId,
+        span: Span,
     },
     Unary {
-        token: Token,
+        symbol: TokenType,
         expr: ExprId,
+        span: Span,
     },
     Assignment {
-        var_tok: Token,
+        dst: Token,
         expr: ExprId,
+        span: Span,
     },
     Logical {
         left: ExprId,
-        token: Token,
+        symbol: TokenType,
         right: ExprId,
+        span: Span,
     },
     Call {
         callee: ExprId,
-        paren: Token,
         args: Vec<ExprId>,
+        span: Span,
     },
 }
 

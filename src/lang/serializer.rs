@@ -12,10 +12,7 @@ use std::rc::Rc;
 
 impl Parsed {
     pub fn to_json(&mut self) -> Value {
-        json!({
-            "type": "Program",
-            "body": self.statements.clone().iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>()
-        })
+        json!(self.visit_stmt(self.program).unwrap())
     }
     pub fn serialize(&mut self) -> String {
         serde_json::to_string_pretty(&self.to_json()).unwrap()
@@ -29,63 +26,70 @@ impl Visitor<Value, ()> for Parsed {
         let e = a.get_expression(eidx);
 
         let matched: Value = match e {
-            Expr::Select(val) => json!({
+            Expr::Select { span: _, query: _ } => json!({
                 "type": "Expr::Select",
                 // TODO(vck): Implement rest of the select
             }),
-            Expr::Literal(val) => {
+            Expr::Literal { raw, span, value } => {
                 json!({
                     "type": "Expr::Literal",
-                    "value": format!("{:?}", val),
+                    "value": format!("{:?}", value),
+                    "raw": raw,
                 })
             }
-            Expr::Grouping(expr) => {
+            Expr::Grouping { expr, span } => {
                 json!({
                     "type": "Expr::Grouping",
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Expr::Unary { token, expr } => {
+            Expr::Unary { symbol, expr, span } => {
                 json!({
                     "type": "Expr::Unary",
-                    "operator": token.span.lexeme.as_ref(),
+                    "operator": symbol,
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Expr::Binary { token, left, right } => {
+            Expr::Binary {
+                symbol,
+                left,
+                right,
+                span,
+            } => {
                 json!({
                     "type": "Expr::Binary",
                     "left": self.visit_expr(*left)?,
-                    "operator": token.span.lexeme.as_ref(),
+                    "operator": symbol,
                     "right": self.visit_expr(*right)?,
                 })
             }
-            Expr::Variable(tok) => {
+            Expr::Variable { name, span } => {
                 json!({
                     "type": "Expr::Variable",
-                    "value": tok.span.lexeme.as_ref(),
+                    "value": name.lexeme.as_ref(),
                 })
             }
-            Expr::Assignment { var_tok, expr } => {
+            Expr::Assignment { dst, expr, span } => {
                 json!({
                     "type": "Expr::Assignment",
-                    "variable": var_tok.span.lexeme.as_ref(),
+                    "variable": dst.lexeme.as_ref(),
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Expr::Logical { left, token, right } => {
+            Expr::Logical {
+                left,
+                symbol,
+                right,
+                span,
+            } => {
                 json!({
                     "type": "Expr::Logical",
                     "left": self.visit_expr(*left)?,
-                    "operator": token.span.lexeme.as_ref(),
+                    "operator": symbol,
                     "right": self.visit_expr(*right)?,
                 })
             }
-            Expr::Call {
-                callee,
-                paren: _,
-                args,
-            } => {
+            Expr::Call { callee, span, args } => {
                 json!({
                     "type": "Expr::Call",
                     "callee": self.visit_expr(*callee)?,
@@ -96,16 +100,17 @@ impl Visitor<Value, ()> for Parsed {
                 name,
                 parameters,
                 body,
+                span,
             } => {
                 let fn_name = if name.is_some() {
-                    name.as_ref().unwrap().span.lexeme.as_ref()
+                    name.as_ref().unwrap().lexeme.as_ref().unwrap().to_string()
                 } else {
-                    "<anonymous>"
+                    "<anonymous>".to_string()
                 };
                 json!({
                     "type": "Expr::Function",
                     "name": fn_name,
-                    "parameters": parameters.iter().map(|param| param.span.lexeme.as_ref()).collect::<Vec<_>>(),
+                    "parameters": parameters.iter().map(|param| param.lexeme.as_ref()).collect::<Vec<_>>(),
                     "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
@@ -119,29 +124,36 @@ impl Visitor<Value, ()> for Parsed {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         let matched: Value = match s {
-            Stmt::Expression(expr) => {
+            Stmt::Program { stmts, span } => {
+                json!({
+                    "type": "Stmt::Program",
+                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                })
+            }
+            Stmt::Block { stmts, span } => {
+                json!({
+                    "type": "Stmt::Block",
+                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                })
+            }
+            Stmt::Expression { expr, span } => {
                 json!({
                     "type": "Stmt::Expression",
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Stmt::Declaration { token, expr } => {
+            Stmt::Declaration { dst, expr, span } => {
                 json!({
                     "type": "Stmt::Declaration",
-                    "variable": token.span.lexeme.as_ref(),
+                    "variable": dst.lexeme.as_ref().unwrap(),
                     "value": self.visit_expr(*expr)?,
-                })
-            }
-            Stmt::Block(statements) => {
-                json!({
-                    "type": "Stmt::Block",
-                    "body": statements.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
             Stmt::If {
                 condition,
                 body,
                 r#else,
+                span: _,
             } => {
                 json!({
                     "type": "Stmt::If",
@@ -158,6 +170,7 @@ impl Visitor<Value, ()> for Parsed {
                 condition,
                 body,
                 post,
+                span,
             } => {
                 json!({
                     "type": "Stmt::Loop",
@@ -174,13 +187,13 @@ impl Visitor<Value, ()> for Parsed {
                     },
                 })
             }
-            Stmt::Break(_) => json!({
+            Stmt::Break { span } => json!({
                 "type": "Stmt::Break",
             }),
-            Stmt::Continue(_) => json!({
+            Stmt::Continue { span } => json!({
                 "type": "Stmt::Continue",
             }),
-            Stmt::Return { token: _, expr } => {
+            Stmt::Return { expr, span } => {
                 json!({
                     "type": "Stmt::Return",
                     "value": if expr.is_some() {

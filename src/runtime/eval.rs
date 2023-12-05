@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::lang::token::Symbol::*;
-use crate::lang::token::Token;
+use crate::lang::token::TokenType;
 use crate::lang::token::TokenType::Symbol;
 use crate::runtime::types::RV;
 
@@ -37,8 +37,8 @@ pub fn coerce2number(val: RV) -> Option<f64> {
 }
 
 #[inline(always)]
-pub fn eval_binary(left_eval: RV, right_eval: RV, tok: &Token) -> RV {
-    let tok_type = tok.tok_type.clone();
+pub fn eval_binary(left_eval: RV, right_eval: RV, symbol: &TokenType) -> RV {
+    let tok_type = symbol.clone();
 
     let (left_coerced, right_coerced) = match (&left_eval, &tok_type, &right_eval) {
         (RV::Num(n), _, RV::Bool(bool)) => (RV::Num(*n), RV::Num(bool2num!(*bool))),

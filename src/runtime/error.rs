@@ -23,7 +23,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             .with_code(3)
             .with_message(format!("{} at line {}", message, span.line + 1))
             .with_label(
-                Label::new((filename, span.start..(span.start + span.lexeme.len())))
+                Label::new((filename, span.start..(span.start + span.end)))
                     .with_message(hint)
                     .with_color(out),
             )
@@ -55,7 +55,8 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 "Missing token",
                 &format!(
                     "Add a {:?} token after \"{}\".",
-                    expected, token.span.lexeme
+                    expected,
+                    token.lexeme.unwrap()
                 ),
                 token.span,
             );
@@ -63,19 +64,19 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
         ExecutionError::Parse(ParseError::InvalidAssignmentTarget { left }) => {
             print(
                 "Invalid assignment target",
-                &format!("No values can be assigned to {}", left.span.lexeme),
+                &format!("No values can be assigned to {}", left.lexeme.unwrap()),
                 left.span,
             );
         }
         ExecutionError::Parse(ParseError::UnexpectedToken { token }) => {
             print(
                 "Unexpected token",
-                &format!("Unexpected token {}.", token.span.lexeme),
+                &format!("Unexpected token {}.", token.lexeme.unwrap()),
                 token.span,
             );
         }
         ExecutionError::Interpret(InterpretError::ArityMismatch {
-            token,
+            span,
             expected,
             found,
         }) => {
@@ -85,24 +86,17 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                     "Function expects {} arguments, while provided {}.",
                     expected, found
                 ),
-                token.span,
+                span,
             );
         }
-        ExecutionError::Interpret(InterpretError::UnexpectedStatement { token }) => {
-            print(
-                "Unexpected statement",
-                &format!("Unexpected \"{}\" statement.", token.span.lexeme,),
-                token.span,
-            );
+        ExecutionError::Interpret(InterpretError::UnexpectedStatement { span }) => {
+            print("Unexpected statement", "Remove this.", span);
         }
-        ExecutionError::Interpret(InterpretError::NotCallable { token }) => {
+        ExecutionError::Interpret(InterpretError::NotCallable { span }) => {
             print(
                 "Not callable",
-                &format!(
-                    "Expression does not yield a callable {}.",
-                    token.span.lexeme,
-                ),
-                token.span,
+                "Expression does not yield a callable.",
+                span,
             );
         }
         /*ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
@@ -128,8 +122,9 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 "",
                 Span {
                     start: 0,
-                    lexeme: Rc::new("".to_string()),
+                    end: 0,
                     line: 0,
+                    line_end: 0,
                 },
             );
         }

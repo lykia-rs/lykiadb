@@ -1,13 +1,12 @@
-use std::rc::Rc;
-
 use crate::lang::token::Keyword;
 use crate::lang::token::Keyword::*;
 use crate::lang::token::SqlKeyword::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::*;
-use crate::lang::token::{Token, TokenType};
+use crate::lang::token::{Span, Token, TokenType};
 use crate::runtime::types::RV;
 use crate::{kw, skw, sym};
+use std::rc::Rc;
 
 use super::ast::expr::Expr;
 use super::ast::expr::ExprId;
@@ -30,13 +29,13 @@ pub struct Parser<'a> {
 }
 
 pub struct Parsed {
-    pub statements: Vec<StmtId>,
+    pub program: StmtId,
     pub arena: Rc<ParserArena>,
 }
 
 impl Parsed {
-    pub fn new(statements: Vec<StmtId>, arena: Rc<ParserArena>) -> Parsed {
-        Parsed { statements, arena }
+    pub fn new(program: StmtId, arena: Rc<ParserArena>) -> Parsed {
+        Parsed { program, arena }
     }
 }
 
@@ -56,7 +55,13 @@ macro_rules! binary {
             let token = (*$self.peek_bw(1)).clone();
             let left = current_expr;
             let right = $self.$builder()?;
-            current_expr = $self.arena.expression(Expr::Binary { left, token, right });
+
+            current_expr = $self.arena.expression(Expr::Binary {
+                left,
+                symbol: token.tok_type,
+                right,
+                span: Span { start: 0, end: 0, line: 0, line_end: 0 }
+            });
         }
         return Ok(current_expr);
     }
@@ -93,17 +98,25 @@ impl<'a> Parser<'a> {
             current: 0,
             arena,
         };
-        let statements = parser.program()?;
-        Ok(Parsed::new(statements, Rc::new(parser.arena)))
+        let program = parser.program()?;
+        Ok(Parsed::new(program, Rc::new(parser.arena)))
     }
 
-    fn program(&mut self) -> ParseResult<Vec<StmtId>> {
+    fn program(&mut self) -> ParseResult<StmtId> {
         let mut statements: Vec<StmtId> = Vec::new();
         while !self.is_at_end() {
             statements.push(self.declaration()?);
         }
         self.expected(Eof)?;
-        Ok(statements)
+        Ok(self.arena.statement(Stmt::Program {
+            stmts: statements,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+        }))
     }
 
     fn declaration(&mut self) -> ParseResult<StmtId> {
@@ -135,12 +148,24 @@ impl<'a> Parser<'a> {
                 condition,
                 body: if_branch,
                 r#else: Some(else_branch),
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
             }));
         }
         Ok(self.arena.statement(Stmt::If {
             condition,
             body: if_branch,
             r#else: None,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
         }))
     }
 
@@ -150,6 +175,12 @@ impl<'a> Parser<'a> {
             condition: None,
             body: inner_stmt,
             post: None,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
         }))
     }
 
@@ -163,6 +194,12 @@ impl<'a> Parser<'a> {
             condition: Some(condition),
             body: inner_stmt,
             post: None,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
         }))
     }
 
@@ -174,8 +211,20 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(Semicolon))?;
 
+        if expr.is_none() {
+            return Ok(self.arena.statement(Stmt::Return {
+                span: token.span,
+                expr: None,
+            }));
+        }
+
         Ok(self.arena.statement(Stmt::Return {
-            token: token.clone(),
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
             expr,
         }))
     }
@@ -202,7 +251,15 @@ impl<'a> Parser<'a> {
         } else {
             let wrapped = self.expression()?;
             self.expected(sym!(RightParen))?;
-            Some(self.arena.statement(Stmt::Expression(wrapped)))
+            Some(self.arena.statement(Stmt::Expression {
+                expr: wrapped,
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
+            }))
         };
 
         let inner_stmt = self.declaration()?;
@@ -212,16 +269,34 @@ impl<'a> Parser<'a> {
                 condition,
                 body: inner_stmt,
                 post: increment,
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
             }));
         }
         let loop_stmt = self.arena.statement(Stmt::Loop {
             condition,
             body: inner_stmt,
             post: increment,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
         });
-        Ok(self
-            .arena
-            .statement(Stmt::Block(vec![initializer.unwrap(), loop_stmt])))
+        Ok(self.arena.statement(Stmt::Block {
+            stmts: vec![initializer.unwrap(), loop_stmt],
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+        }))
     }
 
     fn block(&mut self) -> ParseResult<StmtId> {
@@ -233,35 +308,69 @@ impl<'a> Parser<'a> {
 
         self.expected(sym!(RightBrace))?;
 
-        Ok(self.arena.statement(Stmt::Block(statements)))
+        Ok(self.arena.statement(Stmt::Block {
+            stmts: statements,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+        }))
     }
 
     fn break_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Break(tok.clone())))
+        Ok(self.arena.statement(Stmt::Break { span: tok.span }))
     }
 
     fn continue_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Continue(tok.clone())))
+        Ok(self.arena.statement(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self) -> ParseResult<StmtId> {
         let expr = self.expression()?;
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Expression(expr)))
+        Ok(self.arena.statement(Stmt::Expression {
+            expr,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+        }))
     }
 
     fn var_declaration(&mut self) -> ParseResult<StmtId> {
         let token = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => self.arena.expression(Expr::Literal(RV::Null)),
+            false => self.arena.expression(Expr::Literal {
+                value: RV::Undefined,
+                raw: "undefined".to_string(),
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
+            }),
         };
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Declaration { token, expr }))
+        Ok(self.arena.statement(Stmt::Declaration {
+            dst: token,
+            expr,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+        }))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<ExprId> {
@@ -288,7 +397,7 @@ impl<'a> Parser<'a> {
         let block = self.arena.get_statement(bidx);
 
         let body: Vec<StmtId> = match block {
-            Stmt::Block(stmts) => stmts.clone(),
+            Stmt::Block { stmts, span: _ } => stmts.clone(),
             _ => vec![],
         };
 
@@ -296,6 +405,12 @@ impl<'a> Parser<'a> {
             name: token,
             parameters,
             body: Rc::new(body),
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
         }))
     }
 
@@ -310,10 +425,16 @@ impl<'a> Parser<'a> {
         if self.match_next(sym!(Equal)) {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
-                Expr::Variable(tok) => {
+                Expr::Variable { name, span: _ } => {
                     return Ok(self.arena.expression(Expr::Assignment {
-                        var_tok: tok.clone(),
+                        dst: name.clone(),
                         expr: value,
+                        span: Span {
+                            start: 0,
+                            end: 0,
+                            line: 0,
+                            line_end: 0,
+                        },
                     }));
                 }
                 _ => {
@@ -333,8 +454,14 @@ impl<'a> Parser<'a> {
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                token: op.clone(),
+                symbol: op.tok_type.clone(),
                 right,
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
             }));
         }
         Ok(expr)
@@ -347,8 +474,14 @@ impl<'a> Parser<'a> {
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                token: op.clone(),
+                symbol: op.tok_type.clone(),
                 right,
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
             }));
         }
         Ok(expr)
@@ -383,7 +516,16 @@ impl<'a> Parser<'a> {
         if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
-            return Ok(self.arena.expression(Expr::Unary { expr: unary, token }));
+            return Ok(self.arena.expression(Expr::Unary {
+                symbol: token.tok_type,
+                expr: unary,
+                span: Span {
+                    start: 0,
+                    end: 0,
+                    line: 0,
+                    line_end: 0,
+                },
+            }));
         }
         self.select()
     }
@@ -411,13 +553,21 @@ impl<'a> Parser<'a> {
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
-        Ok(self.arena.expression(Expr::Select(SqlSelect {
-            core,
-            compound: compounds,
-            order_by: None, // TODO(vck)
-            limit: None,    // TODO(vck)
-            offset: None,   // TODO(vck)
-        })))
+        Ok(self.arena.expression(Expr::Select {
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
+            query: SqlSelect {
+                core,
+                compound: compounds,
+                order_by: None, // TODO(vck)
+                limit: None,    // TODO(vck)
+                offset: None,   // TODO(vck)
+            },
+        }))
     }
 
     fn select_core(&mut self) -> ParseResult<SelectCore> {
@@ -498,7 +648,12 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.expression(Expr::Call {
             callee,
-            paren,
+            span: Span {
+                start: 0,
+                end: 0,
+                line: 0,
+                line_end: 0,
+            },
             args: arguments,
         }))
     }
@@ -521,17 +676,42 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            True => Ok(self.arena.expression(Expr::Literal(RV::Bool(true)))),
-            False => Ok(self.arena.expression(Expr::Literal(RV::Bool(false)))),
-            TokenType::Null => Ok(self.arena.expression(Expr::Literal(RV::Null))),
-            Str | Num => Ok(self
-                .arena
-                .expression(Expr::Literal(tok.literal.clone().unwrap()))),
-            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::Variable(tok.clone()))),
+            True => Ok(self.arena.expression(Expr::Literal {
+                value: RV::Bool(true),
+                raw: "true".to_string(),
+                span: tok.span,
+            })),
+            False => Ok(self.arena.expression(Expr::Literal {
+                value: RV::Bool(false),
+                raw: "false".to_string(),
+                span: tok.span,
+            })),
+            TokenType::Null => Ok(self.arena.expression(Expr::Literal {
+                value: RV::Null,
+                raw: "null".to_string(),
+                span: tok.span,
+            })),
+            Str | Num => Ok(self.arena.expression(Expr::Literal {
+                value: tok.literal.clone().unwrap(),
+                raw: tok.lexeme.clone().unwrap(),
+                span: tok.span,
+            })),
+            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::Variable {
+                name: tok.clone(),
+                span: tok.span,
+            })),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(self.arena.expression(Expr::Grouping(expr)))
+                Ok(self.arena.expression(Expr::Grouping {
+                    span: Span {
+                        start: 0,
+                        end: 0,
+                        line: 0,
+                        line_end: 0,
+                    },
+                    expr,
+                }))
             }
             _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),
         }
@@ -613,13 +793,14 @@ mod test {
         compare_parsed_to_expected(
             "1;",
             json!({
-                "type": "Program",
+                "type": "Stmt::Program",
                 "body": [
                     {
                         "type": "Stmt::Expression",
                         "value": {
                             "type": "Expr::Literal",
                             "value": "Num(1.0)",
+                            "raw": "1"
                         }
                     }
                 ]
@@ -632,16 +813,19 @@ mod test {
         compare_parsed_to_expected(
             "-1;",
             json!({
-                "type": "Program",
+                "type": "Stmt::Program",
                 "body": [
                     {
                         "type": "Stmt::Expression",
                         "value": {
                             "type": "Expr::Unary",
-                            "operator": "-",
+                            "operator": {
+                                "Symbol": "Minus"
+                            },
                             "value": {
                                 "type": "Expr::Literal",
                                 "value": "Num(1.0)",
+                                "raw": "1"
                             }
                         }
                     }
@@ -655,7 +839,7 @@ mod test {
         compare_parsed_to_expected(
             "1 + 2;",
             json!({
-                "type": "Program",
+                "type": "Stmt::Program",
                 "body": [
                     {
                         "type": "Stmt::Expression",
@@ -664,11 +848,15 @@ mod test {
                             "left": {
                                 "type": "Expr::Literal",
                                 "value": "Num(1.0)",
+                                "raw": "1"
                             },
-                            "operator": "+",
+                            "operator": {
+                                "Symbol": "Plus"
+                            },
                             "right": {
                                 "type": "Expr::Literal",
                                 "value": "Num(2.0)",
+                                "raw": "2"
                             }
                         }
                     }
@@ -682,7 +870,7 @@ mod test {
         compare_parsed_to_expected(
             "(1 + 2) * (3 / (4 - 7));",
             json!({
-                "type": "Program",
+                "type": "Stmt::Program",
                 "body": [
                     {
                         "type": "Stmt::Expression",
@@ -693,36 +881,49 @@ mod test {
                                 "value": {
                                     "type": "Expr::Binary",
                                     "left": {
+                                        "raw": "1",
                                         "type": "Expr::Literal",
                                         "value": "Num(1.0)",
                                     },
-                                    "operator": "+",
+                                    "operator": {
+                                        "Symbol": "Plus"
+                                    },
                                     "right": {
+                                        "raw": "2",
                                         "type": "Expr::Literal",
                                         "value": "Num(2.0)",
                                     }
                                 }
                             },
-                            "operator": "*",
+                            "operator": {
+                                "Symbol": "Star"
+                            },
                             "right": {
                                 "type": "Expr::Grouping",
                                 "value": {
                                     "type": "Expr::Binary",
                                     "left": {
+                                        "raw": "3",
                                         "type": "Expr::Literal",
                                         "value": "Num(3.0)",
                                     },
-                                    "operator": "/",
+                                    "operator": {
+                                        "Symbol": "Slash"
+                                    },
                                     "right": {
                                         "type": "Expr::Grouping",
                                         "value": {
                                             "type": "Expr::Binary",
                                             "left": {
+                                                "raw": "4",
                                                 "type": "Expr::Literal",
                                                 "value": "Num(4.0)",
                                             },
-                                            "operator": "-",
+                                            "operator":  {
+                                                "Symbol": "Minus"
+                                            },
                                             "right": {
+                                                "raw": "7",
                                                 "type": "Expr::Literal",
                                                 "value": "Num(7.0)",
                                             }
@@ -742,7 +943,7 @@ mod test {
         compare_parsed_to_expected(
             "a;",
             json!({
-                "type": "Program",
+                "type": "Stmt::Program",
                 "body": [
                     {
                         "type": "Stmt::Expression",
