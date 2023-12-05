@@ -64,7 +64,7 @@ impl Environment {
         Ok(true)
     }
 
-    pub fn read(&self, name: &String) -> Result<RV, HaltReason> {
+    pub fn read(&self, name: &str) -> Result<RV, HaltReason> {
         if self.map.contains_key(name) {
             // TODO(vck): Remove clone
             return Ok(self.map.get(name).unwrap().clone());

@@ -144,7 +144,7 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, &symbol))
     }
 
-    fn look_up_variable(&self, name: &String, eid: ExprId) -> Result<RV, HaltReason> {
+    fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
         if let Some(unwrapped) = distance {
             self.env.borrow().read_at(unwrapped, name)
