@@ -1,5 +1,6 @@
 # λykiaDB
 [![CI](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2742afff15aa4858bfdd11ec30cce2b1)](https://app.codacy.com/gh/lykia-rs/lykiadb/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 <p align="center">
     <img alt="LykiaDB logo" height="200" width="200" src="https://vcankeklik.com/assets/img/logo.svg">
