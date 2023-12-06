@@ -120,12 +120,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             print(
                 &message,
                 "",
-                Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                Span::default(),
             );
         }
         _ => {}

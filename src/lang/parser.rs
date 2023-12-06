@@ -110,12 +110,7 @@ impl<'a> Parser<'a> {
         self.expected(Eof)?;
         Ok(self.arena.statement(Stmt::Program {
             stmts: statements,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -148,24 +143,14 @@ impl<'a> Parser<'a> {
                 condition,
                 body: if_branch,
                 r#else: Some(else_branch),
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }));
         }
         Ok(self.arena.statement(Stmt::If {
             condition,
             body: if_branch,
             r#else: None,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -175,12 +160,7 @@ impl<'a> Parser<'a> {
             condition: None,
             body: inner_stmt,
             post: None,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -194,12 +174,7 @@ impl<'a> Parser<'a> {
             condition: Some(condition),
             body: inner_stmt,
             post: None,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -219,12 +194,7 @@ impl<'a> Parser<'a> {
         }
 
         Ok(self.arena.statement(Stmt::Return {
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
             expr,
         }))
     }
@@ -253,12 +223,7 @@ impl<'a> Parser<'a> {
             self.expected(sym!(RightParen))?;
             Some(self.arena.statement(Stmt::Expression {
                 expr: wrapped,
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }))
         };
 
@@ -269,33 +234,18 @@ impl<'a> Parser<'a> {
                 condition,
                 body: inner_stmt,
                 post: increment,
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }));
         }
         let loop_stmt = self.arena.statement(Stmt::Loop {
             condition,
             body: inner_stmt,
             post: increment,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         });
         Ok(self.arena.statement(Stmt::Block {
             stmts: vec![initializer.unwrap(), loop_stmt],
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -310,12 +260,7 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.statement(Stmt::Block {
             stmts: statements,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -336,12 +281,7 @@ impl<'a> Parser<'a> {
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Expression {
             expr,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -352,24 +292,14 @@ impl<'a> Parser<'a> {
             false => self.arena.expression(Expr::Literal {
                 value: RV::Undefined,
                 raw: "undefined".to_string(),
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }),
         };
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Declaration {
             dst: token,
             expr,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -405,12 +335,7 @@ impl<'a> Parser<'a> {
             name: token,
             parameters,
             body: Rc::new(body),
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
         }))
     }
 
@@ -429,12 +354,7 @@ impl<'a> Parser<'a> {
                     return Ok(self.arena.expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
-                        span: Span {
-                            start: 0,
-                            end: 0,
-                            line: 0,
-                            line_end: 0,
-                        },
+                        span: Span::default(),
                     }));
                 }
                 _ => {
@@ -456,12 +376,7 @@ impl<'a> Parser<'a> {
                 left: expr,
                 symbol: op.tok_type.clone(),
                 right,
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }));
         }
         Ok(expr)
@@ -476,12 +391,7 @@ impl<'a> Parser<'a> {
                 left: expr,
                 symbol: op.tok_type.clone(),
                 right,
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }));
         }
         Ok(expr)
@@ -519,12 +429,7 @@ impl<'a> Parser<'a> {
             return Ok(self.arena.expression(Expr::Unary {
                 symbol: token.tok_type,
                 expr: unary,
-                span: Span {
-                    start: 0,
-                    end: 0,
-                    line: 0,
-                    line_end: 0,
-                },
+                span: Span::default(),
             }));
         }
         self.select()
@@ -554,12 +459,7 @@ impl<'a> Parser<'a> {
             compounds.push((compound_op, secondary_core))
         }
         Ok(self.arena.expression(Expr::Select {
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
             query: SqlSelect {
                 core,
                 compound: compounds,
@@ -648,12 +548,7 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.expression(Expr::Call {
             callee,
-            span: Span {
-                start: 0,
-                end: 0,
-                line: 0,
-                line_end: 0,
-            },
+            span: Span::default(),
             args: arguments,
         }))
     }
@@ -704,12 +599,7 @@ impl<'a> Parser<'a> {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
                 Ok(self.arena.expression(Expr::Grouping {
-                    span: Span {
-                        start: 0,
-                        end: 0,
-                        line: 0,
-                        line_end: 0,
-                    },
+                    span: Span::default(),
                     expr,
                 }))
             }
