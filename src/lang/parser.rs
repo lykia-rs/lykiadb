@@ -15,6 +15,7 @@ use super::ast::sql::SqlCompoundOperator;
 use super::ast::sql::SqlDistinct;
 use super::ast::sql::SqlExpr;
 use super::ast::sql::SqlFrom;
+use super::ast::sql::SqlOrdering;
 use super::ast::sql::SqlProjection;
 use super::ast::sql::SqlSelect;
 use super::ast::sql::SqlTableSubquery;
@@ -488,14 +489,35 @@ impl<'a> Parser<'a> {
             let secondary_core = self.select_core()?;
             compounds.push((compound_op, secondary_core))
         }
+        let order_by = if self.match_next(skw!(Order)) {
+            self.expected(skw!(By))?;
+            let mut ordering: Vec<(SqlExpr, SqlOrdering)> = vec![];
+
+            loop {
+                let order_expr = self.expression()?;
+                let order = if self.match_next(skw!(Desc)) {
+                    Some(SqlOrdering::Desc)
+                } else {
+                    Some(SqlOrdering::Asc)
+                };
+                ordering.push((SqlExpr::Default(order_expr), order.unwrap()));
+                if !self.match_next(sym!(Comma)) {
+                    break;
+                }
+            }
+
+            Some(ordering)
+        } else {
+            None
+        };
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
             query: SqlSelect {
                 core,
                 compound: compounds,
-                order_by: None, // TODO(vck)
-                limit: None,    // TODO(vck)
-                offset: None,   // TODO(vck)
+                order_by,
+                limit: None,  // TODO(vck)
+                offset: None, // TODO(vck)
             },
         }))
     }
@@ -566,29 +588,32 @@ impl<'a> Parser<'a> {
         Ok(None)
     }
 
-    fn finish_call(&mut self, callee: ExprId) -> ParseResult<ExprId> {
-        let mut arguments: Vec<ExprId> = vec![];
-        if !self.cmp_tok(&sym!(RightParen)) {
-            arguments.push(self.expression()?);
-            while self.match_next(sym!(Comma)) {
-                arguments.push(self.expression()?);
-            }
-        }
-        let paren = self.expected(sym!(RightParen))?.clone();
-
-        Ok(self.arena.expression(Expr::Call {
-            callee,
-            span: self.get_merged_span(&self.arena.get_expression(callee).get_span(), &paren.span),
-            args: arguments,
-        }))
-    }
-
     fn call(&mut self) -> ParseResult<ExprId> {
         let mut expr = self.primary()?;
 
         loop {
             if self.match_next(sym!(LeftParen)) {
-                expr = self.finish_call(expr)?;
+                expr = {
+                    let mut arguments: Vec<ExprId> = vec![];
+
+                    if !self.cmp_tok(&sym!(RightParen)) {
+                        arguments.push(self.expression()?);
+                        while self.match_next(sym!(Comma)) {
+                            arguments.push(self.expression()?);
+                        }
+                    }
+
+                    let paren = self.expected(sym!(RightParen))?.clone();
+
+                    self.arena.expression(Expr::Call {
+                        callee: expr,
+                        span: self.get_merged_span(
+                            &self.arena.get_expression(expr).get_span(),
+                            &paren.span,
+                        ),
+                        args: arguments,
+                    })
+                }
             } else {
                 break;
             }

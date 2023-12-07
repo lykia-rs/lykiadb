@@ -35,6 +35,11 @@ pub enum SqlOrdering {
 //
 
 #[derive(Debug, Eq, PartialEq)]
+pub enum SqlExpr {
+    Default(ExprId),
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum SqlFrom {
     TableSubquery(Vec<SqlTableSubquery>),
     JoinClause(Box<SqlJoinClause>),
@@ -47,6 +52,12 @@ pub enum SqlProjection {
         table: Token
     },*/
     Complex { expr: SqlExpr, alias: Option<Token> },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinClause {
+    None(SqlTableSubquery),
+    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -66,12 +77,6 @@ pub enum SqlTableSubquery {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlJoinClause {
-    None(SqlTableSubquery),
-    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>),
-}
-
-#[derive(Debug, Eq, PartialEq)]
 pub struct SelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
@@ -85,12 +90,7 @@ pub struct SelectCore {
 pub struct SqlSelect {
     pub core: SelectCore,
     pub compound: Vec<(SqlCompoundOperator, SelectCore)>,
-    pub order_by: Option<(SqlExpr, Option<SqlOrdering>)>,
+    pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
     pub limit: Option<SqlExpr>,
     pub offset: Option<SqlExpr>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SqlExpr {
-    Default(ExprId),
 }

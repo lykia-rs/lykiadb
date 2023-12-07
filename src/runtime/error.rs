@@ -68,7 +68,10 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
         ExecutionError::Parse(ParseError::UnexpectedToken { token }) => {
             print(
                 "Unexpected token",
-                &format!("Unexpected token {}.", token.lexeme.unwrap()),
+                &format!(
+                    "Unexpected token {}.",
+                    token.lexeme.unwrap_or("None".to_string())
+                ),
                 token.span,
             );
         }
