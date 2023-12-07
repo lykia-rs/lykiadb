@@ -3,10 +3,9 @@ use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{ParserArena, Visitor};
-use crate::lang::token::Symbol::*;
-use crate::lang::token::Token;
 use crate::lang::token::TokenType;
 use crate::lang::token::{Keyword::*, Span};
+use crate::lang::token::{Spanned, Symbol::*};
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
@@ -229,7 +228,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 symbol,
                 expr,
                 span: _,
-            } => self.eval_unary(&symbol, *expr),
+            } => self.eval_unary(symbol, *expr),
             Expr::Binary {
                 symbol,
                 left,
@@ -300,7 +299,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     }
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: *span,
+                        span: self.arena.get_expression(*callee).get_span(),
                     }))
                 }
             }

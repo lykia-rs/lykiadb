@@ -2,10 +2,42 @@ use crate::lang::token::Token;
 
 use super::expr::ExprId;
 
+// Enums
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlDistinct {
     All,
     Distinct,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlJoinType {
+    Left,
+    LeftOuter,
+    Right,
+    Inner,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlCompoundOperator {
+    Union,
+    UnionAll,
+    Intersect,
+    Except,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlOrdering {
+    Asc,
+    Desc,
+}
+
+//
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlFrom {
+    TableSubquery(Vec<SqlTableSubquery>),
+    JoinClause(Box<SqlJoinClause>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -34,37 +66,9 @@ pub enum SqlTableSubquery {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlJoinType {
-    Left,
-    LeftOuter,
-    Right,
-    Inner,
-}
-
-#[derive(Debug, Eq, PartialEq)]
 pub enum SqlJoinClause {
     None(SqlTableSubquery),
     Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>),
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SqlCompoundOperator {
-    Union,
-    UnionAll,
-    Intersect,
-    Except,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SqlOrdering {
-    Asc,
-    Desc,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SqlFrom {
-    TableSubquery(Vec<SqlTableSubquery>),
-    JoinClause(Box<SqlJoinClause>),
 }
 
 #[derive(Debug, Eq, PartialEq)]

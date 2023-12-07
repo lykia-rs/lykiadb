@@ -61,7 +61,10 @@ macro_rules! binary {
                 left,
                 symbol: token.tok_type,
                 right,
-                span: Span::default()
+                span: $self.get_merged_span(
+                    $self.arena.get_expression(left),
+                    $self.arena.get_expression(right),
+                ),
             });
         }
         return Ok(current_expr);
@@ -110,8 +113,11 @@ impl<'a> Parser<'a> {
         }
         self.expected(Eof)?;
         Ok(self.arena.statement(Stmt::Program {
-            stmts: statements,
-            span: Span::default(),
+            stmts: statements.clone(),
+            span: self.get_merged_span(
+                self.arena.get_statement(statements[0]),
+                self.arena.get_statement(statements[statements.len() - 1]),
+            ),
         }))
     }
 
@@ -133,6 +139,7 @@ impl<'a> Parser<'a> {
     }
 
     fn if_statement(&mut self) -> ParseResult<StmtId> {
+        let if_tok = self.peek_bw(1);
         self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
         self.expected(sym!(RightParen))?;
@@ -144,28 +151,30 @@ impl<'a> Parser<'a> {
                 condition,
                 body: if_branch,
                 r#else: Some(else_branch),
-                span: Span::default(),
+                span: self.get_merged_span(&if_tok.span, self.arena.get_statement(else_branch)),
             }));
         }
         Ok(self.arena.statement(Stmt::If {
             condition,
             body: if_branch,
             r#else: None,
-            span: Span::default(),
+            span: self.get_merged_span(&if_tok.span, self.arena.get_statement(if_branch)),
         }))
     }
 
     fn loop_statement(&mut self) -> ParseResult<StmtId> {
+        let loop_tok = self.peek_bw(1);
         let inner_stmt = self.declaration()?;
         Ok(self.arena.statement(Stmt::Loop {
             condition: None,
             body: inner_stmt,
             post: None,
-            span: Span::default(),
+            span: self.get_merged_span(&loop_tok.span, self.arena.get_statement(inner_stmt)),
         }))
     }
 
     fn while_statement(&mut self) -> ParseResult<StmtId> {
+        let while_tok = self.peek_bw(1);
         self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
         self.expected(sym!(RightParen))?;
@@ -175,12 +184,12 @@ impl<'a> Parser<'a> {
             condition: Some(condition),
             body: inner_stmt,
             post: None,
-            span: Span::default(),
+            span: self.get_merged_span(&while_tok.span, self.arena.get_statement(inner_stmt)),
         }))
     }
 
     fn return_statement(&mut self) -> ParseResult<StmtId> {
-        let token = self.peek_bw(1);
+        let ret_tok = self.peek_bw(1);
         let mut expr: Option<ExprId> = None;
         if !self.cmp_tok(&sym!(Semicolon)) {
             expr = Some(self.expression()?);
@@ -189,18 +198,19 @@ impl<'a> Parser<'a> {
 
         if expr.is_none() {
             return Ok(self.arena.statement(Stmt::Return {
-                span: token.span,
+                span: ret_tok.span,
                 expr: None,
             }));
         }
 
         Ok(self.arena.statement(Stmt::Return {
-            span: Span::default(),
+            span: self.get_merged_span(&ret_tok.span, self.arena.get_expression(expr.unwrap())),
             expr,
         }))
     }
 
     fn for_statement(&mut self) -> ParseResult<StmtId> {
+        let for_tok = self.peek_bw(1);
         self.expected(sym!(LeftParen))?;
 
         let initializer = if self.match_next(sym!(Semicolon)) {
@@ -224,7 +234,7 @@ impl<'a> Parser<'a> {
             self.expected(sym!(RightParen))?;
             Some(self.arena.statement(Stmt::Expression {
                 expr: wrapped,
-                span: Span::default(),
+                span: self.arena.get_expression(wrapped).get_span(),
             }))
         };
 
@@ -235,18 +245,18 @@ impl<'a> Parser<'a> {
                 condition,
                 body: inner_stmt,
                 post: increment,
-                span: Span::default(),
+                span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
             }));
         }
         let loop_stmt = self.arena.statement(Stmt::Loop {
             condition,
             body: inner_stmt,
             post: increment,
-            span: Span::default(),
+            span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         });
         Ok(self.arena.statement(Stmt::Block {
             stmts: vec![initializer.unwrap(), loop_stmt],
-            span: Span::default(),
+            span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         }))
     }
 
@@ -260,8 +270,11 @@ impl<'a> Parser<'a> {
         self.expected(sym!(RightBrace))?;
 
         Ok(self.arena.statement(Stmt::Block {
-            stmts: statements,
-            span: Span::default(),
+            stmts: statements.clone(),
+            span: self.get_merged_span(
+                self.arena.get_statement(statements[0]),
+                self.arena.get_statement(statements[statements.len() - 1]),
+            ),
         }))
     }
 
@@ -282,29 +295,32 @@ impl<'a> Parser<'a> {
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Expression {
             expr,
-            span: Span::default(),
+            span: self.arena.get_expression(expr).get_span(),
         }))
     }
 
     fn var_declaration(&mut self) -> ParseResult<StmtId> {
-        let token = self.expected(Identifier { dollar: true })?.clone();
+        let var_tok = self.peek_bw(1);
+        let ident = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
             false => self.arena.expression(Expr::Literal {
                 value: RV::Undefined,
                 raw: "undefined".to_string(),
-                span: Span::default(),
+                span: self.get_merged_span(&var_tok.span, &ident.span),
             }),
         };
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.statement(Stmt::Declaration {
-            dst: token,
+            dst: ident,
             expr,
-            span: Span::default(),
+            span: self.get_merged_span(&var_tok.span, &self.arena.get_expression(expr).get_span()),
         }))
     }
 
     fn fun_declaration(&mut self) -> ParseResult<ExprId> {
+        let fun_tok = self.peek_bw(1);
+
         let token = if self.cmp_tok(&Identifier { dollar: false }) {
             Some(self.expected(Identifier { dollar: false })?.clone())
         } else {
@@ -323,20 +339,23 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightParen))?;
         self.expected(sym!(LeftBrace))?;
-        let bidx = self.block()?;
+        let stmt_idx = self.block()?;
 
-        let block = self.arena.get_statement(bidx);
+        let inner_stmt = self.arena.get_statement(stmt_idx);
 
-        let body: Vec<StmtId> = match block {
+        let body: Vec<StmtId> = match inner_stmt {
             Stmt::Block { stmts, span: _ } => stmts.clone(),
-            _ => vec![],
+            _ => vec![stmt_idx],
         };
 
         Ok(self.arena.expression(Expr::Function {
             name: token,
             parameters,
             body: Rc::new(body),
-            span: Span::default(),
+            span: self.get_merged_span(
+                &fun_tok.span,
+                &self.arena.get_statement(stmt_idx).get_span(),
+            ),
         }))
     }
 
@@ -355,7 +374,10 @@ impl<'a> Parser<'a> {
                     return Ok(self.arena.expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
-                        span: Span::default(),
+                        span: self.get_merged_span(
+                            &name.span,
+                            &self.arena.get_expression(value).get_span(),
+                        ),
                     }));
                 }
                 _ => {
@@ -377,7 +399,10 @@ impl<'a> Parser<'a> {
                 left: expr,
                 symbol: op.tok_type.clone(),
                 right,
-                span: Span::default(),
+                span: self.get_merged_span(
+                    self.arena.get_expression(expr),
+                    self.arena.get_expression(right),
+                ),
             }));
         }
         Ok(expr)
@@ -392,7 +417,7 @@ impl<'a> Parser<'a> {
                 left: expr,
                 symbol: op.tok_type.clone(),
                 right,
-                span: self.get_span(
+                span: self.get_merged_span(
                     self.arena.get_expression(expr),
                     self.arena.get_expression(right),
                 ),
@@ -433,7 +458,8 @@ impl<'a> Parser<'a> {
             return Ok(self.arena.expression(Expr::Unary {
                 symbol: token.tok_type,
                 expr: unary,
-                span: Span::default(),
+                span: self
+                    .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
             }));
         }
         self.select()
@@ -552,7 +578,7 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.expression(Expr::Call {
             callee,
-            span: Span::default(),
+            span: self.get_merged_span(&self.arena.get_expression(callee).get_span(), &paren.span),
             args: arguments,
         }))
     }
@@ -603,7 +629,7 @@ impl<'a> Parser<'a> {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
                 Ok(self.arena.expression(Expr::Grouping {
-                    span: Span::default(),
+                    span: self.arena.get_expression(expr).get_span(),
                     expr,
                 }))
             }
@@ -660,7 +686,7 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn get_span(&self, left: &impl Spanned, right: &impl Spanned) -> Span {
+    fn get_merged_span(&self, left: &impl Spanned, right: &impl Spanned) -> Span {
         let left_span = &left.get_span();
         let right_span = &right.get_span();
         left_span.merge(right_span)

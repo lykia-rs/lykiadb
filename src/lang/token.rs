@@ -275,6 +275,12 @@ pub trait Spanned {
     fn get_span(&self) -> Span;
 }
 
+impl Spanned for Span {
+    fn get_span(&self) -> Span {
+        *self
+    }
+}
+
 impl Span {
     pub fn default() -> Span {
         Span {

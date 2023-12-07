@@ -1,8 +1,5 @@
-use std::rc::Rc;
-
-use crate::lang::{parser::ParseError, scanner::ScanError, token::Span};
-
 use super::{interpreter::InterpretError, resolver::ResolveError};
+use crate::lang::{parser::ParseError, scanner::ScanError, token::Span};
 
 #[derive(Debug, Clone)]
 pub enum ExecutionError {

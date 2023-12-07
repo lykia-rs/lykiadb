@@ -117,11 +117,11 @@ impl Visitor<RV, ResolveError> for Resolver {
                         });
                     }
                 }
-                self.resolve_local(eidx, &name);
+                self.resolve_local(eidx, name);
             }
             Expr::Assignment { dst, expr, span: _ } => {
                 self.resolve_expr(*expr);
-                self.resolve_local(eidx, &dst);
+                self.resolve_local(eidx, dst);
             }
             Expr::Logical {
                 left,
@@ -183,9 +183,9 @@ impl Visitor<RV, ResolveError> for Resolver {
                 self.resolve_expr(*expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                self.declare(&dst);
+                self.declare(dst);
                 self.resolve_expr(*expr);
-                self.define(&dst);
+                self.define(dst);
             }
             Stmt::If {
                 condition,
