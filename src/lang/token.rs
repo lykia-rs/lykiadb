@@ -1,6 +1,7 @@
-use crate::runtime::types::RV;
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
+
+use super::ast::Literal;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
@@ -258,7 +259,7 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Token {
     pub tok_type: TokenType,
-    pub literal: Option<RV>,
+    pub literal: Option<Literal>,
     pub lexeme: Option<String>,
     pub span: Span,
 }

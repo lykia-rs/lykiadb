@@ -1,28 +1,15 @@
-use crate::lang::token::Keyword;
-use crate::lang::token::Keyword::*;
-use crate::lang::token::SqlKeyword::*;
-use crate::lang::token::Symbol::*;
-use crate::lang::token::TokenType::*;
-use crate::lang::token::{Span, Token, TokenType};
-use crate::runtime::types::RV;
+use super::ast::expr::{Expr, ExprId};
+use super::ast::sql::{
+    SelectCore, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom, SqlOrdering, SqlProjection,
+    SqlSelect, SqlTableSubquery,
+};
+use super::ast::stmt::{Stmt, StmtId};
+use super::ast::{Literal, ParserArena};
+use crate::lang::token::{
+    Keyword, Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
+};
 use crate::{kw, skw, sym};
 use std::rc::Rc;
-
-use super::ast::expr::Expr;
-use super::ast::expr::ExprId;
-use super::ast::sql::SelectCore;
-use super::ast::sql::SqlCompoundOperator;
-use super::ast::sql::SqlDistinct;
-use super::ast::sql::SqlExpr;
-use super::ast::sql::SqlFrom;
-use super::ast::sql::SqlOrdering;
-use super::ast::sql::SqlProjection;
-use super::ast::sql::SqlSelect;
-use super::ast::sql::SqlTableSubquery;
-use super::ast::stmt::Stmt;
-use super::ast::stmt::StmtId;
-use super::ast::ParserArena;
-use super::token::Spanned;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -306,7 +293,7 @@ impl<'a> Parser<'a> {
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
             false => self.arena.expression(Expr::Literal {
-                value: RV::Undefined,
+                value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: self.get_merged_span(&var_tok.span, &ident.span),
             }),
@@ -627,17 +614,17 @@ impl<'a> Parser<'a> {
         self.current += 1;
         match &tok.tok_type {
             True => Ok(self.arena.expression(Expr::Literal {
-                value: RV::Bool(true),
+                value: Literal::Bool(true),
                 raw: "true".to_string(),
                 span: tok.span,
             })),
             False => Ok(self.arena.expression(Expr::Literal {
-                value: RV::Bool(false),
+                value: Literal::Bool(false),
                 raw: "false".to_string(),
                 span: tok.span,
             })),
             TokenType::Null => Ok(self.arena.expression(Expr::Literal {
-                value: RV::Null,
+                value: Literal::Null,
                 raw: "null".to_string(),
                 span: tok.span,
             })),

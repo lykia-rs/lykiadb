@@ -1,11 +1,24 @@
+use std::rc::Rc;
+
 use self::{
     expr::{Expr, ExprId},
     stmt::{Stmt, StmtId},
 };
-
 pub mod expr;
 pub mod sql;
 pub mod stmt;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Literal {
+    Str(Rc<String>),
+    Num(f64),
+    Bool(bool),
+    Undefined,
+    NaN,
+    Null,
+}
+
+impl Eq for Literal {}
 
 pub trait Visitor<T, Q> {
     fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;

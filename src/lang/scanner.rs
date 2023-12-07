@@ -1,7 +1,7 @@
+use crate::lang::ast::Literal::*;
 use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::{Eof, Identifier};
 use crate::lang::token::*;
-use crate::runtime::types::RV::*;
 use crate::sym;
 use std::rc::Rc;
 

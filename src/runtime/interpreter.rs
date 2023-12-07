@@ -2,7 +2,7 @@ use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{ParserArena, Visitor};
+use crate::lang::ast::{Literal, ParserArena, Visitor};
 use crate::lang::token::TokenType;
 use crate::lang::token::{Keyword::*, Span};
 use crate::lang::token::{Spanned, Symbol::*};
@@ -209,6 +209,17 @@ impl Interpreter {
         }
         ret
     }
+
+    pub fn literal_to_rv(&self, literal: &Literal) -> RV {
+        match literal {
+            Literal::Str(s) => RV::Str(Rc::clone(s)),
+            Literal::Num(n) => RV::Num(*n),
+            Literal::Bool(b) => RV::Bool(*b),
+            Literal::Undefined => RV::Undefined,
+            Literal::NaN => RV::NaN,
+            Literal::Null => RV::Null,
+        }
+    }
 }
 
 impl Visitor<RV, HaltReason> for Interpreter {
@@ -222,13 +233,13 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 value,
                 raw,
                 span: _,
-            } => Ok(value.clone()),
+            } => Ok(self.literal_to_rv(&value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
             Expr::Unary {
                 symbol,
                 expr,
                 span: _,
-            } => self.eval_unary(symbol, *expr),
+            } => self.eval_unary(&symbol, *expr),
             Expr::Binary {
                 symbol,
                 left,

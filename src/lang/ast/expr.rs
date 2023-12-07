@@ -1,11 +1,7 @@
 use std::rc::Rc;
 
-use crate::{
-    lang::token::{Span, Spanned, Token, TokenType},
-    runtime::types::RV,
-};
-
-use super::{sql::SqlSelect, stmt::StmtId};
+use super::{sql::SqlSelect, stmt::StmtId, Literal};
+use crate::lang::token::{Span, Spanned, Token, TokenType};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
@@ -22,7 +18,7 @@ pub enum Expr {
         span: Span,
     },
     Literal {
-        value: RV,
+        value: Literal,
         raw: String,
         span: Span,
     },
