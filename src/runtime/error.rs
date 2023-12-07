@@ -117,11 +117,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             );
         }*/
         ExecutionError::Interpret(InterpretError::Other { message }) => {
-            print(
-                &message,
-                "",
-                Span::default(),
-            );
+            print(&message, "", Span::default());
         }
         _ => {}
     }

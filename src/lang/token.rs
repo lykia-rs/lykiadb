@@ -271,8 +271,12 @@ pub struct Span {
     pub line_end: u32,
 }
 
+pub trait Spanned {
+    fn get_span(&self) -> Span;
+}
+
 impl Span {
-    pub fn default () -> Span {
+    pub fn default() -> Span {
         Span {
             start: 0,
             end: 0,

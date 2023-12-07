@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    lang::token::{Span, Token, TokenType},
+    lang::token::{Span, Spanned, Token, TokenType},
     runtime::types::RV,
 };
 
@@ -59,6 +59,54 @@ pub enum Expr {
         args: Vec<ExprId>,
         span: Span,
     },
+}
+
+impl Spanned for Expr {
+    fn get_span(&self) -> Span {
+        match self {
+            Expr::Select { query: _, span }
+            | Expr::Variable { name: _, span }
+            | Expr::Grouping { expr: _, span }
+            | Expr::Literal {
+                value: _,
+                raw: _,
+                span,
+            }
+            | Expr::Function {
+                name: _,
+                parameters: _,
+                body: _,
+                span,
+            }
+            | Expr::Binary {
+                left: _,
+                symbol: _,
+                right: _,
+                span,
+            }
+            | Expr::Unary {
+                symbol: _,
+                expr: _,
+                span,
+            }
+            | Expr::Assignment {
+                dst: _,
+                expr: _,
+                span,
+            }
+            | Expr::Logical {
+                left: _,
+                symbol: _,
+                right: _,
+                span,
+            }
+            | Expr::Call {
+                callee: _,
+                args: _,
+                span,
+            } => *span,
+        }
+    }
 }
 
 #[repr(transparent)]

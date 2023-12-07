@@ -21,6 +21,7 @@ use super::ast::sql::SqlTableSubquery;
 use super::ast::stmt::Stmt;
 use super::ast::stmt::StmtId;
 use super::ast::ParserArena;
+use super::token::Spanned;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
@@ -60,7 +61,7 @@ macro_rules! binary {
                 left,
                 symbol: token.tok_type,
                 right,
-                span: Span { start: 0, end: 0, line: 0, line_end: 0 }
+                span: Span::default()
             });
         }
         return Ok(current_expr);
@@ -391,7 +392,10 @@ impl<'a> Parser<'a> {
                 left: expr,
                 symbol: op.tok_type.clone(),
                 right,
-                span: Span::default(),
+                span: self.get_span(
+                    self.arena.get_expression(expr),
+                    self.arena.get_expression(right),
+                ),
             }));
         }
         Ok(expr)
@@ -655,6 +659,12 @@ impl<'a> Parser<'a> {
         }
         false
     }
+
+    fn get_span(&self, left: &impl Spanned, right: &impl Spanned) -> Span {
+        let left_span = &left.get_span();
+        let right_span = &right.get_span();
+        left_span.merge(right_span)
+    }
 }
 
 #[cfg(test)]
@@ -831,7 +841,7 @@ mod test {
     #[test]
     fn test_parse_variable_expression() {
         compare_parsed_to_expected(
-            "a;",
+            "$a;",
             json!({
                 "type": "Stmt::Program",
                 "body": [
@@ -839,7 +849,7 @@ mod test {
                         "type": "Stmt::Expression",
                         "value": {
                             "type": "Expr::Variable",
-                            "value": "a",
+                            "value": "$a",
                         }
                     }
                 ]
