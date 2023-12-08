@@ -40,7 +40,7 @@ $ cargo run
 Alternatively, you can run a Lykia script by passing its name as the first argument.
 
 ```shell 
-$ cargo run examples/fib.ly
+$ cargo run server/examples/fib.ly
 ```
 
 ## License
