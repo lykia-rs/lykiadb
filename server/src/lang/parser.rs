@@ -497,14 +497,33 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+
+        let limit = if self.match_next(skw!(Limit)) {
+            let first_expr = SqlExpr::Default(self.expression()?);
+            let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
+                (Some(SqlExpr::Default(self.expression()?)), true)
+            } else if self.match_next(sym!(Comma)) {
+                (Some(SqlExpr::Default(self.expression()?)), false)
+            } else {
+                (None, false)
+            };
+
+            if second_expr.is_some() && reverse {
+                Some((second_expr.unwrap(), Some(first_expr)))
+            } else {
+                Some((first_expr, second_expr))
+            }
+        } else {
+            None
+        };
+
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
             query: SqlSelect {
                 core,
                 compound: compounds,
                 order_by,
-                limit: None,  // TODO(vck)
-                offset: None, // TODO(vck)
+                limit,
             },
         }))
     }

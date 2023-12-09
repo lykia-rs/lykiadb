@@ -91,6 +91,5 @@ pub struct SqlSelect {
     pub core: SelectCore,
     pub compound: Vec<(SqlCompoundOperator, SelectCore)>,
     pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
-    pub limit: Option<SqlExpr>,
-    pub offset: Option<SqlExpr>,
+    pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
 }
