@@ -520,14 +520,42 @@ impl<'a> Parser<'a> {
             SqlDistinct::All
         }*/
 
+        let projection = self.sql_projection();
+        let from = self.sql_from()?;
+        let r#where = self.sql_where()?;
+        let group_by = self.sql_group_by()?;
+        let having = if group_by.is_some() && self.match_next(skw!(Having)) {
+            Some(SqlExpr::Default(self.expression()?))
+        } else {
+            None
+        };
+
         Ok(SelectCore {
             distinct,
-            projection: self.sql_projection(),
-            from: self.sql_from()?,
-            r#where: self.sql_where()?,
-            group_by: None, // TODO(vck)
-            having: None,   // TODO(vck)
+            projection,
+            from,
+            r#where,
+            group_by,
+            having,
         })
+    }
+
+    fn sql_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
+        if self.match_next(skw!(Group)) {
+            self.expected(skw!(By))?;
+            let mut groups: Vec<SqlExpr> = vec![];
+
+            loop {
+                let group_expr = self.expression()?;
+                groups.push(SqlExpr::Default(group_expr));
+                if !self.match_next(sym!(Comma)) {
+                    break;
+                }
+            }
+            Ok(Some(groups))
+        } else {
+            Ok(None)
+        }
     }
 
     fn sql_projection(&mut self) -> Vec<SqlProjection> {

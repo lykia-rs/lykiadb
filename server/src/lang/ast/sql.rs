@@ -82,7 +82,7 @@ pub struct SelectCore {
     pub projection: Vec<SqlProjection>,
     pub from: Option<SqlFrom>,
     pub r#where: Option<SqlExpr>,
-    pub group_by: Option<SqlExpr>,
+    pub group_by: Option<Vec<SqlExpr>>,
     pub having: Option<SqlExpr>,
 }
 
