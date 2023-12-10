@@ -11,7 +11,7 @@ mod test {
                 {
                     if ($i == 2) continue;
                     if ($i == 8) break;
-                    print($i);
+                    TestUtils.out($i);
                 }
             }
         }",
@@ -34,7 +34,7 @@ mod test {
             if ($i > 17) break;
             if ($i < 15) continue;
             for (var $j = 0; $j < 10000000; $j = $j + 1) {
-                print($i + \":\" + $j);
+                TestUtils.out($i + \":\" + $j);
                 if ($j > 2) break;
             }
         }",
@@ -63,7 +63,7 @@ mod test {
         for (var $i = 0; $i < 10000000; $i = $i+1) {
             break;
             $q = $q + 1;
-            print(\"Shouldn't be shown\");
+            TestUtils.out(\"Shouldn't be shown\");
         }
         
         {
@@ -73,7 +73,7 @@ mod test {
                         {
                             {
                                 {
-                                    print($q);
+                                    TestUtils.out($q);
                                 }
                             }
                         }

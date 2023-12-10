@@ -706,8 +706,16 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            TokenType::Symbol(LeftBrace) => self.object_literal(tok),
-            TokenType::Symbol(LeftBracket) => self.array_literal(tok),
+            Symbol(LeftBrace) => self.object_literal(tok),
+            Symbol(LeftBracket) => self.array_literal(tok),
+            Symbol(LeftParen) => {
+                let expr = self.expression()?;
+                self.expected(sym!(RightParen))?;
+                Ok(self.arena.expression(Expr::Grouping {
+                    span: self.arena.get_expression(expr).get_span(),
+                    expr,
+                }))
+            }
             True => Ok(self.arena.expression(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
@@ -732,14 +740,6 @@ impl<'a> Parser<'a> {
                 name: tok.clone(),
                 span: tok.span,
             })),
-            Symbol(LeftParen) => {
-                let expr = self.expression()?;
-                self.expected(sym!(RightParen))?;
-                Ok(self.arena.expression(Expr::Grouping {
-                    span: self.arena.get_expression(expr).get_span(),
-                    expr,
-                }))
-            }
             _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),
         }
     }

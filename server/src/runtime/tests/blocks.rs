@@ -15,17 +15,17 @@ mod test {
            var $b = \"outer b\";
            {
               var $a = \"inner a\";
-              print($a);
-              print($b);
-              print($c);
+              TestUtils.out($a);
+              TestUtils.out($b);
+              TestUtils.out($c);
            }
-           print($a);
-           print($b);
-           print($c);
+           TestUtils.out($a);
+           TestUtils.out($b);
+           TestUtils.out($c);
         }
-        print($a);
-        print($b);
-        print($c);",
+        TestUtils.out($a);
+        TestUtils.out($b);
+        TestUtils.out($c);",
             vec![
                 RV::Str(Rc::new("inner a".to_string())),
                 RV::Str(Rc::new("outer b".to_string())),

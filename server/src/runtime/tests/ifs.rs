@@ -10,13 +10,13 @@ mod test {
             "var $a = 30;
 
         if ($a > 50) {
-            print(\"> 50\");
+            TestUtils.out(\"> 50\");
         }
         else if ($a > 20) {
-            print(\"50 > $a > 20\");
+            TestUtils.out(\"50 > $a > 20\");
         }
         else {
-            print(\"< 20\");
+            TestUtils.out(\"< 20\");
         }",
             vec![RV::Str(Rc::new("50 > $a > 20".to_string()))],
         );

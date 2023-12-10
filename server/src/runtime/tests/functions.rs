@@ -12,7 +12,7 @@ mod test {
         };
         
         fun g($q) {
-            print($q);
+            TestUtils.out($q);
         };
         
         for (var $i=0; $i<10; $i = $i + 1) {
@@ -40,7 +40,7 @@ mod test {
             var $i = 0;
             fun count() {
                 $i = $i + 1;
-                print($i);
+                TestUtils.out($i);
             };
         
             return count;
@@ -58,7 +58,7 @@ mod test {
             "var $a = \"global\";
         {
           fun showA() {
-            print($a);
+            TestUtils.out($a);
           };
         
           showA();
@@ -78,14 +78,14 @@ mod test {
             "var $a = \"global\";
         {
             fun showA() {
-                print($a);
+                TestUtils.out($a);
             };
 
             showA();
             var $a = \"block\";
             showA();
             fun showB() {
-                print($a);
+                TestUtils.out($a);
             };
             showB();
         }",
@@ -104,7 +104,7 @@ mod test {
             var $a = \"global\";
             {
               fun showA() {
-                print($a);
+                TestUtils.out($a);
               };
           
               showA();
@@ -125,13 +125,13 @@ mod test {
             "var $a = \"global\";
         {
           fun showA() {
-            print($a);
+            TestUtils.out($a);
           };
         
           var $a = \"block\";
           
           fun showB() {
-            print($a);
+            TestUtils.out($a);
           };
         
           //
@@ -156,7 +156,7 @@ mod test {
     fn test_anonymous_fn_0() {
         exec_assert(
             "var $pr = fun a() {
-                    print(\"hello\");
+                    TestUtils.out(\"hello\");
                 };
 
                 $pr();
@@ -173,7 +173,7 @@ mod test {
     fn test_anonymous_fn_1() {
         exec_assert(
             "(fun a() {
-                    print(\"hello\");
+                    TestUtils.out(\"hello\");
                   })();
 
                   a();
@@ -189,7 +189,7 @@ mod test {
     fn test_anonymous_fn_2() {
         exec_assert(
             "var $pr = fun() {
-                    print(\"hello\");
+                    TestUtils.out(\"hello\");
                 };
 
                 $pr();
@@ -202,7 +202,7 @@ mod test {
     fn test_anonymous_fn_3() {
         exec_assert(
             "(fun() {
-                    print(\"hello\");
+                    TestUtils.out(\"hello\");
                   })();
           ",
             vec![RV::Str(Rc::new("hello".to_string()))],
@@ -215,13 +215,13 @@ mod test {
             "var $a = \"global\";
         {
           var $showA = fun() {
-            print($a);
+            TestUtils.out($a);
           };
         
           var $a = \"block\";
           
           var $showB = fun() {
-            print($a);
+            TestUtils.out($a);
           };
         
           //

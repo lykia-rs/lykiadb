@@ -4,10 +4,10 @@ fun fib($n) {
   return fib($n - 2) + fib($n - 1);
 };
 
-var $start_ly = clock();
+var $start_ly = Time.clock();
 print(fib(35) == 9227465);
-print("elapsed (user defined):", clock() - $start_ly);
+print("elapsed (user defined):", Time.clock() - $start_ly);
 
-var $start_rs = clock();
-print(fib_nat(35) == 9227465);
-print("elapsed (native):", clock() - $start_rs);
+var $start_rs = Time.clock();
+print(Benchmark.fib(35) == 9227465);
+print("elapsed (native):", Time.clock() - $start_rs);

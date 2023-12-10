@@ -475,11 +475,11 @@ mod test {
     #[test]
     fn test_unary_evaluation() {
         let code = "
-            print(-2);
-            print(-(-2));
-            print(!3);
-            print(!!3);
-            print(!!!3);
+            TestUtils.out(-2);
+            TestUtils.out(-(-2));
+            TestUtils.out(!3);
+            TestUtils.out(!!3);
+            TestUtils.out(!!!3);
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
@@ -494,11 +494,11 @@ mod test {
     #[test]
     fn test_binary_evaluation() {
         let code = "
-            print(5-(-2));
-            print((5 + 2) * 4);
-            print(5 + 2 * 4);
-            print((13 + 4) * (7 + 3));
-            print(-5-2);
+            TestUtils.out(5-(-2));
+            TestUtils.out((5 + 2) * 4);
+            TestUtils.out(5 + 2 * 4);
+            TestUtils.out((13 + 4) * (7 + 3));
+            TestUtils.out(-5-2);
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
@@ -514,13 +514,13 @@ mod test {
     #[test]
     fn test_logical_evaluation() {
         let code = "
-            print(5 and 1);
-            print(5 or 1);
-            print(5 and 0);
-            print(5 or 0);
-            print(!(5 or 0));
-            print(!(5 or 0) or 1);
-            print(!(5 or 0) or (1 and 0));
+            TestUtils.out(5 and 1);
+            TestUtils.out(5 or 1);
+            TestUtils.out(5 and 0);
+            TestUtils.out(5 or 0);
+            TestUtils.out(!(5 or 0));
+            TestUtils.out(!(5 or 0) or 1);
+            TestUtils.out(!(5 or 0) or (1 and 0));
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);

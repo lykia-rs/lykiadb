@@ -7,16 +7,16 @@ mod loops;
 
 pub mod helpers {
 
+    use std::rc::Rc;
+
+    use rustc_hash::FxHashMap;
+
     use crate::runtime::environment::Environment;
     use crate::runtime::interpreter::{HaltReason, Interpreter};
-    use crate::runtime::std::fib::nt_fib;
-    use crate::runtime::std::json::{nt_json_decode, nt_json_encode};
-    use crate::runtime::std::time::nt_clock;
-    use crate::runtime::types::{Function, Stateful, RV};
+    use crate::runtime::std::stdlib;
+    use crate::runtime::types::{Stateful, RV, Function};
     use crate::runtime::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
-    use std::collections::HashMap;
-    use std::rc::Rc;
 
     #[derive(Clone)]
     pub struct Output {
@@ -51,41 +51,19 @@ pub mod helpers {
 
         let out = alloc_shared(Output::new());
 
-        let native_fns = HashMap::from([
-            (
-                "clock",
-                RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
-            ),
-            (
-                "print",
-                RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
-            ),
-            (
-                "fib_nat",
-                RV::Callable(Some(1), Rc::new(Function::Lambda { function: nt_fib })),
-            ),
-            (
-                "json_encode",
-                RV::Callable(
-                    Some(1),
-                    Rc::new(Function::Lambda {
-                        function: nt_json_encode,
-                    }),
-                ),
-            ),
-            (
-                "json_decode",
-                RV::Callable(
-                    Some(1),
-                    Rc::new(Function::Lambda {
-                        function: nt_json_decode,
-                    }),
-                ),
-            ),
-        ]);
+        let mut native_fns = stdlib();
 
+        let mut test_namespace = FxHashMap::default();
+
+        test_namespace.insert(
+            "out".to_owned(),
+            RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
+        );
+
+        native_fns.insert("TestUtils".to_owned(), RV::Object(test_namespace));
+        
         for (name, value) in native_fns {
-            env.borrow_mut().declare(name.to_string(), value);
+            env.borrow_mut().declare(name, value);
         }
 
         (
