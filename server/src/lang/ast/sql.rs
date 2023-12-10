@@ -41,30 +41,30 @@ pub enum SqlExpr {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlFrom {
-    TableSubquery(Vec<SqlTableSubquery>),
+    CollectionSubquery(Vec<SqlCollectionSubquery>),
     JoinClause(Box<SqlJoinClause>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlProjection {
     All,
-    /*AllColumnsOf{
-        table: Token
+    /*AllFieldsOf{
+        collection: Token
     },*/
     Complex { expr: SqlExpr, alias: Option<Token> },
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlJoinClause {
-    None(SqlTableSubquery),
-    Join(Vec<(SqlJoinType, SqlTableSubquery, SqlExpr)>),
+    None(SqlCollectionSubquery),
+    Join(Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)>),
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlTableSubquery {
+pub enum SqlCollectionSubquery {
     Simple {
         namespace: Option<Token>,
-        table: Token,
+        collection: Token,
         alias: Option<Token>,
     },
     From {

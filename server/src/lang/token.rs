@@ -117,7 +117,7 @@ pub enum SqlKeyword {
     Into,
     Values,
     Index,
-    Table,
+    Collection,
     //
     Select,
     From,
@@ -256,7 +256,7 @@ pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "REFERENCES" => skw!(SqlKeyword::References),
     "SET" => skw!(SqlKeyword::Set),
     "SYSTEM" => skw!(SqlKeyword::System),
-    "TABLE" => skw!(SqlKeyword::Table),
+    "COLLECTION" => skw!(SqlKeyword::Collection),
     "UNIQUE" => skw!(SqlKeyword::Unique),
     "READ" => skw!(SqlKeyword::Read),
     "WRITE" => skw!(SqlKeyword::Write),

@@ -1,7 +1,7 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
-    SelectCore, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom, SqlOrdering, SqlProjection,
-    SqlSelect, SqlTableSubquery,
+    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom,
+    SqlOrdering, SqlProjection, SqlSelect,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -596,17 +596,17 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        // TODO(vck): Add support for table selectors
+        // TODO(vck): Add support for collection selectors
         projections
     }
 
     fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
         if self.match_next(skw!(From)) {
             let token = self.expected(Identifier { dollar: false });
-            return Ok(Some(SqlFrom::TableSubquery(vec![
-                SqlTableSubquery::Simple {
+            return Ok(Some(SqlFrom::CollectionSubquery(vec![
+                SqlCollectionSubquery::Simple {
                     namespace: None,
-                    table: token.unwrap().clone(),
+                    collection: token.unwrap().clone(),
                     alias: None,
                 },
             ])));
