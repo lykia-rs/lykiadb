@@ -1,4 +1,3 @@
-use rustc_hash::FxHashMap;
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
     SelectCore, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom, SqlOrdering, SqlProjection,
@@ -10,6 +9,7 @@ use crate::lang::token::{
     Keyword, Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::{kw, skw, sym};
+use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
 pub struct Parser<'a> {
@@ -666,28 +666,48 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn object_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
+        let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
+        while !self.cmp_tok(&sym!(RightBrace)) {
+            let key = self.expected(Identifier { dollar: false })?.clone();
+            self.expected(sym!(Colon))?;
+            let value = self.expression()?;
+            obj_literal.insert(key.lexeme.unwrap(), value);
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+        self.expected(sym!(RightBrace))?;
+        Ok(self.arena.expression(Expr::Literal {
+            value: Literal::Object(obj_literal),
+            raw: "".to_string(),
+            span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
+        }))
+    }
+
+    fn array_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
+        let mut array_literal: Vec<ExprId> = vec![];
+        while !self.cmp_tok(&sym!(RightBracket)) {
+            let value = self.expression()?;
+            array_literal.push(value);
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+        self.expected(sym!(RightBracket))?;
+        Ok(self.arena.expression(Expr::Literal {
+            value: Literal::Array(array_literal),
+            raw: "".to_string(),
+            span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
+        }))
+    }
+
     fn primary(&mut self) -> ParseResult<ExprId> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
-            TokenType::Symbol(LeftBrace) => {
-                let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
-                while !self.cmp_tok(&sym!(RightBrace)) {
-                    let key = self.expected(Identifier { dollar: false })?.clone();
-                    self.expected(sym!(Colon))?;
-                    let value = self.expression()?;
-                    obj_literal.insert(key.lexeme.unwrap(), value);
-                    if !self.match_next(sym!(Comma)) {
-                        break;
-                    }
-                }
-                self.expected(sym!(RightBrace))?;
-                Ok(self.arena.expression(Expr::Literal {
-                    value: Literal::Object(obj_literal),
-                    raw: "".to_string(),
-                    span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
-                }))
-            }
+            TokenType::Symbol(LeftBrace) => self.object_literal(tok),
+            TokenType::Symbol(LeftBracket) => self.array_literal(tok),
             True => Ok(self.arena.expression(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),

@@ -12,6 +12,8 @@ pub enum Symbol {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
     BangEqual,
     Equal,
     EqualEqual,
@@ -175,6 +177,8 @@ pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
     '+' => sym!(Symbol::Plus),
     ';' => sym!(Symbol::Semicolon),
     '*' => sym!(Symbol::Star),
+    '[' => sym!(Symbol::LeftBracket),
+    ']' => sym!(Symbol::RightBracket),
 };
 
 pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {

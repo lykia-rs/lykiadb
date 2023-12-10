@@ -17,6 +17,7 @@ pub enum Literal {
     Bool(bool),
     Undefined,
     Object(FxHashMap<String, ExprId>),
+    Array(Vec<ExprId>),
     NaN,
     Null,
 }

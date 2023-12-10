@@ -229,7 +229,7 @@ impl Scanner {
             ' ' | '\r' | '\t' => (),
             '"' => self.string()?,
             '0'..='9' => self.number()?,
-            'A'..='z' => self.identifier(false),
+            'A'..='Z' | 'a'..='z' | '_' => self.identifier(false),
             '$' => self.identifier(true),
             '!' => self.add_double_token(&c.to_string(), '=', sym!(Bang), sym!(BangEqual)),
             '=' => self.add_double_token(&c.to_string(), '=', sym!(Equal), sym!(EqualEqual)),

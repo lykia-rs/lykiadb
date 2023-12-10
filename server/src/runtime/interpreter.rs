@@ -231,6 +231,9 @@ impl Interpreter {
                 }
                 RV::Object(new_map)
             }
+            Literal::Array(arr) => {
+                RV::Array(arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect())
+            }
         }
     }
 }
