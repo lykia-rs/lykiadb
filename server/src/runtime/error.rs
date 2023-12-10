@@ -99,6 +99,16 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 span,
             );
         }
+        ExecutionError::Interpret(InterpretError::PropertyNotFound { property, span }) => {
+            print(
+                &format!(
+                    "Property {} not found in the evaluated expression",
+                    property
+                ),
+                "Check if that field is present in the expression.",
+                span,
+            );
+        }
         /*ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
             print(
                 "Assignment to an undefined variable",

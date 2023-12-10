@@ -55,6 +55,17 @@ pub enum Expr {
         args: Vec<ExprId>,
         span: Span,
     },
+    Get {
+        object: ExprId,
+        name: Token,
+        span: Span,
+    },
+    /* Set {
+        object: ExprId,
+        name: Token,
+        value: ExprId,
+        span: Span,
+    },*/
 }
 
 impl Spanned for Expr {
@@ -100,7 +111,18 @@ impl Spanned for Expr {
                 callee: _,
                 args: _,
                 span,
-            } => *span,
+            }
+            | Expr::Get {
+                object: _,
+                name: _,
+                span,
+            }
+            /*| Expr::Set {
+                object: _,
+                name: _,
+                value: _,
+                span,
+            } */ => *span,
         }
     }
 }

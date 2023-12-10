@@ -114,6 +114,17 @@ impl Visitor<Value, ()> for Parsed {
                     "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
+            Expr::Get {
+                object,
+                name,
+                span: _,
+            } => {
+                json!({
+                    "type": "Expr::Get",
+                    "object": self.visit_expr(*object)?,
+                    "property": name.lexeme.as_ref(),
+                })
+            }
         };
 
         Ok(matched)

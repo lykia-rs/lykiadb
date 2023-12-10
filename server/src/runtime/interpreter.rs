@@ -27,6 +27,10 @@ pub enum InterpretError {
     UnexpectedStatement {
         span: Span,
     },
+    PropertyNotFound {
+        span: Span,
+        property: String,
+    },
     /*AssignmentToUndefined {
         token: Token,
     },
@@ -346,6 +350,26 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 }
 
                 Ok(callable)
+            }
+            Expr::Get { object, name, span } => {
+                let object_eval = self.visit_expr(*object)?;
+                if let RV::Object(value) = object_eval {
+                    let v = value.get(name.lexeme.as_ref().unwrap());
+                    if v.is_some() {
+                        return Ok(v.unwrap().clone());
+                    }
+                    Err(HaltReason::Error(InterpretError::PropertyNotFound {
+                        span: *span,
+                        property: name.lexeme.as_ref().unwrap().to_string(),
+                    }))
+                } else {
+                    Err(HaltReason::Error(InterpretError::Other {
+                        message: format!(
+                            "Only objects have properties. {:?} is not an object.",
+                            object_eval
+                        ),
+                    }))
+                }
             }
         }
     }

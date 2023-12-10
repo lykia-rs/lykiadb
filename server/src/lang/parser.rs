@@ -627,33 +627,42 @@ impl<'a> Parser<'a> {
 
         loop {
             if self.match_next(sym!(LeftParen)) {
-                expr = {
-                    let mut arguments: Vec<ExprId> = vec![];
-
-                    if !self.cmp_tok(&sym!(RightParen)) {
-                        arguments.push(self.expression()?);
-                        while self.match_next(sym!(Comma)) {
-                            arguments.push(self.expression()?);
-                        }
-                    }
-
-                    let paren = self.expected(sym!(RightParen))?.clone();
-
-                    self.arena.expression(Expr::Call {
-                        callee: expr,
-                        span: self.get_merged_span(
-                            &self.arena.get_expression(expr).get_span(),
-                            &paren.span,
-                        ),
-                        args: arguments,
-                    })
-                }
+                expr = self.finish_call(expr)?;
+            } else if self.match_next(sym!(Dot)) {
+                let identifier = self.expected(Identifier { dollar: false })?.clone();
+                expr = self.arena.expression(Expr::Get {
+                    object: expr,
+                    name: identifier.clone(),
+                    span: self.get_merged_span(
+                        &self.arena.get_expression(expr).get_span(),
+                        &identifier.span,
+                    ),
+                })
             } else {
                 break;
             }
         }
 
         Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: ExprId) -> ParseResult<ExprId> {
+        let mut arguments: Vec<ExprId> = vec![];
+
+        if !self.cmp_tok(&sym!(RightParen)) {
+            arguments.push(self.expression()?);
+            while self.match_next(sym!(Comma)) {
+                arguments.push(self.expression()?);
+            }
+        }
+
+        let paren = self.expected(sym!(RightParen))?.clone();
+
+        Ok(self.arena.expression(Expr::Call {
+            callee,
+            span: self.get_merged_span(&self.arena.get_expression(callee).get_span(), &paren.span),
+            args: arguments,
+        }))
     }
 
     fn primary(&mut self) -> ParseResult<ExprId> {
