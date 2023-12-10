@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use rustc_hash::FxHashMap;
+
 use self::{
     expr::{Expr, ExprId},
     stmt::{Stmt, StmtId},
@@ -14,6 +16,7 @@ pub enum Literal {
     Num(f64),
     Bool(bool),
     Undefined,
+    Object(FxHashMap<String, ExprId>),
     NaN,
     Null,
 }

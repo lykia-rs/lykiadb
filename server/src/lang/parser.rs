@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
     SelectCore, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom, SqlOrdering, SqlProjection,
@@ -669,6 +670,24 @@ impl<'a> Parser<'a> {
         let tok = self.peek_bw(0);
         self.current += 1;
         match &tok.tok_type {
+            TokenType::Symbol(LeftBrace) => {
+                let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
+                while !self.cmp_tok(&sym!(RightBrace)) {
+                    let key = self.expected(Identifier { dollar: false })?.clone();
+                    self.expected(sym!(Colon))?;
+                    let value = self.expression()?;
+                    obj_literal.insert(key.lexeme.unwrap(), value);
+                    if !self.match_next(sym!(Comma)) {
+                        break;
+                    }
+                }
+                self.expected(sym!(RightBrace))?;
+                Ok(self.arena.expression(Expr::Literal {
+                    value: Literal::Object(obj_literal),
+                    raw: "".to_string(),
+                    span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
+                }))
+            }
             True => Ok(self.arena.expression(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),

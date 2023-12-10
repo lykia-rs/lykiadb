@@ -1,3 +1,5 @@
+use rustc_hash::FxHashMap;
+
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId};
@@ -214,7 +216,7 @@ impl Interpreter {
         ret
     }
 
-    pub fn literal_to_rv(&self, literal: &Literal) -> RV {
+    pub fn literal_to_rv(&mut self, literal: &Literal) -> RV {
         match literal {
             Literal::Str(s) => RV::Str(Rc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
@@ -222,6 +224,13 @@ impl Interpreter {
             Literal::Undefined => RV::Undefined,
             Literal::NaN => RV::NaN,
             Literal::Null => RV::Null,
+            Literal::Object(map) => {
+                let mut new_map = FxHashMap::default();
+                for (k, v) in map.iter() {
+                    new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
+                }
+                RV::Object(new_map)
+            }
         }
     }
 }

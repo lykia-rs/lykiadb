@@ -6,6 +6,7 @@ use super::ast::Literal;
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
     Comma,
+    Colon,
     Semicolon,
     LeftParen,
     RightParen,
@@ -168,6 +169,7 @@ pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
     '{' => sym!(Symbol::LeftBrace),
     '}' => sym!(Symbol::RightBrace),
     ',' => sym!(Symbol::Comma),
+    ':' => sym!(Symbol::Colon),
     '.' => sym!(Symbol::Dot),
     '-' => sym!(Symbol::Minus),
     '+' => sym!(Symbol::Plus),
