@@ -10,7 +10,7 @@ Lykia is a toy document database basically written for educational purposes. It 
 
 ## Overview
 - Written in Rust
-- A weird scripting and query language, combination of PHP and SQL. Built based on the language "Lox" which is explained in the famous book, Crafting Interpreters.
+- A weird scripting and query language, combination of JavaScript and SQL. Built based on the language "Lox" which is explained in the famous book, Crafting Interpreters.
 - A subset of JSON data types in both scripting language itself and storage
 - In-disk and in-memory storage
 - ACID compliance
@@ -19,7 +19,7 @@ Lykia is a toy document database basically written for educational purposes. It 
 ## Roadmap
 
 - [x] Core scripting language
-- [ ] SQL parsing (in progress)
+- [x] SQL parsing
 - [x] A minimal standard library
 - [ ] Query planning
 - [ ] Plan optimization
