@@ -19,8 +19,9 @@ Lykia is a toy document database basically written for educational purposes. It 
 ## Roadmap
 
 - [x] Core scripting language
-- [x] SQL parsing
 - [x] A minimal standard library
+- [x] SQL "SELECT" statements parsing
+- [ ] Rest of the SQL syntax
 - [ ] Query planning
 - [ ] Plan optimization
 - [ ] Async runtime/event loop
