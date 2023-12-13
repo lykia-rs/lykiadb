@@ -14,7 +14,7 @@ pub mod helpers {
     use crate::runtime::environment::Environment;
     use crate::runtime::interpreter::{HaltReason, Interpreter};
     use crate::runtime::std::stdlib;
-    use crate::runtime::types::{Stateful, RV, Function};
+    use crate::runtime::types::{Function, Stateful, RV};
     use crate::runtime::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
 
@@ -60,8 +60,11 @@ pub mod helpers {
             RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
         );
 
-        native_fns.insert("TestUtils".to_owned(), RV::Object(test_namespace));
-        
+        native_fns.insert(
+            "TestUtils".to_owned(),
+            RV::Object(alloc_shared(test_namespace)),
+        );
+
         for (name, value) in native_fns {
             env.borrow_mut().declare(name, value);
         }

@@ -11,7 +11,7 @@ use crate::lang::token::{Spanned, Symbol::*};
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
-use crate::util::Shared;
+use crate::util::{alloc_shared, Shared};
 use crate::{kw, sym};
 use std::rc::Rc;
 use std::vec;
@@ -229,10 +229,11 @@ impl Interpreter {
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
                 }
-                RV::Object(new_map)
+                RV::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
-                RV::Array(arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect())
+                let collected = arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect();
+                RV::Array(alloc_shared(collected))
             }
         }
     }
@@ -365,8 +366,9 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Expr::Get { object, name, span } => {
                 let object_eval = self.visit_expr(*object)?;
-                if let RV::Object(value) = object_eval {
-                    let v = value.get(name.lexeme.as_ref().unwrap());
+                if let RV::Object(map) = object_eval {
+                    let borrowed = map.borrow();
+                    let v = borrowed.get(name.lexeme.as_ref().unwrap());
                     if v.is_some() {
                         return Ok(v.unwrap().clone());
                     }
@@ -374,6 +376,27 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         span: *span,
                         property: name.lexeme.as_ref().unwrap().to_string(),
                     }))
+                } else {
+                    Err(HaltReason::Error(InterpretError::Other {
+                        message: format!(
+                            "Only objects have properties. {:?} is not an object.",
+                            object_eval
+                        ),
+                    }))
+                }
+            }
+            Expr::Set {
+                object,
+                name,
+                value,
+                span: _,
+            } => {
+                let object_eval = self.visit_expr(*object)?;
+                if let RV::Object(map) = object_eval {
+                    let evaluated = self.visit_expr(*value)?;
+                    map.borrow_mut()
+                        .insert(name.lexeme.as_ref().unwrap().to_string(), evaluated.clone());
+                    Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
                         message: format!(

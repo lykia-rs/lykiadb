@@ -369,6 +369,21 @@ impl<'a> Parser<'a> {
                         ),
                     }));
                 }
+                Expr::Get {
+                    object,
+                    name,
+                    span: _,
+                } => {
+                    return Ok(self.arena.expression(Expr::Set {
+                        object: *object,
+                        name: name.clone(),
+                        value,
+                        span: self.get_merged_span(
+                            &name.span,
+                            &self.arena.get_expression(value).get_span(),
+                        ),
+                    }));
+                }
                 _ => {
                     return Err(ParseError::InvalidAssignmentTarget {
                         left: self.peek_bw(3).clone(),

@@ -168,6 +168,15 @@ impl Visitor<RV, ResolveError> for Resolver {
             } => {
                 self.resolve_expr(*object);
             }
+            Expr::Set {
+                object,
+                name: _,
+                value,
+                span: _,
+            } => {
+                self.resolve_expr(*object);
+                self.resolve_expr(*value);
+            }
             Expr::Select { query: _, span: _ } => (),
         };
         Ok(RV::Undefined)

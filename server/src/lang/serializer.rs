@@ -125,6 +125,19 @@ impl Visitor<Value, ()> for Parsed {
                     "property": name.lexeme.as_ref(),
                 })
             }
+            Expr::Set {
+                object,
+                name,
+                value,
+                span: _,
+            } => {
+                json!({
+                    "type": "Expr::Set",
+                    "object": self.visit_expr(*object)?,
+                    "property": name.lexeme.as_ref(),
+                    "value": self.visit_expr(*value)?,
+                })
+            }
         };
 
         Ok(matched)

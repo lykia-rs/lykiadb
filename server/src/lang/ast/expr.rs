@@ -60,12 +60,12 @@ pub enum Expr {
         name: Token,
         span: Span,
     },
-    /* Set {
+    Set {
         object: ExprId,
         name: Token,
         value: ExprId,
         span: Span,
-    },*/
+    },
 }
 
 impl Spanned for Expr {
@@ -117,12 +117,12 @@ impl Spanned for Expr {
                 name: _,
                 span,
             }
-            /*| Expr::Set {
+            | Expr::Set {
                 object: _,
                 name: _,
                 value: _,
                 span,
-            } */ => *span,
+            } => *span,
         }
     }
 }

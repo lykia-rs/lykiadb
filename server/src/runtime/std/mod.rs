@@ -2,6 +2,8 @@ use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
 
+use crate::util::alloc_shared;
+
 use self::{
     fib::nt_fib,
     json::{nt_json_decode, nt_json_encode},
@@ -53,9 +55,12 @@ pub fn stdlib() -> FxHashMap<String, RV> {
         RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
     );
 
-    std.insert("Benchmark".to_owned(), RV::Object(benchmark_namespace));
-    std.insert("JSON".to_owned(), RV::Object(json_namespace));
-    std.insert("Time".to_owned(), RV::Object(time_namespace));
+    std.insert(
+        "Benchmark".to_owned(),
+        RV::Object(alloc_shared(benchmark_namespace)),
+    );
+    std.insert("JSON".to_owned(), RV::Object(alloc_shared(json_namespace)));
+    std.insert("Time".to_owned(), RV::Object(alloc_shared(time_namespace)));
     std.insert(
         "print".to_owned(),
         RV::Callable(None, Rc::new(Function::Lambda { function: nt_print })),
