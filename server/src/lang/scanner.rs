@@ -3,13 +3,12 @@ use crate::lang::token::Symbol::*;
 use crate::lang::token::TokenType::{Eof, Identifier};
 use crate::lang::token::*;
 use crate::sym;
+use std::iter::{Enumerate, Peekable};
 use std::rc::Rc;
+use std::str::Chars;
 
-pub struct Scanner {
-    chars: Vec<char>,
-    tokens: Vec<Token>,
-    start: usize,
-    current: usize,
+pub struct Scanner<'a> {
+    chars: Peekable<Enumerate<Chars<'a>>>,
     line: u32,
 }
 
@@ -20,103 +19,57 @@ pub enum ScanError {
     MalformedNumberLiteral { span: Span },
 }
 
-impl Scanner {
+impl<'a> Scanner<'a> {
     pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
-            chars: source.chars().collect(),
-            tokens: vec![],
-            start: 0,
-            current: 0,
+            chars: source.chars().enumerate().peekable(),
             line: 0,
         };
-        scanner.scan_tokens()?;
-        Ok(scanner.tokens)
+        scanner.scan_tokens()
     }
 
+    // TODO(vck): remove this
     fn match_next(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
         }
-        if self.chars[self.current] != expected {
+        if self.chars.peek().unwrap().1 != expected {
             return false;
         }
-        self.current += 1;
+        self.chars.next();
         true
     }
 
+    // TODO(vck): remove this
     fn peek(&self, offset: usize) -> char {
         if self.is_at_end() {
             return '\0';
         }
-        self.chars[self.current + offset]
+        self.chars.clone().nth(offset).unwrap().1
     }
 
-    fn advance(&mut self) -> char {
-        let c = self.chars[self.current];
-        self.current += 1;
-        c
+    fn advance(&mut self) -> (usize, char) {
+        self.chars.next().unwrap()
     }
 
-    fn add_token(&mut self, lexeme: &str, token: TokenType) {
-        self.tokens.push(Token {
-            tok_type: token,
-            literal: None,
-            lexeme: Some(lexeme.to_string()),
-            span: Span {
-                start: self.start,
-                end: self.current - 1,
-                line: self.line,
-                line_end: self.line,
-            },
-        });
-    }
-
-    fn finalize(&mut self) {
-        self.tokens.push(Token {
-            tok_type: Eof,
-            literal: None,
-            lexeme: None,
-            span: Span {
-                start: self.current,
-                end: self.current,
-                line: self.line,
-                line_end: self.line,
-            },
-        });
-    }
-
-    fn add_double_token(
-        &mut self,
-        lexeme_prefix: &str,
-        expected_second: char,
-        token_single: TokenType,
-        token_double: TokenType,
-    ) {
-        if self.match_next(expected_second) {
-            let concat = lexeme_prefix.to_string() + &expected_second.to_string();
-            self.add_token(&concat, token_double);
-        } else {
-            self.add_token(lexeme_prefix, token_single);
-        };
-    }
-
+    // TODO(vck): remove this
+    #[inline(always)]
     fn is_at_end(&self) -> bool {
-        self.current >= self.chars.len()
+        self.chars.clone().peek().is_none()
     }
 
-    fn string(&mut self) -> Result<(), ScanError> {
+    fn scan_string(&mut self, start: usize) -> Result<Token, ScanError> {
+        self.advance(); // consume the opening "
+        let mut raw_str = String::new();
         while self.peek(0) != '"' && !self.is_at_end() {
-            if self.peek(0) == '\n' {
-                self.line += 1;
-            }
-            self.advance();
+            raw_str.push(self.advance().1);
         }
 
         if self.is_at_end() {
             return Err(ScanError::UnterminatedString {
                 span: Span {
-                    start: self.start + 1,
-                    end: self.current,
+                    start: start,
+                    end: start + raw_str.len(),
                     line: self.line,
                     line_end: self.line,
                 },
@@ -125,96 +78,191 @@ impl Scanner {
 
         self.advance();
 
-        let span: String = self.chars[self.start + 1..self.current - 1]
-            .iter()
-            .collect();
-
-        self.tokens.push(Token {
+        let len = raw_str.len();
+        Ok(Token {
             tok_type: TokenType::Str,
-            literal: Some(Str(Rc::new(span.clone()))),
-            lexeme: Some(span),
+            literal: Some(Str(Rc::new(raw_str.clone()))),
+            lexeme: Some(raw_str),
             span: Span {
-                start: self.start + 1,
-                end: self.current - 1,
+                start: start,
+                end: start + len + 2,
                 line: self.line,
                 line_end: self.line,
             },
-        });
-        Ok(())
+        })
     }
 
-    fn number(&mut self) -> Result<(), ScanError> {
+    fn scan_number(&mut self, start: usize) -> Result<Token, ScanError> {
+        let mut raw_str = String::new();
         while self.peek(0).is_ascii_digit() {
-            self.advance();
+            raw_str.push(self.advance().1);
         }
 
         if self.peek(0) == '.' && self.peek(1).is_ascii_digit() {
-            self.advance();
+            raw_str.push(self.advance().1);
             while self.peek(0).is_ascii_digit() {
-                self.advance();
+                raw_str.push(self.advance().1);
             }
         }
 
         if self.peek(0).to_ascii_lowercase() == 'e' {
-            self.advance();
+            raw_str.push(self.advance().1);
+
             if self.peek(0) == '-' || self.peek(0) == '+' {
-                self.advance();
+                raw_str.push(self.advance().1);
             }
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
                 return Err(ScanError::MalformedNumberLiteral {
                     span: Span {
-                        start: self.start,
-                        end: self.current,
+                        start: start,
+                        end: start + raw_str.len(),
                         line: self.line,
                         line_end: self.line,
                     },
                 });
             }
             while self.peek(0).is_ascii_digit() {
-                self.advance();
+                raw_str.push(self.advance().1);
             }
         }
 
-        let span: String = self.chars[self.start..self.current].iter().collect();
-        let parsed = span.parse::<f64>().unwrap();
-        self.tokens.push(Token {
+        let parsed = raw_str.parse::<f64>().unwrap();
+        let len = raw_str.len();
+
+        Ok(Token {
             tok_type: TokenType::Num,
             literal: Some(Num(parsed)),
-            lexeme: Some(span),
+            lexeme: Some(raw_str),
             span: Span {
-                start: self.start,
-                end: self.current,
+                start: start,
+                end: start + len,
                 line: self.line,
                 line_end: self.line,
             },
-        });
-        Ok(())
+        })
     }
 
-    fn identifier(&mut self, is_dollar: bool) {
-        while self.peek(0).is_ascii_alphanumeric() || self.peek(0) == '_' {
-            self.advance();
+    fn scan_identifier(&mut self, start: usize, is_dollar: bool) -> Result<Token, ScanError> {
+        let mut raw_str = String::new();
+        raw_str.push(self.advance().1); // consume the first char
+        while self.peek(0).is_alphabetic() || self.peek(0) == '_' {
+            raw_str.push(self.advance().1);
         }
-        let span: String = self.chars[self.start..self.current].iter().collect();
-        if CASE_SNS_KEYWORDS.contains_key(&span) {
-            self.add_token(&span, CASE_SNS_KEYWORDS.get(&span).unwrap().clone());
-        } else if CASE_INS_KEYWORDS.contains_key(&span.to_ascii_uppercase()) {
-            self.add_token(
-                &span,
-                CASE_INS_KEYWORDS
-                    .get(&span.to_ascii_uppercase())
+        let span = Span {
+            start: start,
+            end: start + raw_str.len(),
+            line: self.line,
+            line_end: self.line,
+        };
+
+        if CASE_SNS_KEYWORDS.contains_key(&raw_str) {
+            Ok(Token {
+                tok_type: CASE_SNS_KEYWORDS.get(&raw_str).unwrap().clone(),
+                literal: None,
+                lexeme: Some(raw_str),
+                span,
+            })
+        } else if CASE_INS_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase()) {
+            Ok(Token {
+                tok_type: CASE_INS_KEYWORDS
+                    .get(&raw_str.to_ascii_uppercase())
                     .unwrap()
                     .clone(),
-            );
+                literal: None,
+                lexeme: Some(raw_str),
+                span,
+            })
         } else {
-            let value = span.to_string();
-            self.tokens.push(Token {
+            Ok(Token {
                 tok_type: Identifier { dollar: is_dollar },
-                literal: Some(Str(Rc::new(value.clone()))),
-                lexeme: Some(value),
+                literal: Some(Str(Rc::new(raw_str.clone()))),
+                lexeme: Some(raw_str),
+                span,
+            })
+        }
+    }
+
+    fn scan_slash(&mut self, start: usize) -> Option<Token> {
+        if self.match_next('/') {
+            while !self.is_at_end() && self.peek(0) != '\n' {
+                self.advance();
+            }
+            None
+        } else {
+            Some(Token {
+                tok_type: sym!(Slash),
+                literal: None,
+                lexeme: Some("/".to_owned()),
                 span: Span {
-                    start: self.start,
-                    end: self.current,
+                    start: start,
+                    end: start + 1,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            })
+        }
+    }
+
+    fn scan_double_token(&mut self, start: usize, c: char) -> Token {
+        self.advance();
+        if self.match_next('=') {
+            Token {
+                tok_type: match c {
+                    '!' => sym!(BangEqual),
+                    '=' => sym!(EqualEqual),
+                    '<' => sym!(LessEqual),
+                    '>' => sym!(GreaterEqual),
+                    _ => unreachable!(), // TODO(vck): fix
+                },
+                literal: None,
+                lexeme: Some(c.to_string() + "="),
+                span: Span {
+                    start: start,
+                    end: start + 2,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
+        } else {
+            Token {
+                tok_type: match c {
+                    '!' => sym!(Bang),
+                    '=' => sym!(Equal),
+                    '<' => sym!(Less),
+                    '>' => sym!(Greater),
+                    _ => unreachable!(), // TODO(vck): fix
+                },
+                literal: None,
+                lexeme: Some(c.to_string()),
+                span: Span {
+                    start: start,
+                    end: start + 1,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
+        }
+    }
+
+    fn scan_other(&mut self, start: usize, other: char) -> Result<Token, ScanError> {
+        self.advance();
+        if let Some(sym) = SYMBOLS.get(&other) {
+            Ok(Token {
+                tok_type: sym.clone(),
+                literal: None,
+                lexeme: Some(other.to_string()),
+                span: Span {
+                    start: start,
+                    end: start + 1,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            })
+        } else {
+            return Err(ScanError::UnexpectedCharacter {
+                span: Span {
+                    start: start,
+                    end: start + 1,
                     line: self.line,
                     line_end: self.line,
                 },
@@ -222,54 +270,57 @@ impl Scanner {
         }
     }
 
-    fn scan_token(&mut self) -> Result<(), ScanError> {
-        let c = self.advance();
-        match c {
-            '\n' => self.line += 1,
-            ' ' | '\r' | '\t' => (),
-            '"' => self.string()?,
-            '0'..='9' => self.number()?,
-            'A'..='Z' | 'a'..='z' | '_' => self.identifier(false),
-            '$' => self.identifier(true),
-            '!' => self.add_double_token(&c.to_string(), '=', sym!(Bang), sym!(BangEqual)),
-            '=' => self.add_double_token(&c.to_string(), '=', sym!(Equal), sym!(EqualEqual)),
-            '<' => self.add_double_token(&c.to_string(), '=', sym!(Less), sym!(LessEqual)),
-            '>' => self.add_double_token(&c.to_string(), '=', sym!(Greater), sym!(GreaterEqual)),
-            '/' => {
-                if self.match_next('/') {
-                    while !self.is_at_end() && self.peek(0) != '\n' {
-                        self.advance();
-                    }
-                } else {
-                    self.add_token(&c.to_string(), sym!(Slash));
-                }
-            }
-            other => {
-                if let Some(sym) = SYMBOLS.get(&other) {
-                    self.add_token(&other.to_string(), sym.clone());
-                } else {
-                    return Err(ScanError::UnexpectedCharacter {
-                        span: Span {
-                            start: self.start,
-                            end: self.current,
-                            line: self.line,
-                            line_end: self.line,
-                        },
-                    });
-                }
-            }
+    fn scan_eof(&mut self, start: usize) -> Token {
+        Token {
+            tok_type: Eof,
+            literal: None,
+            lexeme: None,
+            span: Span {
+                start,
+                end: start,
+                line: self.line,
+                line_end: self.line,
+            },
         }
-        Ok(())
     }
 
-    fn scan_tokens(&mut self) -> Result<(), ScanError> {
+    fn scan_tokens(&mut self) -> Result<Vec<Token>, ScanError> {
+        let mut tokens: Vec<Token> = vec![];
+
         while !self.is_at_end() {
-            self.start = self.current;
-            self.scan_token()?;
+            let (start, c) = self.chars.peek().unwrap();
+            let start_idx = *start;
+            let start_char = *c;
+            let matched = match c {
+                '\n' => {
+                    self.line += 1;
+                    self.advance();
+                    None
+                }
+                ' ' | '\r' | '\t' => {
+                    self.advance();
+                    None
+                }
+                '"' => Some(self.scan_string(start_idx)?),
+                '0'..='9' => Some(self.scan_number(start_idx)?),
+                'A'..='Z' | 'a'..='z' | '_' => Some(self.scan_identifier(start_idx, false)?),
+                '$' => Some(self.scan_identifier(start_idx, true)?),
+                '!' | '=' | '<' | '>' => Some(self.scan_double_token(start_idx, start_char)),
+                '/' => self.scan_slash(start_idx),
+                _ => Some(self.scan_other(start_idx, start_char)?),
+            };
+            if let Some(token) = matched {
+                tokens.push(token);
+            }
         }
 
-        self.finalize();
-        Ok(())
+        if tokens.is_empty() {
+            tokens.push(self.scan_eof(0));
+        } else {
+            tokens.push(self.scan_eof(tokens.last().unwrap().span.end + 1));
+        }
+
+        Ok(tokens)
     }
 }
 
@@ -787,7 +838,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 0,
-                        end: 2,
+                        end: 3,
                         line_end: 0,
                     },
                 },
@@ -798,7 +849,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 4,
-                        end: 5,
+                        end: 6,
                         line_end: 0,
                     },
                 },
@@ -809,7 +860,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 7,
-                        end: 11,
+                        end: 12,
                         line_end: 0,
                     },
                 },
@@ -820,7 +871,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 13,
-                        end: 16,
+                        end: 17,
                         line_end: 0,
                     },
                 },
@@ -831,7 +882,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 18,
-                        end: 20,
+                        end: 21,
                         line_end: 0,
                     },
                 },
@@ -842,7 +893,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 22,
-                        end: 24,
+                        end: 25,
                         line_end: 0,
                     },
                 },
@@ -853,7 +904,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 26,
-                        end: 27,
+                        end: 28,
                         line_end: 0,
                     },
                 },
@@ -864,7 +915,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 29,
-                        end: 33,
+                        end: 34,
                         line_end: 0,
                     },
                 },
@@ -875,7 +926,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 35,
-                        end: 42,
+                        end: 43,
                         line_end: 0,
                     },
                 },
@@ -886,7 +937,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 44,
-                        end: 49,
+                        end: 50,
                         line_end: 0,
                     },
                 },
@@ -897,7 +948,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 51,
-                        end: 55,
+                        end: 56,
                         line_end: 0,
                     },
                 },
@@ -908,7 +959,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 57,
-                        end: 60,
+                        end: 61,
                         line_end: 0,
                     },
                 },
@@ -919,7 +970,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 62,
-                        end: 64,
+                        end: 65,
                         line_end: 0,
                     },
                 },
@@ -930,7 +981,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 66,
-                        end: 70,
+                        end: 71,
                         line_end: 0,
                     },
                 },
@@ -941,7 +992,7 @@ mod test {
                     span: Span {
                         line: 0,
                         start: 72,
-                        end: 75,
+                        end: 76,
                         line_end: 0,
                     },
                 },
@@ -951,8 +1002,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 76,
-                        end: 76,
+                        start: 77,
+                        end: 77,
                         line_end: 0,
                     },
                 },

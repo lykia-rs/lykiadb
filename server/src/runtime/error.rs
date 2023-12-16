@@ -20,7 +20,7 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             .with_code(3)
             .with_message(format!("{} at line {}", message, span.line + 1))
             .with_label(
-                Label::new((filename, span.start..span.end + 1))
+                Label::new((filename, span.start..span.end))
                     .with_message(hint)
                     .with_color(out),
             )
