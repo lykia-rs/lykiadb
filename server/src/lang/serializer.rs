@@ -30,20 +30,20 @@ impl Visitor<Value, ()> for Parsed {
                 "type": "Expr::Select",
                 // TODO(vck): Implement rest of the select
             }),
-            Expr::Literal { raw, span, value } => {
+            Expr::Literal { raw, span: _, value } => {
                 json!({
                     "type": "Expr::Literal",
                     "value": format!("{:?}", value),
                     "raw": raw,
                 })
             }
-            Expr::Grouping { expr, span } => {
+            Expr::Grouping { expr, span: _ } => {
                 json!({
                     "type": "Expr::Grouping",
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Expr::Unary { symbol, expr, span } => {
+            Expr::Unary { symbol, expr, span: _ } => {
                 json!({
                     "type": "Expr::Unary",
                     "operator": symbol,
@@ -54,7 +54,7 @@ impl Visitor<Value, ()> for Parsed {
                 symbol,
                 left,
                 right,
-                span,
+                span: _,
             } => {
                 json!({
                     "type": "Expr::Binary",
@@ -63,13 +63,13 @@ impl Visitor<Value, ()> for Parsed {
                     "right": self.visit_expr(*right)?,
                 })
             }
-            Expr::Variable { name, span } => {
+            Expr::Variable { name, span: _ } => {
                 json!({
                     "type": "Expr::Variable",
                     "value": name.lexeme.as_ref(),
                 })
             }
-            Expr::Assignment { dst, expr, span } => {
+            Expr::Assignment { dst, expr, span: _ } => {
                 json!({
                     "type": "Expr::Assignment",
                     "variable": dst.lexeme.as_ref(),
@@ -80,7 +80,7 @@ impl Visitor<Value, ()> for Parsed {
                 left,
                 symbol,
                 right,
-                span,
+                span: _,
             } => {
                 json!({
                     "type": "Expr::Logical",
@@ -89,7 +89,7 @@ impl Visitor<Value, ()> for Parsed {
                     "right": self.visit_expr(*right)?,
                 })
             }
-            Expr::Call { callee, span, args } => {
+            Expr::Call { callee, span: _, args } => {
                 json!({
                     "type": "Expr::Call",
                     "callee": self.visit_expr(*callee)?,
@@ -100,7 +100,7 @@ impl Visitor<Value, ()> for Parsed {
                 name,
                 parameters,
                 body,
-                span,
+                span: _,
             } => {
                 let fn_name = if name.is_some() {
                     name.as_ref().unwrap().lexeme.as_ref().unwrap().to_string()
@@ -148,25 +148,25 @@ impl Visitor<Value, ()> for Parsed {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         let matched: Value = match s {
-            Stmt::Program { stmts, span } => {
+            Stmt::Program { stmts, span: _ } => {
                 json!({
                     "type": "Stmt::Program",
                     "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
-            Stmt::Block { stmts, span } => {
+            Stmt::Block { stmts, span: _ } => {
                 json!({
                     "type": "Stmt::Block",
                     "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
-            Stmt::Expression { expr, span } => {
+            Stmt::Expression { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Expression",
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Stmt::Declaration { dst, expr, span } => {
+            Stmt::Declaration { dst, expr, span: _ } => {
                 json!({
                     "type": "Stmt::Declaration",
                     "variable": dst.lexeme.as_ref().unwrap(),
@@ -194,7 +194,7 @@ impl Visitor<Value, ()> for Parsed {
                 condition,
                 body,
                 post,
-                span,
+                span: _,
             } => {
                 json!({
                     "type": "Stmt::Loop",
@@ -211,13 +211,13 @@ impl Visitor<Value, ()> for Parsed {
                     },
                 })
             }
-            Stmt::Break { span } => json!({
+            Stmt::Break { span: _ } => json!({
                 "type": "Stmt::Break",
             }),
-            Stmt::Continue { span } => json!({
+            Stmt::Continue { span: _ } => json!({
                 "type": "Stmt::Continue",
             }),
-            Stmt::Return { expr, span } => {
+            Stmt::Return { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Return",
                     "value": if expr.is_some() {

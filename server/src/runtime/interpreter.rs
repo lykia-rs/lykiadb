@@ -248,7 +248,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
             Expr::Literal {
                 value,
-                raw,
+                raw: _,
                 span: _,
             } => Ok(self.literal_to_rv(&value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
@@ -335,7 +335,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 name,
                 parameters,
                 body,
-                span,
+                span: _,
             } => {
                 let fn_name = if name.is_some() {
                     name.as_ref().unwrap().lexeme.as_ref().unwrap()
