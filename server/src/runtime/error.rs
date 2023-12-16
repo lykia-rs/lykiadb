@@ -58,6 +58,13 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 token.span,
             );
         }
+        ExecutionError::Parse(ParseError::NoTokens) => {
+            print(
+                "There is nothing to parse.",
+                "What about adding some tokens?",
+                Span::default(),
+            );
+        }
         ExecutionError::Parse(ParseError::InvalidAssignmentTarget { left }) => {
             print(
                 "Invalid assignment target",

@@ -379,7 +379,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
                         message: format!(
-                            "Only objects have properties. {:?} is not an object.",
+                            "Only objects have properties. {:?} is not an object",
                             object_eval
                         ),
                     }))
@@ -400,7 +400,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
                         message: format!(
-                            "Only objects have properties. {:?} is not an object.",
+                            "Only objects have properties. {:?} is not an object",
                             object_eval
                         ),
                     }))

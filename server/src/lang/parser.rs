@@ -34,6 +34,7 @@ pub enum ParseError {
     UnexpectedToken { token: Token },
     MissingToken { token: Token, expected: TokenType },
     InvalidAssignmentTarget { left: Token },
+    NoTokens,
 }
 
 type ParseResult<T> = Result<T, ParseError>;
@@ -85,6 +86,9 @@ macro_rules! optional_with_expected {
 
 impl<'a> Parser<'a> {
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Parsed> {
+        if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
+            return Err(ParseError::NoTokens);
+        }
         let arena = ParserArena::new();
         let mut parser = Parser {
             tokens,
