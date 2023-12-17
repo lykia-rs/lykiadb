@@ -7,11 +7,11 @@ mod test {
     #[test]
     fn test_higher_order_0() {
         exec_assert(
-            "fun f($x, $q) {
+            "function f($x, $q) {
             $x($q);
         };
         
-        fun g($q) {
+        function g($q) {
             TestUtils.out($q);
         };
         
@@ -36,9 +36,9 @@ mod test {
     #[test]
     fn test_high_order_1() {
         exec_assert(
-            "fun makeCounter() {
+            "function makeCounter() {
             var $i = 0;
-            fun count() {
+            function count() {
                 $i = $i + 1;
                 TestUtils.out($i);
             };
@@ -57,7 +57,7 @@ mod test {
         exec_assert(
             "var $a = \"global\";
         {
-          fun showA() {
+          function showA() {
             TestUtils.out($a);
           };
         
@@ -77,14 +77,14 @@ mod test {
         exec_assert(
             "var $a = \"global\";
         {
-            fun showA() {
+            function showA() {
                 TestUtils.out($a);
             };
 
             showA();
             var $a = \"block\";
             showA();
-            fun showB() {
+            function showB() {
                 TestUtils.out($a);
             };
             showB();
@@ -103,7 +103,7 @@ mod test {
             "{
             var $a = \"global\";
             {
-              fun showA() {
+              function showA() {
                 TestUtils.out($a);
               };
           
@@ -124,13 +124,13 @@ mod test {
         exec_assert(
             "var $a = \"global\";
         {
-          fun showA() {
+          function showA() {
             TestUtils.out($a);
           };
         
           var $a = \"block\";
           
-          fun showB() {
+          function showB() {
             TestUtils.out($a);
           };
         
@@ -155,7 +155,7 @@ mod test {
     #[test]
     fn test_anonymous_fn_0() {
         exec_assert(
-            "var $pr = fun a() {
+            "var $pr = function a() {
                     TestUtils.out(\"hello\");
                 };
 
@@ -172,7 +172,7 @@ mod test {
     #[test]
     fn test_anonymous_fn_1() {
         exec_assert(
-            "(fun a() {
+            "(function a() {
                     TestUtils.out(\"hello\");
                   })();
 
@@ -188,7 +188,7 @@ mod test {
     #[test]
     fn test_anonymous_fn_2() {
         exec_assert(
-            "var $pr = fun() {
+            "var $pr = function() {
                     TestUtils.out(\"hello\");
                 };
 
@@ -201,7 +201,7 @@ mod test {
     #[test]
     fn test_anonymous_fn_3() {
         exec_assert(
-            "(fun() {
+            "(function() {
                     TestUtils.out(\"hello\");
                   })();
           ",
@@ -214,13 +214,13 @@ mod test {
         exec_assert(
             "var $a = \"global\";
         {
-          var $showA = fun() {
+          var $showA = function() {
             TestUtils.out($a);
           };
         
           var $a = \"block\";
           
-          var $showB = fun() {
+          var $showB = function() {
             TestUtils.out($a);
           };
         
