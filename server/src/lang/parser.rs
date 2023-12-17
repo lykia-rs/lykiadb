@@ -42,7 +42,7 @@ type ParseResult<T> = Result<T, ParseError>;
 macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: ExprId = $self.$builder()?;
-        while $self.match_next_multi(&vec![$($operator,)*]) {
+        while $self.match_next_one_of(&vec![$($operator,)*]) {
             let token = (*$self.peek_bw(1)).clone();
             let left = current_expr;
             let right = $self.$builder()?;
@@ -460,7 +460,7 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> ParseResult<ExprId> {
-        if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
+        if self.match_next_one_of(&vec![sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
@@ -479,7 +479,7 @@ impl<'a> Parser<'a> {
         }
         let core = self.select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
-        while self.match_next_multi(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
+        while self.match_next_one_of(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
@@ -552,13 +552,12 @@ impl<'a> Parser<'a> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
+        } else if self.match_next(skw!(All)) {
+            SqlDistinct::All
         } else {
             SqlDistinct::All
         };
-        /* else if self.match_next(skw!(All)) {
-            SqlDistinct::All
-        }*/
-
+        
         let projection = self.sql_projection();
         let from = self.sql_from()?;
         let r#where = self.sql_where()?;
@@ -601,12 +600,18 @@ impl<'a> Parser<'a> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if self.match_next(sym!(Star)) {
-                projections.push(SqlProjection::All);
+                projections.push(SqlProjection::All {
+                    collection: None,
+                });
+            } else if self.match_next_all_of(&vec![Identifier { dollar: false }, sym!(Dot), sym!(Star)]) {
+                projections.push(SqlProjection::All {
+                    collection: Some(self.peek_bw(3).clone()),
+                });
             } else {
                 let expr = self.expression().unwrap();
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                projections.push(SqlProjection::Complex {
+                projections.push(SqlProjection::Expr {
                     expr: SqlExpr::Default(expr),
                     alias,
                 });
@@ -615,7 +620,6 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        // TODO(vck): Add support for collection selectors
         projections
     }
 
@@ -630,7 +634,7 @@ impl<'a> Parser<'a> {
                 },
             ])));
         }
-        // TODO(vck): Joins
+        // TODO(vck): CollectionSubquery, SelectStmt, Join
         Ok(None)
     }
 
@@ -789,6 +793,10 @@ impl<'a> Parser<'a> {
         &self.tokens[self.current - offset]
     }
 
+    fn peek_fw(&self, offset: usize) -> &'a Token {
+        &self.tokens[self.current + offset]
+    }
+
     fn cmp_tok(&self, t: &TokenType) -> bool {
         let current = self.peek_bw(0);
         current.tok_type == *t
@@ -802,8 +810,20 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn match_next_multi(&mut self, types: &Vec<TokenType>) -> bool {
-        for t in types {
+    fn match_next_all_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+        for (i, t) in tokens.iter().enumerate() {
+            if self.peek_fw(i).tok_type != *t {
+                return false;
+            }
+        }
+        for _ in 0..tokens.len() {
+            self.advance();
+        }
+        return true;
+    }
+
+    fn match_next_one_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+        for t in tokens {
             if self.cmp_tok(t) {
                 self.advance();
                 return true;
