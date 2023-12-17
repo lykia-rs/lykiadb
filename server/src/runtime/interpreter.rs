@@ -108,6 +108,25 @@ impl LoopStack {
         self.pop_loop();
         self.push_loop(to);
     }
+
+    fn is_loop_at(&self, state: LoopState) -> bool {
+        let last_loop = *self.get_last_loop().unwrap();
+        last_loop == state
+    }
+
+    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
+        if from.is_none() {
+            return if !self.is_loops_empty() {
+                self.set_last_loop(to);
+                true
+            } else {
+                false
+            };
+        } else if self.is_loop_at(from.unwrap()) {
+            self.set_last_loop(to);
+        }
+        true
+    }
 }
 
 pub struct Interpreter {
@@ -163,27 +182,6 @@ impl Interpreter {
         } else {
             self.root_env.borrow().read(name)
         }
-    }
-}
-
-impl Interpreter {
-    fn is_loop_at(&self, state: LoopState) -> bool {
-        let last_loop = *self.loop_stack.get_last_loop().unwrap();
-        last_loop == state
-    }
-
-    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
-        if from.is_none() {
-            return if !self.loop_stack.is_loops_empty() {
-                self.loop_stack.set_last_loop(to);
-                true
-            } else {
-                false
-            };
-        } else if self.is_loop_at(from.unwrap()) {
-            self.loop_stack.set_last_loop(to);
-        }
-        true
     }
 
     pub fn user_fn_call(
@@ -461,12 +459,12 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 span: _,
             } => {
                 self.loop_stack.push_loop(LoopState::Go);
-                while !self.is_loop_at(LoopState::Broken)
+                while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
                         || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
                     self.visit_stmt(*body)?;
-                    self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
+                    self.loop_stack.set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
                         self.visit_stmt(*post_id)?;
                     }
@@ -474,14 +472,14 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 self.loop_stack.pop_loop();
             }
             Stmt::Break { span } => {
-                if !self.set_loop_state(LoopState::Broken, None) {
+                if !self.loop_stack.set_loop_state(LoopState::Broken, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
                     }));
                 }
             }
             Stmt::Continue { span } => {
-                if !self.set_loop_state(LoopState::Continue, None) {
+                if !self.loop_stack.set_loop_state(LoopState::Continue, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
                     }));
