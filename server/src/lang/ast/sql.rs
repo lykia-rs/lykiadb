@@ -50,7 +50,7 @@ pub enum SqlCollectionSubquery {
     Recursive(Vec<SqlCollectionSubquery>),
     Join(
         Box<SqlCollectionSubquery>,
-        Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)>,
+        Vec<(SqlJoinType, SqlCollectionSubquery, Option<SqlExpr>)>,
     ),
     Collection {
         namespace: Option<Token>,

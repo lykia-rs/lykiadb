@@ -627,75 +627,80 @@ impl<'a> Parser<'a> {
 
     fn sql_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
         if self.match_next(skw!(From)) {
-            return Ok(Some(self.sql_collection_subquery()?));
+            return Ok(Some(self.sql_subquery_join()?));
         }
         Ok(None)
     }
 
-    fn sql_collection_subquery(&mut self) -> ParseResult<SqlCollectionSubquery> {
-        if self.cmp_tok(&sym!(LeftParen)) {
-            // If the next token is a left paren, then it must be either a select statement or a recursive subquery
-            self.advance();
+    fn sql_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
+        let mut recursive: Vec<SqlCollectionSubquery> = vec![];
+
+        loop {
+            let subquery = self.sql_subquery_collection()?;
+            recursive.push(subquery);
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+
+        let mut joins: Vec<(SqlJoinType, SqlCollectionSubquery, Option<SqlExpr>)> = vec![];
+
+        while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+            // If the next token is a join keyword, then it must be a join subquery
+            let peek = self.peek_bw(1);
+            let join_type = if peek.tok_type == skw!(Inner) {
+                self.expected(skw!(Join))?;
+                SqlJoinType::Inner
+            } else if peek.tok_type == skw!(Left) {
+                if self.match_next(skw!(Outer)) {
+                    self.advance();
+                }
+                self.expected(skw!(Join))?;
+                SqlJoinType::Left
+            } else if peek.tok_type == skw!(Right) {
+                if self.match_next(skw!(Outer)) {
+                    self.advance();
+                }
+                self.expected(skw!(Join))?;
+                SqlJoinType::Right
+            } else if peek.tok_type == skw!(Join) {
+                SqlJoinType::Inner
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: peek.clone(),
+                });
+            };
+            let join_subquery = self.sql_subquery_collection()?;
+            let mut join_expr: Option<SqlExpr> = None;
+            if self.match_next(skw!(On)) {
+                join_expr = Some(SqlExpr::Default(self.expression()?));
+            }
+            joins.push((join_type, join_subquery, join_expr));
+        }
+
+        if !joins.is_empty() {
+            return Ok(SqlCollectionSubquery::Join(
+                Box::new(SqlCollectionSubquery::Recursive(recursive)),
+                joins,
+            ));
+        }
+
+        return Ok(SqlCollectionSubquery::Recursive(recursive));
+    }
+
+    fn sql_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
+        if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
                 let expr = self.select()?;
-                let alias = optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 self.expected(sym!(RightParen))?; // closing paren
+                let alias: Option<Token> =
+                    optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 return Ok(SqlCollectionSubquery::Select { expr, alias });
             }
-
-            let mut recursive: Vec<SqlCollectionSubquery> = vec![];
-
-            loop {
-                let subquery = self.sql_collection_subquery()?;
-                recursive.push(subquery);
-                if !self.match_next(sym!(Comma)) {
-                    break;
-                }
-            }
-
-            let mut joins: Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)> = vec![];
-
-            while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
-                // If the next token is a join keyword, then it must be a join subquery
-                let peek = self.peek_bw(1);
-                let join_type = if peek.tok_type == skw!(Inner) {
-                    self.expected(skw!(Join))?;
-                    SqlJoinType::Inner
-                } else if peek.tok_type == skw!(Left) {
-                    if self.match_next(skw!(Outer)) {
-                        self.advance();
-                    }
-                    self.expected(skw!(Join))?;
-                    SqlJoinType::Left
-                } else if peek.tok_type == skw!(Right) {
-                    if self.match_next(skw!(Outer)) {
-                        self.advance();
-                    }
-                    self.expected(skw!(Join))?;
-                    SqlJoinType::Right
-                } else if peek.tok_type == skw!(Join) {
-                    SqlJoinType::Inner
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        token: peek.clone(),
-                    });
-                };
-                let join_subquery = self.sql_collection_subquery()?;
-                self.expected(skw!(On))?;
-                let join_expr = self.expression()?;
-                joins.push((join_type, join_subquery, SqlExpr::Default(join_expr)));
-            }
-
+            // If the next token is a left paren, then it must be either a select statement or a recursive subquery
+            let parsed = self.sql_subquery_collection()?;
             self.expected(sym!(RightParen))?; // closing paren
-
-            if !joins.is_empty() {
-                return Ok(SqlCollectionSubquery::Join(
-                    Box::new(SqlCollectionSubquery::Recursive(recursive)),
-                    joins,
-                ));
-            }
-
-            return Ok(SqlCollectionSubquery::Recursive(recursive));
+            return Ok(parsed);
         } else if self.cmp_tok(&Identifier { dollar: false }) {
             // If the next token is not a left paren, then it must be a collection getter
             if self.match_next_all_of(&vec![
