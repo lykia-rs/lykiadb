@@ -698,7 +698,7 @@ impl<'a> Parser<'a> {
                 return Ok(SqlCollectionSubquery::Select { expr, alias });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
-            let parsed = self.sql_subquery_collection()?;
+            let parsed = self.sql_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             return Ok(parsed);
         } else if self.cmp_tok(&Identifier { dollar: false }) {
