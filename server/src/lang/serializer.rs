@@ -30,7 +30,11 @@ impl Visitor<Value, ()> for Parsed {
                 "type": "Expr::Select",
                 // TODO(vck): Implement rest of the select
             }),
-            Expr::Literal { raw, span: _, value } => {
+            Expr::Literal {
+                raw,
+                span: _,
+                value,
+            } => {
                 json!({
                     "type": "Expr::Literal",
                     "value": format!("{:?}", value),
@@ -43,7 +47,11 @@ impl Visitor<Value, ()> for Parsed {
                     "value": self.visit_expr(*expr)?,
                 })
             }
-            Expr::Unary { symbol, expr, span: _ } => {
+            Expr::Unary {
+                symbol,
+                expr,
+                span: _,
+            } => {
                 json!({
                     "type": "Expr::Unary",
                     "operator": symbol,
@@ -89,7 +97,11 @@ impl Visitor<Value, ()> for Parsed {
                     "right": self.visit_expr(*right)?,
                 })
             }
-            Expr::Call { callee, span: _, args } => {
+            Expr::Call {
+                callee,
+                span: _,
+                args,
+            } => {
                 json!({
                     "type": "Expr::Call",
                     "callee": self.visit_expr(*callee)?,

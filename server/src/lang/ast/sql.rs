@@ -40,31 +40,25 @@ pub enum SqlExpr {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum SqlFrom {
-    CollectionSubquery(Vec<SqlCollectionSubquery>),
-    Join(Box<SqlCollectionSubquery>, Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)>),
-}
-
-#[derive(Debug, Eq, PartialEq)]
 pub enum SqlProjection {
-    All {
-        collection: Option<Token>,
-    },
+    All { collection: Option<Token> },
     Expr { expr: SqlExpr, alias: Option<Token> },
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlCollectionSubquery {
-    Simple {
+    Recursive(Vec<SqlCollectionSubquery>),
+    Join(
+        Box<SqlCollectionSubquery>,
+        Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)>,
+    ),
+    Collection {
         namespace: Option<Token>,
-        collection: Token,
+        name: Token,
         alias: Option<Token>,
     },
-    From {
-        from: SqlFrom,
-    },
     Select {
-        stmt: SqlSelect,
+        expr: ExprId,
         alias: Option<Token>,
     },
 }
@@ -73,7 +67,7 @@ pub enum SqlCollectionSubquery {
 pub struct SelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
-    pub from: Option<SqlFrom>,
+    pub from: Option<SqlCollectionSubquery>,
     pub r#where: Option<SqlExpr>,
     pub group_by: Option<Vec<SqlExpr>>,
     pub having: Option<SqlExpr>,

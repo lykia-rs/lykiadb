@@ -1,6 +1,6 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
-    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom,
+    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoinType,
     SqlOrdering, SqlProjection, SqlSelect,
 };
 use super::ast::stmt::{Stmt, StmtId};
@@ -557,7 +557,7 @@ impl<'a> Parser<'a> {
         } else {
             SqlDistinct::All
         };
-        
+
         let projection = self.sql_projection();
         let from = self.sql_from()?;
         let r#where = self.sql_where()?;
@@ -600,10 +600,12 @@ impl<'a> Parser<'a> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if self.match_next(sym!(Star)) {
-                projections.push(SqlProjection::All {
-                    collection: None,
-                });
-            } else if self.match_next_all_of(&vec![Identifier { dollar: false }, sym!(Dot), sym!(Star)]) {
+                projections.push(SqlProjection::All { collection: None });
+            } else if self.match_next_all_of(&vec![
+                Identifier { dollar: false },
+                sym!(Dot),
+                sym!(Star),
+            ]) {
                 projections.push(SqlProjection::All {
                     collection: Some(self.peek_bw(3).clone()),
                 });
@@ -623,19 +625,100 @@ impl<'a> Parser<'a> {
         projections
     }
 
-    fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
+    fn sql_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
         if self.match_next(skw!(From)) {
-            let token = self.expected(Identifier { dollar: false });
-            return Ok(Some(SqlFrom::CollectionSubquery(vec![
-                SqlCollectionSubquery::Simple {
-                    namespace: None,
-                    collection: token.unwrap().clone(),
-                    alias: None,
-                },
-            ])));
+            return Ok(Some(self.sql_collection_subquery()?));
         }
-        // TODO(vck): CollectionSubquery, SelectStmt, Join
         Ok(None)
+    }
+
+    fn sql_collection_subquery(&mut self) -> ParseResult<SqlCollectionSubquery> {
+        if self.cmp_tok(&sym!(LeftParen)) {
+            // If the next token is a left paren, then it must be either a select statement or a recursive subquery
+            self.advance();
+            if self.cmp_tok(&skw!(Select)) {
+                let expr = self.select()?;
+                let alias = optional_with_expected!(self, skw!(As), Identifier { dollar: false });
+                self.expected(sym!(RightParen))?; // closing paren
+                return Ok(SqlCollectionSubquery::Select { expr, alias });
+            }
+
+            let mut recursive: Vec<SqlCollectionSubquery> = vec![];
+
+            loop {
+                let subquery = self.sql_collection_subquery()?;
+                recursive.push(subquery);
+                if !self.match_next(sym!(Comma)) {
+                    break;
+                }
+            }
+
+            let mut joins: Vec<(SqlJoinType, SqlCollectionSubquery, SqlExpr)> = vec![];
+
+            while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+                // If the next token is a join keyword, then it must be a join subquery
+                let peek = self.peek_bw(1);
+                let join_type = if peek.tok_type == skw!(Inner) {
+                    self.expected(skw!(Join))?;
+                    SqlJoinType::Inner
+                } else if peek.tok_type == skw!(Left) {
+                    if self.match_next(skw!(Outer)) {
+                        self.advance();
+                    }
+                    self.expected(skw!(Join))?;
+                    SqlJoinType::Left
+                } else if peek.tok_type == skw!(Right) {
+                    if self.match_next(skw!(Outer)) {
+                        self.advance();
+                    }
+                    self.expected(skw!(Join))?;
+                    SqlJoinType::Right
+                } else if peek.tok_type == skw!(Join) {
+                    SqlJoinType::Inner
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        token: peek.clone(),
+                    });
+                };
+                let join_subquery = self.sql_collection_subquery()?;
+                self.expected(skw!(On))?;
+                let join_expr = self.expression()?;
+                joins.push((join_type, join_subquery, SqlExpr::Default(join_expr)));
+            }
+
+            self.expected(sym!(RightParen))?; // closing paren
+
+            if !joins.is_empty() {
+                return Ok(SqlCollectionSubquery::Join(
+                    Box::new(SqlCollectionSubquery::Recursive(recursive)),
+                    joins,
+                ));
+            }
+
+            return Ok(SqlCollectionSubquery::Recursive(recursive));
+        } else if self.cmp_tok(&Identifier { dollar: false }) {
+            // If the next token is not a left paren, then it must be a collection getter
+            if self.match_next_all_of(&vec![
+                Identifier { dollar: false },
+                sym!(Dot),
+                Identifier { dollar: false },
+            ]) {
+                return Ok(SqlCollectionSubquery::Collection {
+                    namespace: Some(self.peek_bw(3).clone()),
+                    name: self.peek_bw(1).clone(),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+                });
+            }
+            return Ok(SqlCollectionSubquery::Collection {
+                namespace: None,
+                name: self.expected(Identifier { dollar: false })?.clone(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+            });
+        } else {
+            Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
+            })
+        }
     }
 
     fn sql_where(&mut self) -> ParseResult<Option<SqlExpr>> {

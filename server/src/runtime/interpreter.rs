@@ -55,7 +55,7 @@ pub enum LoopState {
     Go,
     Broken,
     Continue,
-    Function
+    Function,
 }
 
 struct LoopStack {
@@ -324,7 +324,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     self.loop_stack.push_fn();
 
                     let val = callable.call(self, args_evaluated.as_slice());
-                    
+
                     self.loop_stack.pop_fn();
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
@@ -464,7 +464,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
                         || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
                     self.visit_stmt(*body)?;
-                    self.loop_stack.set_loop_state(LoopState::Go, Some(LoopState::Continue));
+                    self.loop_stack
+                        .set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
                         self.visit_stmt(*post_id)?;
                     }
