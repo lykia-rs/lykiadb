@@ -1,7 +1,7 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
-    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoinType,
-    SqlOrdering, SqlProjection, SqlSelect,
+    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin,
+    SqlJoinType, SqlOrdering, SqlProjection, SqlSelect,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -633,17 +633,17 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
-        let mut recursive: Vec<SqlCollectionSubquery> = vec![];
+        let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
 
         loop {
             let subquery = self.sql_subquery_collection()?;
-            recursive.push(subquery);
+            subquery_group.push(subquery);
             if !self.match_next(sym!(Comma)) {
                 break;
             }
         }
 
-        let mut joins: Vec<(SqlJoinType, SqlCollectionSubquery, Option<SqlExpr>)> = vec![];
+        let mut joins: Vec<SqlJoin> = vec![];
 
         while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
             // If the next token is a join keyword, then it must be a join subquery
@@ -664,22 +664,26 @@ impl<'a> Parser<'a> {
                     token: peek.clone(),
                 });
             };
-            let join_subquery = self.sql_subquery_collection()?;
-            let mut join_expr: Option<SqlExpr> = None;
+            let subquery = self.sql_subquery_collection()?;
+            let mut join_constraint: Option<SqlExpr> = None;
             if self.match_next(skw!(On)) {
-                join_expr = Some(SqlExpr::Default(self.expression()?));
+                join_constraint = Some(SqlExpr::Default(self.expression()?));
             }
-            joins.push((join_type, join_subquery, join_expr));
+            joins.push(SqlJoin {
+                join_type,
+                subquery,
+                join_constraint,
+            });
         }
 
         if !joins.is_empty() {
             return Ok(SqlCollectionSubquery::Join(
-                Box::new(SqlCollectionSubquery::Recursive(recursive)),
+                Box::new(SqlCollectionSubquery::Group(subquery_group)),
                 joins,
             ));
         }
 
-        return Ok(SqlCollectionSubquery::Recursive(recursive));
+        return Ok(SqlCollectionSubquery::Group(subquery_group));
     }
 
     fn sql_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {

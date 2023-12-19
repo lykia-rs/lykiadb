@@ -46,12 +46,16 @@ pub enum SqlProjection {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct SqlJoin {
+    pub join_type: SqlJoinType,
+    pub subquery: SqlCollectionSubquery,
+    pub join_constraint: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub enum SqlCollectionSubquery {
-    Recursive(Vec<SqlCollectionSubquery>),
-    Join(
-        Box<SqlCollectionSubquery>,
-        Vec<(SqlJoinType, SqlCollectionSubquery, Option<SqlExpr>)>,
-    ),
+    Group(Vec<SqlCollectionSubquery>),
+    Join(Box<SqlCollectionSubquery>, Vec<SqlJoin>),
     Collection {
         namespace: Option<Token>,
         name: Token,
