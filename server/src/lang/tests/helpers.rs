@@ -49,7 +49,7 @@ macro_rules! generate_parse_test_cases {
 #[macro_export]
 #[cfg(test)]
 macro_rules! parse_tests {
-    ($package:ident, $($file:ident),*) => {
+    ($package:ident / $($file:ident),*) => {
 
         mod $package {
             use crate::generate_parse_test_cases;
