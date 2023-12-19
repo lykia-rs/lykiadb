@@ -470,14 +470,14 @@ impl<'a> Parser<'a> {
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
             }));
         }
-        self.select()
+        self.sql_select()
     }
 
-    fn select(&mut self) -> ParseResult<ExprId> {
+    fn sql_select(&mut self) -> ParseResult<ExprId> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
-        let core = self.select_core()?;
+        let core = self.sql_select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
         while self.match_next_one_of(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
@@ -493,7 +493,7 @@ impl<'a> Parser<'a> {
                     }
                 }
             };
-            let secondary_core = self.select_core()?;
+            let secondary_core = self.sql_select_core()?;
             compounds.push((compound_op, secondary_core))
         }
         let order_by = if self.match_next(skw!(Order)) {
@@ -548,7 +548,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn select_core(&mut self) -> ParseResult<SelectCore> {
+    fn sql_select_core(&mut self) -> ParseResult<SelectCore> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
@@ -558,10 +558,10 @@ impl<'a> Parser<'a> {
             SqlDistinct::All
         };
 
-        let projection = self.sql_projection();
-        let from = self.sql_from()?;
-        let r#where = self.sql_where()?;
-        let group_by = self.sql_group_by()?;
+        let projection = self.sql_select_projection();
+        let from = self.sql_select_from()?;
+        let r#where = self.sql_select_where()?;
+        let group_by = self.sql_select_group_by()?;
         let having = if group_by.is_some() && self.match_next(skw!(Having)) {
             Some(SqlExpr::Default(self.expression()?))
         } else {
@@ -578,7 +578,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn sql_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
+    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
         if self.match_next(skw!(Group)) {
             self.expected(skw!(By))?;
             let mut groups: Vec<SqlExpr> = vec![];
@@ -596,7 +596,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_projection(&mut self) -> Vec<SqlProjection> {
+    fn sql_select_projection(&mut self) -> Vec<SqlProjection> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if self.match_next(sym!(Star)) {
@@ -625,18 +625,18 @@ impl<'a> Parser<'a> {
         projections
     }
 
-    fn sql_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
+    fn sql_select_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
         if self.match_next(skw!(From)) {
-            return Ok(Some(self.sql_subquery_join()?));
+            return Ok(Some(self.sql_select_subquery_join()?));
         }
         Ok(None)
     }
 
-    fn sql_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
+    fn sql_select_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
         let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
 
         loop {
-            let subquery = self.sql_subquery_collection()?;
+            let subquery = self.sql_select_subquery_collection()?;
             subquery_group.push(subquery);
             if !self.match_next(sym!(Comma)) {
                 break;
@@ -664,7 +664,7 @@ impl<'a> Parser<'a> {
                     token: peek.clone(),
                 });
             };
-            let subquery = self.sql_subquery_collection()?;
+            let subquery = self.sql_select_subquery_collection()?;
             let mut join_constraint: Option<SqlExpr> = None;
             if self.match_next(skw!(On)) {
                 join_constraint = Some(SqlExpr::Default(self.expression()?));
@@ -686,17 +686,17 @@ impl<'a> Parser<'a> {
         return Ok(SqlCollectionSubquery::Group(subquery_group));
     }
 
-    fn sql_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
+    fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
         if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
-                let expr = self.select()?;
+                let expr = self.sql_select()?;
                 self.expected(sym!(RightParen))?; // closing paren
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 return Ok(SqlCollectionSubquery::Select { expr, alias });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
-            let parsed = self.sql_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
+            let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             return Ok(parsed);
         } else if self.cmp_tok(&Identifier { dollar: false }) {
@@ -724,7 +724,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_where(&mut self) -> ParseResult<Option<SqlExpr>> {
+    fn sql_select_where(&mut self) -> ParseResult<Option<SqlExpr>> {
         if self.match_next(skw!(Where)) {
             let expr = self.expression()?;
             return Ok(Some(SqlExpr::Default(expr)));
