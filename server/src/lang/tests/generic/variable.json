@@ -1,0 +1,15 @@
+{
+    "source": "$a;",
+    "expected": {
+        "type": "Stmt::Program",
+        "body": [
+            {
+                "type": "Stmt::Expression",
+                "value": {
+                    "type": "Expr::Variable",
+                    "value": "$a"
+                }
+            }
+        ]
+    }
+}
