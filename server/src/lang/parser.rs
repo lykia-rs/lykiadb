@@ -652,16 +652,10 @@ impl<'a> Parser<'a> {
                 self.expected(skw!(Join))?;
                 SqlJoinType::Inner
             } else if peek.tok_type == skw!(Left) {
-                if self.match_next(skw!(Outer)) {
-                    self.advance();
-                }
-                self.expected(skw!(Join))?;
+                optional_with_expected!(self, skw!(Outer), skw!(Join));
                 SqlJoinType::Left
             } else if peek.tok_type == skw!(Right) {
-                if self.match_next(skw!(Outer)) {
-                    self.advance();
-                }
-                self.expected(skw!(Join))?;
+                optional_with_expected!(self, skw!(Outer), skw!(Join));
                 SqlJoinType::Right
             } else if peek.tok_type == skw!(Join) {
                 SqlJoinType::Inner
