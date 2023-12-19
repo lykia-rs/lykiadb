@@ -927,13 +927,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
+    use crate::parse_tests;
 
-    mod generic {
-        use crate::generate_test_cases;
-        use crate::lang::tests::helpers::compare_parsed_to_expected;
-        use serde_json::{from_str, Value};
-        use std::fs;
-
-        generate_test_cases!("generic", binary, unary, grouping, number_literal, variable);
-    }
+    parse_tests!(generic, binary, unary, grouping, number_literal, variable);
 }

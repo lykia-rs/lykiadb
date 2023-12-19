@@ -29,12 +29,12 @@ pub fn compare_parsed_to_expected(source: &str, expected: Value) {
 
 #[macro_export]
 #[cfg(test)]
-macro_rules! generate_test_cases {
-    ($dir:expr, $($file:ident),*) => {
+macro_rules! generate_parse_test_cases {
+    ($dir:ident, $($file:ident),*) => {
         $(
             #[test]
             fn $file() {
-                let path = format!("src/lang/tests/{}/{}.json", $dir, stringify!($file));
+                let path = format!("src/lang/tests/{}/{}.json", stringify!($dir), stringify!($file));
                 let content_json = fs::read_to_string(&path).unwrap();
 
                 let content: Value = from_str(&content_json).unwrap();
@@ -44,4 +44,20 @@ macro_rules! generate_test_cases {
             }
         )*
     };
+}
+
+#[macro_export]
+#[cfg(test)]
+macro_rules! parse_tests {
+    ($package:ident, $($file:ident),*) => {
+
+        mod $package {
+            use crate::generate_parse_test_cases;
+            use crate::lang::tests::helpers::compare_parsed_to_expected;
+            use serde_json::{from_str, Value};
+            use std::fs;
+
+            generate_parse_test_cases!($package, $($file),*);
+        }
+    }
 }
