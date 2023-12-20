@@ -1,5 +1,16 @@
 # λykiaDB
+<div style="display: flex;">
+<div>
+
 [![CI](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lykia-rs/lykiadb/actions/workflows/ci.yml)
+
+</div>
+<div>
+
+[![codecov](https://codecov.io/gh/lykia-rs/lykiadb/graph/badge.svg?token=DGIK7BE3K1)](https://codecov.io/gh/lykia-rs/lykiadb)
+
+</div>
+</div>
 
 <p align="center">
     <img alt="LykiaDB logo" height="200" src="https://vcankeklik.com/assets/img/logo.svg?v=051223">
