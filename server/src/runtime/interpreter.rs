@@ -55,51 +55,77 @@ pub enum LoopState {
     Go,
     Broken,
     Continue,
+    Function,
 }
 
-#[derive(Debug)]
-pub struct Context {
-    ongoing_loops: Option<Vec<LoopState>>,
+struct LoopStack {
+    ongoing_loops: Vec<LoopState>,
 }
 
-impl Context {
-    pub fn new() -> Context {
-        Context {
-            ongoing_loops: None,
+impl LoopStack {
+    pub fn new() -> LoopStack {
+        LoopStack {
+            ongoing_loops: vec![],
+        }
+    }
+
+    pub fn push_fn(&mut self) {
+        self.ongoing_loops.push(LoopState::Function);
+    }
+
+    pub fn pop_fn(&mut self) {
+        if self.ongoing_loops.last() == Some(&LoopState::Function) {
+            self.ongoing_loops.pop();
         }
     }
 
     pub fn push_loop(&mut self, state: LoopState) {
-        if self.ongoing_loops.is_none() {
-            self.ongoing_loops = Some(vec![]);
-        }
-        self.ongoing_loops.as_mut().unwrap().push(state);
+        self.ongoing_loops.push(state);
     }
 
     pub fn pop_loop(&mut self) {
-        self.ongoing_loops.as_mut().unwrap().pop();
+        if self.is_loops_empty() {
+            return;
+        }
+        self.ongoing_loops.pop();
     }
 
     pub fn is_loops_empty(&self) -> bool {
-        if self.ongoing_loops.is_none() {
-            return true;
-        }
-        return self.ongoing_loops.as_ref().unwrap().is_empty();
+        self.ongoing_loops.is_empty() || self.ongoing_loops.last() == Some(&LoopState::Function)
     }
 
     pub fn get_last_loop(&self) -> Option<&LoopState> {
-        if self.ongoing_loops.is_none() {
+        if self.is_loops_empty() {
             return None;
         }
-        return self.ongoing_loops.as_ref().unwrap().last();
+        return self.ongoing_loops.last();
     }
 
     pub fn set_last_loop(&mut self, to: LoopState) {
-        if self.ongoing_loops.is_none() {
+        if self.ongoing_loops.is_empty() {
             return;
         }
         self.pop_loop();
         self.push_loop(to);
+    }
+
+    fn is_loop_at(&self, state: LoopState) -> bool {
+        let last_loop = *self.get_last_loop().unwrap();
+        last_loop == state
+    }
+
+    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
+        if from.is_none() {
+            return if !self.is_loops_empty() {
+                self.set_last_loop(to);
+                true
+            } else {
+                false
+            };
+        } else if self.is_loop_at(from.unwrap()) {
+            self.set_last_loop(to);
+        }
+        true
     }
 }
 
@@ -107,7 +133,7 @@ pub struct Interpreter {
     env: Shared<Environment>,
     root_env: Shared<Environment>,
     arena: Rc<ParserArena>,
-    call_stack: Vec<Context>,
+    loop_stack: LoopStack,
     resolver: Rc<Resolver>,
 }
 
@@ -121,7 +147,7 @@ impl Interpreter {
             env: env.clone(),
             root_env: env,
             arena: Rc::clone(&arena),
-            call_stack: vec![Context::new()],
+            loop_stack: LoopStack::new(),
             resolver,
         }
     }
@@ -156,27 +182,6 @@ impl Interpreter {
         } else {
             self.root_env.borrow().read(name)
         }
-    }
-}
-
-impl Interpreter {
-    fn is_loop_at(&self, state: LoopState) -> bool {
-        let last_loop = *self.call_stack[0].get_last_loop().unwrap();
-        last_loop == state
-    }
-
-    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
-        if from.is_none() {
-            return if !self.call_stack[0].is_loops_empty() {
-                self.call_stack[0].set_last_loop(to);
-                true
-            } else {
-                false
-            };
-        } else if self.is_loop_at(from.unwrap()) {
-            self.call_stack[0].set_last_loop(to);
-        }
-        true
     }
 
     pub fn user_fn_call(
@@ -316,10 +321,11 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(*arg)?);
                     }
-                    self.call_stack.insert(0, Context::new());
+                    self.loop_stack.push_fn();
 
                     let val = callable.call(self, args_evaluated.as_slice());
-                    self.call_stack.remove(0);
+
+                    self.loop_stack.pop_fn();
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
                         Ok(unpacked_val) => Ok(unpacked_val),
@@ -410,8 +416,8 @@ impl Visitor<RV, HaltReason> for Interpreter {
     }
 
     fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {
-        if !self.call_stack[0].is_loops_empty()
-            && *self.call_stack[0].get_last_loop().unwrap() != LoopState::Go
+        if !self.loop_stack.is_loops_empty()
+            && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
             return Ok(RV::Undefined);
         }
@@ -452,28 +458,29 @@ impl Visitor<RV, HaltReason> for Interpreter {
                 post,
                 span: _,
             } => {
-                self.call_stack[0].push_loop(LoopState::Go);
-                while !self.is_loop_at(LoopState::Broken)
+                self.loop_stack.push_loop(LoopState::Go);
+                while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
                         || is_value_truthy(self.visit_expr(condition.unwrap())?))
                 {
                     self.visit_stmt(*body)?;
-                    self.set_loop_state(LoopState::Go, Some(LoopState::Continue));
+                    self.loop_stack
+                        .set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
                         self.visit_stmt(*post_id)?;
                     }
                 }
-                self.call_stack[0].pop_loop();
+                self.loop_stack.pop_loop();
             }
             Stmt::Break { span } => {
-                if !self.set_loop_state(LoopState::Broken, None) {
+                if !self.loop_stack.set_loop_state(LoopState::Broken, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
                     }));
                 }
             }
             Stmt::Continue { span } => {
-                if !self.set_loop_state(LoopState::Continue, None) {
+                if !self.loop_stack.set_loop_state(LoopState::Continue, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
                     }));

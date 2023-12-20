@@ -1,0 +1,16 @@
+{
+    "source": "1;",
+    "expected": {
+        "type": "Stmt::Program",
+        "body": [
+            {
+                "type": "Stmt::Expression",
+                "value": {
+                    "type": "Expr::Literal",
+                    "value": "Num(1.0)",
+                    "raw": "1"
+                }
+            }
+        ]
+    }
+}

@@ -1,7 +1,7 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
-    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlFrom,
-    SqlOrdering, SqlProjection, SqlSelect,
+    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin,
+    SqlJoinType, SqlOrdering, SqlProjection, SqlSelect,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -42,7 +42,7 @@ type ParseResult<T> = Result<T, ParseError>;
 macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: ExprId = $self.$builder()?;
-        while $self.match_next_multi(&vec![$($operator,)*]) {
+        while $self.match_next_one_of(&vec![$($operator,)*]) {
             let token = (*$self.peek_bw(1)).clone();
             let left = current_expr;
             let right = $self.$builder()?;
@@ -460,7 +460,7 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> ParseResult<ExprId> {
-        if self.match_next_multi(&vec![sym!(Minus), sym!(Bang)]) {
+        if self.match_next_one_of(&vec![sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
@@ -470,16 +470,16 @@ impl<'a> Parser<'a> {
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
             }));
         }
-        self.select()
+        self.sql_select()
     }
 
-    fn select(&mut self) -> ParseResult<ExprId> {
+    fn sql_select(&mut self) -> ParseResult<ExprId> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
-        let core = self.select_core()?;
+        let core = self.sql_select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
-        while self.match_next_multi(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
+        while self.match_next_one_of(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
@@ -493,7 +493,7 @@ impl<'a> Parser<'a> {
                     }
                 }
             };
-            let secondary_core = self.select_core()?;
+            let secondary_core = self.sql_select_core()?;
             compounds.push((compound_op, secondary_core))
         }
         let order_by = if self.match_next(skw!(Order)) {
@@ -548,21 +548,20 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn select_core(&mut self) -> ParseResult<SelectCore> {
+    fn sql_select_core(&mut self) -> ParseResult<SelectCore> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
+        } else if self.match_next(skw!(All)) {
+            SqlDistinct::All
         } else {
             SqlDistinct::All
         };
-        /* else if self.match_next(skw!(All)) {
-            SqlDistinct::All
-        }*/
 
-        let projection = self.sql_projection();
-        let from = self.sql_from()?;
-        let r#where = self.sql_where()?;
-        let group_by = self.sql_group_by()?;
+        let projection = self.sql_select_projection();
+        let from = self.sql_select_from()?;
+        let r#where = self.sql_select_where()?;
+        let group_by = self.sql_select_group_by()?;
         let having = if group_by.is_some() && self.match_next(skw!(Having)) {
             Some(SqlExpr::Default(self.expression()?))
         } else {
@@ -579,7 +578,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn sql_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
+    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
         if self.match_next(skw!(Group)) {
             self.expected(skw!(By))?;
             let mut groups: Vec<SqlExpr> = vec![];
@@ -597,16 +596,24 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_projection(&mut self) -> Vec<SqlProjection> {
+    fn sql_select_projection(&mut self) -> Vec<SqlProjection> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if self.match_next(sym!(Star)) {
-                projections.push(SqlProjection::All);
+                projections.push(SqlProjection::All { collection: None });
+            } else if self.match_next_all_of(&vec![
+                Identifier { dollar: false },
+                sym!(Dot),
+                sym!(Star),
+            ]) {
+                projections.push(SqlProjection::All {
+                    collection: Some(self.peek_bw(3).clone()),
+                });
             } else {
                 let expr = self.expression().unwrap();
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                projections.push(SqlProjection::Complex {
+                projections.push(SqlProjection::Expr {
                     expr: SqlExpr::Default(expr),
                     alias,
                 });
@@ -615,26 +622,109 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        // TODO(vck): Add support for collection selectors
         projections
     }
 
-    fn sql_from(&mut self) -> ParseResult<Option<SqlFrom>> {
+    fn sql_select_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
         if self.match_next(skw!(From)) {
-            let token = self.expected(Identifier { dollar: false });
-            return Ok(Some(SqlFrom::CollectionSubquery(vec![
-                SqlCollectionSubquery::Simple {
-                    namespace: None,
-                    collection: token.unwrap().clone(),
-                    alias: None,
-                },
-            ])));
+            return Ok(Some(self.sql_select_subquery_join()?));
         }
-        // TODO(vck): Joins
         Ok(None)
     }
 
-    fn sql_where(&mut self) -> ParseResult<Option<SqlExpr>> {
+    fn sql_select_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
+        let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
+
+        loop {
+            let subquery = self.sql_select_subquery_collection()?;
+            subquery_group.push(subquery);
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+
+        let mut joins: Vec<SqlJoin> = vec![];
+
+        while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+            // If the next token is a join keyword, then it must be a join subquery
+            let peek = self.peek_bw(1);
+            let join_type = if peek.tok_type == skw!(Inner) {
+                self.expected(skw!(Join))?;
+                SqlJoinType::Inner
+            } else if peek.tok_type == skw!(Left) {
+                optional_with_expected!(self, skw!(Outer), skw!(Join));
+                SqlJoinType::Left
+            } else if peek.tok_type == skw!(Right) {
+                optional_with_expected!(self, skw!(Outer), skw!(Join));
+                SqlJoinType::Right
+            } else if peek.tok_type == skw!(Join) {
+                SqlJoinType::Inner
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: peek.clone(),
+                });
+            };
+            let subquery = self.sql_select_subquery_collection()?;
+            let mut join_constraint: Option<SqlExpr> = None;
+            if self.match_next(skw!(On)) {
+                join_constraint = Some(SqlExpr::Default(self.expression()?));
+            }
+            joins.push(SqlJoin {
+                join_type,
+                subquery,
+                join_constraint,
+            });
+        }
+
+        if !joins.is_empty() {
+            return Ok(SqlCollectionSubquery::Join(
+                Box::new(SqlCollectionSubquery::Group(subquery_group)),
+                joins,
+            ));
+        }
+
+        return Ok(SqlCollectionSubquery::Group(subquery_group));
+    }
+
+    fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
+        if self.match_next(sym!(LeftParen)) {
+            if self.cmp_tok(&skw!(Select)) {
+                let expr = self.sql_select()?;
+                self.expected(sym!(RightParen))?; // closing paren
+                let alias: Option<Token> =
+                    optional_with_expected!(self, skw!(As), Identifier { dollar: false });
+                return Ok(SqlCollectionSubquery::Select { expr, alias });
+            }
+            // If the next token is a left paren, then it must be either a select statement or a recursive subquery
+            let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
+            self.expected(sym!(RightParen))?; // closing paren
+            return Ok(parsed);
+        } else if self.cmp_tok(&Identifier { dollar: false }) {
+            // If the next token is not a left paren, then it must be a collection getter
+            if self.match_next_all_of(&vec![
+                Identifier { dollar: false },
+                sym!(Dot),
+                Identifier { dollar: false },
+            ]) {
+                return Ok(SqlCollectionSubquery::Collection {
+                    namespace: Some(self.peek_bw(3).clone()),
+                    name: self.peek_bw(1).clone(),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+                });
+            }
+            return Ok(SqlCollectionSubquery::Collection {
+                namespace: None,
+                name: self.expected(Identifier { dollar: false })?.clone(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+            });
+        } else {
+            Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
+            })
+        }
+    }
+
+    fn sql_select_where(&mut self) -> ParseResult<Option<SqlExpr>> {
         if self.match_next(skw!(Where)) {
             let expr = self.expression()?;
             return Ok(Some(SqlExpr::Default(expr)));
@@ -789,6 +879,10 @@ impl<'a> Parser<'a> {
         &self.tokens[self.current - offset]
     }
 
+    fn peek_fw(&self, offset: usize) -> &'a Token {
+        &self.tokens[self.current + offset]
+    }
+
     fn cmp_tok(&self, t: &TokenType) -> bool {
         let current = self.peek_bw(0);
         current.tok_type == *t
@@ -802,8 +896,20 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn match_next_multi(&mut self, types: &Vec<TokenType>) -> bool {
-        for t in types {
+    fn match_next_all_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+        for (i, t) in tokens.iter().enumerate() {
+            if self.peek_fw(i).tok_type != *t {
+                return false;
+            }
+        }
+        for _ in 0..tokens.len() {
+            self.advance();
+        }
+        return true;
+    }
+
+    fn match_next_one_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+        for t in tokens {
             if self.cmp_tok(t) {
                 self.advance();
                 return true;
@@ -821,191 +927,7 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
+    use crate::parse_tests;
 
-    use assert_json_diff::assert_json_eq;
-    use serde_json::{json, Value};
-
-    use crate::lang::{scanner::Scanner, token::Token};
-
-    use super::*;
-
-    fn get_tokens(source: &str) -> Vec<Token> {
-        return Scanner::scan(source).unwrap();
-    }
-
-    fn compare_parsed_to_expected(source: &str, expected: Value) {
-        let tokens = get_tokens(source);
-        let mut parsed = Parser::parse(&tokens).unwrap();
-        let actual = parsed.to_json();
-        assert_json_eq!(actual, expected);
-    }
-
-    #[test]
-    fn test_parse_literal_expression() {
-        compare_parsed_to_expected(
-            "1;",
-            json!({
-                "type": "Stmt::Program",
-                "body": [
-                    {
-                        "type": "Stmt::Expression",
-                        "value": {
-                            "type": "Expr::Literal",
-                            "value": "Num(1.0)",
-                            "raw": "1"
-                        }
-                    }
-                ]
-            }),
-        );
-    }
-
-    #[test]
-    fn test_parse_unary_expression() {
-        compare_parsed_to_expected(
-            "-1;",
-            json!({
-                "type": "Stmt::Program",
-                "body": [
-                    {
-                        "type": "Stmt::Expression",
-                        "value": {
-                            "type": "Expr::Unary",
-                            "operator": {
-                                "Symbol": "Minus"
-                            },
-                            "value": {
-                                "type": "Expr::Literal",
-                                "value": "Num(1.0)",
-                                "raw": "1"
-                            }
-                        }
-                    }
-                ]
-            }),
-        );
-    }
-
-    #[test]
-    fn test_parse_binary_expression() {
-        compare_parsed_to_expected(
-            "1 + 2;",
-            json!({
-                "type": "Stmt::Program",
-                "body": [
-                    {
-                        "type": "Stmt::Expression",
-                        "value": {
-                            "type": "Expr::Binary",
-                            "left": {
-                                "type": "Expr::Literal",
-                                "value": "Num(1.0)",
-                                "raw": "1"
-                            },
-                            "operator": {
-                                "Symbol": "Plus"
-                            },
-                            "right": {
-                                "type": "Expr::Literal",
-                                "value": "Num(2.0)",
-                                "raw": "2"
-                            }
-                        }
-                    }
-                ]
-            }),
-        );
-    }
-
-    #[test]
-    fn test_parse_grouping_expression() {
-        compare_parsed_to_expected(
-            "(1 + 2) * (3 / (4 - 7));",
-            json!({
-                "type": "Stmt::Program",
-                "body": [
-                    {
-                        "type": "Stmt::Expression",
-                        "value": {
-                            "type": "Expr::Binary",
-                            "left": {
-                                "type": "Expr::Grouping",
-                                "value": {
-                                    "type": "Expr::Binary",
-                                    "left": {
-                                        "raw": "1",
-                                        "type": "Expr::Literal",
-                                        "value": "Num(1.0)",
-                                    },
-                                    "operator": {
-                                        "Symbol": "Plus"
-                                    },
-                                    "right": {
-                                        "raw": "2",
-                                        "type": "Expr::Literal",
-                                        "value": "Num(2.0)",
-                                    }
-                                }
-                            },
-                            "operator": {
-                                "Symbol": "Star"
-                            },
-                            "right": {
-                                "type": "Expr::Grouping",
-                                "value": {
-                                    "type": "Expr::Binary",
-                                    "left": {
-                                        "raw": "3",
-                                        "type": "Expr::Literal",
-                                        "value": "Num(3.0)",
-                                    },
-                                    "operator": {
-                                        "Symbol": "Slash"
-                                    },
-                                    "right": {
-                                        "type": "Expr::Grouping",
-                                        "value": {
-                                            "type": "Expr::Binary",
-                                            "left": {
-                                                "raw": "4",
-                                                "type": "Expr::Literal",
-                                                "value": "Num(4.0)",
-                                            },
-                                            "operator":  {
-                                                "Symbol": "Minus"
-                                            },
-                                            "right": {
-                                                "raw": "7",
-                                                "type": "Expr::Literal",
-                                                "value": "Num(7.0)",
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ]
-            }),
-        );
-    }
-
-    #[test]
-    fn test_parse_variable_expression() {
-        compare_parsed_to_expected(
-            "$a;",
-            json!({
-                "type": "Stmt::Program",
-                "body": [
-                    {
-                        "type": "Stmt::Expression",
-                        "value": {
-                            "type": "Expr::Variable",
-                            "value": "$a",
-                        }
-                    }
-                ]
-            }),
-        );
-    }
+    parse_tests!(generic / binary, unary, grouping, number_literal, variable, function_call);
 }

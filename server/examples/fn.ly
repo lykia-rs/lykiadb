@@ -1,4 +1,4 @@
-fun helloWorld ($message) {
+function helloWorld ($message) {
     print("Hello world!", $message);
     {
         {

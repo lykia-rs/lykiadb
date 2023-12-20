@@ -830,7 +830,7 @@ mod test {
     #[test]
     fn test_keywords() {
         assert_tokens(
-            "and or class else for fun if break continue return super this var while loop",
+            "and or class else for function if break continue return super this var while loop",
             vec![
                 Token {
                     tok_type: kw!(Keyword::And),
@@ -889,12 +889,12 @@ mod test {
                 },
                 Token {
                     tok_type: kw!(Keyword::Fun),
-                    lexeme: lexm!("fun"),
+                    lexeme: lexm!("function"),
                     literal: None,
                     span: Span {
                         line: 0,
                         start: 22,
-                        end: 25,
+                        end: 30,
                         line_end: 0,
                     },
                 },
@@ -904,8 +904,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 26,
-                        end: 28,
+                        start: 31,
+                        end: 33,
                         line_end: 0,
                     },
                 },
@@ -915,8 +915,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 29,
-                        end: 34,
+                        start: 34,
+                        end: 39,
                         line_end: 0,
                     },
                 },
@@ -926,8 +926,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 35,
-                        end: 43,
+                        start: 40,
+                        end: 48,
                         line_end: 0,
                     },
                 },
@@ -937,8 +937,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 44,
-                        end: 50,
+                        start: 49,
+                        end: 55,
                         line_end: 0,
                     },
                 },
@@ -948,8 +948,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 51,
-                        end: 56,
+                        start: 56,
+                        end: 61,
                         line_end: 0,
                     },
                 },
@@ -959,8 +959,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 57,
-                        end: 61,
+                        start: 62,
+                        end: 66,
                         line_end: 0,
                     },
                 },
@@ -970,8 +970,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 62,
-                        end: 65,
+                        start: 67,
+                        end: 70,
                         line_end: 0,
                     },
                 },
@@ -981,8 +981,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 66,
-                        end: 71,
+                        start: 71,
+                        end: 76,
                         line_end: 0,
                     },
                 },
@@ -992,8 +992,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 72,
-                        end: 76,
+                        start: 77,
+                        end: 81,
                         line_end: 0,
                     },
                 },
@@ -1003,8 +1003,8 @@ mod test {
                     literal: None,
                     span: Span {
                         line: 0,
-                        start: 77,
-                        end: 77,
+                        start: 82,
+                        end: 82,
                         line_end: 0,
                     },
                 },
