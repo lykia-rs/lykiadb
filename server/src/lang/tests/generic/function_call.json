@@ -1,0 +1,25 @@
+{
+    "source": "print(50);",
+    "expected": {
+        "type": "Stmt::Program",
+        "body": [
+            {
+                "type": "Stmt::Expression",
+                "value": {
+                    "type": "Expr::Call",
+                    "callee": {
+                        "type": "Expr::Variable",
+                        "value": "print"
+                    },
+                    "args": [
+                        {
+                            "type": "Expr::Literal",
+                            "value": "Num(50.0)",
+                            "raw": "50"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}

@@ -929,5 +929,5 @@ impl<'a> Parser<'a> {
 mod test {
     use crate::parse_tests;
 
-    parse_tests!(generic / binary, unary, grouping, number_literal, variable);
+    parse_tests!(generic / binary, unary, grouping, number_literal, variable, function_call);
 }
