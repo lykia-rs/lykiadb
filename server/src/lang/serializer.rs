@@ -4,23 +4,29 @@ use super::{
     ast::{
         expr::{Expr, ExprId},
         stmt::{Stmt, StmtId},
-        Visitor,
+        ImmutableVisitor,
     },
-    parser::Parsed,
+    parser::Program,
 };
 use std::rc::Rc;
 
-impl Parsed {
-    pub fn to_json(&mut self) -> Value {
-        json!(self.visit_stmt(self.program).unwrap())
+impl Program {
+    pub fn to_json(&self) -> Value {
+        json!(self.visit_stmt(self.root).unwrap())
     }
-    pub fn serialize(&mut self) -> String {
+    pub fn serialize(&self) -> String {
         serde_json::to_string_pretty(&self.to_json()).unwrap()
     }
 }
 
-impl Visitor<Value, ()> for Parsed {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<Value, ()> {
+impl ToString for Program {
+    fn to_string(&self) -> String {
+        self.serialize().clone()
+    }
+}
+
+impl ImmutableVisitor<Value, ()> for Program {
+    fn visit_expr(&self, eidx: ExprId) -> Result<Value, ()> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
@@ -155,7 +161,7 @@ impl Visitor<Value, ()> for Parsed {
         Ok(matched)
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<Value, ()> {
+    fn visit_stmt(&self, sidx: StmtId) -> Result<Value, ()> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);

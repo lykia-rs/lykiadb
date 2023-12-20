@@ -18,14 +18,14 @@ pub struct Parser<'a> {
     arena: ParserArena,
 }
 
-pub struct Parsed {
-    pub program: StmtId,
+pub struct Program {
+    pub root: StmtId,
     pub arena: Rc<ParserArena>,
 }
 
-impl Parsed {
-    pub fn new(program: StmtId, arena: Rc<ParserArena>) -> Parsed {
-        Parsed { program, arena }
+impl Program {
+    pub fn new(root: StmtId, arena: Rc<ParserArena>) -> Program {
+        Program { root, arena }
     }
 }
 
@@ -85,7 +85,7 @@ macro_rules! optional_with_expected {
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Parsed> {
+    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
@@ -96,7 +96,7 @@ impl<'a> Parser<'a> {
             arena,
         };
         let program = parser.program()?;
-        Ok(Parsed::new(program, Rc::new(parser.arena)))
+        Ok(Program::new(program, Rc::new(parser.arena)))
     }
 
     fn program(&mut self) -> ParseResult<StmtId> {

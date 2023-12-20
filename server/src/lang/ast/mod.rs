@@ -29,6 +29,11 @@ pub trait Visitor<T, Q> {
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
 }
 
+pub trait ImmutableVisitor<T, Q> {
+    fn visit_expr(&self, e: ExprId) -> Result<T, Q>;
+    fn visit_stmt(&self, e: StmtId) -> Result<T, Q>;
+}
+
 pub struct ParserArena {
     expressions: Vec<Expr>,
     statements: Vec<Stmt>,
