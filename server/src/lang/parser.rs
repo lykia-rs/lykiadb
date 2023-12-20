@@ -42,7 +42,7 @@ type ParseResult<T> = Result<T, ParseError>;
 macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: ExprId = $self.$builder()?;
-        while $self.match_next_one_of(&vec![$($operator,)*]) {
+        while $self.match_next_one_of(&[$($operator,)*]) {
             let token = (*$self.peek_bw(1)).clone();
             let left = current_expr;
             let right = $self.$builder()?;
@@ -460,7 +460,7 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> ParseResult<ExprId> {
-        if self.match_next_one_of(&vec![sym!(Minus), sym!(Bang)]) {
+        if self.match_next_one_of(&[sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
@@ -479,7 +479,7 @@ impl<'a> Parser<'a> {
         }
         let core = self.sql_select_core()?;
         let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
-        while self.match_next_one_of(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
+        while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
@@ -601,11 +601,8 @@ impl<'a> Parser<'a> {
         loop {
             if self.match_next(sym!(Star)) {
                 projections.push(SqlProjection::All { collection: None });
-            } else if self.match_next_all_of(&vec![
-                Identifier { dollar: false },
-                sym!(Dot),
-                sym!(Star),
-            ]) {
+            } else if self.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
+            {
                 projections.push(SqlProjection::All {
                     collection: Some(self.peek_bw(3).clone()),
                 });
@@ -645,7 +642,7 @@ impl<'a> Parser<'a> {
 
         let mut joins: Vec<SqlJoin> = vec![];
 
-        while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+        while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
             // If the next token is a join keyword, then it must be a join subquery
             let peek = self.peek_bw(1);
             let join_type = if peek.tok_type == skw!(Inner) {
@@ -701,7 +698,7 @@ impl<'a> Parser<'a> {
             return Ok(parsed);
         } else if self.cmp_tok(&Identifier { dollar: false }) {
             // If the next token is not a left paren, then it must be a collection getter
-            if self.match_next_all_of(&vec![
+            if self.match_next_all_of(&[
                 Identifier { dollar: false },
                 sym!(Dot),
                 Identifier { dollar: false },
@@ -896,7 +893,7 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn match_next_all_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+    fn match_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
         for (i, t) in tokens.iter().enumerate() {
             if self.peek_fw(i).tok_type != *t {
                 return false;
@@ -908,7 +905,7 @@ impl<'a> Parser<'a> {
         return true;
     }
 
-    fn match_next_one_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+    fn match_next_one_of(&mut self, tokens: &[TokenType]) -> bool {
         for t in tokens {
             if self.cmp_tok(t) {
                 self.advance();
@@ -929,5 +926,12 @@ impl<'a> Parser<'a> {
 mod test {
     use crate::parse_tests;
 
-    parse_tests!(generic / binary, unary, grouping, number_literal, variable, function_call);
+    parse_tests!(
+        generic / binary,
+        unary,
+        grouping,
+        number_literal,
+        variable,
+        function_call
+    );
 }
