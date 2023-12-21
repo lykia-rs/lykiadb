@@ -68,7 +68,7 @@ pub enum SqlCollectionSubquery {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SelectCore {
+pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
     pub from: Option<SqlCollectionSubquery>,
@@ -79,8 +79,8 @@ pub struct SelectCore {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlSelect {
-    pub core: SelectCore,
-    pub compound: Vec<(SqlCompoundOperator, SelectCore)>,
+    pub core: SqlSelectCore,
+    pub compound: Vec<(SqlCompoundOperator, SqlSelectCore)>,
     pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
     pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
 }

@@ -4,6 +4,7 @@ use rustc_hash::FxHashMap;
 
 use self::{
     expr::{Expr, ExprId},
+    sql::SqlSelect,
     stmt::{Stmt, StmtId},
 };
 pub mod expr;
@@ -25,11 +26,14 @@ pub enum Literal {
 impl Eq for Literal {}
 
 pub trait Visitor<T, Q> {
+    // TODO(vck): Implement visit_select
+    // fn visit_select(&mut self, e: SqlSelect) -> Result<T, Q>;
     fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
 }
 
 pub trait ImmutableVisitor<T, Q> {
+    fn visit_select(&self, e: &SqlSelect) -> Result<T, Q>;
     fn visit_expr(&self, e: ExprId) -> Result<T, Q>;
     fn visit_stmt(&self, e: StmtId) -> Result<T, Q>;
 }

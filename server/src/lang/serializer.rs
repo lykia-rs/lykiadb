@@ -3,12 +3,13 @@ use serde_json::{json, Value};
 use super::{
     ast::{
         expr::{Expr, ExprId},
+        sql::{SqlExpr, SqlSelect},
         stmt::{Stmt, StmtId},
         ImmutableVisitor,
     },
     parser::Program,
 };
-use std::rc::Rc;
+use std::{borrow::BorrowMut, rc::Rc};
 
 impl Program {
     pub fn to_json(&self) -> Value {
@@ -26,14 +27,73 @@ impl ToString for Program {
 }
 
 impl ImmutableVisitor<Value, ()> for Program {
+    fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
+        let order_by: Value = select
+            .order_by
+            .as_ref()
+            .map(|x| {
+                x.iter()
+                    .map(|order| {
+                        let expr = if let SqlExpr::Default(eidx) = order.0 {
+                            self.visit_expr(eidx).unwrap()
+                        } else {
+                            panic!("Not implemented");
+                        };
+                        let val = json!({
+                            "expr": expr,
+                            "ordering": format!("{:?}", order.1),
+                        });
+                        val
+                    })
+                    .collect()
+            })
+            .unwrap();
+
+        let limit: Option<Value> = select.limit.as_ref().map(|x| {
+            let limit_part = if let SqlExpr::Default(eidx) = x.0 {
+                self.visit_expr(eidx).unwrap()
+            } else {
+                panic!("Not implemented");
+            };
+
+            let offset_part = if x.1.is_some() {
+                if let SqlExpr::Default(eidx) = x.1.as_ref().unwrap() {
+                    self.visit_expr(*eidx).unwrap()
+                } else {
+                    panic!("Not implemented");
+                }
+            } else {
+                json!("None")
+            };
+
+            json!({
+                "limit_part": limit_part,
+                "offset_part": offset_part
+            })
+        });
+        /*
+                {
+                        pub core: SqlSelectCore,
+                        pub compound: Vec<(SqlCompoundOperator, SqlSelectCore)>,
+                        pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
+                        pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
+                    }
+        */
+        Ok(json!({
+            "order_by": order_by,
+            "limit": limit
+        }))
+    }
+
     fn visit_expr(&self, eidx: ExprId) -> Result<Value, ()> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);
 
         let matched: Value = match e {
-            Expr::Select { span: _, query: _ } => json!({
+            Expr::Select { span: _, query } => json!({
                 "type": "Expr::Select",
+                "value": self.visit_select(query).unwrap(),
                 // TODO(vck): Implement rest of the select
             }),
             Expr::Literal {

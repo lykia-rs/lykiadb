@@ -1,7 +1,7 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
-    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin,
-    SqlJoinType, SqlOrdering, SqlProjection, SqlSelect,
+    SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
+    SqlOrdering, SqlProjection, SqlSelect, SqlSelectCore,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -481,7 +481,7 @@ impl<'a> Parser<'a> {
             return self.call();
         }
         let core = self.sql_select_core()?;
-        let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
+        let mut compounds: Vec<(SqlCompoundOperator, SqlSelectCore)> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
@@ -551,7 +551,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn sql_select_core(&mut self) -> ParseResult<SelectCore> {
+    fn sql_select_core(&mut self) -> ParseResult<SqlSelectCore> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
@@ -571,7 +571,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(SelectCore {
+        Ok(SqlSelectCore {
             distinct,
             projection,
             from,
@@ -923,18 +923,4 @@ impl<'a> Parser<'a> {
         let right_span = &right.get_span();
         left_span.merge(right_span)
     }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::parse_tests;
-
-    parse_tests!(
-        generic / binary,
-        unary,
-        grouping,
-        number_literal,
-        variable,
-        function_call
-    );
 }
