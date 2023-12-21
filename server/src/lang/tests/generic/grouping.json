@@ -5,11 +5,11 @@
         "body": [
             {
                 "type": "Stmt::Expression",
-                "value": {
+                "expr": {
                     "type": "Expr::Binary",
                     "left": {
                         "type": "Expr::Grouping",
-                        "value": {
+                        "expr": {
                             "type": "Expr::Binary",
                             "left": {
                                 "raw": "1",
@@ -31,7 +31,7 @@
                     },
                     "right": {
                         "type": "Expr::Grouping",
-                        "value": {
+                        "expr": {
                             "type": "Expr::Binary",
                             "left": {
                                 "raw": "3",
@@ -43,7 +43,7 @@
                             },
                             "right": {
                                 "type": "Expr::Grouping",
-                                "value": {
+                                "expr": {
                                     "type": "Expr::Binary",
                                     "left": {
                                         "raw": "4",

@@ -5,12 +5,12 @@
         "body": [
             {
                 "type": "Stmt::Expression",
-                "value": {
+                "expr": {
                     "type": "Expr::Unary",
                     "operator": {
                         "Symbol": "Minus"
                     },
-                    "value": {
+                    "expr": {
                         "type": "Expr::Literal",
                         "value": "Num(1.0)",
                         "raw": "1"

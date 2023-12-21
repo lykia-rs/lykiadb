@@ -50,22 +50,22 @@ impl ImmutableVisitor<Value, ()> for Program {
             Expr::Grouping { expr, span: _ } => {
                 json!({
                     "type": "Expr::Grouping",
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Unary {
-                symbol,
+                operator,
                 expr,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Unary",
-                    "operator": symbol,
-                    "value": self.visit_expr(*expr)?,
+                    "operator": operator,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Binary {
-                symbol,
+                operator,
                 left,
                 right,
                 span: _,
@@ -73,33 +73,33 @@ impl ImmutableVisitor<Value, ()> for Program {
                 json!({
                     "type": "Expr::Binary",
                     "left": self.visit_expr(*left)?,
-                    "operator": symbol,
+                    "operator": operator,
                     "right": self.visit_expr(*right)?,
                 })
             }
             Expr::Variable { name, span: _ } => {
                 json!({
                     "type": "Expr::Variable",
-                    "value": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                 })
             }
             Expr::Assignment { dst, expr, span: _ } => {
                 json!({
                     "type": "Expr::Assignment",
-                    "variable": dst.lexeme.as_ref(),
-                    "value": self.visit_expr(*expr)?,
+                    "dst": dst.lexeme.as_ref(),
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Logical {
                 left,
-                symbol,
+                operator,
                 right,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Logical",
                     "left": self.visit_expr(*left)?,
-                    "operator": symbol,
+                    "operator": operator,
                     "right": self.visit_expr(*right)?,
                 })
             }
@@ -140,7 +140,7 @@ impl ImmutableVisitor<Value, ()> for Program {
                 json!({
                     "type": "Expr::Get",
                     "object": self.visit_expr(*object)?,
-                    "property": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                 })
             }
             Expr::Set {
@@ -152,7 +152,7 @@ impl ImmutableVisitor<Value, ()> for Program {
                 json!({
                     "type": "Expr::Set",
                     "object": self.visit_expr(*object)?,
-                    "property": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                     "value": self.visit_expr(*value)?,
                 })
             }
@@ -166,43 +166,43 @@ impl ImmutableVisitor<Value, ()> for Program {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         let matched: Value = match s {
-            Stmt::Program { stmts, span: _ } => {
+            Stmt::Program { body, span: _ } => {
                 json!({
                     "type": "Stmt::Program",
-                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                    "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
-            Stmt::Block { stmts, span: _ } => {
+            Stmt::Block { body, span: _ } => {
                 json!({
                     "type": "Stmt::Block",
-                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                    "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
             Stmt::Expression { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Expression",
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 json!({
                     "type": "Stmt::Declaration",
                     "variable": dst.lexeme.as_ref().unwrap(),
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Stmt::If {
                 condition,
                 body,
-                r#else,
+                r#else_body,
                 span: _,
             } => {
                 json!({
                     "type": "Stmt::If",
                     "condition": self.visit_expr(*condition)?,
                     "body": self.visit_stmt(*body)?,
-                    "else": if r#else.is_some() {
-                        self.visit_stmt(r#else.unwrap())?
+                    "else_body": if r#else_body.is_some() {
+                        self.visit_stmt(r#else_body.unwrap())?
                     } else {
                         json!("None")
                     },
@@ -238,7 +238,7 @@ impl ImmutableVisitor<Value, ()> for Program {
             Stmt::Return { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Return",
-                    "value": if expr.is_some() {
+                    "expr": if expr.is_some() {
                         self.visit_expr(expr.unwrap())?
                     } else {
                         json!("None")

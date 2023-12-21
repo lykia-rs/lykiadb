@@ -5,7 +5,7 @@
         "body": [
             {
                 "type": "Stmt::Expression",
-                "value": {
+                "expr": {
                     "type": "Expr::Binary",
                     "left": {
                         "type": "Expr::Literal",

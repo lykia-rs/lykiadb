@@ -5,11 +5,11 @@
         "body": [
             {
                 "type": "Stmt::Expression",
-                "value": {
+                "expr": {
                     "type": "Expr::Call",
                     "callee": {
                         "type": "Expr::Variable",
-                        "value": "print"
+                        "name": "print"
                     },
                     "args": [
                         {

@@ -258,12 +258,12 @@ impl Visitor<RV, HaltReason> for Interpreter {
             } => Ok(self.literal_to_rv(&value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
             Expr::Unary {
-                symbol,
+                operator: symbol,
                 expr,
                 span: _,
             } => self.eval_unary(&symbol, *expr),
             Expr::Binary {
-                symbol,
+                operator: symbol,
                 left,
                 right,
                 span: _,
@@ -292,7 +292,7 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Expr::Logical {
                 left,
-                symbol,
+                operator: symbol,
                 right,
                 span: _,
             } => {
@@ -425,7 +425,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
-            Stmt::Program { stmts, span: _ } => {
+            Stmt::Program {
+                body: stmts,
+                span: _,
+            } => {
                 return self.execute_block(stmts, Some(self.env.clone()));
             }
             Stmt::Expression { expr, span: _ } => {
@@ -437,13 +440,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     .borrow_mut()
                     .declare(dst.lexeme.as_ref().unwrap().to_string(), evaluated.clone());
             }
-            Stmt::Block { stmts, span: _ } => {
+            Stmt::Block {
+                body: stmts,
+                span: _,
+            } => {
                 return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
                 body,
-                r#else,
+                r#else_body: r#else,
                 span: _,
             } => {
                 if is_value_truthy(self.visit_expr(*condition)?) {

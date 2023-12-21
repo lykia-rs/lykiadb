@@ -5,9 +5,9 @@
         "body": [
             {
                 "type": "Stmt::Expression",
-                "value": {
+                "expr": {
                     "type": "Expr::Variable",
-                    "value": "$a"
+                    "name": "$a"
                 }
             }
         ]

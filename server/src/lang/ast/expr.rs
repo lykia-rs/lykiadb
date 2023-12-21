@@ -30,12 +30,12 @@ pub enum Expr {
     },
     Binary {
         left: ExprId,
-        symbol: TokenType,
+        operator: TokenType,
         right: ExprId,
         span: Span,
     },
     Unary {
-        symbol: TokenType,
+        operator: TokenType,
         expr: ExprId,
         span: Span,
     },
@@ -46,7 +46,7 @@ pub enum Expr {
     },
     Logical {
         left: ExprId,
-        symbol: TokenType,
+        operator: TokenType,
         right: ExprId,
         span: Span,
     },
@@ -87,12 +87,12 @@ impl Spanned for Expr {
             }
             | Expr::Binary {
                 left: _,
-                symbol: _,
+                operator: _,
                 right: _,
                 span,
             }
             | Expr::Unary {
-                symbol: _,
+                operator: _,
                 expr: _,
                 span,
             }
@@ -103,7 +103,7 @@ impl Spanned for Expr {
             }
             | Expr::Logical {
                 left: _,
-                symbol: _,
+                operator: _,
                 right: _,
                 span,
             }

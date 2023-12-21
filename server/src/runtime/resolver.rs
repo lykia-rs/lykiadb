@@ -92,12 +92,12 @@ impl Visitor<RV, ResolveError> for Resolver {
             } => (),
             Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
             Expr::Unary {
-                symbol: _,
+                operator: _,
                 expr,
                 span: _,
             } => self.resolve_expr(*expr),
             Expr::Binary {
-                symbol: _,
+                operator: _,
                 left,
                 right,
                 span: _,
@@ -125,7 +125,7 @@ impl Visitor<RV, ResolveError> for Resolver {
             }
             Expr::Logical {
                 left,
-                symbol: _,
+                operator: _,
                 right,
                 span: _,
             } => {
@@ -186,10 +186,16 @@ impl Visitor<RV, ResolveError> for Resolver {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
-            Stmt::Program { stmts, span: _ } => {
+            Stmt::Program {
+                body: stmts,
+                span: _,
+            } => {
                 self.resolve_stmts(stmts);
             }
-            Stmt::Block { stmts, span: _ } => {
+            Stmt::Block {
+                body: stmts,
+                span: _,
+            } => {
                 self.begin_scope();
                 self.resolve_stmts(stmts);
                 self.end_scope();
@@ -206,7 +212,7 @@ impl Visitor<RV, ResolveError> for Resolver {
             Stmt::If {
                 condition,
                 body,
-                r#else,
+                r#else_body: r#else,
                 span: _,
             } => {
                 self.resolve_expr(*condition);

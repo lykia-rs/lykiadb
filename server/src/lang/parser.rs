@@ -49,7 +49,7 @@ macro_rules! binary {
 
             current_expr = $self.arena.expression(Expr::Binary {
                 left,
-                symbol: token.tok_type,
+                operator: token.tok_type,
                 right,
                 span: $self.get_merged_span(
                     $self.arena.get_expression(left),
@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(Eof)?;
         Ok(self.arena.statement(Stmt::Program {
-            stmts: statements.clone(),
+            body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
                 self.arena.get_statement(statements[statements.len() - 1]),
@@ -143,14 +143,14 @@ impl<'a> Parser<'a> {
             return Ok(self.arena.statement(Stmt::If {
                 condition,
                 body: if_branch,
-                r#else: Some(else_branch),
+                r#else_body: Some(else_branch),
                 span: self.get_merged_span(&if_tok.span, self.arena.get_statement(else_branch)),
             }));
         }
         Ok(self.arena.statement(Stmt::If {
             condition,
             body: if_branch,
-            r#else: None,
+            r#else_body: None,
             span: self.get_merged_span(&if_tok.span, self.arena.get_statement(if_branch)),
         }))
     }
@@ -248,7 +248,7 @@ impl<'a> Parser<'a> {
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         });
         Ok(self.arena.statement(Stmt::Block {
-            stmts: vec![initializer.unwrap(), loop_stmt],
+            body: vec![initializer.unwrap(), loop_stmt],
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         }))
     }
@@ -263,7 +263,7 @@ impl<'a> Parser<'a> {
         self.expected(sym!(RightBrace))?;
 
         Ok(self.arena.statement(Stmt::Block {
-            stmts: statements.clone(),
+            body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
                 self.arena.get_statement(statements[statements.len() - 1]),
@@ -337,7 +337,10 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.arena.get_statement(stmt_idx);
 
         let body: Vec<StmtId> = match inner_stmt {
-            Stmt::Block { stmts, span: _ } => stmts.clone(),
+            Stmt::Block {
+                body: stmts,
+                span: _,
+            } => stmts.clone(),
             _ => vec![stmt_idx],
         };
 
@@ -405,7 +408,7 @@ impl<'a> Parser<'a> {
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                symbol: op.tok_type.clone(),
+                operator: op.tok_type.clone(),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -423,7 +426,7 @@ impl<'a> Parser<'a> {
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                symbol: op.tok_type.clone(),
+                operator: op.tok_type.clone(),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -464,7 +467,7 @@ impl<'a> Parser<'a> {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
-                symbol: token.tok_type,
+                operator: token.tok_type,
                 expr: unary,
                 span: self
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
