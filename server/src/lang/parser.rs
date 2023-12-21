@@ -525,17 +525,17 @@ impl<'a> Parser<'a> {
         let limit = if self.match_next(skw!(Limit)) {
             let first_expr = SqlExpr::Default(self.expression()?);
             let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
-                (Some(SqlExpr::Default(self.expression()?)), true)
-            } else if self.match_next(sym!(Comma)) {
                 (Some(SqlExpr::Default(self.expression()?)), false)
+            } else if self.match_next(sym!(Comma)) {
+                (Some(SqlExpr::Default(self.expression()?)), true)
             } else {
                 (None, false)
             };
 
             if second_expr.is_some() && reverse {
-                Some(SqlLimitClause { limit: second_expr.unwrap(), offset: Some(first_expr) })
+                Some(SqlLimitClause { count: second_expr.unwrap(), offset: Some(first_expr) })
             } else {
-                Some(SqlLimitClause { limit: first_expr, offset: second_expr })
+                Some(SqlLimitClause { count: first_expr, offset: second_expr })
             }
         } else {
             None

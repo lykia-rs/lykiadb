@@ -49,7 +49,7 @@ impl ImmutableVisitor<Value, ()> for Program {
             });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let limit_part = if let SqlExpr::Default(eidx) = x.limit {
+            let count_part = if let SqlExpr::Default(eidx) = x.count {
                 self.visit_expr(eidx).unwrap()
             } else {
                 panic!("Not implemented");
@@ -66,7 +66,7 @@ impl ImmutableVisitor<Value, ()> for Program {
             };
 
             json!({
-                "limit": limit_part,
+                "count": count_part,
                 "offset": offset_part
             })
         });

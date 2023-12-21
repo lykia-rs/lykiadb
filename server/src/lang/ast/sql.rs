@@ -48,7 +48,7 @@ pub enum SqlProjection {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlLimitClause {
-    pub limit: SqlExpr,
+    pub count: SqlExpr,
     pub offset: Option<SqlExpr>
 }
 
