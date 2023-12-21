@@ -1,7 +1,7 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
-    SqlOrdering, SqlProjection, SqlSelect, SqlSelectCore,
+    SqlOrdering, SqlProjection, SqlSelect, SqlSelectCore, SqlOrderByClause, SqlSelectCompound, SqlLimitClause,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -481,7 +481,7 @@ impl<'a> Parser<'a> {
             return self.call();
         }
         let core = self.sql_select_core()?;
-        let mut compounds: Vec<(SqlCompoundOperator, SqlSelectCore)> = vec![];
+        let mut compounds: Vec<SqlSelectCompound> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
@@ -497,20 +497,21 @@ impl<'a> Parser<'a> {
                 }
             };
             let secondary_core = self.sql_select_core()?;
-            compounds.push((compound_op, secondary_core))
+            compounds.push(SqlSelectCompound { operator: compound_op, core: secondary_core })
         }
         let order_by = if self.match_next(skw!(Order)) {
             self.expected(skw!(By))?;
-            let mut ordering: Vec<(SqlExpr, SqlOrdering)> = vec![];
+            let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
                 let order_expr = self.expression()?;
                 let order = if self.match_next(skw!(Desc)) {
                     Some(SqlOrdering::Desc)
                 } else {
+                    self.match_next(skw!(Asc));
                     Some(SqlOrdering::Asc)
                 };
-                ordering.push((SqlExpr::Default(order_expr), order.unwrap()));
+                ordering.push(SqlOrderByClause { expr: SqlExpr::Default(order_expr), ordering: order.unwrap() });
                 if !self.match_next(sym!(Comma)) {
                     break;
                 }
@@ -532,9 +533,9 @@ impl<'a> Parser<'a> {
             };
 
             if second_expr.is_some() && reverse {
-                Some((second_expr.unwrap(), Some(first_expr)))
+                Some(SqlLimitClause { limit: second_expr.unwrap(), offset: Some(first_expr) })
             } else {
-                Some((first_expr, second_expr))
+                Some(SqlLimitClause { limit: first_expr, offset: second_expr })
             }
         } else {
             None

@@ -9,7 +9,7 @@ use super::{
     },
     parser::Program,
 };
-use std::{borrow::BorrowMut, rc::Rc};
+use std::rc::Rc;
 
 impl Program {
     pub fn to_json(&self) -> Value {
@@ -28,36 +28,35 @@ impl ToString for Program {
 
 impl ImmutableVisitor<Value, ()> for Program {
     fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
-        let order_by: Value = select
+        let order_by: Option<Value> = select
             .order_by
             .as_ref()
             .map(|x| {
                 x.iter()
                     .map(|order| {
-                        let expr = if let SqlExpr::Default(eidx) = order.0 {
+                        let expr = if let SqlExpr::Default(eidx) = order.expr {
                             self.visit_expr(eidx).unwrap()
                         } else {
                             panic!("Not implemented");
                         };
                         let val = json!({
                             "expr": expr,
-                            "ordering": format!("{:?}", order.1),
+                            "ordering": format!("{:?}", order.ordering),
                         });
                         val
                     })
                     .collect()
-            })
-            .unwrap();
+            });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let limit_part = if let SqlExpr::Default(eidx) = x.0 {
+            let limit_part = if let SqlExpr::Default(eidx) = x.limit {
                 self.visit_expr(eidx).unwrap()
             } else {
                 panic!("Not implemented");
             };
 
-            let offset_part = if x.1.is_some() {
-                if let SqlExpr::Default(eidx) = x.1.as_ref().unwrap() {
+            let offset_part = if x.offset.is_some() {
+                if let SqlExpr::Default(eidx) = x.offset.as_ref().unwrap() {
                     self.visit_expr(*eidx).unwrap()
                 } else {
                     panic!("Not implemented");
@@ -67,8 +66,8 @@ impl ImmutableVisitor<Value, ()> for Program {
             };
 
             json!({
-                "limit_part": limit_part,
-                "offset_part": offset_part
+                "limit": limit_part,
+                "offset": offset_part
             })
         });
         /*
