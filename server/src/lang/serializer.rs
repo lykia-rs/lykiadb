@@ -63,7 +63,7 @@ impl ImmutableVisitor<Value, ()> for Program {
                     panic!("Not implemented");
                 }
             } else {
-                json!("None")
+                json!(serde_json::Value::Null)
             };
 
             json!({
@@ -72,12 +72,12 @@ impl ImmutableVisitor<Value, ()> for Program {
             })
         });
         /*
-                {
-                        pub core: SqlSelectCore,
-                        pub compound: Vec<(SqlCompoundOperator, SqlSelectCore)>,
-                        pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
-                        pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
-                    }
+        {
+            pub core: SqlSelectCore,
+            pub compound: Vec<(SqlCompoundOperator, SqlSelectCore)>,
+            pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
+            pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
+        }
         */
         Ok(json!({
             "order_by": order_by,
@@ -264,7 +264,7 @@ impl ImmutableVisitor<Value, ()> for Program {
                     "else_body": if r#else_body.is_some() {
                         self.visit_stmt(r#else_body.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }
@@ -279,13 +279,13 @@ impl ImmutableVisitor<Value, ()> for Program {
                     "condition": if condition.is_some() {
                         self.visit_expr(condition.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                     "body": self.visit_stmt(*body)?,
                     "post": if post.is_some() {
                         self.visit_stmt(post.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }
@@ -301,7 +301,7 @@ impl ImmutableVisitor<Value, ()> for Program {
                     "expr": if expr.is_some() {
                         self.visit_expr(expr.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }
