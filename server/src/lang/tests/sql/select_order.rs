@@ -23,6 +23,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": null,
                             "order_by": null
                         }
@@ -45,6 +46,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -73,6 +75,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -108,6 +111,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -143,6 +147,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": null,
                             "order_by": [{
                                 "expr": {

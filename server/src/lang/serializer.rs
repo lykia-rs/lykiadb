@@ -28,14 +28,52 @@ impl ToString for Program {
 
 impl ImmutableVisitor<Value, ()> for Program {
     fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
+        let serialize_sql_expr = |sql_expr: &SqlExpr| {
+            if let SqlExpr::Default(eidx) = sql_expr {
+                self.visit_expr(*eidx).unwrap()
+            } else {
+                panic!("Not implemented");
+            }
+        };
+
+        let serialize_sql_core = |core: &SqlSelectCore| {
+            let core_projection: Value = core
+                .projection
+                .iter()
+                .map(|x| match x {
+                    SqlProjection::All { collection } => {
+                        json!({
+                            "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
+                        })
+                    }
+                    SqlProjection::Expr { expr, alias } => {
+                        json!({
+                            "expr": serialize_sql_expr(&expr),
+                            "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                        })
+                    }
+                })
+                .collect();
+            json!({
+                "projection": core_projection
+            })
+        };
+
+        let compound: Value = select
+            .compound
+            .iter()
+            .map(|x| {
+                json!({
+                    "core": serialize_sql_core(&x.core),
+                    "operator": format!("{:?}", x.operator),
+                })
+            })
+            .collect();
+
         let order_by: Option<Value> = select.order_by.as_ref().map(|x| {
             x.iter()
                 .map(|order| {
-                    let expr = if let SqlExpr::Default(eidx) = order.expr {
-                        self.visit_expr(eidx).unwrap()
-                    } else {
-                        panic!("Not implemented");
-                    };
+                    let expr = serialize_sql_expr(&order.expr);
                     let val = json!({
                         "expr": expr,
                         "ordering": format!("{:?}", order.ordering),
@@ -46,18 +84,10 @@ impl ImmutableVisitor<Value, ()> for Program {
         });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let count_part = if let SqlExpr::Default(eidx) = x.count {
-                self.visit_expr(eidx).unwrap()
-            } else {
-                panic!("Not implemented");
-            };
+            let count_part = serialize_sql_expr(&x.count);
 
             let offset_part = if x.offset.is_some() {
-                if let SqlExpr::Default(eidx) = x.offset.as_ref().unwrap() {
-                    self.visit_expr(*eidx).unwrap()
-                } else {
-                    panic!("Not implemented");
-                }
+                serialize_sql_expr(&x.offset.as_ref().unwrap())
             } else {
                 json!(serde_json::Value::Null)
             };
@@ -68,43 +98,9 @@ impl ImmutableVisitor<Value, ()> for Program {
             })
         });
 
-        let serialize_sql_core =
-            |core: &SqlSelectCore| {
-                let core_projection: Value = core.projection.iter().map(|x| {
-                match x {
-                    SqlProjection::All { collection } => {
-                        json!({
-                            "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
-                        })
-                    },
-                    SqlProjection::Expr { expr, alias } => {
-                        json!({
-                            "expr": if let SqlExpr::Default(eidx) = expr {
-                                self.visit_expr(*eidx).unwrap()
-                            } else {
-                                panic!("Not implemented");
-                            },
-                            "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
-                        })
-                    }
-                }
-            }).collect();
-
-                json!({
-                    "projection": core_projection
-                })
-            };
-
-        /*
-        {
-            pub core: SqlSelectCore,
-            pub compound: Vec<(SqlCompoundOperator, SqlSelectCore)>,
-            pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
-            pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
-        }
-        */
         Ok(json!({
             "core": serialize_sql_core(&select.core),
+            "compound": compound,
             "order_by": order_by,
             "limit": limit
         }))

@@ -23,6 +23,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": {
                                 "count": {
                                     "type": "Expr::Literal",
@@ -52,6 +53,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": {
                                 "count": {
                                     "type": "Expr::Literal",
@@ -85,6 +87,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
+                            "compound": [],
                             "limit": {
                                 "count": {
                                     "type": "Expr::Literal",
