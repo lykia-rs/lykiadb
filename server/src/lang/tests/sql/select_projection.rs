@@ -19,7 +19,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
@@ -43,7 +53,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": "users"
                                 }]
                             },
@@ -66,7 +86,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Variable",
                                         "name": "id"
@@ -74,6 +104,7 @@ assert_parsing! {
                                     "alias": null
                                 },
                                 {
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Get",
                                         "object": {
@@ -95,7 +126,7 @@ assert_parsing! {
         }
     },
     mixed_1: {
-        "SELECT 5 as five, \"text\" as some_text  from users;" => {
+        "SELECT 5 as five, \"text\" as some_text from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -104,7 +135,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Literal",
                                         "value": "Num(5.0)",
@@ -113,6 +154,7 @@ assert_parsing! {
                                     "alias": "five"
                                 },
                                 {
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Literal",
                                         "value": "Str(\"text\")",
@@ -140,7 +182,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Binary",
                                         "left": {
@@ -160,6 +212,7 @@ assert_parsing! {
                                     "alias": "addition"
                                 },
                                 {
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Binary",
                                         "left": {
@@ -198,7 +251,9 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": null,
                                 "projection": [{
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Binary",
                                         "left": {
@@ -218,6 +273,7 @@ assert_parsing! {
                                     "alias": "addition"
                                 },
                                 {
+                                    "type": "Expr",
                                     "expr": {
                                         "type": "Expr::Binary",
                                         "left": {

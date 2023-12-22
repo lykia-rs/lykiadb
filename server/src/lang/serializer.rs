@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use super::{
     ast::{
         expr::{Expr, ExprId},
-        sql::{SqlExpr, SqlProjection, SqlSelect, SqlSelectCore},
+        sql::{SqlCollectionSubquery, SqlExpr, SqlProjection, SqlSelect, SqlSelectCore},
         stmt::{Stmt, StmtId},
         ImmutableVisitor,
     },
@@ -11,60 +11,112 @@ use super::{
 };
 use std::rc::Rc;
 
-impl Program {
+pub struct ProgramSerializer<'a> {
+    pub program: &'a Program,
+}
+
+impl<'a> ProgramSerializer<'a> {
+    pub fn new(program: &'a Program) -> ProgramSerializer<'a> {
+        ProgramSerializer { program }
+    }
     pub fn to_json(&self) -> Value {
-        json!(self.visit_stmt(self.root).unwrap())
+        json!(self.visit_stmt(self.program.root).unwrap())
     }
     pub fn serialize(&self) -> String {
         serde_json::to_string_pretty(&self.to_json()).unwrap()
     }
 }
 
-impl ToString for Program {
+impl<'a> ToString for ProgramSerializer<'a> {
     fn to_string(&self) -> String {
         self.serialize().clone()
     }
 }
 
-impl ImmutableVisitor<Value, ()> for Program {
-    fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
-        let serialize_sql_expr = |sql_expr: &SqlExpr| {
-            if let SqlExpr::Default(eidx) = sql_expr {
-                self.visit_expr(*eidx).unwrap()
-            } else {
-                panic!("Not implemented");
-            }
-        };
+impl<'a> ProgramSerializer<'a> {
+    fn serialize_sql_expr(&self, sql_expr: &SqlExpr) -> Value {
+        if let SqlExpr::Default(eidx) = sql_expr {
+            self.visit_expr(*eidx).unwrap()
+        } else {
+            panic!("Not implemented");
+        }
+    }
 
-        let serialize_sql_core = |core: &SqlSelectCore| {
-            let core_projection: Value = core
-                .projection
-                .iter()
-                .map(|x| match x {
-                    SqlProjection::All { collection } => {
-                        json!({
-                            "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
-                        })
-                    }
-                    SqlProjection::Expr { expr, alias } => {
-                        json!({
-                            "expr": serialize_sql_expr(&expr),
-                            "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
-                        })
-                    }
-                })
-                .collect();
-            json!({
-                "projection": core_projection
+    fn serialize_sql_select_core(&self, core: &SqlSelectCore) -> Value {
+        let core_projection: Value = core
+            .projection
+            .iter()
+            .map(|x| match x {
+                SqlProjection::All { collection } => {
+                    json!({
+                        "type": "All",
+                        "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
+                    })
+                }
+                SqlProjection::Expr { expr, alias } => {
+                    json!({
+                        "type": "Expr",
+                        "expr": self.serialize_sql_expr(&expr),
+                        "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                    })
+                }
             })
-        };
+            .collect();
+
+        json!({
+            "projection": core_projection,
+            "from": core.from.as_ref().map(|x| self.serialize_sql_subquery(&x))
+        })
+    }
+
+    fn serialize_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Value {
+        match subquery {
+            SqlCollectionSubquery::Collection {
+                namespace,
+                name,
+                alias,
+            } => {
+                json!({
+                    "type": "Collection",
+                    "namespace": namespace.as_ref().map(|token| token.lexeme.to_owned()),
+                    "name": name.lexeme,
+                    "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                })
+            }
+            SqlCollectionSubquery::Group(groups) => {
+                let subqueries: Value = groups
+                    .iter()
+                    .map(|x| self.serialize_sql_subquery(x))
+                    .collect();
+                json!({
+                    "type": "Group",
+                    "subqueries": subqueries
+                })
+            }
+            SqlCollectionSubquery::Select { expr, alias } => {
+                json!({
+                    "type": "Select",
+                    "expr": self.visit_expr(*expr),
+                    "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                })
+            }
+            SqlCollectionSubquery::Join(_, _) => {
+                json!({})
+            }
+        }
+    }
+}
+
+impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
+    fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
+        let core = self.serialize_sql_select_core(&select.core);
 
         let compound: Value = select
             .compound
             .iter()
             .map(|x| {
                 json!({
-                    "core": serialize_sql_core(&x.core),
+                    "core": self.serialize_sql_select_core(&x.core),
                     "operator": format!("{:?}", x.operator),
                 })
             })
@@ -73,7 +125,7 @@ impl ImmutableVisitor<Value, ()> for Program {
         let order_by: Option<Value> = select.order_by.as_ref().map(|x| {
             x.iter()
                 .map(|order| {
-                    let expr = serialize_sql_expr(&order.expr);
+                    let expr = self.serialize_sql_expr(&order.expr);
                     let val = json!({
                         "expr": expr,
                         "ordering": format!("{:?}", order.ordering),
@@ -84,10 +136,10 @@ impl ImmutableVisitor<Value, ()> for Program {
         });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let count_part = serialize_sql_expr(&x.count);
+            let count_part = self.serialize_sql_expr(&x.count);
 
             let offset_part = if x.offset.is_some() {
-                serialize_sql_expr(&x.offset.as_ref().unwrap())
+                self.serialize_sql_expr(&x.offset.as_ref().unwrap())
             } else {
                 json!(serde_json::Value::Null)
             };
@@ -99,7 +151,7 @@ impl ImmutableVisitor<Value, ()> for Program {
         });
 
         Ok(json!({
-            "core": serialize_sql_core(&select.core),
+            "core": core,
             "compound": compound,
             "order_by": order_by,
             "limit": limit
@@ -108,7 +160,7 @@ impl ImmutableVisitor<Value, ()> for Program {
 
     fn visit_expr(&self, eidx: ExprId) -> Result<Value, ()> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Rc::clone(&self.program.arena);
         let e = a.get_expression(eidx);
 
         let matched: Value = match e {
@@ -244,7 +296,7 @@ impl ImmutableVisitor<Value, ()> for Program {
 
     fn visit_stmt(&self, sidx: StmtId) -> Result<Value, ()> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Rc::clone(&self.program.arena);
         let s = a.get_statement(sidx);
         let matched: Value = match s {
             Stmt::Program { body, span: _ } => {

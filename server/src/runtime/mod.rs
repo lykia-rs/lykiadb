@@ -3,8 +3,9 @@ use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
 use crate::lang::ast::Visitor;
-use crate::lang::parser::Parser;
+use crate::lang::parser::{ParseError, Parser};
 use crate::lang::scanner::Scanner;
+use crate::lang::serializer::ProgramSerializer;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
@@ -44,10 +45,11 @@ impl Runtime {
         Runtime { env, mode }
     }
 
-    pub fn print_ast(&mut self, source: &str) {
+    pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
-        let program = Parser::parse(&tokens);
-        println!("{}", program.unwrap().serialize());
+        let program = Parser::parse(&tokens)?;
+        println!("{}", ProgramSerializer::new(&program).to_string());
+        Ok(())
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {

@@ -19,7 +19,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
@@ -42,7 +52,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
@@ -71,7 +91,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
@@ -107,7 +137,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
@@ -143,7 +183,17 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "from": {
+                                    "type": "Group",
+                                    "subqueries": [{
+                                        "type": "Collection",
+                                        "alias": null,
+                                        "name": "users",
+                                        "namespace": null,
+                                    }],
+                                },
                                 "projection": [{
+                                    "type": "All",
                                     "collection": null
                                 }]
                             },
