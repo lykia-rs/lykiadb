@@ -111,6 +111,7 @@ impl<'a> ProgramSerializer<'a> {
                     })
                     .collect();
                 json!({
+                    "type": "Join",
                     "subquery": self.visit_sql_subquery(&join_subquery),
                     "joins": joins_ser
                 })
