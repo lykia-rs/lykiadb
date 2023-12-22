@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap;
 
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
-use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, ParserArena, Visitor};
 use crate::lang::token::TokenType;
@@ -152,8 +152,8 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, symbol: &TokenType, eidx: ExprId) -> Result<RV, HaltReason> {
-        if *symbol == sym!(Minus) {
+    fn eval_unary(&mut self, operation: &Operation, eidx: ExprId) -> Result<RV, HaltReason> {
+        if *operation == Operation::Subtract {
             if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
                 return Ok(RV::Num(-num));
             }
@@ -167,12 +167,12 @@ impl Interpreter {
         &mut self,
         lidx: ExprId,
         ridx: ExprId,
-        symbol: TokenType,
+        operation: Operation,
     ) -> Result<RV, HaltReason> {
         let left_eval = self.visit_expr(lidx)?;
         let right_eval = self.visit_expr(ridx)?;
 
-        Ok(eval_binary(left_eval, right_eval, &symbol))
+        Ok(eval_binary(left_eval, right_eval, operation))
     }
 
     fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
@@ -258,16 +258,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
             } => Ok(self.literal_to_rv(&value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
             Expr::Unary {
-                operator: symbol,
+                operation,
                 expr,
                 span: _,
-            } => self.eval_unary(&symbol, *expr),
+            } => self.eval_unary(operation, *expr),
             Expr::Binary {
-                operator: symbol,
+                operation,
                 left,
                 right,
                 span: _,
-            } => self.eval_binary(*left, *right, symbol.clone()),
+            } => self.eval_binary(*left, *right, *operation),
             Expr::Variable { name, span: _ } => {
                 self.look_up_variable(name.lexeme.as_ref().unwrap(), eidx)
             }
@@ -292,13 +292,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Expr::Logical {
                 left,
-                operator: symbol,
+                operation,
                 right,
                 span: _,
             } => {
                 let is_true = is_value_truthy(self.visit_expr(*left)?);
 
-                if (*symbol == kw!(Or) && is_true) || (*symbol == kw!(And) && !is_true) {
+                if (*operation == Operation::Or && is_true)
+                    || (*operation == Operation::And && !is_true)
+                {
                     return Ok(RV::Bool(is_true));
                 }
 

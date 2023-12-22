@@ -200,9 +200,7 @@ assert_parsing! {
                                             "value": "Num(5.0)",
                                             "raw": "5"
                                         },
-                                        "operator": {
-                                            "Symbol": "Plus"
-                                        },
+                                        "operation": "Add",
                                         "right": {
                                             "type": "Expr::Literal",
                                             "value": "Num(27.0)",
@@ -220,9 +218,7 @@ assert_parsing! {
                                             "value": "Num(4.0)",
                                             "raw": "4"
                                         },
-                                        "operator": {
-                                            "Symbol": "Slash"
-                                        },
+                                        "operation": "Divide",
                                         "right": {
                                             "type": "Expr::Literal",
                                             "value": "Num(2.0)",
@@ -261,9 +257,7 @@ assert_parsing! {
                                             "value": "Num(5.0)",
                                             "raw": "5"
                                         },
-                                        "operator": {
-                                            "Symbol": "Plus"
-                                        },
+                                        "operation": "Add",
                                         "right": {
                                             "type": "Expr::Literal",
                                             "value": "Num(27.0)",
@@ -281,9 +275,7 @@ assert_parsing! {
                                             "value": "Num(4.0)",
                                             "raw": "4"
                                         },
-                                        "operator": {
-                                            "Symbol": "Slash"
-                                        },
+                                        "operation": "Divide",
                                         "right": {
                                             "type": "Expr::Literal",
                                             "value": "Num(2.0)",

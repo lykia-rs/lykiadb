@@ -1,4 +1,4 @@
-use super::ast::expr::{Expr, ExprId};
+use super::ast::expr::{tok_type_to_op, Expr, ExprId};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
     SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
@@ -50,7 +50,7 @@ macro_rules! binary {
 
             current_expr = $self.arena.expression(Expr::Binary {
                 left,
-                operator: token.tok_type,
+                operation: tok_type_to_op(token.tok_type),
                 right,
                 span: $self.get_merged_span(
                     $self.arena.get_expression(left),
@@ -409,7 +409,7 @@ impl<'a> Parser<'a> {
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                operator: op.tok_type.clone(),
+                operation: tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -427,7 +427,7 @@ impl<'a> Parser<'a> {
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                operator: op.tok_type.clone(),
+                operation: tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -468,7 +468,7 @@ impl<'a> Parser<'a> {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
-                operator: token.tok_type,
+                operation: tok_type_to_op(token.tok_type),
                 expr: unary,
                 span: self
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),

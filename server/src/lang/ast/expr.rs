@@ -1,7 +1,51 @@
 use std::rc::Rc;
 
+use serde::{Deserialize, Serialize};
+
 use super::{sql::SqlSelect, stmt::StmtId, Literal};
-use crate::lang::token::{Span, Spanned, Token, TokenType};
+use crate::lang::token::{Keyword, Span, Spanned, Symbol, Token, TokenType};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Operation {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    And,
+    Or,
+    Not,
+}
+
+pub fn tok_type_to_op(tok_t: TokenType) -> Operation {
+    match tok_t {
+        TokenType::Symbol(sym) => match sym {
+            Symbol::Plus => Operation::Add,
+            Symbol::Minus => Operation::Subtract,
+            Symbol::Star => Operation::Multiply,
+            Symbol::Slash => Operation::Divide,
+            Symbol::EqualEqual => Operation::Equal,
+            Symbol::BangEqual => Operation::NotEqual,
+            Symbol::Greater => Operation::Greater,
+            Symbol::GreaterEqual => Operation::GreaterEqual,
+            Symbol::Less => Operation::Less,
+            Symbol::LessEqual => Operation::LessEqual,
+            Symbol::Bang => Operation::Not,
+            _ => unreachable!(),
+        },
+        TokenType::Keyword(kw) => match kw {
+            Keyword::And => Operation::And,
+            Keyword::Or => Operation::Or,
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
@@ -30,12 +74,12 @@ pub enum Expr {
     },
     Binary {
         left: ExprId,
-        operator: TokenType,
+        operation: Operation,
         right: ExprId,
         span: Span,
     },
     Unary {
-        operator: TokenType,
+        operation: Operation,
         expr: ExprId,
         span: Span,
     },
@@ -46,7 +90,7 @@ pub enum Expr {
     },
     Logical {
         left: ExprId,
-        operator: TokenType,
+        operation: Operation,
         right: ExprId,
         span: Span,
     },
@@ -87,12 +131,12 @@ impl Spanned for Expr {
             }
             | Expr::Binary {
                 left: _,
-                operator: _,
+                operation: _,
                 right: _,
                 span,
             }
             | Expr::Unary {
-                operator: _,
+                operation: _,
                 expr: _,
                 span,
             }
@@ -103,7 +147,7 @@ impl Spanned for Expr {
             }
             | Expr::Logical {
                 left: _,
-                operator: _,
+                operation: _,
                 right: _,
                 span,
             }

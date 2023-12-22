@@ -92,12 +92,12 @@ impl Visitor<RV, ResolveError> for Resolver {
             } => (),
             Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
             Expr::Unary {
-                operator: _,
+                operation: _,
                 expr,
                 span: _,
             } => self.resolve_expr(*expr),
             Expr::Binary {
-                operator: _,
+                operation: _,
                 left,
                 right,
                 span: _,
@@ -125,7 +125,7 @@ impl Visitor<RV, ResolveError> for Resolver {
             }
             Expr::Logical {
                 left,
-                operator: _,
+                operation: _,
                 right,
                 span: _,
             } => {

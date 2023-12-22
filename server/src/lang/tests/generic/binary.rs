@@ -17,13 +17,11 @@ assert_parsing! {
                     "type": "Stmt::Expression",
                     "expr": {
                         "type": "Expr::Binary",
+                        "operation": "Add",
                         "left": {
                             "type": "Expr::Literal",
                             "value": "Num(1.0)",
                             "raw": "1"
-                        },
-                        "operator": {
-                            "Symbol": "Plus"
                         },
                         "right": {
                             "type": "Expr::Literal",

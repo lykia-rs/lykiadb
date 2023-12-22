@@ -17,9 +17,7 @@ assert_parsing! {
                     "type": "Stmt::Expression",
                     "expr": {
                         "type": "Expr::Unary",
-                        "operator": {
-                            "Symbol": "Minus"
-                        },
+                        "operation": "Subtract",
                         "expr": {
                             "type": "Expr::Literal",
                             "value": "Num(1.0)",

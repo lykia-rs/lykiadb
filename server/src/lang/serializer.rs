@@ -130,7 +130,7 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
             .map(|x| {
                 json!({
                     "core": self.visit_sql_select_core(&x.core),
-                    "operator": format!("{:?}", x.operator),
+                    "operation": format!("{:?}", x.operator),
                 })
             })
             .collect();
@@ -200,18 +200,18 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
                 })
             }
             Expr::Unary {
-                operator,
+                operation,
                 expr,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Unary",
-                    "operator": operator,
+                    "operation": operation,
                     "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Binary {
-                operator,
+                operation,
                 left,
                 right,
                 span: _,
@@ -219,7 +219,7 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
                 json!({
                     "type": "Expr::Binary",
                     "left": self.visit_expr(*left)?,
-                    "operator": operator,
+                    "operation": operation,
                     "right": self.visit_expr(*right)?,
                 })
             }
@@ -238,14 +238,14 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
             }
             Expr::Logical {
                 left,
-                operator,
+                operation,
                 right,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Logical",
                     "left": self.visit_expr(*left)?,
-                    "operator": operator,
+                    "operation": operation,
                     "right": self.visit_expr(*right)?,
                 })
             }

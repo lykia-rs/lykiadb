@@ -18,17 +18,16 @@ assert_parsing! {
                     "type": "Stmt::Expression",
                     "expr": {
                         "type": "Expr::Binary",
+                        "operation": "Multiply",
                         "left": {
                             "type": "Expr::Grouping",
                             "expr": {
                                 "type": "Expr::Binary",
+                                "operation": "Add",
                                 "left": {
                                     "raw": "1",
                                     "type": "Expr::Literal",
                                     "value": "Num(1.0)"
-                                },
-                                "operator": {
-                                    "Symbol": "Plus"
                                 },
                                 "right": {
                                     "raw": "2",
@@ -37,32 +36,25 @@ assert_parsing! {
                                 }
                             }
                         },
-                        "operator": {
-                            "Symbol": "Star"
-                        },
                         "right": {
                             "type": "Expr::Grouping",
                             "expr": {
                                 "type": "Expr::Binary",
+                                "operation": "Divide",
                                 "left": {
                                     "raw": "3",
                                     "type": "Expr::Literal",
                                     "value": "Num(3.0)"
                                 },
-                                "operator": {
-                                    "Symbol": "Slash"
-                                },
                                 "right": {
                                     "type": "Expr::Grouping",
                                     "expr": {
                                         "type": "Expr::Binary",
+                                        "operation": "Subtract",
                                         "left": {
                                             "raw": "4",
                                             "type": "Expr::Literal",
                                             "value": "Num(4.0)"
-                                        },
-                                        "operator":  {
-                                            "Symbol": "Minus"
                                         },
                                         "right": {
                                             "raw": "7",
