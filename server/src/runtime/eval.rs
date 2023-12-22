@@ -89,7 +89,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Bool(l), Operation::Greater, RV::Bool(r)) => RV::Bool(l & !r),
         (RV::Bool(l), Operation::GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
         (RV::Bool(l), Operation::NotEqual, RV::Bool(r)) => RV::Bool(l != r),
-        (RV::Bool(l), Operation::NotEqual, RV::Bool(r)) => RV::Bool(l == r),
+        (RV::Bool(l), Operation::Equal, RV::Bool(r)) => RV::Bool(l == r),
         //
         (RV::Str(s), Operation::Add, RV::Num(num)) => {
             RV::Str(Rc::new(s.to_string() + &num.to_string()))
