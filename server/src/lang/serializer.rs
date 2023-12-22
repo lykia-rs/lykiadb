@@ -34,7 +34,7 @@ impl<'a> ToString for ProgramSerializer<'a> {
 }
 
 impl<'a> ProgramSerializer<'a> {
-    fn serialize_sql_expr(&self, sql_expr: &SqlExpr) -> Value {
+    fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Value {
         if let SqlExpr::Default(eidx) = sql_expr {
             self.visit_expr(*eidx).unwrap()
         } else {
@@ -42,7 +42,7 @@ impl<'a> ProgramSerializer<'a> {
         }
     }
 
-    fn serialize_sql_select_core(&self, core: &SqlSelectCore) -> Value {
+    fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Value {
         let core_projection: Value = core
             .projection
             .iter()
@@ -56,7 +56,7 @@ impl<'a> ProgramSerializer<'a> {
                 SqlProjection::Expr { expr, alias } => {
                     json!({
                         "type": "Expr",
-                        "expr": self.serialize_sql_expr(&expr),
+                        "expr": self.visit_sql_expr(&expr),
                         "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
                     })
                 }
@@ -65,11 +65,11 @@ impl<'a> ProgramSerializer<'a> {
 
         json!({
             "projection": core_projection,
-            "from": core.from.as_ref().map(|x| self.serialize_sql_subquery(&x))
+            "from": core.from.as_ref().map(|x| self.visit_sql_subquery(&x))
         })
     }
 
-    fn serialize_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Value {
+    fn visit_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Value {
         match subquery {
             SqlCollectionSubquery::Collection {
                 namespace,
@@ -84,10 +84,7 @@ impl<'a> ProgramSerializer<'a> {
                 })
             }
             SqlCollectionSubquery::Group(groups) => {
-                let subqueries: Value = groups
-                    .iter()
-                    .map(|x| self.serialize_sql_subquery(x))
-                    .collect();
+                let subqueries: Value = groups.iter().map(|x| self.visit_sql_subquery(x)).collect();
                 json!({
                     "type": "Group",
                     "subqueries": subqueries
@@ -96,12 +93,27 @@ impl<'a> ProgramSerializer<'a> {
             SqlCollectionSubquery::Select { expr, alias } => {
                 json!({
                     "type": "Select",
-                    "expr": self.visit_expr(*expr),
+                    "expr": self.visit_expr(*expr).unwrap(),
                     "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
                 })
             }
-            SqlCollectionSubquery::Join(_, _) => {
-                json!({})
+            SqlCollectionSubquery::Join(join_subquery, joins) => {
+                let joins_ser: Value = joins
+                    .iter()
+                    .map(|x| {
+                        json!({
+                            "type": format!("{:?}", x.join_type),
+                            "subquery": self.visit_sql_subquery(&x.subquery),
+                            "constraint": x.join_constraint.as_ref().map(|y| {
+                                self.visit_sql_expr(&y)
+                            })
+                        })
+                    })
+                    .collect();
+                json!({
+                    "subquery": self.visit_sql_subquery(&join_subquery),
+                    "joins": joins_ser
+                })
             }
         }
     }
@@ -109,14 +121,14 @@ impl<'a> ProgramSerializer<'a> {
 
 impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
     fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
-        let core = self.serialize_sql_select_core(&select.core);
+        let core = self.visit_sql_select_core(&select.core);
 
         let compound: Value = select
             .compound
             .iter()
             .map(|x| {
                 json!({
-                    "core": self.serialize_sql_select_core(&x.core),
+                    "core": self.visit_sql_select_core(&x.core),
                     "operator": format!("{:?}", x.operator),
                 })
             })
@@ -125,7 +137,7 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
         let order_by: Option<Value> = select.order_by.as_ref().map(|x| {
             x.iter()
                 .map(|order| {
-                    let expr = self.serialize_sql_expr(&order.expr);
+                    let expr = self.visit_sql_expr(&order.expr);
                     let val = json!({
                         "expr": expr,
                         "ordering": format!("{:?}", order.ordering),
@@ -136,10 +148,10 @@ impl<'a> ImmutableVisitor<Value, ()> for ProgramSerializer<'a> {
         });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let count_part = self.serialize_sql_expr(&x.count);
+            let count_part = self.visit_sql_expr(&x.count);
 
             let offset_part = if x.offset.is_some() {
-                self.serialize_sql_expr(&x.offset.as_ref().unwrap())
+                self.visit_sql_expr(&x.offset.as_ref().unwrap())
             } else {
                 json!(serde_json::Value::Null)
             };
