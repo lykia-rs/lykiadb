@@ -9,8 +9,8 @@ use crate::assert_parsing;
 
 #[cfg(test)]
 assert_parsing! {
-    limit_5: {
-        "SELECT * from users limit 5;" => {
+    plain: {
+        "SELECT * from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -23,14 +23,7 @@ assert_parsing! {
                                     "collection": null
                                 }]
                             },
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": null
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }
@@ -38,8 +31,9 @@ assert_parsing! {
             ]
         }
     },
-    limit_5_offset_10: {
-        "SELECT * from users limit 5 offset 10;" => {
+
+    collection: {
+        "SELECT users.* from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -49,21 +43,10 @@ assert_parsing! {
                         "value": {
                             "core": {
                                 "projection": [{
-                                    "collection": null
+                                    "collection": "users"
                                 }]
                             },
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }
@@ -71,8 +54,8 @@ assert_parsing! {
             ]
         }
     },
-    limit_10_offset_5: {
-        "SELECT * from users limit 5, 10;" => {
+    mixed_0: {
+        "SELECT id, users.name as username from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -82,21 +65,25 @@ assert_parsing! {
                         "value": {
                             "core": {
                                 "projection": [{
-                                    "collection": null
+                                    "expr": {
+                                        "type": "Expr::Variable",
+                                        "name": "id"
+                                    },
+                                    "alias": null
+                                },
+                                {
+                                    "expr": {
+                                        "type": "Expr::Get",
+                                        "object": {
+                                            "type": "Expr::Variable",
+                                            "name": "users"
+                                        },
+                                        "name": "name"
+                                    },
+                                    "alias": "username"
                                 }]
                             },
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                }
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }

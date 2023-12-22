@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use super::{
     ast::{
         expr::{Expr, ExprId},
-        sql::{SqlExpr, SqlSelect},
+        sql::{SqlExpr, SqlProjection, SqlSelect, SqlSelectCore},
         stmt::{Stmt, StmtId},
         ImmutableVisitor,
     },
@@ -28,25 +28,22 @@ impl ToString for Program {
 
 impl ImmutableVisitor<Value, ()> for Program {
     fn visit_select(&self, select: &SqlSelect) -> Result<Value, ()> {
-        let order_by: Option<Value> = select
-            .order_by
-            .as_ref()
-            .map(|x| {
-                x.iter()
-                    .map(|order| {
-                        let expr = if let SqlExpr::Default(eidx) = order.expr {
-                            self.visit_expr(eidx).unwrap()
-                        } else {
-                            panic!("Not implemented");
-                        };
-                        let val = json!({
-                            "expr": expr,
-                            "ordering": format!("{:?}", order.ordering),
-                        });
-                        val
-                    })
-                    .collect()
-            });
+        let order_by: Option<Value> = select.order_by.as_ref().map(|x| {
+            x.iter()
+                .map(|order| {
+                    let expr = if let SqlExpr::Default(eidx) = order.expr {
+                        self.visit_expr(eidx).unwrap()
+                    } else {
+                        panic!("Not implemented");
+                    };
+                    let val = json!({
+                        "expr": expr,
+                        "ordering": format!("{:?}", order.ordering),
+                    });
+                    val
+                })
+                .collect()
+        });
 
         let limit: Option<Value> = select.limit.as_ref().map(|x| {
             let count_part = if let SqlExpr::Default(eidx) = x.count {
@@ -70,6 +67,34 @@ impl ImmutableVisitor<Value, ()> for Program {
                 "offset": offset_part
             })
         });
+
+        let serialize_sql_core =
+            |core: &SqlSelectCore| {
+                let core_projection: Value = core.projection.iter().map(|x| {
+                match x {
+                    SqlProjection::All { collection } => {
+                        json!({
+                            "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
+                        })
+                    },
+                    SqlProjection::Expr { expr, alias } => {
+                        json!({
+                            "expr": if let SqlExpr::Default(eidx) = expr {
+                                self.visit_expr(*eidx).unwrap()
+                            } else {
+                                panic!("Not implemented");
+                            },
+                            "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                        })
+                    }
+                }
+            }).collect();
+
+                json!({
+                    "projection": core_projection
+                })
+            };
+
         /*
         {
             pub core: SqlSelectCore,
@@ -79,6 +104,7 @@ impl ImmutableVisitor<Value, ()> for Program {
         }
         */
         Ok(json!({
+            "core": serialize_sql_core(&select.core),
             "order_by": order_by,
             "limit": limit
         }))

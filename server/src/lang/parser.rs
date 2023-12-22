@@ -1,7 +1,8 @@
 use super::ast::expr::{Expr, ExprId};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
-    SqlOrdering, SqlProjection, SqlSelect, SqlSelectCore, SqlOrderByClause, SqlSelectCompound, SqlLimitClause,
+    SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
+    SqlSelectCore,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -497,7 +498,10 @@ impl<'a> Parser<'a> {
                 }
             };
             let secondary_core = self.sql_select_core()?;
-            compounds.push(SqlSelectCompound { operator: compound_op, core: secondary_core })
+            compounds.push(SqlSelectCompound {
+                operator: compound_op,
+                core: secondary_core,
+            })
         }
         let order_by = if self.match_next(skw!(Order)) {
             self.expected(skw!(By))?;
@@ -511,7 +515,10 @@ impl<'a> Parser<'a> {
                     self.match_next(skw!(Asc));
                     Some(SqlOrdering::Asc)
                 };
-                ordering.push(SqlOrderByClause { expr: SqlExpr::Default(order_expr), ordering: order.unwrap() });
+                ordering.push(SqlOrderByClause {
+                    expr: SqlExpr::Default(order_expr),
+                    ordering: order.unwrap(),
+                });
                 if !self.match_next(sym!(Comma)) {
                     break;
                 }
@@ -533,9 +540,15 @@ impl<'a> Parser<'a> {
             };
 
             if second_expr.is_some() && reverse {
-                Some(SqlLimitClause { count: second_expr.unwrap(), offset: Some(first_expr) })
+                Some(SqlLimitClause {
+                    count: second_expr.unwrap(),
+                    offset: Some(first_expr),
+                })
             } else {
-                Some(SqlLimitClause { count: first_expr, offset: second_expr })
+                Some(SqlLimitClause {
+                    count: first_expr,
+                    offset: second_expr,
+                })
             }
         } else {
             None

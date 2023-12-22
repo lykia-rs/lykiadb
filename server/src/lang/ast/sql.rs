@@ -45,23 +45,22 @@ pub enum SqlProjection {
     Expr { expr: SqlExpr, alias: Option<Token> },
 }
 
-
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlLimitClause {
     pub count: SqlExpr,
-    pub offset: Option<SqlExpr>
+    pub offset: Option<SqlExpr>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlOrderByClause {
     pub expr: SqlExpr,
-    pub ordering: SqlOrdering
+    pub ordering: SqlOrdering,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlSelectCompound {
     pub operator: SqlCompoundOperator,
-    pub core: SqlSelectCore
+    pub core: SqlSelectCore,
 }
 
 #[derive(Debug, Eq, PartialEq)]

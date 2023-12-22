@@ -18,6 +18,11 @@ assert_parsing! {
                     "expr": {
                         "type": "Expr::Select",
                         "value": {
+                            "core": {
+                                "projection": [{
+                                    "collection": null
+                                }]
+                            },
                             "limit": null,
                             "order_by": null
                         }
@@ -35,6 +40,11 @@ assert_parsing! {
                     "expr": {
                         "type": "Expr::Select",
                         "value": {
+                            "core": {
+                                "projection": [{
+                                    "collection": null
+                                }]
+                            },
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -58,6 +68,11 @@ assert_parsing! {
                     "expr": {
                         "type": "Expr::Select",
                         "value": {
+                            "core": {
+                                "projection": [{
+                                    "collection": null
+                                }]
+                            },
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -88,6 +103,11 @@ assert_parsing! {
                     "expr": {
                         "type": "Expr::Select",
                         "value": {
+                            "core": {
+                                "projection": [{
+                                    "collection": null
+                                }]
+                            },
                             "limit": null,
                             "order_by": [{
                                 "expr": {
@@ -118,6 +138,11 @@ assert_parsing! {
                     "expr": {
                         "type": "Expr::Select",
                         "value": {
+                            "core": {
+                                "projection": [{
+                                    "collection": null
+                                }]
+                            },
                             "limit": null,
                             "order_by": [{
                                 "expr": {
