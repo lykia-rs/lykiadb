@@ -3,7 +3,7 @@ use std::rc::Rc;
 use serde::{Deserialize, Serialize};
 
 use super::{sql::SqlSelect, stmt::StmtId, Literal};
-use crate::lang::token::{Keyword, Span, Spanned, Symbol, Token, TokenType};
+use crate::lang::token::{Span, Spanned, Token};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Operation {

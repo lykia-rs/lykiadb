@@ -5,14 +5,14 @@ use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, ParserArena, Visitor};
-use crate::lang::token::TokenType;
-use crate::lang::token::{Keyword::*, Span};
-use crate::lang::token::{Spanned, Symbol::*};
+
+use crate::lang::token::{Span};
+use crate::lang::token::{Spanned};
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::{alloc_shared, Shared};
-use crate::{kw, sym};
+
 use std::rc::Rc;
 use std::vec;
 
