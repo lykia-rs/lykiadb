@@ -6,8 +6,9 @@ use super::ast::sql::{
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
+use super::token::SqlKeyword;
 use crate::lang::token::{
-    Keyword, Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
+    Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
@@ -406,7 +407,12 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        if self.match_next(kw!(Keyword::Or)) {
+        let operator = if self.is_in_sql {
+            skw!(Or)
+        } else {
+            sym!(LogicalOr)
+        };
+        if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
@@ -424,7 +430,12 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        if self.match_next(kw!(Keyword::And)) {
+        let operator = if self.is_in_sql {
+            skw!(And)
+        } else {
+            sym!(LogicalAnd)
+        };
+        if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
@@ -955,6 +966,8 @@ impl<'a> Parser<'a> {
                 Less => Operation::Less,
                 LessEqual => Operation::LessEqual,
                 Bang => Operation::Not,
+                LogicalAnd => Operation::And,
+                LogicalOr => Operation::Or,
                 Equal => {
                     println!("EQUAL");
                     if self.is_in_sql {
@@ -965,9 +978,9 @@ impl<'a> Parser<'a> {
                 }
                 _ => unreachable!(),
             },
-            TokenType::Keyword(kw) => match kw {
-                Keyword::And => Operation::And,
-                Keyword::Or => Operation::Or,
+            TokenType::SqlKeyword(skw) => match skw {
+                SqlKeyword::And => Operation::And,
+                SqlKeyword::Or => Operation::Or,
                 _ => unreachable!(),
             },
             _ => unreachable!(),

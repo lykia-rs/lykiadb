@@ -6,8 +6,8 @@ use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, ParserArena, Visitor};
 
-use crate::lang::token::{Span};
-use crate::lang::token::{Spanned};
+use crate::lang::token::Span;
+use crate::lang::token::Spanned;
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
@@ -552,13 +552,13 @@ mod test {
     #[test]
     fn test_logical_evaluation() {
         let code = "
-            TestUtils.out(5 and 1);
-            TestUtils.out(5 or 1);
-            TestUtils.out(5 and 0);
-            TestUtils.out(5 or 0);
-            TestUtils.out(!(5 or 0));
-            TestUtils.out(!(5 or 0) or 1);
-            TestUtils.out(!(5 or 0) or (1 and 0));
+            TestUtils.out(5 && 1);
+            TestUtils.out(5 || 1);
+            TestUtils.out(5 && 0);
+            TestUtils.out(5 || 0);
+            TestUtils.out(!(5 || 0));
+            TestUtils.out(!(5 || 0) || 1);
+            TestUtils.out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
