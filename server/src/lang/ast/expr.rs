@@ -11,8 +11,8 @@ pub enum Operation {
     Subtract,
     Multiply,
     Divide,
-    Equal,
-    NotEqual,
+    IsEqual,
+    IsNotEqual,
     Greater,
     GreaterEqual,
     Less,
@@ -20,31 +20,6 @@ pub enum Operation {
     And,
     Or,
     Not,
-}
-
-pub fn tok_type_to_op(tok_t: TokenType) -> Operation {
-    match tok_t {
-        TokenType::Symbol(sym) => match sym {
-            Symbol::Plus => Operation::Add,
-            Symbol::Minus => Operation::Subtract,
-            Symbol::Star => Operation::Multiply,
-            Symbol::Slash => Operation::Divide,
-            Symbol::EqualEqual => Operation::Equal,
-            Symbol::BangEqual => Operation::NotEqual,
-            Symbol::Greater => Operation::Greater,
-            Symbol::GreaterEqual => Operation::GreaterEqual,
-            Symbol::Less => Operation::Less,
-            Symbol::LessEqual => Operation::LessEqual,
-            Symbol::Bang => Operation::Not,
-            _ => unreachable!(),
-        },
-        TokenType::Keyword(kw) => match kw {
-            Keyword::And => Operation::And,
-            Keyword::Or => Operation::Or,
-            _ => unreachable!(),
-        },
-        _ => unreachable!(),
-    }
 }
 
 #[derive(Debug, Eq, PartialEq)]

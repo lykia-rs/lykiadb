@@ -49,10 +49,10 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
     };
 
     match (left_coerced, operation, right_coerced) {
-        (RV::Null, Operation::Equal, RV::Null) => RV::Bool(true),
-        (RV::Null, Operation::NotEqual, RV::Null) => RV::Bool(false),
+        (RV::Null, Operation::IsEqual, RV::Null) => RV::Bool(true),
+        (RV::Null, Operation::IsNotEqual, RV::Null) => RV::Bool(false),
         //
-        (_, Operation::Equal, RV::Null) | (RV::Null, Operation::Equal, _) => RV::Bool(false),
+        (_, Operation::IsEqual, RV::Null) | (RV::Null, Operation::IsEqual, _) => RV::Bool(false),
         //
         (RV::NaN, Operation::Add, _)
         | (_, Operation::Add, RV::NaN)
@@ -71,8 +71,8 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Num(l), Operation::LessEqual, RV::Num(r)) => RV::Bool(l <= r),
         (RV::Num(l), Operation::Greater, RV::Num(r)) => RV::Bool(l > r),
         (RV::Num(l), Operation::GreaterEqual, RV::Num(r)) => RV::Bool(l >= r),
-        (RV::Num(l), Operation::NotEqual, RV::Num(r)) => RV::Bool(l != r),
-        (RV::Num(l), Operation::Equal, RV::Num(r)) => RV::Bool(l == r),
+        (RV::Num(l), Operation::IsNotEqual, RV::Num(r)) => RV::Bool(l != r),
+        (RV::Num(l), Operation::IsEqual, RV::Num(r)) => RV::Bool(l == r),
         //
         (RV::Str(l), Operation::Add, RV::Str(r)) => {
             RV::Str(Rc::new(l.to_string() + &r.to_string()))
@@ -81,15 +81,15 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Str(l), Operation::LessEqual, RV::Str(r)) => RV::Bool(l <= r),
         (RV::Str(l), Operation::Greater, RV::Str(r)) => RV::Bool(l > r),
         (RV::Str(l), Operation::GreaterEqual, RV::Str(r)) => RV::Bool(l >= r),
-        (RV::Str(l), Operation::NotEqual, RV::Str(r)) => RV::Bool(l != r),
-        (RV::Str(l), Operation::Equal, RV::Str(r)) => RV::Bool(l == r),
+        (RV::Str(l), Operation::IsNotEqual, RV::Str(r)) => RV::Bool(l != r),
+        (RV::Str(l), Operation::IsEqual, RV::Str(r)) => RV::Bool(l == r),
         //
         (RV::Bool(l), Operation::Less, RV::Bool(r)) => RV::Bool(!l & r),
         (RV::Bool(l), Operation::LessEqual, RV::Bool(r)) => RV::Bool(l <= r),
         (RV::Bool(l), Operation::Greater, RV::Bool(r)) => RV::Bool(l & !r),
         (RV::Bool(l), Operation::GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
-        (RV::Bool(l), Operation::NotEqual, RV::Bool(r)) => RV::Bool(l != r),
-        (RV::Bool(l), Operation::Equal, RV::Bool(r)) => RV::Bool(l == r),
+        (RV::Bool(l), Operation::IsNotEqual, RV::Bool(r)) => RV::Bool(l != r),
+        (RV::Bool(l), Operation::IsEqual, RV::Bool(r)) => RV::Bool(l == r),
         //
         (RV::Str(s), Operation::Add, RV::Num(num)) => {
             RV::Str(Rc::new(s.to_string() + &num.to_string()))
@@ -109,8 +109,8 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         | (_, Operation::LessEqual, _)
         | (_, Operation::Greater, _)
         | (_, Operation::GreaterEqual, _)
-        | (_, Operation::Equal, _)
-        | (_, Operation::NotEqual, _) => RV::Bool(false),
+        | (_, Operation::IsEqual, _)
+        | (_, Operation::IsNotEqual, _) => RV::Bool(false),
         //
         (_, Operation::Add, _)
         | (_, Operation::Subtract, _)

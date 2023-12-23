@@ -1,4 +1,4 @@
-use super::ast::expr::{tok_type_to_op, Expr, ExprId};
+use super::ast::expr::{Expr, ExprId, Operation};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
     SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
@@ -12,12 +12,6 @@ use crate::lang::token::{
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
-
-pub struct Parser<'a> {
-    tokens: &'a Vec<Token>,
-    current: usize,
-    arena: ParserArena,
-}
 
 pub struct Program {
     pub root: StmtId,
@@ -50,7 +44,7 @@ macro_rules! binary {
 
             current_expr = $self.arena.expression(Expr::Binary {
                 left,
-                operation: tok_type_to_op(token.tok_type),
+                operation: $self.tok_type_to_op(token.tok_type),
                 right,
                 span: $self.get_merged_span(
                     $self.arena.get_expression(left),
@@ -85,6 +79,13 @@ macro_rules! optional_with_expected {
     };
 }
 
+pub struct Parser<'a> {
+    tokens: &'a Vec<Token>,
+    current: usize,
+    arena: ParserArena,
+    is_in_sql: bool,
+}
+
 impl<'a> Parser<'a> {
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
@@ -95,6 +96,7 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             arena,
+            is_in_sql: false,
         };
         let program = parser.program()?;
         Ok(Program::new(program, Rc::new(parser.arena)))
@@ -409,7 +411,7 @@ impl<'a> Parser<'a> {
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                operation: tok_type_to_op(op.tok_type.clone()),
+                operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -427,7 +429,7 @@ impl<'a> Parser<'a> {
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                operation: tok_type_to_op(op.tok_type.clone()),
+                operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -439,7 +441,11 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+        if self.is_in_sql {
+            binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
+        } else {
+            binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+        }
     }
 
     fn comparison(&mut self) -> ParseResult<ExprId> {
@@ -468,7 +474,7 @@ impl<'a> Parser<'a> {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
-                operation: tok_type_to_op(token.tok_type),
+                operation: self.tok_type_to_op(token.tok_type),
                 expr: unary,
                 span: self
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
@@ -481,6 +487,7 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
+        self.is_in_sql = true;
         let core = self.sql_select_core()?;
         let mut compounds: Vec<SqlSelectCompound> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
@@ -553,6 +560,8 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+
+        self.is_in_sql = false;
 
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
@@ -930,6 +939,39 @@ impl<'a> Parser<'a> {
             }
         }
         false
+    }
+
+    pub fn tok_type_to_op(&self, tok_t: TokenType) -> Operation {
+        match tok_t {
+            TokenType::Symbol(sym) => match sym {
+                Plus => Operation::Add,
+                Minus => Operation::Subtract,
+                Star => Operation::Multiply,
+                Slash => Operation::Divide,
+                EqualEqual => Operation::IsEqual,
+                BangEqual => Operation::IsNotEqual,
+                Greater => Operation::Greater,
+                GreaterEqual => Operation::GreaterEqual,
+                Less => Operation::Less,
+                LessEqual => Operation::LessEqual,
+                Bang => Operation::Not,
+                Equal => {
+                    println!("EQUAL");
+                    if self.is_in_sql {
+                        Operation::IsEqual
+                    } else {
+                        unreachable!()
+                    }
+                }
+                _ => unreachable!(),
+            },
+            TokenType::Keyword(kw) => match kw {
+                Keyword::And => Operation::And,
+                Keyword::Or => Operation::Or,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 
     fn get_merged_span(&self, left: &impl Spanned, right: &impl Spanned) -> Span {

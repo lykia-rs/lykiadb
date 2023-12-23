@@ -84,7 +84,26 @@ assert_parsing! {
                                             "name": "orders",
                                             "namespace": null,
                                         },
-                                        "constraint": null
+                                        "constraint":         {
+                                            "type": "Expr::Binary",
+                                            "operation": "IsEqual",
+                                            "left": {
+                                              "name": "id",
+                                              "object": {
+                                                "name": "users",
+                                                "type": "Expr::Variable"
+                                              },
+                                              "type": "Expr::Get"
+                                            },
+                                            "right": {
+                                              "name": "user_id",
+                                              "object": {
+                                                "name": "orders",
+                                                "type": "Expr::Variable"
+                                              },
+                                              "type": "Expr::Get"
+                                            },
+                                          }
                                     },{
                                         "type": "Inner",
                                         "subquery": {
@@ -93,7 +112,26 @@ assert_parsing! {
                                             "name": "order_items",
                                             "namespace": null,
                                         },
-                                        "constraint": null
+                                        "constraint": {
+                                            "type": "Expr::Binary",
+                                            "operation": "IsEqual",
+                                            "left": {
+                                              "name": "id",
+                                              "object": {
+                                                "name": "orders",
+                                                "type": "Expr::Variable"
+                                              },
+                                              "type": "Expr::Get"
+                                            },
+                                            "right": {
+                                              "name": "order_id",
+                                              "object": {
+                                                "name": "carts",
+                                                "type": "Expr::Variable"
+                                              },
+                                              "type": "Expr::Get"
+                                            },
+                                          }
                                     }]
                                 },
                                 "projection": [{
