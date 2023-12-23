@@ -1,6 +1,6 @@
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{ParserArena, Visitor};
+use crate::lang::ast::{ParserArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
@@ -80,7 +80,7 @@ impl Resolver {
     }
 }
 
-impl Visitor<RV, ResolveError> for Resolver {
+impl VisitorMut<RV, ResolveError> for Resolver {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
         let a = Rc::clone(&self.arena);
         let e = a.get_expression(eidx);

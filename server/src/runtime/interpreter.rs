@@ -4,7 +4,7 @@ use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, ParserArena, Visitor};
+use crate::lang::ast::{Literal, ParserArena, VisitorMut};
 
 use crate::lang::token::Span;
 use crate::lang::token::Spanned;
@@ -244,7 +244,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor<RV, HaltReason> for Interpreter {
+impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);

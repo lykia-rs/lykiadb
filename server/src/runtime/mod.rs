@@ -2,7 +2,7 @@ use self::error::{report_error, ExecutionError};
 use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::Visitor;
+use crate::lang::ast::VisitorMut;
 use crate::lang::parser::{ParseError, Parser};
 use crate::lang::scanner::Scanner;
 use crate::lang::serializer::ProgramSerializer;
