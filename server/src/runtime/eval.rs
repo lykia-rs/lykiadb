@@ -36,6 +36,12 @@ pub fn coerce2number(val: RV) -> Option<f64> {
 
 #[inline(always)]
 pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
+    /*
+        TODO(vck):
+            - Add support for object operations
+            - Add support for array operations
+            - Add support for function operations
+    */
     let (left_coerced, right_coerced) = match (&left_eval, &operation, &right_eval) {
         (RV::Num(n), _, RV::Bool(bool)) => (RV::Num(*n), RV::Num(bool2num!(*bool))),
         (RV::Bool(bool), _, RV::Num(n)) => (RV::Num(bool2num!(*bool)), RV::Num(*n)),
@@ -132,12 +138,15 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
 mod test {
     use std::{f64::INFINITY, rc::Rc};
 
+    use rustc_hash::FxHashMap;
+
     use crate::{
         lang::ast::expr::Operation,
         runtime::{
             eval::{coerce2number, eval_binary, is_value_truthy},
-            types::RV,
+            types::{Function, RV},
         },
+        util::alloc_shared,
     };
 
     #[test]
@@ -154,6 +163,20 @@ mod test {
         assert_eq!(is_value_truthy(RV::Num(-1.0)), true);
         assert_eq!(is_value_truthy(RV::Str(Rc::new("".to_owned()))), false);
         assert_eq!(is_value_truthy(RV::Str(Rc::new("foo".to_owned()))), true);
+        assert_eq!(is_value_truthy(RV::Array(alloc_shared(vec![]))), true);
+        assert_eq!(
+            is_value_truthy(RV::Object(alloc_shared(FxHashMap::default()))),
+            true
+        );
+        assert_eq!(
+            is_value_truthy(RV::Callable(
+                Some(1),
+                Rc::new(Function::Lambda {
+                    function: |_, _| Ok(RV::Undefined)
+                })
+            )),
+            true
+        );
     }
 
     #[test]
@@ -163,27 +186,6 @@ mod test {
         assert_eq!(coerce2number(RV::Bool(true)), Some(1.0));
         assert_eq!(coerce2number(RV::Str(Rc::new("".to_owned()))), None);
     }
-
-    /*#[test]
-    fn test_eval_binary() {
-        
-        assert_eq!(
-            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::Less),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-    }*/
 
     #[test]
     fn test_eval_binary_addition() {
@@ -610,6 +612,452 @@ mod test {
                 Operation::IsNotEqual
             ),
             RV::Bool(true)
+        );
+    }
+
+    #[test]
+    fn test_eval_binary_less() {
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(1.0), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::Less),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(2.0), RV::Num(1.0), Operation::Less),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Less),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Less),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Num(1.0), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(true), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Num(1.0), Operation::Less),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(false), Operation::Less),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Num(1.0),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Less
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Num(1.0),
+                Operation::Less
+            ),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Less
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("b".to_string())),
+                Operation::Less
+            ),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Less
+            ),
+            RV::Bool(false)
+        );
+    }
+
+    #[test]
+    fn test_eval_binary_less_equal() {
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(1.0), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(2.0), RV::Num(1.0), Operation::LessEqual),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(true), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(false), Operation::LessEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(true), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(false), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Num(1.0), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(true), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Num(1.0), Operation::LessEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(false), Operation::LessEqual),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Num(1.0),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::LessEqual
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Num(1.0),
+                Operation::LessEqual
+            ),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::LessEqual
+            ),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("b".to_string())),
+                Operation::LessEqual
+            ),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::LessEqual
+            ),
+            RV::Bool(false)
+        );
+    }
+
+    #[test]
+    fn test_eval_binary_greater() {
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(1.0), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(2.0), RV::Num(1.0), Operation::Greater),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Greater),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Greater),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Num(1.0), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(true), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Num(1.0), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(false), Operation::Greater),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Num(1.0),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Greater
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Num(1.0),
+                Operation::Greater
+            ),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Greater
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("b".to_string())),
+                Operation::Greater
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::Greater
+            ),
+            RV::Bool(true)
+        );
+    }
+
+    #[test]
+    fn test_eval_binary_greater_equal() {
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(1.0), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Num(2.0), Operation::GreaterEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(2.0), RV::Num(1.0), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(true), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Bool(false), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(true), Operation::GreaterEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Bool(false), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(RV::Bool(true), RV::Num(1.0), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(true), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Bool(false), RV::Num(1.0), Operation::GreaterEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Bool(false), Operation::GreaterEqual),
+            RV::Bool(true)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Num(1.0),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::GreaterEqual
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Num(1.0),
+                Operation::GreaterEqual
+            ),
+            RV::Bool(false)
+        );
+        //
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::GreaterEqual
+            ),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Rc::new("b".to_string())),
+                Operation::GreaterEqual
+            ),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(
+                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Rc::new("a".to_string())),
+                Operation::GreaterEqual
+            ),
+            RV::Bool(true)
+        );
+    }
+
+    #[test]
+    fn test_eval_binary_nan() {
+        assert_eq!(eval_binary(RV::NaN, RV::Num(1.0), Operation::Add), RV::NaN);
+        assert_eq!(eval_binary(RV::Num(1.0), RV::NaN, Operation::Add), RV::NaN);
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::Subtract),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::Subtract),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::Multiply),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::Multiply),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::Divide),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::Divide),
+            RV::NaN
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::IsEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::IsEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::IsNotEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::IsNotEqual),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::LessEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::LessEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::NaN, RV::Num(1.0), Operation::GreaterEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::NaN, Operation::GreaterEqual),
+            RV::Bool(false)
         );
     }
 
