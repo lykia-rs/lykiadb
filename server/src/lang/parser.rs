@@ -969,7 +969,6 @@ impl<'a> Parser<'a> {
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {
-                    println!("EQUAL");
                     if self.is_in_sql {
                         Operation::IsEqual
                     } else {

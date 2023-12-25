@@ -43,29 +43,31 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     }
 
     fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<Value, ()> {
-        let core_projection: Value = core
+        let core_projection: Result<Value, ()> = core
             .projection
             .iter()
             .map(|x| match x {
-                SqlProjection::All { collection } => {
-                    json!({
-                        "type": "All",
-                        "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
-                    })
-                }
-                SqlProjection::Expr { expr, alias } => {
-                    json!({
-                        "type": "Expr",
-                        "expr": self.visit_sql_expr(&expr),
-                        "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
-                    })
-                }
+                SqlProjection::All { collection } => Ok(json!({
+                    "type": "All",
+                    "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
+                })),
+                SqlProjection::Expr { expr, alias } => Ok(json!({
+                    "type": "Expr",
+                    "expr": self.visit_sql_expr(&expr)?,
+                    "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                })),
             })
             .collect();
 
+        let core_from = core
+            .from
+            .as_ref()
+            .map(|x| self.visit_sql_subquery(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
         Ok(json!({
-            "projection": core_projection,
-            "from": core.from.as_ref().map(|x| self.visit_sql_subquery(&x))
+            "projection": core_projection?,
+            "from": core_from?
         }))
     }
 
@@ -82,13 +84,13 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
                 "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
             })),
             SqlCollectionSubquery::Group(groups) => {
-                let subqueries: Value = groups
+                let subqueries: Result<Value, ()> = groups
                     .iter()
-                    .map(|x| self.visit_sql_subquery(x).unwrap())
+                    .map(|x| Ok(self.visit_sql_subquery(x)?))
                     .collect();
                 Ok(json!({
                     "type": "Group",
-                    "subqueries": subqueries
+                    "subqueries": subqueries?
                 }))
             }
             SqlCollectionSubquery::Select { expr, alias } => Ok(json!({
@@ -97,22 +99,22 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
                 "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
             })),
             SqlCollectionSubquery::Join(join_subquery, joins) => {
-                let joins_ser: Value = joins
+                let joins_ser: Result<Value, ()> = joins
                     .iter()
                     .map(|x| {
-                        json!({
+                        Ok(json!({
                             "type": format!("{:?}", x.join_type),
-                            "subquery": self.visit_sql_subquery(&x.subquery),
+                            "subquery": self.visit_sql_subquery(&x.subquery)?,
                             "constraint": x.join_constraint.as_ref().map(|y| {
                                 self.visit_sql_expr(&y)
-                            })
-                        })
+                            }).unwrap_or_else(|| Ok(json!(serde_json::Value::Null)))?
+                        }))
                     })
                     .collect();
                 Ok(json!({
                     "type": "Join",
-                    "subquery": self.visit_sql_subquery(&join_subquery),
-                    "joins": joins_ser
+                    "subquery": self.visit_sql_subquery(&join_subquery)?,
+                    "joins": joins_ser?
                 }))
             }
         }
@@ -121,50 +123,57 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     fn visit_sql_select(&self, select: &SqlSelect) -> Result<Value, ()> {
         let core = self.visit_sql_select_core(&select.core);
 
-        let compound: Value = select
+        let compound: Result<Value, ()> = select
             .compound
             .iter()
             .map(|x| {
-                json!({
-                    "core": self.visit_sql_select_core(&x.core),
+                Ok(json!({
+                    "core": self.visit_sql_select_core(&x.core)?,
                     "operation": format!("{:?}", x.operator),
-                })
+                }))
             })
             .collect();
 
-        let order_by: Option<Value> = select.order_by.as_ref().map(|x| {
-            x.iter()
-                .map(|order| {
-                    let expr = self.visit_sql_expr(&order.expr);
-                    let val = json!({
-                        "expr": expr,
-                        "ordering": format!("{:?}", order.ordering),
-                    });
-                    val
-                })
-                .collect()
-        });
-
-        let limit: Option<Value> = select.limit.as_ref().map(|x| {
-            let count_part = self.visit_sql_expr(&x.count);
-
-            let offset_part = if x.offset.is_some() {
-                self.visit_sql_expr(&x.offset.as_ref().unwrap())
-            } else {
-                Ok(json!(serde_json::Value::Null))
-            };
-
-            json!({
-                "count": count_part,
-                "offset": offset_part
+        let order_by: Result<Value, ()> = select
+            .order_by
+            .as_ref()
+            .map(|x| {
+                x.iter()
+                    .map(|order| {
+                        let expr = self.visit_sql_expr(&order.expr)?;
+                        Ok(json!({
+                            "expr": expr,
+                            "ordering": format!("{:?}", order.ordering),
+                        }))
+                    })
+                    .collect()
             })
-        });
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        let limit: Result<Value, ()> = select
+            .limit
+            .as_ref()
+            .map(|x| {
+                let count_part = self.visit_sql_expr(&x.count)?;
+
+                let offset_part = if x.offset.is_some() {
+                    self.visit_sql_expr(&x.offset.as_ref().unwrap())?
+                } else {
+                    json!(serde_json::Value::Null)
+                };
+
+                Ok(json!({
+                    "count": count_part,
+                    "offset": offset_part
+                }))
+            })
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
 
         Ok(json!({
-            "core": core,
-            "compound": compound,
-            "order_by": order_by,
-            "limit": limit
+            "core": core?,
+            "compound": compound?,
+            "order_by": order_by?,
+            "limit": limit?
         }))
     }
 }
