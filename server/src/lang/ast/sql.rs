@@ -46,6 +46,24 @@ pub enum SqlProjection {
 }
 
 #[derive(Debug, Eq, PartialEq)]
+pub struct SqlLimitClause {
+    pub count: SqlExpr,
+    pub offset: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlOrderByClause {
+    pub expr: SqlExpr,
+    pub ordering: SqlOrdering,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlSelectCompound {
+    pub operator: SqlCompoundOperator,
+    pub core: SqlSelectCore,
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct SqlJoin {
     pub join_type: SqlJoinType,
     pub subquery: SqlCollectionSubquery,
@@ -68,7 +86,7 @@ pub enum SqlCollectionSubquery {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct SelectCore {
+pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
     pub from: Option<SqlCollectionSubquery>,
@@ -79,8 +97,8 @@ pub struct SelectCore {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct SqlSelect {
-    pub core: SelectCore,
-    pub compound: Vec<(SqlCompoundOperator, SelectCore)>,
-    pub order_by: Option<Vec<(SqlExpr, SqlOrdering)>>,
-    pub limit: Option<(SqlExpr, Option<SqlExpr>)>,
+    pub core: SqlSelectCore,
+    pub compound: Vec<SqlSelectCompound>,
+    pub order_by: Option<Vec<SqlOrderByClause>>,
+    pub limit: Option<SqlLimitClause>,
 }

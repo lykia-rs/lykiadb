@@ -3,31 +3,191 @@ use serde_json::{json, Value};
 use super::{
     ast::{
         expr::{Expr, ExprId},
+        sql::{SqlCollectionSubquery, SqlExpr, SqlProjection, SqlSelect, SqlSelectCore},
         stmt::{Stmt, StmtId},
-        Visitor,
+        SqlVisitor, Visitor,
     },
-    parser::Parsed,
+    parser::Program,
 };
 use std::rc::Rc;
 
-impl Parsed {
-    pub fn to_json(&mut self) -> Value {
-        json!(self.visit_stmt(self.program).unwrap())
+pub struct ProgramSerializer<'a> {
+    pub program: &'a Program,
+}
+
+impl<'a> ProgramSerializer<'a> {
+    pub fn new(program: &'a Program) -> ProgramSerializer<'a> {
+        ProgramSerializer { program }
     }
-    pub fn serialize(&mut self) -> String {
+    pub fn to_json(&self) -> Value {
+        json!(self.visit_stmt(self.program.root).unwrap())
+    }
+    pub fn serialize(&self) -> String {
         serde_json::to_string_pretty(&self.to_json()).unwrap()
     }
 }
 
-impl Visitor<Value, ()> for Parsed {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<Value, ()> {
+impl<'a> ToString for ProgramSerializer<'a> {
+    fn to_string(&self) -> String {
+        self.serialize().clone()
+    }
+}
+
+impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
+    fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Result<Value, ()> {
+        if let SqlExpr::Default(eidx) = sql_expr {
+            self.visit_expr(*eidx)
+        } else {
+            panic!("Not implemented");
+        }
+    }
+
+    fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<Value, ()> {
+        let core_projection: Result<Value, ()> = core
+            .projection
+            .iter()
+            .map(|x| match x {
+                SqlProjection::All { collection } => Ok(json!({
+                    "type": "All",
+                    "collection": collection.as_ref().map(|token| token.lexeme.to_owned())
+                })),
+                SqlProjection::Expr { expr, alias } => Ok(json!({
+                    "type": "Expr",
+                    "expr": self.visit_sql_expr(&expr)?,
+                    "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+                })),
+            })
+            .collect();
+
+        let core_from = core
+            .from
+            .as_ref()
+            .map(|x| self.visit_sql_subquery(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        Ok(json!({
+            "projection": core_projection?,
+            "from": core_from?
+        }))
+    }
+
+    fn visit_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Result<Value, ()> {
+        match subquery {
+            SqlCollectionSubquery::Collection {
+                namespace,
+                name,
+                alias,
+            } => Ok(json!({
+                "type": "Collection",
+                "namespace": namespace.as_ref().map(|token| token.lexeme.to_owned()),
+                "name": name.lexeme,
+                "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+            })),
+            SqlCollectionSubquery::Group(groups) => {
+                let subqueries: Result<Value, ()> = groups
+                    .iter()
+                    .map(|x| Ok(self.visit_sql_subquery(x)?))
+                    .collect();
+                Ok(json!({
+                    "type": "Group",
+                    "subqueries": subqueries?
+                }))
+            }
+            SqlCollectionSubquery::Select { expr, alias } => Ok(json!({
+                "type": "Select",
+                "expr": self.visit_expr(*expr)?,
+                "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
+            })),
+            SqlCollectionSubquery::Join(join_subquery, joins) => {
+                let joins_ser: Result<Value, ()> = joins
+                    .iter()
+                    .map(|x| {
+                        Ok(json!({
+                            "type": format!("{:?}", x.join_type),
+                            "subquery": self.visit_sql_subquery(&x.subquery)?,
+                            "constraint": x.join_constraint.as_ref().map(|y| {
+                                self.visit_sql_expr(&y)
+                            }).unwrap_or_else(|| Ok(json!(serde_json::Value::Null)))?
+                        }))
+                    })
+                    .collect();
+                Ok(json!({
+                    "type": "Join",
+                    "subquery": self.visit_sql_subquery(&join_subquery)?,
+                    "joins": joins_ser?
+                }))
+            }
+        }
+    }
+
+    fn visit_sql_select(&self, select: &SqlSelect) -> Result<Value, ()> {
+        let core = self.visit_sql_select_core(&select.core);
+
+        let compound: Result<Value, ()> = select
+            .compound
+            .iter()
+            .map(|x| {
+                Ok(json!({
+                    "core": self.visit_sql_select_core(&x.core)?,
+                    "operation": format!("{:?}", x.operator),
+                }))
+            })
+            .collect();
+
+        let order_by: Result<Value, ()> = select
+            .order_by
+            .as_ref()
+            .map(|x| {
+                x.iter()
+                    .map(|order| {
+                        let expr = self.visit_sql_expr(&order.expr)?;
+                        Ok(json!({
+                            "expr": expr,
+                            "ordering": format!("{:?}", order.ordering),
+                        }))
+                    })
+                    .collect()
+            })
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        let limit: Result<Value, ()> = select
+            .limit
+            .as_ref()
+            .map(|x| {
+                let count_part = self.visit_sql_expr(&x.count)?;
+
+                let offset_part = if x.offset.is_some() {
+                    self.visit_sql_expr(&x.offset.as_ref().unwrap())?
+                } else {
+                    json!(serde_json::Value::Null)
+                };
+
+                Ok(json!({
+                    "count": count_part,
+                    "offset": offset_part
+                }))
+            })
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        Ok(json!({
+            "core": core?,
+            "compound": compound?,
+            "order_by": order_by?,
+            "limit": limit?
+        }))
+    }
+}
+
+impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
+    fn visit_expr(&self, eidx: ExprId) -> Result<Value, ()> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Rc::clone(&self.program.arena);
         let e = a.get_expression(eidx);
 
         let matched: Value = match e {
-            Expr::Select { span: _, query: _ } => json!({
+            Expr::Select { span: _, query } => json!({
                 "type": "Expr::Select",
+                "value": self.visit_sql_select(query)?,
                 // TODO(vck): Implement rest of the select
             }),
             Expr::Literal {
@@ -44,22 +204,22 @@ impl Visitor<Value, ()> for Parsed {
             Expr::Grouping { expr, span: _ } => {
                 json!({
                     "type": "Expr::Grouping",
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Unary {
-                symbol,
+                operation,
                 expr,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Unary",
-                    "operator": symbol,
-                    "value": self.visit_expr(*expr)?,
+                    "operation": operation,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Binary {
-                symbol,
+                operation,
                 left,
                 right,
                 span: _,
@@ -67,33 +227,33 @@ impl Visitor<Value, ()> for Parsed {
                 json!({
                     "type": "Expr::Binary",
                     "left": self.visit_expr(*left)?,
-                    "operator": symbol,
+                    "operation": operation,
                     "right": self.visit_expr(*right)?,
                 })
             }
             Expr::Variable { name, span: _ } => {
                 json!({
                     "type": "Expr::Variable",
-                    "value": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                 })
             }
             Expr::Assignment { dst, expr, span: _ } => {
                 json!({
                     "type": "Expr::Assignment",
-                    "variable": dst.lexeme.as_ref(),
-                    "value": self.visit_expr(*expr)?,
+                    "dst": dst.lexeme.as_ref(),
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Expr::Logical {
                 left,
-                symbol,
+                operation,
                 right,
                 span: _,
             } => {
                 json!({
                     "type": "Expr::Logical",
                     "left": self.visit_expr(*left)?,
-                    "operator": symbol,
+                    "operation": operation,
                     "right": self.visit_expr(*right)?,
                 })
             }
@@ -134,7 +294,7 @@ impl Visitor<Value, ()> for Parsed {
                 json!({
                     "type": "Expr::Get",
                     "object": self.visit_expr(*object)?,
-                    "property": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                 })
             }
             Expr::Set {
@@ -146,7 +306,7 @@ impl Visitor<Value, ()> for Parsed {
                 json!({
                     "type": "Expr::Set",
                     "object": self.visit_expr(*object)?,
-                    "property": name.lexeme.as_ref(),
+                    "name": name.lexeme.as_ref(),
                     "value": self.visit_expr(*value)?,
                 })
             }
@@ -155,50 +315,50 @@ impl Visitor<Value, ()> for Parsed {
         Ok(matched)
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<Value, ()> {
+    fn visit_stmt(&self, sidx: StmtId) -> Result<Value, ()> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Rc::clone(&self.program.arena);
         let s = a.get_statement(sidx);
         let matched: Value = match s {
-            Stmt::Program { stmts, span: _ } => {
+            Stmt::Program { body, span: _ } => {
                 json!({
                     "type": "Stmt::Program",
-                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                    "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
-            Stmt::Block { stmts, span: _ } => {
+            Stmt::Block { body, span: _ } => {
                 json!({
                     "type": "Stmt::Block",
-                    "body": stmts.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
+                    "body": body.iter().map(|stmt| self.visit_stmt(*stmt).unwrap()).collect::<Vec<_>>(),
                 })
             }
             Stmt::Expression { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Expression",
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 json!({
                     "type": "Stmt::Declaration",
                     "variable": dst.lexeme.as_ref().unwrap(),
-                    "value": self.visit_expr(*expr)?,
+                    "expr": self.visit_expr(*expr)?,
                 })
             }
             Stmt::If {
                 condition,
                 body,
-                r#else,
+                r#else_body,
                 span: _,
             } => {
                 json!({
                     "type": "Stmt::If",
                     "condition": self.visit_expr(*condition)?,
                     "body": self.visit_stmt(*body)?,
-                    "else": if r#else.is_some() {
-                        self.visit_stmt(r#else.unwrap())?
+                    "else_body": if r#else_body.is_some() {
+                        self.visit_stmt(r#else_body.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }
@@ -213,13 +373,13 @@ impl Visitor<Value, ()> for Parsed {
                     "condition": if condition.is_some() {
                         self.visit_expr(condition.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                     "body": self.visit_stmt(*body)?,
                     "post": if post.is_some() {
                         self.visit_stmt(post.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }
@@ -232,10 +392,10 @@ impl Visitor<Value, ()> for Parsed {
             Stmt::Return { expr, span: _ } => {
                 json!({
                     "type": "Stmt::Return",
-                    "value": if expr.is_some() {
+                    "expr": if expr.is_some() {
                         self.visit_expr(expr.unwrap())?
                     } else {
-                        json!("None")
+                        json!(serde_json::Value::Null)
                     },
                 })
             }

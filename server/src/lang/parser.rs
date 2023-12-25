@@ -1,31 +1,27 @@
-use super::ast::expr::{Expr, ExprId};
+use super::ast::expr::{Expr, ExprId, Operation};
 use super::ast::sql::{
-    SelectCore, SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin,
-    SqlJoinType, SqlOrdering, SqlProjection, SqlSelect,
+    SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
+    SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
+    SqlSelectCore,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
+use super::token::SqlKeyword;
 use crate::lang::token::{
-    Keyword, Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
+    Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
-pub struct Parser<'a> {
-    tokens: &'a Vec<Token>,
-    current: usize,
-    arena: ParserArena,
-}
-
-pub struct Parsed {
-    pub program: StmtId,
+pub struct Program {
+    pub root: StmtId,
     pub arena: Rc<ParserArena>,
 }
 
-impl Parsed {
-    pub fn new(program: StmtId, arena: Rc<ParserArena>) -> Parsed {
-        Parsed { program, arena }
+impl Program {
+    pub fn new(root: StmtId, arena: Rc<ParserArena>) -> Program {
+        Program { root, arena }
     }
 }
 
@@ -42,14 +38,14 @@ type ParseResult<T> = Result<T, ParseError>;
 macro_rules! binary {
     ($self: ident, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr: ExprId = $self.$builder()?;
-        while $self.match_next_one_of(&vec![$($operator,)*]) {
+        while $self.match_next_one_of(&[$($operator,)*]) {
             let token = (*$self.peek_bw(1)).clone();
             let left = current_expr;
             let right = $self.$builder()?;
 
             current_expr = $self.arena.expression(Expr::Binary {
                 left,
-                symbol: token.tok_type,
+                operation: $self.tok_type_to_op(token.tok_type),
                 right,
                 span: $self.get_merged_span(
                     $self.arena.get_expression(left),
@@ -84,8 +80,15 @@ macro_rules! optional_with_expected {
     };
 }
 
+pub struct Parser<'a> {
+    tokens: &'a Vec<Token>,
+    current: usize,
+    arena: ParserArena,
+    is_in_sql: bool,
+}
+
 impl<'a> Parser<'a> {
-    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Parsed> {
+    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
@@ -94,9 +97,10 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             arena,
+            is_in_sql: false,
         };
         let program = parser.program()?;
-        Ok(Parsed::new(program, Rc::new(parser.arena)))
+        Ok(Program::new(program, Rc::new(parser.arena)))
     }
 
     fn program(&mut self) -> ParseResult<StmtId> {
@@ -106,7 +110,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(Eof)?;
         Ok(self.arena.statement(Stmt::Program {
-            stmts: statements.clone(),
+            body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
                 self.arena.get_statement(statements[statements.len() - 1]),
@@ -143,14 +147,14 @@ impl<'a> Parser<'a> {
             return Ok(self.arena.statement(Stmt::If {
                 condition,
                 body: if_branch,
-                r#else: Some(else_branch),
+                r#else_body: Some(else_branch),
                 span: self.get_merged_span(&if_tok.span, self.arena.get_statement(else_branch)),
             }));
         }
         Ok(self.arena.statement(Stmt::If {
             condition,
             body: if_branch,
-            r#else: None,
+            r#else_body: None,
             span: self.get_merged_span(&if_tok.span, self.arena.get_statement(if_branch)),
         }))
     }
@@ -248,7 +252,7 @@ impl<'a> Parser<'a> {
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         });
         Ok(self.arena.statement(Stmt::Block {
-            stmts: vec![initializer.unwrap(), loop_stmt],
+            body: vec![initializer.unwrap(), loop_stmt],
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         }))
     }
@@ -263,7 +267,7 @@ impl<'a> Parser<'a> {
         self.expected(sym!(RightBrace))?;
 
         Ok(self.arena.statement(Stmt::Block {
-            stmts: statements.clone(),
+            body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
                 self.arena.get_statement(statements[statements.len() - 1]),
@@ -337,7 +341,10 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.arena.get_statement(stmt_idx);
 
         let body: Vec<StmtId> = match inner_stmt {
-            Stmt::Block { stmts, span: _ } => stmts.clone(),
+            Stmt::Block {
+                body: stmts,
+                span: _,
+            } => stmts.clone(),
             _ => vec![stmt_idx],
         };
 
@@ -400,12 +407,17 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        if self.match_next(kw!(Keyword::Or)) {
+        let operator = if self.is_in_sql {
+            skw!(Or)
+        } else {
+            sym!(LogicalOr)
+        };
+        if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.and()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                symbol: op.tok_type.clone(),
+                operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -418,12 +430,17 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        if self.match_next(kw!(Keyword::And)) {
+        let operator = if self.is_in_sql {
+            skw!(And)
+        } else {
+            sym!(LogicalAnd)
+        };
+        if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
             return Ok(self.arena.expression(Expr::Logical {
                 left: expr,
-                symbol: op.tok_type.clone(),
+                operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
                 span: self.get_merged_span(
                     self.arena.get_expression(expr),
@@ -435,7 +452,11 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+        if self.is_in_sql {
+            binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
+        } else {
+            binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+        }
     }
 
     fn comparison(&mut self) -> ParseResult<ExprId> {
@@ -460,11 +481,11 @@ impl<'a> Parser<'a> {
     }
 
     fn unary(&mut self) -> ParseResult<ExprId> {
-        if self.match_next_one_of(&vec![sym!(Minus), sym!(Bang)]) {
+        if self.match_next_one_of(&[sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
             return Ok(self.arena.expression(Expr::Unary {
-                symbol: token.tok_type,
+                operation: self.tok_type_to_op(token.tok_type),
                 expr: unary,
                 span: self
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
@@ -477,9 +498,10 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
+        self.is_in_sql = true;
         let core = self.sql_select_core()?;
-        let mut compounds: Vec<(SqlCompoundOperator, SelectCore)> = vec![];
-        while self.match_next_one_of(&vec![skw!(Union), skw!(Intersect), skw!(Except)]) {
+        let mut compounds: Vec<SqlSelectCompound> = vec![];
+        while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
@@ -494,20 +516,27 @@ impl<'a> Parser<'a> {
                 }
             };
             let secondary_core = self.sql_select_core()?;
-            compounds.push((compound_op, secondary_core))
+            compounds.push(SqlSelectCompound {
+                operator: compound_op,
+                core: secondary_core,
+            })
         }
         let order_by = if self.match_next(skw!(Order)) {
             self.expected(skw!(By))?;
-            let mut ordering: Vec<(SqlExpr, SqlOrdering)> = vec![];
+            let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
                 let order_expr = self.expression()?;
                 let order = if self.match_next(skw!(Desc)) {
                     Some(SqlOrdering::Desc)
                 } else {
+                    self.match_next(skw!(Asc));
                     Some(SqlOrdering::Asc)
                 };
-                ordering.push((SqlExpr::Default(order_expr), order.unwrap()));
+                ordering.push(SqlOrderByClause {
+                    expr: SqlExpr::Default(order_expr),
+                    ordering: order.unwrap(),
+                });
                 if !self.match_next(sym!(Comma)) {
                     break;
                 }
@@ -521,21 +550,29 @@ impl<'a> Parser<'a> {
         let limit = if self.match_next(skw!(Limit)) {
             let first_expr = SqlExpr::Default(self.expression()?);
             let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
-                (Some(SqlExpr::Default(self.expression()?)), true)
-            } else if self.match_next(sym!(Comma)) {
                 (Some(SqlExpr::Default(self.expression()?)), false)
+            } else if self.match_next(sym!(Comma)) {
+                (Some(SqlExpr::Default(self.expression()?)), true)
             } else {
                 (None, false)
             };
 
             if second_expr.is_some() && reverse {
-                Some((second_expr.unwrap(), Some(first_expr)))
+                Some(SqlLimitClause {
+                    count: second_expr.unwrap(),
+                    offset: Some(first_expr),
+                })
             } else {
-                Some((first_expr, second_expr))
+                Some(SqlLimitClause {
+                    count: first_expr,
+                    offset: second_expr,
+                })
             }
         } else {
             None
         };
+
+        self.is_in_sql = false;
 
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
@@ -548,7 +585,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn sql_select_core(&mut self) -> ParseResult<SelectCore> {
+    fn sql_select_core(&mut self) -> ParseResult<SqlSelectCore> {
         self.expected(skw!(Select))?;
         let distinct = if self.match_next(skw!(Distinct)) {
             SqlDistinct::Distinct
@@ -568,7 +605,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(SelectCore {
+        Ok(SqlSelectCore {
             distinct,
             projection,
             from,
@@ -601,11 +638,8 @@ impl<'a> Parser<'a> {
         loop {
             if self.match_next(sym!(Star)) {
                 projections.push(SqlProjection::All { collection: None });
-            } else if self.match_next_all_of(&vec![
-                Identifier { dollar: false },
-                sym!(Dot),
-                sym!(Star),
-            ]) {
+            } else if self.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
+            {
                 projections.push(SqlProjection::All {
                     collection: Some(self.peek_bw(3).clone()),
                 });
@@ -645,7 +679,7 @@ impl<'a> Parser<'a> {
 
         let mut joins: Vec<SqlJoin> = vec![];
 
-        while self.match_next_one_of(&vec![skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+        while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
             // If the next token is a join keyword, then it must be a join subquery
             let peek = self.peek_bw(1);
             let join_type = if peek.tok_type == skw!(Inner) {
@@ -701,7 +735,7 @@ impl<'a> Parser<'a> {
             return Ok(parsed);
         } else if self.cmp_tok(&Identifier { dollar: false }) {
             // If the next token is not a left paren, then it must be a collection getter
-            if self.match_next_all_of(&vec![
+            if self.match_next_all_of(&[
                 Identifier { dollar: false },
                 sym!(Dot),
                 Identifier { dollar: false },
@@ -896,7 +930,7 @@ impl<'a> Parser<'a> {
         false
     }
 
-    fn match_next_all_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+    fn match_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
         for (i, t) in tokens.iter().enumerate() {
             if self.peek_fw(i).tok_type != *t {
                 return false;
@@ -908,7 +942,7 @@ impl<'a> Parser<'a> {
         return true;
     }
 
-    fn match_next_one_of(&mut self, tokens: &Vec<TokenType>) -> bool {
+    fn match_next_one_of(&mut self, tokens: &[TokenType]) -> bool {
         for t in tokens {
             if self.cmp_tok(t) {
                 self.advance();
@@ -918,16 +952,43 @@ impl<'a> Parser<'a> {
         false
     }
 
+    pub fn tok_type_to_op(&self, tok_t: TokenType) -> Operation {
+        match tok_t {
+            TokenType::Symbol(sym) => match sym {
+                Plus => Operation::Add,
+                Minus => Operation::Subtract,
+                Star => Operation::Multiply,
+                Slash => Operation::Divide,
+                EqualEqual => Operation::IsEqual,
+                BangEqual => Operation::IsNotEqual,
+                Greater => Operation::Greater,
+                GreaterEqual => Operation::GreaterEqual,
+                Less => Operation::Less,
+                LessEqual => Operation::LessEqual,
+                Bang => Operation::Not,
+                LogicalAnd => Operation::And,
+                LogicalOr => Operation::Or,
+                Equal => {
+                    if self.is_in_sql {
+                        Operation::IsEqual
+                    } else {
+                        unreachable!()
+                    }
+                }
+                _ => unreachable!(),
+            },
+            TokenType::SqlKeyword(skw) => match skw {
+                SqlKeyword::And => Operation::And,
+                SqlKeyword::Or => Operation::Or,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
     fn get_merged_span(&self, left: &impl Spanned, right: &impl Spanned) -> Span {
         let left_span = &left.get_span();
         let right_span = &right.get_span();
         left_span.merge(right_span)
     }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::parse_tests;
-
-    parse_tests!(generic / binary, unary, grouping, number_literal, variable, function_call);
 }

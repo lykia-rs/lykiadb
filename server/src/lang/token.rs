@@ -27,6 +27,8 @@ pub enum Symbol {
     Plus,
     Slash,
     Star,
+    LogicalAnd,
+    LogicalOr,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -48,8 +50,6 @@ pub enum TokenType {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Keyword {
-    And,
-    Or,
     Class,
     Else,
     Fun,
@@ -182,13 +182,11 @@ pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
 };
 
 pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
-    "and" => kw!(Keyword::And),
     "class" => kw!(Keyword::Class),
     "else" => kw!(Keyword::Else),
     "for" => kw!(Keyword::For),
     "function" => kw!(Keyword::Fun),
     "if" => kw!(Keyword::If),
-    "or" => kw!(Keyword::Or),
     "break" => kw!(Keyword::Break),
     "continue" => kw!(Keyword::Continue),
     "return" => kw!(Keyword::Return),

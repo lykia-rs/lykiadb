@@ -206,7 +206,31 @@ impl<'a> Scanner<'a> {
 
     fn scan_double_token(&mut self, start: usize, c: char) -> Token {
         self.advance();
-        if self.match_next('=') {
+        if self.match_next('&') && c == '&' {
+            Token {
+                tok_type: sym!(LogicalAnd),
+                literal: None,
+                lexeme: Some("&&".to_owned()),
+                span: Span {
+                    start: start,
+                    end: start + 2,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
+        } else if self.match_next('|') && c == '|' {
+            Token {
+                tok_type: sym!(LogicalOr),
+                literal: None,
+                lexeme: Some("||".to_owned()),
+                span: Span {
+                    start: start,
+                    end: start + 2,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
+        } else if self.match_next('=') {
             Token {
                 tok_type: match c {
                     '!' => sym!(BangEqual),
@@ -306,7 +330,9 @@ impl<'a> Scanner<'a> {
                 '0'..='9' => Some(self.scan_number(start_idx)?),
                 'A'..='Z' | 'a'..='z' | '_' => Some(self.scan_identifier(start_idx, false)?),
                 '$' => Some(self.scan_identifier(start_idx, true)?),
-                '!' | '=' | '<' | '>' => Some(self.scan_double_token(start_idx, start_char)),
+                '!' | '=' | '<' | '>' | '|' | '&' => {
+                    Some(self.scan_double_token(start_idx, start_char))
+                }
                 '/' => self.scan_slash(start_idx),
                 _ => Some(self.scan_other(start_idx, start_char)?),
             };
@@ -830,22 +856,22 @@ mod test {
     #[test]
     fn test_keywords() {
         assert_tokens(
-            "and or class else for function if break continue return super this var while loop",
+            "&&  || class else for function if break continue return super this var while loop",
             vec![
                 Token {
-                    tok_type: kw!(Keyword::And),
-                    lexeme: lexm!("and"),
+                    tok_type: sym!(Symbol::LogicalAnd),
+                    lexeme: lexm!("&&"),
                     literal: None,
                     span: Span {
                         line: 0,
                         start: 0,
-                        end: 3,
+                        end: 2,
                         line_end: 0,
                     },
                 },
                 Token {
-                    tok_type: kw!(Keyword::Or),
-                    lexeme: lexm!("or"),
+                    tok_type: sym!(Symbol::LogicalOr),
+                    lexeme: lexm!("||"),
                     literal: None,
                     span: Span {
                         line: 0,

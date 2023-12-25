@@ -1,7 +1,26 @@
 use std::rc::Rc;
 
+use serde::{Deserialize, Serialize};
+
 use super::{sql::SqlSelect, stmt::StmtId, Literal};
-use crate::lang::token::{Span, Spanned, Token, TokenType};
+use crate::lang::token::{Span, Spanned, Token};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Operation {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    IsEqual,
+    IsNotEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    And,
+    Or,
+    Not,
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
@@ -30,12 +49,12 @@ pub enum Expr {
     },
     Binary {
         left: ExprId,
-        symbol: TokenType,
+        operation: Operation,
         right: ExprId,
         span: Span,
     },
     Unary {
-        symbol: TokenType,
+        operation: Operation,
         expr: ExprId,
         span: Span,
     },
@@ -46,7 +65,7 @@ pub enum Expr {
     },
     Logical {
         left: ExprId,
-        symbol: TokenType,
+        operation: Operation,
         right: ExprId,
         span: Span,
     },
@@ -87,12 +106,12 @@ impl Spanned for Expr {
             }
             | Expr::Binary {
                 left: _,
-                symbol: _,
+                operation: _,
                 right: _,
                 span,
             }
             | Expr::Unary {
-                symbol: _,
+                operation: _,
                 expr: _,
                 span,
             }
@@ -103,7 +122,7 @@ impl Spanned for Expr {
             }
             | Expr::Logical {
                 left: _,
-                symbol: _,
+                operation: _,
                 right: _,
                 span,
             }

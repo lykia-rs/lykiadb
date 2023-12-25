@@ -4,6 +4,7 @@ use rustc_hash::FxHashMap;
 
 use self::{
     expr::{Expr, ExprId},
+    sql::{SqlCollectionSubquery, SqlExpr, SqlSelect, SqlSelectCore},
     stmt::{Stmt, StmtId},
 };
 pub mod expr;
@@ -25,8 +26,27 @@ pub enum Literal {
 impl Eq for Literal {}
 
 pub trait Visitor<T, Q> {
+    fn visit_expr(&self, e: ExprId) -> Result<T, Q>;
+    fn visit_stmt(&self, e: StmtId) -> Result<T, Q>;
+}
+
+pub trait SqlVisitor<T, Q> {
+    fn visit_sql_select(&self, e: &SqlSelect) -> Result<T, Q>;
+    fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<T, Q>;
+    fn visit_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Result<T, Q>;
+    fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Result<T, Q>;
+}
+
+pub trait VisitorMut<T, Q> {
     fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
+}
+
+pub trait SqlVisitorMut<T, Q> {
+    fn visit_sql_select(&mut self, e: &SqlSelect) -> Result<T, Q>;
+    fn visit_sql_select_core(&mut self, core: &SqlSelectCore) -> Result<T, Q>;
+    fn visit_sql_subquery(&mut self, subquery: &SqlCollectionSubquery) -> Result<T, Q>;
+    fn visit_sql_expr(&mut self, sql_expr: &SqlExpr) -> Result<T, Q>;
 }
 
 pub struct ParserArena {

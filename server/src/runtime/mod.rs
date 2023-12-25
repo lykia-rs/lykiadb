@@ -2,9 +2,10 @@ use self::error::{report_error, ExecutionError};
 use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::Visitor;
-use crate::lang::parser::Parser;
+use crate::lang::ast::VisitorMut;
+use crate::lang::parser::{ParseError, Parser};
 use crate::lang::scanner::Scanner;
+use crate::lang::serializer::ProgramSerializer;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
@@ -44,10 +45,11 @@ impl Runtime {
         Runtime { env, mode }
     }
 
-    pub fn print_ast(&mut self, source: &str) {
+    pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
-        let parsed = Parser::parse(&tokens);
-        println!("{}", parsed.unwrap().serialize());
+        let program = Parser::parse(&tokens)?;
+        println!("{}", ProgramSerializer::new(&program).to_string());
+        Ok(())
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
@@ -57,20 +59,20 @@ impl Runtime {
             report_error("filename", source, error.clone());
             return Err(error);
         }
-        let parsed = Parser::parse(&tokens.unwrap());
-        if parsed.is_err() {
-            let error = error::ExecutionError::Parse(parsed.err().unwrap());
+        let program = Parser::parse(&tokens.unwrap());
+        if program.is_err() {
+            let error = error::ExecutionError::Parse(program.err().unwrap());
             report_error("filename", source, error.clone());
             return Err(error);
         }
-        let parsed_unw = parsed.unwrap();
-        let arena = Rc::clone(&parsed_unw.arena);
+        let program_unw = program.unwrap();
+        let arena = Rc::clone(&program_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
-        resolver.resolve_stmt(parsed_unw.program);
+        resolver.resolve_stmt(program_unw.root);
         //
         let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
-        let out = interpreter.visit_stmt(parsed_unw.program);
+        let out = interpreter.visit_stmt(program_unw.root);
 
         if self.mode == RuntimeMode::Repl {
             println!("{:?}", out);

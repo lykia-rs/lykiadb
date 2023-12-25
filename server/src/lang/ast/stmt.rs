@@ -5,7 +5,7 @@ use super::expr::ExprId;
 #[derive(Debug, Eq, PartialEq)]
 pub enum Stmt {
     Program {
-        stmts: Vec<StmtId>,
+        body: Vec<StmtId>,
         span: Span,
     },
     Expression {
@@ -19,7 +19,7 @@ pub enum Stmt {
         span: Span,
     },
     Block {
-        stmts: Vec<StmtId>,
+        body: Vec<StmtId>,
         span: Span,
     },
     Declaration {
@@ -30,7 +30,7 @@ pub enum Stmt {
     If {
         condition: ExprId,
         body: StmtId,
-        r#else: Option<StmtId>,
+        r#else_body: Option<StmtId>,
         span: Span,
     },
     Loop {

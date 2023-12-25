@@ -2,17 +2,17 @@ use rustc_hash::FxHashMap;
 
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
-use crate::lang::ast::expr::{Expr, ExprId};
+use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, ParserArena, Visitor};
-use crate::lang::token::TokenType;
-use crate::lang::token::{Keyword::*, Span};
-use crate::lang::token::{Spanned, Symbol::*};
+use crate::lang::ast::{Literal, ParserArena, VisitorMut};
+
+use crate::lang::token::Span;
+use crate::lang::token::Spanned;
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::{alloc_shared, Shared};
-use crate::{kw, sym};
+
 use std::rc::Rc;
 use std::vec;
 
@@ -152,8 +152,8 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, symbol: &TokenType, eidx: ExprId) -> Result<RV, HaltReason> {
-        if *symbol == sym!(Minus) {
+    fn eval_unary(&mut self, operation: &Operation, eidx: ExprId) -> Result<RV, HaltReason> {
+        if *operation == Operation::Subtract {
             if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
                 return Ok(RV::Num(-num));
             }
@@ -167,12 +167,12 @@ impl Interpreter {
         &mut self,
         lidx: ExprId,
         ridx: ExprId,
-        symbol: TokenType,
+        operation: Operation,
     ) -> Result<RV, HaltReason> {
         let left_eval = self.visit_expr(lidx)?;
         let right_eval = self.visit_expr(ridx)?;
 
-        Ok(eval_binary(left_eval, right_eval, &symbol))
+        Ok(eval_binary(left_eval, right_eval, operation))
     }
 
     fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
@@ -244,7 +244,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor<RV, HaltReason> for Interpreter {
+impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
         let a = Rc::clone(&self.arena);
@@ -258,16 +258,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
             } => Ok(self.literal_to_rv(&value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
             Expr::Unary {
-                symbol,
+                operation,
                 expr,
                 span: _,
-            } => self.eval_unary(&symbol, *expr),
+            } => self.eval_unary(operation, *expr),
             Expr::Binary {
-                symbol,
+                operation,
                 left,
                 right,
                 span: _,
-            } => self.eval_binary(*left, *right, symbol.clone()),
+            } => self.eval_binary(*left, *right, *operation),
             Expr::Variable { name, span: _ } => {
                 self.look_up_variable(name.lexeme.as_ref().unwrap(), eidx)
             }
@@ -292,13 +292,15 @@ impl Visitor<RV, HaltReason> for Interpreter {
             }
             Expr::Logical {
                 left,
-                symbol,
+                operation,
                 right,
                 span: _,
             } => {
                 let is_true = is_value_truthy(self.visit_expr(*left)?);
 
-                if (*symbol == kw!(Or) && is_true) || (*symbol == kw!(And) && !is_true) {
+                if (*operation == Operation::Or && is_true)
+                    || (*operation == Operation::And && !is_true)
+                {
                     return Ok(RV::Bool(is_true));
                 }
 
@@ -425,7 +427,10 @@ impl Visitor<RV, HaltReason> for Interpreter {
         let a = Rc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
-            Stmt::Program { stmts, span: _ } => {
+            Stmt::Program {
+                body: stmts,
+                span: _,
+            } => {
                 return self.execute_block(stmts, Some(self.env.clone()));
             }
             Stmt::Expression { expr, span: _ } => {
@@ -437,13 +442,16 @@ impl Visitor<RV, HaltReason> for Interpreter {
                     .borrow_mut()
                     .declare(dst.lexeme.as_ref().unwrap().to_string(), evaluated.clone());
             }
-            Stmt::Block { stmts, span: _ } => {
+            Stmt::Block {
+                body: stmts,
+                span: _,
+            } => {
                 return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
                 body,
-                r#else,
+                r#else_body: r#else,
                 span: _,
             } => {
                 if is_value_truthy(self.visit_expr(*condition)?) {
@@ -544,13 +552,13 @@ mod test {
     #[test]
     fn test_logical_evaluation() {
         let code = "
-            TestUtils.out(5 and 1);
-            TestUtils.out(5 or 1);
-            TestUtils.out(5 and 0);
-            TestUtils.out(5 or 0);
-            TestUtils.out(!(5 or 0));
-            TestUtils.out(!(5 or 0) or 1);
-            TestUtils.out(!(5 or 0) or (1 and 0));
+            TestUtils.out(5 && 1);
+            TestUtils.out(5 || 1);
+            TestUtils.out(5 && 0);
+            TestUtils.out(5 || 0);
+            TestUtils.out(!(5 || 0));
+            TestUtils.out(!(5 || 0) || 1);
+            TestUtils.out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
