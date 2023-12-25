@@ -1,3 +1,4 @@
+pub mod select_complex;
 pub mod select_compound;
 pub mod select_from;
 pub mod select_join;
