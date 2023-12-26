@@ -35,11 +35,8 @@ impl<'a> ToString for ProgramSerializer<'a> {
 
 impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Result<Value, ()> {
-        if let SqlExpr::Default(eidx) = sql_expr {
-            self.visit_expr(*eidx)
-        } else {
-            panic!("Not implemented");
-        }
+        let SqlExpr::Default(eidx) = sql_expr;
+        self.visit_expr(*eidx)
     }
 
     fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<Value, ()> {
