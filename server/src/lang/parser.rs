@@ -815,7 +815,10 @@ impl<'a> Parser<'a> {
             let key = self.expected(Identifier { dollar: false })?.clone();
             self.expected(sym!(Colon))?;
             let value = self.expression()?;
-            obj_literal.insert(key.lexeme.unwrap(), value);
+            obj_literal.insert(
+                key.literal.as_ref().unwrap().as_str().unwrap().to_owned(),
+                value,
+            );
             if !self.match_next(sym!(Comma)) {
                 break;
             }

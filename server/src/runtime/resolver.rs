@@ -54,7 +54,7 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
-            if self.scopes[i].contains_key(name.lexeme.as_ref().unwrap()) {
+            if self.scopes[i].contains_key(name.literal.as_ref().unwrap().as_str().unwrap()) {
                 self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
@@ -66,8 +66,10 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), false);
+        last.unwrap().insert(
+            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            false,
+        );
     }
 
     pub fn define(&mut self, name: &Token) {
@@ -75,8 +77,10 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), true);
+        last.unwrap().insert(
+            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            true,
+        );
     }
 }
 
@@ -108,7 +112,7 @@ impl VisitorMut<RV, ResolveError> for Resolver {
             Expr::Variable { name, span: _ } => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
-                    let value = last_scope.get(name.lexeme.as_ref().unwrap());
+                    let value = last_scope.get(name.literal.as_ref().unwrap().as_str().unwrap());
                     if value.is_some() && !(*value.unwrap()) {
                         return Err(ResolveError::GenericError {
                             token: name.clone(),

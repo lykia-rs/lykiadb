@@ -142,10 +142,14 @@ impl<'a> Scanner<'a> {
         })
     }
 
-    fn scan_identifier(&mut self, start: usize, is_dollar: bool) -> Result<Token, ScanError> {
+    fn scan_identifier(&mut self, start: usize) -> Result<Token, ScanError> {
         let mut raw_str = String::new();
-        raw_str.push(self.advance().1); // consume the first char
-        while self.peek(0).is_alphabetic() || self.peek(0) == '_' {
+        while self.peek(0).is_alphabetic()
+            || self.peek(0) == '_'
+            || self.peek(0) == '$'
+            || self.peek(0) == '#'
+            || self.peek(0).is_ascii_digit()
+        {
             raw_str.push(self.advance().1);
         }
         let span = Span {
@@ -155,14 +159,18 @@ impl<'a> Scanner<'a> {
             line_end: self.line,
         };
 
-        if CASE_SNS_KEYWORDS.contains_key(&raw_str) {
+        let is_hash_identifier = raw_str.starts_with('#');
+
+        if !is_hash_identifier && CASE_SNS_KEYWORDS.contains_key(&raw_str) {
             Ok(Token {
                 tok_type: CASE_SNS_KEYWORDS.get(&raw_str).unwrap().clone(),
                 literal: None,
                 lexeme: Some(raw_str),
                 span,
             })
-        } else if CASE_INS_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase()) {
+        } else if !is_hash_identifier
+            && CASE_INS_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
+        {
             Ok(Token {
                 tok_type: CASE_INS_KEYWORDS
                     .get(&raw_str.to_ascii_uppercase())
@@ -173,9 +181,17 @@ impl<'a> Scanner<'a> {
                 span,
             })
         } else {
+            let literal = if is_hash_identifier {
+                Rc::new(raw_str[1..].to_string())
+            } else {
+                Rc::new(raw_str.clone())
+            };
+
             Ok(Token {
-                tok_type: Identifier { dollar: is_dollar },
-                literal: Some(Str(Rc::new(raw_str.clone()))),
+                tok_type: Identifier {
+                    dollar: literal.starts_with('$'),
+                },
+                literal: Some(Str(literal)),
                 lexeme: Some(raw_str),
                 span,
             })
@@ -328,8 +344,7 @@ impl<'a> Scanner<'a> {
                 }
                 '"' => Some(self.scan_string(start_idx)?),
                 '0'..='9' => Some(self.scan_number(start_idx)?),
-                'A'..='Z' | 'a'..='z' | '_' => Some(self.scan_identifier(start_idx, false)?),
-                '$' => Some(self.scan_identifier(start_idx, true)?),
+                'A'..='Z' | 'a'..='z' | '_' | '$' | '#' => Some(self.scan_identifier(start_idx)?),
                 '!' | '=' | '<' | '>' | '|' | '&' => {
                     Some(self.scan_double_token(start_idx, start_char))
                 }
@@ -596,7 +611,7 @@ mod test {
     #[test]
     fn test_identifiers() {
         assert_tokens(
-            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function",
+            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function #for #$edge_case",
             vec![
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
@@ -643,13 +658,35 @@ mod test {
                     },
                 },
                 Token {
+                    tok_type: TokenType::Identifier { dollar: false },
+                    literal: Some(Str(Rc::new("for".to_string()))),
+                    lexeme: lexm!("#for"),
+                    span: Span {
+                        line: 0,
+                        start: 78,
+                        end: 82,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Identifier { dollar: true },
+                    literal: Some(Str(Rc::new("$edge_case".to_string()))),
+                    lexeme: lexm!("#$edge_case"),
+                    span: Span {
+                        line: 0,
+                        start: 83,
+                        end: 94,
+                        line_end: 0,
+                    },
+                },
+                Token {
                     tok_type: Eof,
                     literal: None,
                     lexeme: None,
                     span: Span {
-                        start: 78,
-                        end: 78,
                         line: 0,
+                        start: 95,
+                        end: 95,
                         line_end: 0,
                     },
                 },

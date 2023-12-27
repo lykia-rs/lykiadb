@@ -23,6 +23,15 @@ pub enum Literal {
     Null,
 }
 
+impl Literal {
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Literal::Str(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
 impl Eq for Literal {}
 
 pub trait Visitor<T, Q> {
