@@ -58,10 +58,10 @@ impl<'a> Scanner<'a> {
         self.chars.clone().peek().is_none()
     }
 
-    fn scan_string(&mut self, start: usize) -> Result<Token, ScanError> {
+    fn scan_string(&mut self, start: usize, c: char) -> Result<Token, ScanError> {
         self.advance(); // consume the opening "
         let mut raw_str = String::new();
-        while self.peek(0) != '"' && !self.is_at_end() {
+        while self.peek(0) != c && !self.is_at_end() {
             raw_str.push(self.advance().1);
         }
 
@@ -142,12 +142,12 @@ impl<'a> Scanner<'a> {
         })
     }
 
-    fn scan_identifier(&mut self, start: usize) -> Result<Token, ScanError> {
+    fn scan_identifier(&mut self, start: usize, prev: Option<&Token>) -> Result<Token, ScanError> {
         let mut raw_str = String::new();
         while self.peek(0).is_alphabetic()
             || self.peek(0) == '_'
             || self.peek(0) == '$'
-            || self.peek(0) == '#'
+            || self.peek(0) == '\\'
             || self.peek(0).is_ascii_digit()
         {
             raw_str.push(self.advance().1);
@@ -159,16 +159,27 @@ impl<'a> Scanner<'a> {
             line_end: self.line,
         };
 
-        let is_hash_identifier = raw_str.starts_with('#');
+        let is_escaped_identifier = raw_str.starts_with('\\');
 
-        if !is_hash_identifier && CASE_SNS_KEYWORDS.contains_key(&raw_str) {
+        let is_coerced_identifier = is_escaped_identifier || {
+            if let Some(prev) = prev {
+                match prev.tok_type {
+                    TokenType::Symbol(Dot) => true,
+                    _ => false,
+                }
+            } else {
+                false
+            }
+        };
+
+        if !is_coerced_identifier && CASE_SNS_KEYWORDS.contains_key(&raw_str) {
             Ok(Token {
                 tok_type: CASE_SNS_KEYWORDS.get(&raw_str).unwrap().clone(),
                 literal: None,
                 lexeme: Some(raw_str),
                 span,
             })
-        } else if !is_hash_identifier
+        } else if !is_coerced_identifier
             && CASE_INS_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
         {
             Ok(Token {
@@ -181,7 +192,7 @@ impl<'a> Scanner<'a> {
                 span,
             })
         } else {
-            let literal = if is_hash_identifier {
+            let literal = if is_escaped_identifier {
                 Rc::new(raw_str[1..].to_string())
             } else {
                 Rc::new(raw_str.clone())
@@ -342,9 +353,11 @@ impl<'a> Scanner<'a> {
                     self.advance();
                     None
                 }
-                '"' => Some(self.scan_string(start_idx)?),
+                '"' | '\'' | '`' => Some(self.scan_string(start_idx, start_char)?),
                 '0'..='9' => Some(self.scan_number(start_idx)?),
-                'A'..='Z' | 'a'..='z' | '_' | '$' | '#' => Some(self.scan_identifier(start_idx)?),
+                'A'..='Z' | 'a'..='z' | '_' | '$' | '\\' => {
+                    Some(self.scan_identifier(start_idx, tokens.last())?)
+                }
                 '!' | '=' | '<' | '>' | '|' | '&' => {
                     Some(self.scan_double_token(start_idx, start_char))
                 }
@@ -611,7 +624,7 @@ mod test {
     #[test]
     fn test_identifiers() {
         assert_tokens(
-            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function #for #$edge_case",
+            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function \\for \\$edge_case",
             vec![
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
@@ -660,7 +673,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
                     literal: Some(Str(Rc::new("for".to_string()))),
-                    lexeme: lexm!("#for"),
+                    lexeme: lexm!("\\for"),
                     span: Span {
                         line: 0,
                         start: 78,
@@ -671,7 +684,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
                     literal: Some(Str(Rc::new("$edge_case".to_string()))),
-                    lexeme: lexm!("#$edge_case"),
+                    lexeme: lexm!("\\$edge_case"),
                     span: Span {
                         line: 0,
                         start: 83,
@@ -692,6 +705,103 @@ mod test {
                 },
             ],
         );
+    }
+
+    #[test]
+    fn test_string_literals() {
+        assert_tokens(
+            "`abc` 'abc' \"abc\" `'abc'` '`abc`' `\"abc\"` \"`abc`\"",
+            vec![
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("abc"),
+                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 0,
+                        end: 5,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("abc"),
+                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 6,
+                        end: 11,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("abc"),
+                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 12,
+                        end: 17,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("'abc'"),
+                    literal: Some(Str(Rc::new("'abc'".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 18,
+                        end: 25,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("`abc`"),
+                    literal: Some(Str(Rc::new("`abc`".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 26,
+                        end: 33,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("\"abc\""),
+                    literal: Some(Str(Rc::new("\"abc\"".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 34,
+                        end: 41,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: TokenType::Str,
+                    lexeme: lexm!("`abc`"),
+                    literal: Some(Str(Rc::new("`abc`".to_string()))),
+                    span: Span {
+                        line: 0,
+                        start: 42,
+                        end: 49,
+                        line_end: 0,
+                    },
+                },
+                Token {
+                    tok_type: Eof,
+                    lexeme: None,
+                    literal: None,
+                    span: Span {
+                        line: 0,
+                        start: 50,
+                        end: 50,
+                        line_end: 0,
+                    },
+                },
+            ],
+        )
     }
 
     #[test]

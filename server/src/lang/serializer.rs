@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
 
+use crate::lang::ast::Literal;
+
 use super::{
     ast::{
         expr::{Expr, ExprId},
@@ -194,7 +196,24 @@ impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
             } => {
                 json!({
                     "type": "Expr::Literal",
-                    "value": format!("{:?}", value),
+                    "value": match value {
+                        Literal::Object(map) => {
+                            json!({
+                                "type": "Object",
+                                "value": map.keys().map(|item| json!({
+                                    "key": item,
+                                    "value": self.visit_expr(*map.get(item).unwrap()).unwrap()
+                                })).collect::<Vec<_>>(),
+                            })
+                        }
+                        Literal::Array(items) => {
+                            json!({
+                                "type": "Array",
+                                "value": items.iter().map(|item| self.visit_expr(*item).unwrap()).collect::<Vec<_>>(),
+                            })
+                        },
+                        _ => json!(format!("{:?}", value))
+                    },
                     "raw": raw,
                 })
             }
