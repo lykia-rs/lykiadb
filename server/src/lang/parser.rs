@@ -131,6 +131,13 @@ impl<'a> Parser<'a> {
         match_next!(self, kw!(Break), break_statement);
         match_next!(self, kw!(Continue), continue_statement);
         match_next!(self, kw!(Return), return_statement);
+        if self.peek_next_all_of(&[
+            sym!(LeftBrace),
+            Identifier { dollar: false },
+            sym!(Colon),
+        ]) {
+            return self.expression_statement();
+        }
         match_next!(self, sym!(LeftBrace), block);
         self.expression_statement()
     }
@@ -931,6 +938,15 @@ impl<'a> Parser<'a> {
             return true;
         }
         false
+    }
+
+    fn peek_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
+        for (i, t) in tokens.iter().enumerate() {
+            if self.peek_fw(i).tok_type != *t {
+                return false;
+            }
+        }
+        return true;
     }
 
     fn match_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
