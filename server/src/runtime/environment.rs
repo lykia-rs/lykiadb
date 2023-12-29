@@ -103,3 +103,35 @@ impl Environment {
         panic!("Invalid variable distance.");
     }
 }
+
+#[cfg(test)]
+mod test{
+    use crate::runtime::{types::RV, interpreter::HaltReason};
+
+    #[test]
+    fn test_read_basic() {
+        let env = super::Environment::new(None);
+        env.borrow_mut().declare("five".to_string(), RV::Num(5.0));
+        assert_eq!(env.borrow().read("five").unwrap(), RV::Num(5.0));
+    }
+
+    #[test]
+    fn test_read_from_parent() {
+        let parent = super::Environment::new(None);
+        parent.borrow_mut().declare("five".to_string(), RV::Num(5.0));
+        let child = super::Environment::new(Some(parent.clone()));
+        assert_eq!(child.borrow().read("five").unwrap(), RV::Num(5.0));
+    }
+
+    #[test]
+    fn test_read_undefined_variable() {
+        let env = super::Environment::new(None);
+        assert!(env.borrow().read("five").is_err());
+    }
+
+    #[test]
+    fn test_assign_to_undefined_variable() {
+        let env = super::Environment::new(None);
+        assert!(env.borrow_mut().assign("five".to_string(), RV::Num(5.0)).is_err());
+    }
+}
