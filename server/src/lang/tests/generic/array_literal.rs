@@ -9,6 +9,44 @@ use crate::assert_parsing;
 
 #[cfg(test)]
 assert_parsing! {
+    empty_expr: {
+        "var $arr = [];" => {
+            "type": "Stmt::Program",
+            "body": [
+                {
+                    "type": "Stmt::Declaration",
+                    "variable": "$arr",
+                    "expr": {
+                        "type": "Expr::Literal",
+                        "raw": "",
+                        "value": {
+                            "type": "Array",
+                            "value": []
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    empty_declare: {
+        "var $arr = [];" => {
+            "type": "Stmt::Program",
+            "body": [
+                {
+                    "type": "Stmt::Declaration",
+                    "variable": "$arr",
+                    "expr": {
+                        "type": "Expr::Literal",
+                        "raw": "",
+                        "value": {
+                            "type": "Array",
+                            "value": []
+                        }
+                    }
+                }
+            ]
+        }
+    },
     plain_declare: {
         "var $arr = [1, 'abc', { \\key: `val` }];" => {
             "type": "Stmt::Program",

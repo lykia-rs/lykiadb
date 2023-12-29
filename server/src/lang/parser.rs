@@ -132,6 +132,8 @@ impl<'a> Parser<'a> {
         match_next!(self, kw!(Continue), continue_statement);
         match_next!(self, kw!(Return), return_statement);
         if self.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), Str, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), Num, sym!(Colon)])
             || self.peek_next_all_of(&[sym!(LeftBrace), sym!(RightBrace)])
         {
             return self.expression_statement();
@@ -824,13 +826,35 @@ impl<'a> Parser<'a> {
     fn object_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
         let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
         while !self.cmp_tok(&sym!(RightBrace)) {
-            let key = self.expected(Identifier { dollar: false })?.clone();
+            let key = if self.match_next_one_of(&[Identifier { dollar: false }, Str, Num]) {
+                let key_tok = self.peek_bw(1).clone();
+                match key_tok.tok_type {
+                    Identifier { dollar: false } | Str => key_tok
+                        .literal
+                        .as_ref()
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_owned(),
+                    Num => match key_tok.literal {
+                        Some(Literal::Num(n)) => n.to_string(),
+                        _ => {
+                            return Err(ParseError::UnexpectedToken { token: key_tok });
+                        }
+                    },
+                    _ => {
+                        return Err(ParseError::UnexpectedToken { token: key_tok });
+                    }
+                }
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: self.peek_bw(1).clone(),
+                });
+            };
+
             self.expected(sym!(Colon))?;
             let value = self.expression()?;
-            obj_literal.insert(
-                key.literal.as_ref().unwrap().as_str().unwrap().to_owned(),
-                value,
-            );
+            obj_literal.insert(key, value);
             if !self.match_next(sym!(Comma)) {
                 break;
             }
