@@ -198,7 +198,7 @@ assert_parsing! {
             ]
         }
     },
-    for_empty: {
+    for_infinite: {
         "for (;;) {}" => {
             "type": "Stmt::Program",
             "body":  [
@@ -209,6 +209,26 @@ assert_parsing! {
                         "body": [],
                     },
                     "condition": null,
+                    "post": null,
+                }
+            ]
+        }
+    },
+    while_infinite: {
+        "while (true) {}" => {
+            "type": "Stmt::Program",
+            "body":  [
+                {
+                    "type": "Stmt::Loop",
+                    "body": {
+                        "type": "Stmt::Block",
+                        "body": [],
+                    },
+                    "condition": {
+                        "type": "Expr::Literal",
+                        "value": "Bool(true)",
+                        "raw": "true"
+                    },
                     "post": null,
                 }
             ]
