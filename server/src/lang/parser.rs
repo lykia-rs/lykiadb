@@ -131,11 +131,9 @@ impl<'a> Parser<'a> {
         match_next!(self, kw!(Break), break_statement);
         match_next!(self, kw!(Continue), continue_statement);
         match_next!(self, kw!(Return), return_statement);
-        if self.peek_next_all_of(&[
-            sym!(LeftBrace),
-            Identifier { dollar: false },
-            sym!(Colon),
-        ]) {
+        if self.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), sym!(RightBrace)])
+        {
             return self.expression_statement();
         }
         match_next!(self, sym!(LeftBrace), block);
@@ -267,18 +265,19 @@ impl<'a> Parser<'a> {
     fn block(&mut self) -> ParseResult<StmtId> {
         let mut statements: Vec<StmtId> = vec![];
 
+        let opening_brace = self.peek_bw(1);
+
         while !self.cmp_tok(&sym!(RightBrace)) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
+
+        let closing_brace = self.peek_bw(1);
 
         self.expected(sym!(RightBrace))?;
 
         Ok(self.arena.statement(Stmt::Block {
             body: statements.clone(),
-            span: self.get_merged_span(
-                self.arena.get_statement(statements[0]),
-                self.arena.get_statement(statements[statements.len() - 1]),
-            ),
+            span: self.get_merged_span(&opening_brace.span, &closing_brace.span),
         }))
     }
 

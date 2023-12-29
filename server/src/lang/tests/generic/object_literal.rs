@@ -9,8 +9,26 @@ use crate::assert_parsing;
 
 #[cfg(test)]
 assert_parsing! {
-    plain_declare: {
-        "var $obj = { a : 1, b : `q` };" => {
+    empty_expr: {
+        "{};" => {
+            "type": "Stmt::Program",
+            "body": [
+                {
+                    "type": "Stmt::Expression",
+                    "expr": {
+                        "type": "Expr::Literal",
+                        "raw": "",
+                        "value": {
+                            "type": "Object",
+                            "value": []
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    empty_declare: {
+        "var $obj = {};" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -21,24 +39,7 @@ assert_parsing! {
                         "raw": "",
                         "value": {
                             "type": "Object",
-                            "value": [
-                                {
-                                  "key": "b",
-                                  "value": {
-                                    "raw": "q",
-                                    "type": "Expr::Literal",
-                                    "value": "Str(\"q\")"
-                                  }
-                                },
-                                {
-                                  "key": "a",
-                                  "value": {
-                                    "raw": "1",
-                                    "type": "Expr::Literal",
-                                    "value": "Num(1.0)"
-                                  }
-                                }
-                              ]
+                            "value": []
                         }
                     }
                 }
@@ -79,5 +80,41 @@ assert_parsing! {
                 }
             ]
         }
-    }
+    },
+    plain_declare: {
+      "var $obj = { a : 1, b : `q` };" => {
+          "type": "Stmt::Program",
+          "body": [
+              {
+                  "type": "Stmt::Declaration",
+                  "variable": "$obj",
+                  "expr": {
+                      "type": "Expr::Literal",
+                      "raw": "",
+                      "value": {
+                          "type": "Object",
+                          "value": [
+                              {
+                                "key": "b",
+                                "value": {
+                                  "raw": "q",
+                                  "type": "Expr::Literal",
+                                  "value": "Str(\"q\")"
+                                }
+                              },
+                              {
+                                "key": "a",
+                                "value": {
+                                  "raw": "1",
+                                  "type": "Expr::Literal",
+                                  "value": "Num(1.0)"
+                                }
+                              }
+                            ]
+                      }
+                  }
+              }
+          ]
+      }
+  }
 }
