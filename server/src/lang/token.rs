@@ -36,6 +36,7 @@ pub enum TokenType {
     Str,
     Num,
     Null,
+    Undefined,
     False,
     True,
     //
@@ -197,6 +198,7 @@ pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "loop" => kw!(Keyword::Loop),
     //
     "null" =>  TokenType::Null,
+    "undefined" => TokenType::Undefined,
     "false" => TokenType::False,
     "true" => TokenType::True,
 };

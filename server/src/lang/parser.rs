@@ -166,7 +166,9 @@ impl<'a> Parser<'a> {
 
     fn loop_statement(&mut self) -> ParseResult<StmtId> {
         let loop_tok = self.peek_bw(1);
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
         Ok(self.arena.statement(Stmt::Loop {
             condition: None,
             body: inner_stmt,
@@ -180,7 +182,9 @@ impl<'a> Parser<'a> {
         self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
         self.expected(sym!(RightParen))?;
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
 
         Ok(self.arena.statement(Stmt::Loop {
             condition: Some(condition),
@@ -240,7 +244,9 @@ impl<'a> Parser<'a> {
             }))
         };
 
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
 
         if initializer.is_none() {
             return Ok(self.arena.statement(Stmt::Loop {
@@ -881,6 +887,11 @@ impl<'a> Parser<'a> {
             TokenType::Null => Ok(self.arena.expression(Expr::Literal {
                 value: Literal::Null,
                 raw: "null".to_string(),
+                span: tok.span,
+            })),
+            TokenType::Undefined => Ok(self.arena.expression(Expr::Literal {
+                value: Literal::Undefined,
+                raw: "undefined".to_string(),
                 span: tok.span,
             })),
             Str | Num => Ok(self.arena.expression(Expr::Literal {

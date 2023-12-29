@@ -231,7 +231,9 @@ impl VisitorMut<RV, ResolveError> for Resolver {
                 post,
                 span: _,
             } => {
-                self.resolve_expr(*condition.as_ref().unwrap());
+                if condition.is_some() {
+                    self.resolve_expr(*condition.as_ref().unwrap());
+                }
                 self.resolve_stmt(*body);
                 if post.is_some() {
                     self.resolve_stmt(*post.as_ref().unwrap());
