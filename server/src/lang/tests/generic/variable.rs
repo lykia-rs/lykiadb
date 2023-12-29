@@ -9,6 +9,22 @@ use crate::assert_parsing;
 
 #[cfg(test)]
 assert_parsing! {
+    declare_a: {
+        "var $a;" => {
+            "type": "Stmt::Program",
+            "body": [
+                {
+                    "type": "Stmt::Declaration",
+                    "variable": "$a",
+                    "expr": {
+                        "type": "Expr::Literal",
+                        "value": "Undefined",
+                        "raw": "undefined"
+                    }
+                }
+            ]
+        }
+    },
     var_a: {
         "$a;" => {
             "type": "Stmt::Program",

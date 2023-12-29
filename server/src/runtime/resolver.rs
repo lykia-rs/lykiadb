@@ -1,6 +1,6 @@
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{ParserArena, VisitorMut};
+use crate::lang::ast::{Literal, ParserArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
@@ -92,8 +92,20 @@ impl VisitorMut<RV, ResolveError> for Resolver {
             Expr::Literal {
                 raw: _,
                 span: _,
-                value: _,
-            } => (),
+                value,
+            } => match value {
+                Literal::Object(map) => {
+                    for item in map.keys() {
+                        self.visit_expr(*map.get(item).unwrap())?;
+                    }
+                }
+                Literal::Array(items) => {
+                    for item in items {
+                        self.visit_expr(*item)?;
+                    }
+                }
+                _ => (),
+            },
             Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
             Expr::Unary {
                 operation: _,

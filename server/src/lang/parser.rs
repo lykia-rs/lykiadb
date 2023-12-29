@@ -84,7 +84,9 @@ pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
     arena: ParserArena,
-    is_in_sql: bool,
+    in_sql_depth: usize,
+    in_array_depth: usize,
+    in_object_depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -97,7 +99,9 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             arena,
-            is_in_sql: false,
+            in_sql_depth: 0,
+            in_array_depth: 0,
+            in_object_depth: 0,
         };
         let program = parser.program()?;
         Ok(Program::new(program, Rc::new(parser.arena)))
@@ -421,7 +425,7 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        let operator = if self.is_in_sql {
+        let operator = if self.in_sql_depth > 0 {
             skw!(Or)
         } else {
             sym!(LogicalOr)
@@ -444,7 +448,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        let operator = if self.is_in_sql {
+        let operator = if self.in_sql_depth > 0 {
             skw!(And)
         } else {
             sym!(LogicalAnd)
@@ -466,7 +470,7 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        if self.is_in_sql {
+        if self.in_sql_depth > 0 {
             binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
         } else {
             binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
@@ -512,8 +516,8 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
-        self.is_in_sql = true;
-        let core = self.sql_select_core()?;
+        self.in_sql_depth += 1;
+        let core: SqlSelectCore = self.sql_select_core()?;
         let mut compounds: Vec<SqlSelectCompound> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
@@ -586,7 +590,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.is_in_sql = false;
+        self.in_sql_depth -= 1;
 
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
@@ -825,6 +829,7 @@ impl<'a> Parser<'a> {
 
     fn object_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
         let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
+        self.in_object_depth += 1;
         while !self.cmp_tok(&sym!(RightBrace)) {
             let key = if self.match_next_one_of(&[Identifier { dollar: false }, Str, Num]) {
                 let key_tok = self.peek_bw(1).clone();
@@ -860,6 +865,7 @@ impl<'a> Parser<'a> {
             }
         }
         self.expected(sym!(RightBrace))?;
+        self.in_object_depth -= 1;
         Ok(self.arena.expression(Expr::Literal {
             value: Literal::Object(obj_literal),
             raw: "".to_string(),
@@ -869,6 +875,7 @@ impl<'a> Parser<'a> {
 
     fn array_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
         let mut array_literal: Vec<ExprId> = vec![];
+        self.in_array_depth += 1;
         while !self.cmp_tok(&sym!(RightBracket)) {
             let value = self.expression()?;
             array_literal.push(value);
@@ -877,6 +884,7 @@ impl<'a> Parser<'a> {
             }
         }
         self.expected(sym!(RightBracket))?;
+        self.in_array_depth -= 1;
         Ok(self.arena.expression(Expr::Literal {
             value: Literal::Array(array_literal),
             raw: "".to_string(),
@@ -1022,7 +1030,7 @@ impl<'a> Parser<'a> {
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {
-                    if self.is_in_sql {
+                    if self.in_sql_depth > 0 {
                         Operation::IsEqual
                     } else {
                         unreachable!()
