@@ -105,8 +105,8 @@ impl Environment {
 }
 
 #[cfg(test)]
-mod test{
-    use crate::runtime::{types::RV, interpreter::HaltReason};
+mod test {
+    use crate::runtime::types::RV;
 
     #[test]
     fn test_read_basic() {
@@ -118,7 +118,9 @@ mod test{
     #[test]
     fn test_read_from_parent() {
         let parent = super::Environment::new(None);
-        parent.borrow_mut().declare("five".to_string(), RV::Num(5.0));
+        parent
+            .borrow_mut()
+            .declare("five".to_string(), RV::Num(5.0));
         let child = super::Environment::new(Some(parent.clone()));
         assert_eq!(child.borrow().read("five").unwrap(), RV::Num(5.0));
     }
@@ -132,6 +134,9 @@ mod test{
     #[test]
     fn test_assign_to_undefined_variable() {
         let env = super::Environment::new(None);
-        assert!(env.borrow_mut().assign("five".to_string(), RV::Num(5.0)).is_err());
+        assert!(env
+            .borrow_mut()
+            .assign("five".to_string(), RV::Num(5.0))
+            .is_err());
     }
 }
