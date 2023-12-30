@@ -31,7 +31,8 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -65,7 +66,8 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": "users"
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -114,7 +116,8 @@ assert_parsing! {
                                         "name": "name"
                                     },
                                     "alias": "username"
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -161,7 +164,8 @@ assert_parsing! {
                                         "raw": "text"
                                     },
                                     "alias": "some_text"
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -226,7 +230,8 @@ assert_parsing! {
                                         }
                                     },
                                     "alias": "division"
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -283,7 +288,8 @@ assert_parsing! {
                                         }
                                     },
                                     "alias": "division"
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,

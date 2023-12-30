@@ -44,7 +44,8 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -137,7 +138,8 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,

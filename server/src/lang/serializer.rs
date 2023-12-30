@@ -64,9 +64,16 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
             .map(|x| self.visit_sql_subquery(&x))
             .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
 
+        let core_where = core
+            .r#where
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
         Ok(json!({
             "projection": core_projection?,
-            "from": core_from?
+            "from": core_from?,
+            "where": core_where?
         }))
     }
 

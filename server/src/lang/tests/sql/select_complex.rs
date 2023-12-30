@@ -19,6 +19,10 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "projection": [{
+                                    "type": "All",
+                                    "collection": null
+                                }],
                                 "from": {
                                     "type": "Join",
                                     "subquery": {
@@ -81,10 +85,7 @@ assert_parsing! {
                                           }
                                     }]
                                 },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }]
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
@@ -105,6 +106,10 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "projection": [{
+                                    "type": "All",
+                                    "collection": null
+                                }],
                                 "from": {
                                     "type": "Join",
                                     "subquery": {
@@ -174,10 +179,7 @@ assert_parsing! {
                                           }
                                     }]
                                 },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }]
+                                "where": null
                             },
                             "compound": [],
                             "limit": null,
