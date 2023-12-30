@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -37,6 +38,7 @@ assert_parsing! {
                             "compound": [{
                                 "operation": "Union",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "projection": [{
                                         "type": "All",
                                         "collection": null
@@ -71,6 +73,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -89,6 +92,7 @@ assert_parsing! {
                             "compound": [{
                                 "operation": "Intersect",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -123,6 +127,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -141,6 +146,7 @@ assert_parsing! {
                             "compound": [{
                                 "operation": "Except",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "projection": [{
                                         "type": "All",
                                         "collection": null
@@ -175,6 +181,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
@@ -193,6 +200,7 @@ assert_parsing! {
                             "compound": [{
                                 "operation": "Union",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "projection": [{
                                         "type": "All",
                                         "collection": null
@@ -211,6 +219,7 @@ assert_parsing! {
                             },{
                                 "operation": "Except",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "projection": [{
                                         "type": "All",
                                         "collection": null

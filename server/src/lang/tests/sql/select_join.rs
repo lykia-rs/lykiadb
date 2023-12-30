@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Join",
                                     "subquery": {
@@ -66,6 +67,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Join",
                                     "subquery": {

@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
@@ -65,6 +66,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
@@ -128,6 +130,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "projection": [{
                                     "type": "All",
                                     "collection": null

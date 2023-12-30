@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -54,6 +55,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -88,6 +90,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -138,6 +141,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -186,6 +190,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -252,6 +257,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": null,
                                 "projection": [{
                                     "type": "Expr",

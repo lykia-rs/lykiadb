@@ -610,7 +610,7 @@ impl<'a> Parser<'a> {
         } else if self.match_next(skw!(All)) {
             SqlDistinct::All
         } else {
-            SqlDistinct::All
+            SqlDistinct::ImplicitAll
         };
 
         let projection = self.sql_select_projection();

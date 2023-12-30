@@ -42,6 +42,8 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     }
 
     fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<Value, ()> {
+        let core_distinct = json!(format!("{:?}", core.distinct));
+
         let core_projection: Result<Value, ()> = core
             .projection
             .iter()
@@ -71,6 +73,7 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
             .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
 
         Ok(json!({
+            "distinct": core_distinct,
             "projection": core_projection?,
             "from": core_from?,
             "where": core_where?

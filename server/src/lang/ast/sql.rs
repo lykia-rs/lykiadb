@@ -6,6 +6,7 @@ use super::expr::ExprId;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlDistinct {
+    ImplicitAll,
     All,
     Distinct,
 }
