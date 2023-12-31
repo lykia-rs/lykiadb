@@ -72,11 +72,25 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
             .map(|x| self.visit_sql_expr(&x))
             .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
 
+        let core_group_by = core
+            .group_by
+            .as_ref()
+            .map(|x| x.iter().map(|expr| self.visit_sql_expr(&expr)).collect())
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        let having = core
+            .having
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
         Ok(json!({
             "distinct": core_distinct,
             "projection": core_projection?,
             "from": core_from?,
-            "where": core_where?
+            "where": core_where?,
+            "group_by": core_group_by?,
+            "having": having?
         }))
     }
 

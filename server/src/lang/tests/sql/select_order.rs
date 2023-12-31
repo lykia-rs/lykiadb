@@ -33,7 +33,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -68,7 +70,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -109,7 +113,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -157,7 +163,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -205,7 +213,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,

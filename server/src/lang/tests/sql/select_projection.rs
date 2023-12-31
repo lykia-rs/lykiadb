@@ -33,7 +33,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -69,7 +71,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": "users"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -120,7 +124,9 @@ assert_parsing! {
                                     },
                                     "alias": "username"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -169,7 +175,9 @@ assert_parsing! {
                                     },
                                     "alias": "some_text"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -236,7 +244,9 @@ assert_parsing! {
                                     },
                                     "alias": "division"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -295,7 +305,9 @@ assert_parsing! {
                                     },
                                     "alias": "division"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,

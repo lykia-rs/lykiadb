@@ -45,7 +45,9 @@ assert_parsing! {
                                         "value": "Num(1.0)",
                                         "raw": "1"
                                     }
-                                }
+                                },
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -109,7 +111,9 @@ assert_parsing! {
                                             "raw": "John"
                                         }
                                     }
-                                }
+                                },
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -213,7 +217,9 @@ assert_parsing! {
                                             }
                                         }
                                     }
-                                }
+                                },
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,

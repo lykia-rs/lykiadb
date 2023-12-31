@@ -33,7 +33,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Union",
@@ -52,7 +54,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "where": null
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -87,7 +91,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Intersect",
@@ -106,7 +112,9 @@ assert_parsing! {
                                         "type": "All",
                                         "collection": null
                                     }],
-                                    "where": null
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -141,7 +149,9 @@ assert_parsing! {
                                     "type": "All",
                                     "collection": null
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Except",
@@ -160,7 +170,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "where": null
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -195,7 +207,9 @@ assert_parsing! {
                                         "namespace": null,
                                     }],
                                 },
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Union",
@@ -214,7 +228,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "where": null
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             },{
                                 "operation": "Except",
@@ -234,6 +250,8 @@ assert_parsing! {
                                         }],
                                     },
                                     "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,

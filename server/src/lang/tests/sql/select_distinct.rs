@@ -37,7 +37,9 @@ assert_parsing! {
                                     },
                                     "type": "Expr"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -76,7 +78,9 @@ assert_parsing! {
                                     },
                                     "type": "Expr"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -115,7 +119,9 @@ assert_parsing! {
                                     },
                                     "type": "Expr"
                                 }],
-                                "where": null
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
