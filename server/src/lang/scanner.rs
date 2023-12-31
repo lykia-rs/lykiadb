@@ -172,18 +172,18 @@ impl<'a> Scanner<'a> {
             }
         };
 
-        if !is_coerced_identifier && CASE_SNS_KEYWORDS.contains_key(&raw_str) {
+        if !is_coerced_identifier && GENERIC_KEYWORDS.contains_key(&raw_str) {
             Ok(Token {
-                tok_type: CASE_SNS_KEYWORDS.get(&raw_str).unwrap().clone(),
+                tok_type: GENERIC_KEYWORDS.get(&raw_str).unwrap().clone(),
                 literal: None,
                 lexeme: Some(raw_str),
                 span,
             })
         } else if !is_coerced_identifier
-            && CASE_INS_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
+            && SQL_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
         {
             Ok(Token {
-                tok_type: CASE_INS_KEYWORDS
+                tok_type: SQL_KEYWORDS
                     .get(&raw_str.to_ascii_uppercase())
                     .unwrap()
                     .clone(),

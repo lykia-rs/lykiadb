@@ -182,7 +182,7 @@ pub static SYMBOLS: phf::Map<char, TokenType> = phf_map! {
     ']' => sym!(Symbol::RightBracket),
 };
 
-pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+pub static GENERIC_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "class" => kw!(Keyword::Class),
     "else" => kw!(Keyword::Else),
     "for" => kw!(Keyword::For),
@@ -203,7 +203,7 @@ pub static CASE_SNS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "true" => TokenType::True,
 };
 
-pub static CASE_INS_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+pub static SQL_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     //
     "ALL" => skw!(SqlKeyword::All),
     "DISTINCT" => skw!(SqlKeyword::Distinct),
