@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -31,11 +32,19 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Union",
                                 "core": {
+                                    "distinct": "ImplicitAll",
+                                    "projection": [{
+                                        "type": "All",
+                                        "collection": null
+                                    }],
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -45,10 +54,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "projection": [{
-                                        "type": "All",
-                                        "collection": null
-                                    }]
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -69,6 +77,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -81,11 +90,15 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Intersect",
                                 "core": {
+                                    "distinct": "ImplicitAll",
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -98,7 +111,10 @@ assert_parsing! {
                                     "projection": [{
                                         "type": "All",
                                         "collection": null
-                                    }]
+                                    }],
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -119,6 +135,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -131,11 +148,19 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Except",
                                 "core": {
+                                    "distinct": "ImplicitAll",
+                                    "projection": [{
+                                        "type": "All",
+                                        "collection": null
+                                    }],
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -145,10 +170,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "projection": [{
-                                        "type": "All",
-                                        "collection": null
-                                    }]
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,
@@ -169,6 +193,11 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
+                                "projection": [{
+                                    "type": "All",
+                                    "collection": null
+                                }],
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -178,14 +207,18 @@ assert_parsing! {
                                         "namespace": null,
                                     }],
                                 },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }]
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [{
                                 "operation": "Union",
                                 "core": {
+                                    "distinct": "ImplicitAll",
+                                    "projection": [{
+                                        "type": "All",
+                                        "collection": null
+                                    }],
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -195,14 +228,18 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "projection": [{
-                                        "type": "All",
-                                        "collection": null
-                                    }]
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             },{
                                 "operation": "Except",
                                 "core": {
+                                    "distinct": "ImplicitAll",
+                                    "projection": [{
+                                        "type": "All",
+                                        "collection": null
+                                    }],
                                     "from": {
                                         "type": "Group",
                                         "subqueries": [{
@@ -212,10 +249,9 @@ assert_parsing! {
                                             "namespace": null,
                                         }],
                                     },
-                                    "projection": [{
-                                        "type": "All",
-                                        "collection": null
-                                    }]
+                                    "where": null,
+                                    "group_by": null,
+                                    "having": null
                                 },
                             }],
                             "limit": null,

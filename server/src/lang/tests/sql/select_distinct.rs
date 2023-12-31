@@ -9,8 +9,8 @@ use crate::assert_parsing;
 
 #[cfg(test)]
 assert_parsing! {
-    limit_5: {
-        "SELECT * from users limit 5;" => {
+    implicit_all: {
+        "SELECT surname from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -30,22 +30,19 @@ assert_parsing! {
                                     }],
                                 },
                                 "projection": [{
-                                    "type": "All",
-                                    "collection": null
+                                    "alias": null,
+                                    "expr": {
+                                        "type": "Expr::Variable",
+                                        "name": "surname",
+                                    },
+                                    "type": "Expr"
                                 }],
                                 "where": null,
                                 "group_by": null,
                                 "having": null
                             },
                             "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": null
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }
@@ -53,8 +50,8 @@ assert_parsing! {
             ]
         }
     },
-    limit_5_offset_10: {
-        "SELECT * from users limit 5 offset 10;" => {
+    explicit_all: {
+        "SELECT all surname from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -63,7 +60,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
-                                "distinct": "ImplicitAll",
+                                "distinct": "All",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -74,26 +71,19 @@ assert_parsing! {
                                     }],
                                 },
                                 "projection": [{
-                                    "type": "All",
-                                    "collection": null
+                                    "alias": null,
+                                    "expr": {
+                                        "type": "Expr::Variable",
+                                        "name": "surname",
+                                    },
+                                    "type": "Expr"
                                 }],
                                 "where": null,
                                 "group_by": null,
                                 "having": null
                             },
                             "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }
@@ -101,8 +91,8 @@ assert_parsing! {
             ]
         }
     },
-    limit_10_offset_5: {
-        "SELECT * from users limit 5, 10;" => {
+    distinct: {
+        "SELECT distinct surname from users;" => {
             "type": "Stmt::Program",
             "body": [
                 {
@@ -111,7 +101,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
-                                "distinct": "ImplicitAll",
+                                "distinct": "Distinct",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -122,26 +112,19 @@ assert_parsing! {
                                     }],
                                 },
                                 "projection": [{
-                                    "type": "All",
-                                    "collection": null
+                                    "alias": null,
+                                    "expr": {
+                                        "type": "Expr::Variable",
+                                        "name": "surname",
+                                    },
+                                    "type": "Expr"
                                 }],
                                 "where": null,
                                 "group_by": null,
                                 "having": null
                             },
                             "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                }
-                            },
+                            "limit": null,
                             "order_by": null
                         }
                     }

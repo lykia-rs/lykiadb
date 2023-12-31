@@ -19,6 +19,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -31,7 +32,10 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": null
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -53,6 +57,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -65,7 +70,10 @@ assert_parsing! {
                                 "projection": [{
                                     "type": "All",
                                     "collection": "users"
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -86,6 +94,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -114,7 +123,10 @@ assert_parsing! {
                                         "name": "name"
                                     },
                                     "alias": "username"
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -135,6 +147,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -161,7 +174,10 @@ assert_parsing! {
                                         "raw": "text"
                                     },
                                     "alias": "some_text"
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -182,6 +198,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": {
                                     "type": "Group",
                                     "subqueries": [{
@@ -226,7 +243,10 @@ assert_parsing! {
                                         }
                                     },
                                     "alias": "division"
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,
@@ -247,6 +267,7 @@ assert_parsing! {
                         "type": "Expr::Select",
                         "value": {
                             "core": {
+                                "distinct": "ImplicitAll",
                                 "from": null,
                                 "projection": [{
                                     "type": "Expr",
@@ -283,7 +304,10 @@ assert_parsing! {
                                         }
                                     },
                                     "alias": "division"
-                                }]
+                                }],
+                                "where": null,
+                                "group_by": null,
+                                "having": null
                             },
                             "compound": [],
                             "limit": null,

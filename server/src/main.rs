@@ -1,3 +1,4 @@
+#![recursion_limit = "192"]
 extern crate core;
 
 mod cli;

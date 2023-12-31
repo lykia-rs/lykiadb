@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
 
+use crate::lang::ast::Literal;
+
 use super::{
     ast::{
         expr::{Expr, ExprId},
@@ -35,14 +37,13 @@ impl<'a> ToString for ProgramSerializer<'a> {
 
 impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Result<Value, ()> {
-        if let SqlExpr::Default(eidx) = sql_expr {
-            self.visit_expr(*eidx)
-        } else {
-            panic!("Not implemented");
-        }
+        let SqlExpr::Default(eidx) = sql_expr;
+        self.visit_expr(*eidx)
     }
 
     fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<Value, ()> {
+        let core_distinct = json!(format!("{:?}", core.distinct));
+
         let core_projection: Result<Value, ()> = core
             .projection
             .iter()
@@ -65,9 +66,31 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
             .map(|x| self.visit_sql_subquery(&x))
             .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
 
+        let core_where = core
+            .r#where
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        let core_group_by = core
+            .group_by
+            .as_ref()
+            .map(|x| x.iter().map(|expr| self.visit_sql_expr(&expr)).collect())
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        let having = core
+            .having
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
         Ok(json!({
+            "distinct": core_distinct,
             "projection": core_projection?,
-            "from": core_from?
+            "from": core_from?,
+            "where": core_where?,
+            "group_by": core_group_by?,
+            "having": having?
         }))
     }
 
@@ -197,7 +220,24 @@ impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
             } => {
                 json!({
                     "type": "Expr::Literal",
-                    "value": format!("{:?}", value),
+                    "value": match value {
+                        Literal::Object(map) => {
+                            json!({
+                                "type": "Object",
+                                "value": map.keys().map(|item| json!({
+                                    "key": item,
+                                    "value": self.visit_expr(*map.get(item).unwrap()).unwrap()
+                                })).collect::<Vec<_>>(),
+                            })
+                        }
+                        Literal::Array(items) => {
+                            json!({
+                                "type": "Array",
+                                "value": items.iter().map(|item| self.visit_expr(*item).unwrap()).collect::<Vec<_>>(),
+                            })
+                        },
+                        _ => json!(format!("{:?}", value))
+                    },
                     "raw": raw,
                 })
             }

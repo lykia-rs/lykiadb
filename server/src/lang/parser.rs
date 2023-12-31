@@ -84,7 +84,9 @@ pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
     arena: ParserArena,
-    is_in_sql: bool,
+    in_sql_depth: usize,
+    in_array_depth: usize,
+    in_object_depth: usize,
 }
 
 impl<'a> Parser<'a> {
@@ -97,7 +99,9 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             arena,
-            is_in_sql: false,
+            in_sql_depth: 0,
+            in_array_depth: 0,
+            in_object_depth: 0,
         };
         let program = parser.program()?;
         Ok(Program::new(program, Rc::new(parser.arena)))
@@ -131,6 +135,13 @@ impl<'a> Parser<'a> {
         match_next!(self, kw!(Break), break_statement);
         match_next!(self, kw!(Continue), continue_statement);
         match_next!(self, kw!(Return), return_statement);
+        if self.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), Str, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), Num, sym!(Colon)])
+            || self.peek_next_all_of(&[sym!(LeftBrace), sym!(RightBrace)])
+        {
+            return self.expression_statement();
+        }
         match_next!(self, sym!(LeftBrace), block);
         self.expression_statement()
     }
@@ -161,7 +172,9 @@ impl<'a> Parser<'a> {
 
     fn loop_statement(&mut self) -> ParseResult<StmtId> {
         let loop_tok = self.peek_bw(1);
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
         Ok(self.arena.statement(Stmt::Loop {
             condition: None,
             body: inner_stmt,
@@ -175,7 +188,9 @@ impl<'a> Parser<'a> {
         self.expected(sym!(LeftParen))?;
         let condition = self.expression()?;
         self.expected(sym!(RightParen))?;
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
 
         Ok(self.arena.statement(Stmt::Loop {
             condition: Some(condition),
@@ -235,7 +250,9 @@ impl<'a> Parser<'a> {
             }))
         };
 
-        let inner_stmt = self.declaration()?;
+        self.expected(sym!(LeftBrace))?;
+        let inner_stmt = self.block()?;
+        self.match_next(sym!(Semicolon));
 
         if initializer.is_none() {
             return Ok(self.arena.statement(Stmt::Loop {
@@ -260,18 +277,19 @@ impl<'a> Parser<'a> {
     fn block(&mut self) -> ParseResult<StmtId> {
         let mut statements: Vec<StmtId> = vec![];
 
+        let opening_brace = self.peek_bw(1);
+
         while !self.cmp_tok(&sym!(RightBrace)) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
+
+        let closing_brace = self.peek_bw(1);
 
         self.expected(sym!(RightBrace))?;
 
         Ok(self.arena.statement(Stmt::Block {
             body: statements.clone(),
-            span: self.get_merged_span(
-                self.arena.get_statement(statements[0]),
-                self.arena.get_statement(statements[statements.len() - 1]),
-            ),
+            span: self.get_merged_span(&opening_brace.span, &closing_brace.span),
         }))
     }
 
@@ -407,7 +425,7 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        let operator = if self.is_in_sql {
+        let operator = if self.in_sql_depth > 0 {
             skw!(Or)
         } else {
             sym!(LogicalOr)
@@ -430,7 +448,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        let operator = if self.is_in_sql {
+        let operator = if self.in_sql_depth > 0 {
             skw!(And)
         } else {
             sym!(LogicalAnd)
@@ -452,7 +470,7 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        if self.is_in_sql {
+        if self.in_sql_depth > 0 {
             binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
         } else {
             binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
@@ -498,8 +516,8 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
-        self.is_in_sql = true;
-        let core = self.sql_select_core()?;
+        self.in_sql_depth += 1;
+        let core: SqlSelectCore = self.sql_select_core()?;
         let mut compounds: Vec<SqlSelectCompound> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
@@ -572,7 +590,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.is_in_sql = false;
+        self.in_sql_depth -= 1;
 
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
@@ -592,7 +610,7 @@ impl<'a> Parser<'a> {
         } else if self.match_next(skw!(All)) {
             SqlDistinct::All
         } else {
-            SqlDistinct::All
+            SqlDistinct::ImplicitAll
         };
 
         let projection = self.sql_select_projection();
@@ -811,16 +829,43 @@ impl<'a> Parser<'a> {
 
     fn object_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
         let mut obj_literal: FxHashMap<String, ExprId> = FxHashMap::default();
+        self.in_object_depth += 1;
         while !self.cmp_tok(&sym!(RightBrace)) {
-            let key = self.expected(Identifier { dollar: false })?.clone();
+            let key = if self.match_next_one_of(&[Identifier { dollar: false }, Str, Num]) {
+                let key_tok = self.peek_bw(1).clone();
+                match key_tok.tok_type {
+                    Identifier { dollar: false } | Str => key_tok
+                        .literal
+                        .as_ref()
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .to_owned(),
+                    Num => match key_tok.literal {
+                        Some(Literal::Num(n)) => n.to_string(),
+                        _ => {
+                            return Err(ParseError::UnexpectedToken { token: key_tok });
+                        }
+                    },
+                    _ => {
+                        return Err(ParseError::UnexpectedToken { token: key_tok });
+                    }
+                }
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: self.peek_bw(1).clone(),
+                });
+            };
+
             self.expected(sym!(Colon))?;
             let value = self.expression()?;
-            obj_literal.insert(key.lexeme.unwrap(), value);
+            obj_literal.insert(key, value);
             if !self.match_next(sym!(Comma)) {
                 break;
             }
         }
         self.expected(sym!(RightBrace))?;
+        self.in_object_depth -= 1;
         Ok(self.arena.expression(Expr::Literal {
             value: Literal::Object(obj_literal),
             raw: "".to_string(),
@@ -830,6 +875,7 @@ impl<'a> Parser<'a> {
 
     fn array_literal(&mut self, tok: &Token) -> ParseResult<ExprId> {
         let mut array_literal: Vec<ExprId> = vec![];
+        self.in_array_depth += 1;
         while !self.cmp_tok(&sym!(RightBracket)) {
             let value = self.expression()?;
             array_literal.push(value);
@@ -838,6 +884,7 @@ impl<'a> Parser<'a> {
             }
         }
         self.expected(sym!(RightBracket))?;
+        self.in_array_depth -= 1;
         Ok(self.arena.expression(Expr::Literal {
             value: Literal::Array(array_literal),
             raw: "".to_string(),
@@ -872,6 +919,11 @@ impl<'a> Parser<'a> {
             TokenType::Null => Ok(self.arena.expression(Expr::Literal {
                 value: Literal::Null,
                 raw: "null".to_string(),
+                span: tok.span,
+            })),
+            TokenType::Undefined => Ok(self.arena.expression(Expr::Literal {
+                value: Literal::Undefined,
+                raw: "undefined".to_string(),
                 span: tok.span,
             })),
             Str | Num => Ok(self.arena.expression(Expr::Literal {
@@ -930,6 +982,15 @@ impl<'a> Parser<'a> {
         false
     }
 
+    fn peek_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
+        for (i, t) in tokens.iter().enumerate() {
+            if self.peek_fw(i).tok_type != *t {
+                return false;
+            }
+        }
+        return true;
+    }
+
     fn match_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
         for (i, t) in tokens.iter().enumerate() {
             if self.peek_fw(i).tok_type != *t {
@@ -969,7 +1030,7 @@ impl<'a> Parser<'a> {
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {
-                    if self.is_in_sql {
+                    if self.in_sql_depth > 0 {
                         Operation::IsEqual
                     } else {
                         unreachable!()

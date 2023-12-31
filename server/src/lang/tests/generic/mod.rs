@@ -1,6 +1,10 @@
+pub mod array_literal;
 pub mod binary;
 pub mod function_call;
 pub mod grouping;
+pub mod loops;
 pub mod number_literal;
+pub mod object_literal;
+pub mod other_literals;
 pub mod unary;
 pub mod variable;

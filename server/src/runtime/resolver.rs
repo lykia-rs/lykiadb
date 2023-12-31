@@ -1,6 +1,6 @@
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{ParserArena, VisitorMut};
+use crate::lang::ast::{Literal, ParserArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
@@ -54,7 +54,7 @@ impl Resolver {
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
-            if self.scopes[i].contains_key(name.lexeme.as_ref().unwrap()) {
+            if self.scopes[i].contains_key(name.literal.as_ref().unwrap().as_str().unwrap()) {
                 self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
@@ -66,8 +66,10 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), false);
+        last.unwrap().insert(
+            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            false,
+        );
     }
 
     pub fn define(&mut self, name: &Token) {
@@ -75,8 +77,10 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap()
-            .insert(name.lexeme.as_ref().unwrap().to_string(), true);
+        last.unwrap().insert(
+            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            true,
+        );
     }
 }
 
@@ -88,8 +92,20 @@ impl VisitorMut<RV, ResolveError> for Resolver {
             Expr::Literal {
                 raw: _,
                 span: _,
-                value: _,
-            } => (),
+                value,
+            } => match value {
+                Literal::Object(map) => {
+                    for item in map.keys() {
+                        self.visit_expr(*map.get(item).unwrap())?;
+                    }
+                }
+                Literal::Array(items) => {
+                    for item in items {
+                        self.visit_expr(*item)?;
+                    }
+                }
+                _ => (),
+            },
             Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
             Expr::Unary {
                 operation: _,
@@ -108,7 +124,7 @@ impl VisitorMut<RV, ResolveError> for Resolver {
             Expr::Variable { name, span: _ } => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
-                    let value = last_scope.get(name.lexeme.as_ref().unwrap());
+                    let value = last_scope.get(name.literal.as_ref().unwrap().as_str().unwrap());
                     if value.is_some() && !(*value.unwrap()) {
                         return Err(ResolveError::GenericError {
                             token: name.clone(),
@@ -227,7 +243,9 @@ impl VisitorMut<RV, ResolveError> for Resolver {
                 post,
                 span: _,
             } => {
-                self.resolve_expr(*condition.as_ref().unwrap());
+                if condition.is_some() {
+                    self.resolve_expr(*condition.as_ref().unwrap());
+                }
                 self.resolve_stmt(*body);
                 if post.is_some() {
                     self.resolve_stmt(*post.as_ref().unwrap());
