@@ -109,7 +109,7 @@ pub struct SqlSelect {
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlValues {
     Values(Vec<SqlExpr>),
-    Select(SqlExpr)
+    Select(SqlSelect)
 }
 
 #[derive(Debug, Eq, PartialEq)]

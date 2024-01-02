@@ -201,7 +201,7 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
     }
 
     fn visit_sql_insert(&self, sql_insert: &super::ast::sql::SqlInsert) -> Result<Value, ()> {
-        let values = match sql_insert.values {
+        let values = match &sql_insert.values {
             SqlValues::Values(values) => {
                 let values_ser: Result<Value, ()> = values
                     .iter()

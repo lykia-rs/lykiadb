@@ -193,7 +193,11 @@ impl VisitorMut<RV, ResolveError> for Resolver {
                 self.resolve_expr(*object);
                 self.resolve_expr(*value);
             }
-            Expr::Select { query: _, span: _ } => (),
+            Expr::Select { query: _, span: _ }
+            | Expr::Insert { command: _, span: _ }
+            | Expr::Update { command: _, span: _ }
+            | Expr::Delete { command: _, span: _ }
+             => (),
         };
         Ok(RV::Undefined)
     }

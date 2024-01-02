@@ -33,15 +33,15 @@ Lykia is a toy document database basically written for educational purposes. It 
 - [x] A minimal standard library
 - [x] Data manipulation language ("SELECT", "INSERT", "UPDATE", "DELETE")
 - [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
-- [ ] Query planning (in progress)
-- [ ] Plan optimization
 - [ ] Async runtime/event loop
+- [ ] Query planning
 - [ ] In-memory storage engine
-- [ ] Type checker
 - [ ] Persistent storage engine (Bitcask)
+- [ ] B-Tree implementation for indexing
+- [ ] Plan optimization
 - [ ] Transaction management with MVCC
-- [ ] B-Tree implementation for indexes
 - [ ] Basic replication with Raft
+- [ ] Type checker
 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.

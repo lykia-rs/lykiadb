@@ -509,10 +509,10 @@ impl<'a> Parser<'a> {
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
             }));
         }
-        self.sql_select()
+        self.sql_insert()
     }
 
-    fn sql_collection_identifier(&mut self) -> Option<SqlCollectionIdentifier> {
+    fn sql_collection_identifier(&mut self) -> ParseResult<Option<SqlCollectionIdentifier>> {
         if self.cmp_tok(&Identifier { dollar: false }) {
 
             if self.match_next_all_of(&[
@@ -520,19 +520,19 @@ impl<'a> Parser<'a> {
                 sym!(Dot),
                 Identifier { dollar: false },
             ]) {
-                return Some(SqlCollectionIdentifier{
+                return Ok(Some(SqlCollectionIdentifier{
                     namespace: Some(self.peek_bw(3).clone()),
                     name: self.peek_bw(1).clone(),
                     alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-                });
+                }));
             }
-            return Some(SqlCollectionIdentifier{
+            return Ok(Some(SqlCollectionIdentifier{
                 namespace: None,
                 name: self.expected(Identifier { dollar: false })?.clone(),
                 alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-            });
+            }));
         }
-        None
+        Ok(None)
     }
 
     fn sql_insert(&mut self) -> ParseResult<ExprId> {
@@ -542,9 +542,16 @@ impl<'a> Parser<'a> {
 
         self.expected(skw!(Into))?;
 
-        if let Some(collection) = self.sql_collection_identifier() {
+        if let Some(collection) = self.sql_collection_identifier()? {
             let values = if self.cmp_tok(&skw!(Select)) {
-                SqlValues::Select(self.sql_select()?)
+
+                let select_inner = self.sql_select_inner();
+
+                if select_inner.is_err() {
+                    return Err(select_inner.err().unwrap());
+                }
+
+                SqlValues::Select(select_inner.unwrap())
             } else if self.match_next(skw!(Values)) {
                 self.expected(sym!(LeftParen))?;
                 let mut values: Vec<SqlExpr> = vec![];
@@ -571,10 +578,10 @@ impl<'a> Parser<'a> {
             }))
         }
         else {
-            return Err(ParseError::UnexpectedToken {
+            Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
-            });
-        };
+            })
+        }
     }
 
     fn sql_update(&mut self) -> ParseResult<ExprId> {
@@ -592,7 +599,7 @@ impl<'a> Parser<'a> {
             let key = self.expected(Identifier { dollar: false })?.clone();
             self.expected(sym!(Equal))?;
             let value = self.expression()?;
-            assignments.push((key, SqlExpr::Default(value)));
+            assignments.push(SqlExpr::Default(value));
             if !self.match_next(sym!(Comma)) {
                 break;
             }
@@ -606,7 +613,7 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.expression(Expr::Update {
             command: SqlUpdate {
-                collection,
+                collection: collection.unwrap(),
                 assignments,
                 r#where,
             },
@@ -621,7 +628,7 @@ impl<'a> Parser<'a> {
 
         self.expected(skw!(From))?;
 
-        if let Some(collection) = self.sql_collection_identifier() {
+        if let Some(collection) = self.sql_collection_identifier()? {
             let r#where = if self.match_next(skw!(Where)) {
                 Some(SqlExpr::Default(self.expression()?))
             } else {
@@ -643,10 +650,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select(&mut self) -> ParseResult<ExprId> {
-        if !self.cmp_tok(&skw!(Select)) {
-            return self.call();
-        }
+    fn sql_select_inner(&mut self) -> ParseResult<SqlSelect> {
         self.in_select_depth += 1;
         let core: SqlSelectCore = self.sql_select_core()?;
         let mut compounds: Vec<SqlSelectCompound> = vec![];
@@ -723,14 +727,32 @@ impl<'a> Parser<'a> {
 
         self.in_select_depth -= 1;
 
+        Ok(SqlSelect {
+            core,
+            compound: compounds,
+            order_by,
+            limit,
+        })
+    }
+
+    fn sql_select(&mut self) -> ParseResult<ExprId> {
+        if !self.cmp_tok(&skw!(Select)) {
+            return self.call();
+        }
+
+        let query: ParseResult<SqlSelect> = {
+            let select_inner = self.sql_select_inner();
+
+            if select_inner.is_err() {
+                return Err(select_inner.err().unwrap());
+            }
+            
+            Ok(select_inner.unwrap())
+        };
+
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
-            query: SqlSelect {
-                core,
-                compound: compounds,
-                order_by,
-                limit,
-            },
+            query: query.unwrap(),
         }))
     }
 
@@ -882,7 +904,7 @@ impl<'a> Parser<'a> {
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             return Ok(parsed);
-        } else if let Some(collection) = self.sql_collection_identifier() {
+        } else if let Some(collection) = self.sql_collection_identifier()? {
             return Ok(SqlCollectionSubquery::Collection(collection));
         } else {
             Err(ParseError::UnexpectedToken {
