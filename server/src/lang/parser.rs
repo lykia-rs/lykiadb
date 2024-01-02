@@ -2,7 +2,7 @@ use super::ast::expr::{Expr, ExprId, Operation};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
     SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
-    SqlSelectCore,
+    SqlCollectionIdentifier, SqlSelectCore, SqlInsert, SqlValues, SqlDelete, SqlUpdate
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::{Literal, ParserArena};
@@ -84,7 +84,7 @@ pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
     arena: ParserArena,
-    in_sql_depth: usize,
+    in_select_depth: usize,
     in_array_depth: usize,
     in_object_depth: usize,
 }
@@ -99,7 +99,7 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             arena,
-            in_sql_depth: 0,
+            in_select_depth: 0,
             in_array_depth: 0,
             in_object_depth: 0,
         };
@@ -425,7 +425,7 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        let operator = if self.in_sql_depth > 0 {
+        let operator = if self.in_select_depth > 0 {
             skw!(Or)
         } else {
             sym!(LogicalOr)
@@ -448,7 +448,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        let operator = if self.in_sql_depth > 0 {
+        let operator = if self.in_select_depth > 0 {
             skw!(And)
         } else {
             sym!(LogicalAnd)
@@ -470,7 +470,7 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        if self.in_sql_depth > 0 {
+        if self.in_select_depth > 0 {
             binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
         } else {
             binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
@@ -512,11 +512,142 @@ impl<'a> Parser<'a> {
         self.sql_select()
     }
 
+    fn sql_collection_identifier(&mut self) -> Option<SqlCollectionIdentifier> {
+        if self.cmp_tok(&Identifier { dollar: false }) {
+
+            if self.match_next_all_of(&[
+                Identifier { dollar: false },
+                sym!(Dot),
+                Identifier { dollar: false },
+            ]) {
+                return Some(SqlCollectionIdentifier{
+                    namespace: Some(self.peek_bw(3).clone()),
+                    name: self.peek_bw(1).clone(),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+                });
+            }
+            return Some(SqlCollectionIdentifier{
+                namespace: None,
+                name: self.expected(Identifier { dollar: false })?.clone(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+            });
+        }
+        None
+    }
+
+    fn sql_insert(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Insert)) {
+            return self.sql_update();
+        }
+
+        self.expected(skw!(Into))?;
+
+        if let Some(collection) = self.sql_collection_identifier() {
+            let values = if self.cmp_tok(&skw!(Select)) {
+                SqlValues::Select(self.sql_select()?)
+            } else if self.match_next(skw!(Values)) {
+                self.expected(sym!(LeftParen))?;
+                let mut values: Vec<SqlExpr> = vec![];
+                loop {
+                    let value = self.expression()?;
+                    values.push(SqlExpr::Default(value));
+                    if !self.match_next(sym!(Comma)) {
+                        break;
+                    }
+                }
+                self.expected(sym!(RightParen))?;
+                SqlValues::Values(values)
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: self.peek_bw(0).clone(),
+                });
+            };
+            Ok(self.arena.expression(Expr::Insert {
+                command: SqlInsert {
+                    collection,
+                    values,
+                },
+                span: Span::default(),
+            }))
+        }
+        else {
+            return Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
+            });
+        };
+    }
+
+    fn sql_update(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Update)) {
+            return self.sql_delete();
+        }
+
+        let collection = self.sql_collection_identifier()?;
+
+        self.expected(skw!(Set))?;
+
+        let mut assignments: Vec<SqlExpr> = vec![];
+
+        loop {
+            let key = self.expected(Identifier { dollar: false })?.clone();
+            self.expected(sym!(Equal))?;
+            let value = self.expression()?;
+            assignments.push((key, SqlExpr::Default(value)));
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+
+        let r#where = if self.match_next(skw!(Where)) {
+            Some(SqlExpr::Default(self.expression()?))
+        } else {
+            None
+        };
+
+        Ok(self.arena.expression(Expr::Update {
+            command: SqlUpdate {
+                collection,
+                assignments,
+                r#where,
+            },
+            span: Span::default(),
+        }))
+    }
+
+    fn sql_delete(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Delete)) {
+            return self.sql_select();
+        }
+
+        self.expected(skw!(From))?;
+
+        if let Some(collection) = self.sql_collection_identifier() {
+            let r#where = if self.match_next(skw!(Where)) {
+                Some(SqlExpr::Default(self.expression()?))
+            } else {
+                None
+            };
+
+            Ok(self.arena.expression(Expr::Delete {
+                command: SqlDelete {
+                    collection,
+                    r#where,
+                },
+                span: Span::default(),
+            }))
+        }
+        else {
+            Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
+            })
+        }
+    }
+
     fn sql_select(&mut self) -> ParseResult<ExprId> {
         if !self.cmp_tok(&skw!(Select)) {
             return self.call();
         }
-        self.in_sql_depth += 1;
+        self.in_select_depth += 1;
         let core: SqlSelectCore = self.sql_select_core()?;
         let mut compounds: Vec<SqlSelectCompound> = vec![];
         while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
@@ -590,7 +721,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.in_sql_depth -= 1;
+        self.in_select_depth -= 1;
 
         Ok(self.arena.expression(Expr::Select {
             span: Span::default(),
@@ -751,24 +882,8 @@ impl<'a> Parser<'a> {
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             return Ok(parsed);
-        } else if self.cmp_tok(&Identifier { dollar: false }) {
-            // If the next token is not a left paren, then it must be a collection getter
-            if self.match_next_all_of(&[
-                Identifier { dollar: false },
-                sym!(Dot),
-                Identifier { dollar: false },
-            ]) {
-                return Ok(SqlCollectionSubquery::Collection {
-                    namespace: Some(self.peek_bw(3).clone()),
-                    name: self.peek_bw(1).clone(),
-                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-                });
-            }
-            return Ok(SqlCollectionSubquery::Collection {
-                namespace: None,
-                name: self.expected(Identifier { dollar: false })?.clone(),
-                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-            });
+        } else if let Some(collection) = self.sql_collection_identifier() {
+            return Ok(SqlCollectionSubquery::Collection(collection));
         } else {
             Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
@@ -1030,7 +1145,7 @@ impl<'a> Parser<'a> {
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {
-                    if self.in_sql_depth > 0 {
+                    if self.in_select_depth > 0 {
                         Operation::IsEqual
                     } else {
                         unreachable!()

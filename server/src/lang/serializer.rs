@@ -5,7 +5,7 @@ use crate::lang::ast::Literal;
 use super::{
     ast::{
         expr::{Expr, ExprId},
-        sql::{SqlCollectionSubquery, SqlExpr, SqlProjection, SqlSelect, SqlSelectCore},
+        sql::{SqlCollectionSubquery, SqlExpr, SqlProjection, SqlSelect, SqlSelectCore, SqlCollectionIdentifier, SqlValues},
         stmt::{Stmt, StmtId},
         SqlVisitor, Visitor,
     },
@@ -33,6 +33,15 @@ impl<'a> ToString for ProgramSerializer<'a> {
     fn to_string(&self) -> String {
         self.serialize().clone()
     }
+}
+
+fn ser_collection_identifier(ident: &SqlCollectionIdentifier) -> Value {
+    json!({
+        "type": "Collection",
+        "namespace": ident.namespace.as_ref().map(|token| token.lexeme.to_owned()),
+        "name": ident.name.lexeme,
+        "alias": ident.alias.as_ref().map(|token| token.lexeme.to_owned())
+    })
 }
 
 impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
@@ -96,16 +105,7 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
 
     fn visit_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Result<Value, ()> {
         match subquery {
-            SqlCollectionSubquery::Collection {
-                namespace,
-                name,
-                alias,
-            } => Ok(json!({
-                "type": "Collection",
-                "namespace": namespace.as_ref().map(|token| token.lexeme.to_owned()),
-                "name": name.lexeme,
-                "alias": alias.as_ref().map(|token| token.lexeme.to_owned())
-            })),
+            SqlCollectionSubquery::Collection (ident) => Ok(ser_collection_identifier(ident)),
             SqlCollectionSubquery::Group(groups) => {
                 let subqueries: Result<Value, ()> = groups
                     .iter()
@@ -199,6 +199,72 @@ impl<'a> SqlVisitor<Value, ()> for ProgramSerializer<'a> {
             "limit": limit?
         }))
     }
+
+    fn visit_sql_insert(&self, sql_insert: &super::ast::sql::SqlInsert) -> Result<Value, ()> {
+        let values = match sql_insert.values {
+            SqlValues::Values(values) => {
+                let values_ser: Result<Value, ()> = values
+                    .iter()
+                    .map(|x| self.visit_sql_expr(&x))
+                    .collect();
+                Ok(json!({
+                    "type": "Values",
+                    "values": values_ser?
+                }))
+            }
+            SqlValues::Select(select) => {
+                Ok(json!({
+                    "type": "Select",
+                    "select": self.visit_sql_select(&select)?
+                }))
+            }
+        };
+        let ident = ser_collection_identifier(&sql_insert.collection);
+
+        Ok(json!({
+            "collection": ident,
+            "values": values?,
+        }))
+
+    }
+
+    fn visit_sql_update(&self, sql_update: &super::ast::sql::SqlUpdate) -> Result<Value, ()> {
+        let ident = ser_collection_identifier(&sql_update.collection);
+
+        let assignments: Result<Value, ()> = sql_update
+            .assignments
+            .iter()
+            .map(|x| self.visit_sql_expr(&x))
+            .collect();
+
+        let r#where = sql_update
+            .r#where
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        Ok(json!({
+            "collection": ident,
+            "assignments": assignments,
+            "where": r#where?,
+        }))
+    }
+
+    fn visit_sql_delete(&self, sql_delete: &super::ast::sql::SqlDelete) -> Result<Value, ()> {
+        let ident = ser_collection_identifier(&sql_delete.collection);
+
+        let r#where = sql_delete
+            .r#where
+            .as_ref()
+            .map(|x| self.visit_sql_expr(&x))
+            .unwrap_or_else(|| Ok(json!(serde_json::Value::Null)));
+
+        Ok(json!({
+            "collection": ident,
+            "where": r#where?,
+        }))
+    }
+
 }
 
 impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
@@ -211,8 +277,25 @@ impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
             Expr::Select { span: _, query } => json!({
                 "type": "Expr::Select",
                 "value": self.visit_sql_select(query)?,
-                // TODO(vck): Implement rest of the select
             }),
+            Expr::Insert { command, span } => {
+                json!({
+                    "type": "Expr::Insert",
+                    "command": self.visit_sql_insert(command)?,
+                })
+            },
+            Expr::Update { command, span } => {
+                json!({
+                    "type": "Expr::Update",
+                    "command": self.visit_sql_update(command)?,
+                })
+            },
+            Expr::Delete { command, span } => {
+                json!({
+                    "type": "Expr::Delete",
+                    "command": self.visit_sql_delete(command)?,
+                })
+            },
             Expr::Literal {
                 raw,
                 span: _,
