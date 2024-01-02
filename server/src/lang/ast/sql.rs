@@ -34,6 +34,12 @@ pub enum SqlOrdering {
 }
 
 //
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlCollectionIdentifier {
+    pub namespace: Option<Token>,
+    pub name: Token,
+    pub alias: Option<Token>,
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum SqlExpr {
@@ -75,11 +81,7 @@ pub struct SqlJoin {
 pub enum SqlCollectionSubquery {
     Group(Vec<SqlCollectionSubquery>),
     Join(Box<SqlCollectionSubquery>, Vec<SqlJoin>),
-    Collection {
-        namespace: Option<Token>,
-        name: Token,
-        alias: Option<Token>,
-    },
+    Collection(SqlCollectionIdentifier),
     Select {
         expr: ExprId,
         alias: Option<Token>,
@@ -102,4 +104,29 @@ pub struct SqlSelect {
     pub compound: Vec<SqlSelectCompound>,
     pub order_by: Option<Vec<SqlOrderByClause>>,
     pub limit: Option<SqlLimitClause>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SqlValues {
+    Values(Vec<SqlExpr>),
+    Select(SqlExpr)
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlInsert {
+    pub collection: SqlCollectionIdentifier,
+    pub values: SqlValues,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlUpdate {
+    pub collection: SqlCollectionIdentifier,
+    pub assignments: Vec<SqlExpr>,
+    pub r#where: Option<SqlExpr>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct SqlDelete {
+    pub collection: SqlCollectionIdentifier,
+    pub r#where: Option<SqlExpr>,
 }

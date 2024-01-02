@@ -251,6 +251,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         let e = a.get_expression(eidx);
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
+            Expr::Insert { command, span: _} => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Update { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Delete { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),            
             Expr::Literal {
                 value,
                 raw: _,

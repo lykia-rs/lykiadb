@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 
-use super::{sql::SqlSelect, stmt::StmtId, Literal};
+use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
 use crate::lang::token::{Span, Spanned, Token};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -27,6 +27,18 @@ pub enum Expr {
     Select {
         query: SqlSelect,
         span: Span,
+    },
+    Insert {
+        command: SqlInsert,
+        span: Span
+    },
+    Update {
+        command: SqlUpdate,
+        span: Span
+    },
+    Delete {
+        command: SqlDelete,
+        span: Span
     },
     Variable {
         name: Token,
@@ -91,6 +103,9 @@ impl Spanned for Expr {
     fn get_span(&self) -> Span {
         match self {
             Expr::Select { query: _, span }
+            | Expr::Insert { command: _, span }
+            | Expr::Delete { command: _, span }
+            | Expr::Update { command: _, span }
             | Expr::Variable { name: _, span }
             | Expr::Grouping { expr: _, span }
             | Expr::Literal {
