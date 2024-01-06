@@ -3,6 +3,9 @@ use serde_json::{Value, Map};
 
 use super::{parser::Program, ast::{stmt::StmtId, expr::ExprId}};
 
+const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
+const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
+
 pub struct ProgramSerializer<'a> {
     pub program: &'a Program,
 }
@@ -31,14 +34,14 @@ impl<'a> ProgramSerializer<'a> {
     }
 
     fn resolve_json_map(&self, map: Map<String, Value> ) -> Value {
-        if map.contains_key("@StmtId") {
-            let idx = StmtId(map["@StmtId"].as_u64().unwrap().try_into().unwrap());
+        if map.contains_key(STMT_ID_PLACEHOLDER) {
+            let idx = StmtId(map[STMT_ID_PLACEHOLDER].as_u64().unwrap().try_into().unwrap());
             self.to_json_recursive(
                 serde_json::to_value(self.program.arena.get_statement(idx)).unwrap()
             )
         }
-        else if map.contains_key("@ExprId") {
-            let idx = ExprId(map["@ExprId"].as_u64().unwrap().try_into().unwrap());
+        else if map.contains_key(EXPR_ID_PLACEHOLDER) {
+            let idx = ExprId(map[EXPR_ID_PLACEHOLDER].as_u64().unwrap().try_into().unwrap());
             self.to_json_recursive(
                 serde_json::to_value(self.program.arena.get_expression(idx)).unwrap()
             )
@@ -54,7 +57,7 @@ impl<'a> ProgramSerializer<'a> {
 impl Serialize for ExprId {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry("@ExprId", &self.0)?;
+        map.serialize_entry(EXPR_ID_PLACEHOLDER, &self.0)?;
         map.end()
     }
 }
@@ -62,7 +65,7 @@ impl Serialize for ExprId {
 impl Serialize for StmtId {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry("@StmtId", &self.0)?;
+        map.serialize_entry(STMT_ID_PLACEHOLDER, &self.0)?;
         map.end()
     }
 }

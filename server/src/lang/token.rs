@@ -267,6 +267,7 @@ pub struct Token {
     pub tok_type: TokenType,
     pub literal: Option<Literal>,
     pub lexeme: Option<String>,
+    #[serde(skip)]
     pub span: Span,
 }
 

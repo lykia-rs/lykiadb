@@ -8,41 +8,50 @@ use super::expr::ExprId;
 pub enum Stmt {
     Program {
         body: Vec<StmtId>,
+        #[serde(skip)]
         span: Span,
     },
     Expression {
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Break {
+        #[serde(skip)]
         span: Span,
     },
     Continue {
+        #[serde(skip)]
         span: Span,
     },
     Block {
         body: Vec<StmtId>,
+        #[serde(skip)]
         span: Span,
     },
     Declaration {
         dst: Token,
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     If {
         condition: ExprId,
         body: StmtId,
         r#else_body: Option<StmtId>,
+        #[serde(skip)]
         span: Span,
     },
     Loop {
         condition: Option<ExprId>,
         body: StmtId,
         post: Option<StmtId>,
+        #[serde(skip)]
         span: Span,
     },
     Return {
         expr: Option<ExprId>,
+        #[serde(skip)]
         span: Span,
     },
 }

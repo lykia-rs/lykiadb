@@ -25,75 +25,90 @@ pub enum Operation {
 pub enum Expr {
     Select {
         query: SqlSelect,
+        #[serde(skip)]
         span: Span,
     },
     Insert {
         command: SqlInsert,
+        #[serde(skip)]
         span: Span
     },
     Update {
         command: SqlUpdate,
+        #[serde(skip)]
         span: Span
     },
     Delete {
         command: SqlDelete,
+        #[serde(skip)]
         span: Span
     },
     Variable {
         name: Token,
+        #[serde(skip)]
         span: Span,
     },
     Grouping {
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Literal {
         value: Literal,
         raw: String,
+        #[serde(skip)]
         span: Span,
     },
     Function {
         name: Option<Token>,
         parameters: Vec<Token>,
         body: Rc<Vec<StmtId>>,
+        #[serde(skip)]
         span: Span,
     },
     Binary {
         left: ExprId,
         operation: Operation,
         right: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Unary {
         operation: Operation,
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Assignment {
         dst: Token,
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Logical {
         left: ExprId,
         operation: Operation,
         right: ExprId,
+        #[serde(skip)]
         span: Span,
     },
     Call {
         callee: ExprId,
         args: Vec<ExprId>,
+        #[serde(skip)]
         span: Span,
     },
     Get {
         object: ExprId,
         name: Token,
+        #[serde(skip)]
         span: Span,
     },
     Set {
         object: ExprId,
         name: Token,
         value: ExprId,
+        #[serde(skip)]
         span: Span,
     },
 }

@@ -11,142 +11,221 @@ use crate::assert_parsing;
 assert_parsing! {
     limit_5: {
         "SELECT * from users limit 5;" => {
-            "type": "Stmt::Program",
+          "Program": {
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
-                            },
-                            "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": null
-                            },
-                            "order_by": null
-                        }
+              {
+                "Expression": {
+                  "expr": {
+                    "Select": {
+                      "query": {
+                        "compound": [],
+                        "core": {
+                          "distinct": "ImplicitAll",
+                          "from": {
+                            "Group": [
+                              {
+                                "Collection": {
+                                  "alias": null,
+                                  "name": {
+                                    "lexeme": "users",
+                                    "literal": {
+                                      "Str": "users"
+                                    },
+                                    "tok_type": {
+                                      "Identifier": {
+                                        "dollar": false
+                                      }
+                                    }
+                                  },
+                                  "namespace": null
+                                }
+                              }
+                            ]
+                          },
+                          "group_by": null,
+                          "having": null,
+                          "projection": [
+                            {
+                              "All": {
+                                "collection": null
+                              }
+                            }
+                          ],
+                          "where": null
+                        },
+                        "limit": {
+                          "count": {
+                            "Default": {
+                              "Literal": {
+                                "raw": "5",
+                                "value": {
+                                  "Num": 5.0
+                                }
+                              }
+                            }
+                          },
+                          "offset": null
+                        },
+                        "order_by": null
+                      }
                     }
+                  }
                 }
+              }
             ]
+          }
         }
     },
     limit_5_offset_10: {
         "SELECT * from users limit 5 offset 10;" => {
-            "type": "Stmt::Program",
+          "Program": {
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
-                            },
-                            "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                            },
-                            "order_by": null
-                        }
+              {
+                "Expression": {
+                  "expr": {
+                    "Select": {
+                      "query": {
+                        "compound": [],
+                        "core": {
+                          "distinct": "ImplicitAll",
+                          "from": {
+                            "Group": [
+                              {
+                                "Collection": {
+                                  "alias": null,
+                                  "name": {
+                                    "lexeme": "users",
+                                    "literal": {
+                                      "Str": "users"
+                                    },
+                                    "tok_type": {
+                                      "Identifier": {
+                                        "dollar": false
+                                      }
+                                    }
+                                  },
+                                  "namespace": null
+                                }
+                              }
+                            ]
+                          },
+                          "group_by": null,
+                          "having": null,
+                          "projection": [
+                            {
+                              "All": {
+                                "collection": null
+                              }
+                            }
+                          ],
+                          "where": null
+                        },
+                        "limit": {
+                          "count": {
+                            "Default": {
+                              "Literal": {
+                                "raw": "5",
+                                "value": {
+                                  "Num": 5.0
+                                }
+                              }
+                            }
+                          },
+                          "offset": {
+                            "Default": {
+                              "Literal": {
+                                "raw": "10",
+                                "value": {
+                                  "Num": 10.0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "order_by": null
+                      }
                     }
+                  }
                 }
+              }
             ]
+          }
         }
     },
     limit_10_offset_5: {
         "SELECT * from users limit 5, 10;" => {
-            "type": "Stmt::Program",
+          "Program": {
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
-                            },
-                            "compound": [],
-                            "limit": {
-                                "count": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(10.0)",
-                                    "raw": "10"
-                                },
-                                "offset": {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(5.0)",
-                                    "raw": "5"
+              {
+                "Expression": {
+                  "expr": {
+                    "Select": {
+                      "query": {
+                        "compound": [],
+                        "core": {
+                          "distinct": "ImplicitAll",
+                          "from": {
+                            "Group": [
+                              {
+                                "Collection": {
+                                  "alias": null,
+                                  "name": {
+                                    "lexeme": "users",
+                                    "literal": {
+                                      "Str": "users"
+                                    },
+                                    "tok_type": {
+                                      "Identifier": {
+                                        "dollar": false
+                                      }
+                                    }
+                                  },
+                                  "namespace": null
                                 }
-                            },
-                            "order_by": null
-                        }
+                              }
+                            ]
+                          },
+                          "group_by": null,
+                          "having": null,
+                          "projection": [
+                            {
+                              "All": {
+                                "collection": null
+                              }
+                            }
+                          ],
+                          "where": null
+                        },
+                        "limit": {
+                          "count": {
+                            "Default": {
+                              "Literal": {
+                                "raw": "10",
+                                "value": {
+                                  "Num": 10.0
+                                }
+                              }
+                            }
+                          },
+                          "offset": {
+                            "Default": {
+                              "Literal": {
+                                "raw": "5",
+                                "value": {
+                                  "Num": 5.0
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "order_by": null
+                      }
                     }
+                  }
                 }
+              }
             ]
+          }
         }
     }
 }
