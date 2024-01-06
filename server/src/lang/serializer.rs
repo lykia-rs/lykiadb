@@ -278,19 +278,19 @@ impl<'a> Visitor<Value, ()> for ProgramSerializer<'a> {
                 "type": "Expr::Select",
                 "value": self.visit_sql_select(query)?,
             }),
-            Expr::Insert { command, span } => {
+            Expr::Insert { command, span: _ } => {
                 json!({
                     "type": "Expr::Insert",
                     "command": self.visit_sql_insert(command)?,
                 })
             },
-            Expr::Update { command, span } => {
+            Expr::Update { command, span: _ } => {
                 json!({
                     "type": "Expr::Update",
                     "command": self.visit_sql_update(command)?,
                 })
             },
-            Expr::Delete { command, span } => {
+            Expr::Delete { command, span: _ } => {
                 json!({
                     "type": "Expr::Delete",
                     "command": self.visit_sql_delete(command)?,

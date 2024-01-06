@@ -596,7 +596,7 @@ impl<'a> Parser<'a> {
         let mut assignments: Vec<SqlExpr> = vec![];
 
         loop {
-            let key = self.expected(Identifier { dollar: false })?.clone();
+            self.expected(Identifier { dollar: false })?;
             self.expected(sym!(Equal))?;
             let value = self.expression()?;
             assignments.push(SqlExpr::Default(value));
