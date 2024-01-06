@@ -8,3 +8,4 @@ pub mod select_limit;
 pub mod select_order;
 pub mod select_projection;
 pub mod select_where;
+pub mod insert_values;
