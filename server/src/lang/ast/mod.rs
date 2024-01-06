@@ -1,7 +1,6 @@
 use std::rc::Rc;
 use serde::Serialize;
 
-use id_arena::Arena;
 use rustc_hash::FxHashMap;
 
 use self::{
@@ -67,24 +66,26 @@ pub trait SqlVisitorMut<T, Q> {
 }
 
 pub struct ParserArena {
-    expressions: Arena<Expr>,
-    statements: Arena<Stmt>,
+    expressions: Vec<Expr>,
+    statements: Vec<Stmt>,
 }
 
 impl ParserArena {
     pub fn new() -> ParserArena {
         ParserArena {
-            expressions:Arena::<Expr>::new(),
-            statements: Arena::<Stmt>::new(),
+            expressions: vec![],
+            statements: vec![],
         }
     }
 
     pub fn expression(&mut self, expr: Expr) -> ExprId {
-        ExprId(self.expressions.alloc(expr))
+        self.expressions.push(expr);
+        ExprId(self.expressions.len() - 1)
     }
 
     pub fn statement(&mut self, stmt: Stmt) -> StmtId {
-        StmtId(self.statements.alloc(stmt))
+        self.statements.push(stmt);
+        StmtId(self.statements.len() - 1)
     }
 
     pub fn get_expression(&self, idx: ExprId) -> &Expr {

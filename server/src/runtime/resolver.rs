@@ -3,13 +3,12 @@ use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, ParserArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
-use id_arena::Id;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<Id<Expr>, usize>,
+    locals: FxHashMap<usize, usize>,
     arena: Rc<ParserArena>,
 }
 

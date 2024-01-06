@@ -1,12 +1,10 @@
 use serde::Serialize;
 
-use id_arena::Id;
-
 use crate::lang::token::{Span, Spanned, Token};
 
 use super::expr::ExprId;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 pub enum Stmt {
     Program {
         body: Vec<StmtId>,
@@ -67,10 +65,4 @@ impl Spanned for Stmt {
 
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)] 
-pub struct StmtId(pub Id<Stmt>);
-
-impl Serialize for StmtId {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0.index().serialize(serializer)
-    }
-}
+pub struct StmtId(pub usize);

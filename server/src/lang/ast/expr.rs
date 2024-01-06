@@ -1,6 +1,4 @@
 use std::rc::Rc;
-
-use id_arena::Id;
 use serde::Serialize;
 
 use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
@@ -164,10 +162,5 @@ impl Spanned for Expr {
 
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub struct ExprId(pub Id<Expr>);
+pub struct ExprId(pub usize);
 
-impl Serialize for ExprId {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0.index().serialize(serializer)
-    }
-}

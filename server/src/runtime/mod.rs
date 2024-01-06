@@ -48,7 +48,7 @@ impl Runtime {
     pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
         let program = Parser::parse(&tokens)?;
-        println!("{}", ProgramSerializer::new(&program).to_string());
+        println!("{}", ProgramSerializer::new(&program).to_json());
         Ok(())
     }
 
