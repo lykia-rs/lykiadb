@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use id_arena::Id;
 
 use crate::lang::token::{Span, Spanned, Token};
@@ -63,4 +65,12 @@ impl Spanned for Stmt {
     }
 }
 
-pub type StmtId = Id<Stmt>;
+#[repr(transparent)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)] 
+pub struct StmtId(pub Id<Stmt>);
+
+impl Serialize for StmtId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.index().serialize(serializer)
+    }
+}

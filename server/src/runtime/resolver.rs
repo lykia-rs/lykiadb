@@ -3,12 +3,13 @@ use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, ParserArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
+use id_arena::Id;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<ExprId, usize>,
+    locals: FxHashMap<Id<Expr>, usize>,
     arena: Rc<ParserArena>,
 }
 
@@ -27,7 +28,7 @@ impl Resolver {
     }
 
     pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
-        self.locals.get(&eid).copied()
+        self.locals.get(&eid.0).copied()
     }
 
     pub fn begin_scope(&mut self) {
@@ -55,7 +56,7 @@ impl Resolver {
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
             if self.scopes[i].contains_key(name.literal.as_ref().unwrap().as_str().unwrap()) {
-                self.locals.insert(expr, self.scopes.len() - 1 - i);
+                self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
         }

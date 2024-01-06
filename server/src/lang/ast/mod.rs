@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use serde::Serialize;
 
 use id_arena::Arena;
 use rustc_hash::FxHashMap;
@@ -12,7 +13,7 @@ pub mod expr;
 pub mod sql;
 pub mod stmt;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Literal {
     Str(Rc<String>),
     Num(f64),
@@ -73,24 +74,24 @@ pub struct ParserArena {
 impl ParserArena {
     pub fn new() -> ParserArena {
         ParserArena {
-            expressions: Arena::<Expr>::new(),
+            expressions:Arena::<Expr>::new(),
             statements: Arena::<Stmt>::new(),
         }
     }
 
     pub fn expression(&mut self, expr: Expr) -> ExprId {
-        self.expressions.alloc(expr)
+        ExprId(self.expressions.alloc(expr))
     }
 
     pub fn statement(&mut self, stmt: Stmt) -> StmtId {
-        self.statements.alloc(stmt)
+        StmtId(self.statements.alloc(stmt))
     }
 
     pub fn get_expression(&self, idx: ExprId) -> &Expr {
-        &self.expressions[idx]
+        &self.expressions[idx.0]
     }
 
     pub fn get_statement(&self, idx: StmtId) -> &Stmt {
-        &self.statements[idx]
+        &self.statements[idx.0]
     }
 }

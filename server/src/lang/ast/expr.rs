@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
 use id_arena::Id;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
 use crate::lang::token::{Span, Spanned, Token};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum Operation {
     Add,
     Subtract,
@@ -23,7 +23,7 @@ pub enum Operation {
     Not,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
 pub enum Expr {
     Select {
         query: SqlSelect,
@@ -162,4 +162,12 @@ impl Spanned for Expr {
     }
 }
 
-pub type ExprId = Id<Expr>;
+#[repr(transparent)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct ExprId(pub Id<Expr>);
+
+impl Serialize for ExprId {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.index().serialize(serializer)
+    }
+}
