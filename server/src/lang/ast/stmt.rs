@@ -1,3 +1,5 @@
+use id_arena::Id;
+
 use crate::lang::token::{Span, Spanned, Token};
 
 use super::expr::ExprId;
@@ -61,6 +63,4 @@ impl Spanned for Stmt {
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct StmtId(pub usize);
+pub type StmtId = Id<Stmt>;

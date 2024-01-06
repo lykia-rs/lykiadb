@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<usize, usize>,
+    locals: FxHashMap<ExprId, usize>,
     arena: Rc<ParserArena>,
 }
 
@@ -27,7 +27,7 @@ impl Resolver {
     }
 
     pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
-        self.locals.get(&eid.0).copied()
+        self.locals.get(&eid).copied()
     }
 
     pub fn begin_scope(&mut self) {
@@ -55,7 +55,7 @@ impl Resolver {
     pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
         for i in (0..self.scopes.len()).rev() {
             if self.scopes[i].contains_key(name.literal.as_ref().unwrap().as_str().unwrap()) {
-                self.locals.insert(expr.0, self.scopes.len() - 1 - i);
+                self.locals.insert(expr, self.scopes.len() - 1 - i);
                 return;
             }
         }

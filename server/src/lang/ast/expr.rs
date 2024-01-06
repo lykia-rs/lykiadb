@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use id_arena::Id;
 use serde::{Deserialize, Serialize};
 
 use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
@@ -161,6 +162,4 @@ impl Spanned for Expr {
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct ExprId(pub usize);
+pub type ExprId = Id<Expr>;
