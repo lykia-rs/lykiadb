@@ -1,9 +1,13 @@
-use std::rc::Rc;
 use serde::Serialize;
+use std::rc::Rc;
 
-use crate::lang::tokens::token::{Span, Token, Spanned};
+use crate::lang::tokens::token::{Span, Spanned, Token};
 
-use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
+use super::{
+    sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
+    stmt::StmtId,
+    Literal,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
@@ -36,19 +40,19 @@ pub enum Expr {
     Insert {
         command: SqlInsert,
         #[serde(skip)]
-        span: Span
+        span: Span,
     },
     #[serde(rename = "Expr::Update")]
     Update {
         command: SqlUpdate,
         #[serde(skip)]
-        span: Span
+        span: Span,
     },
     #[serde(rename = "Expr::Delete")]
     Delete {
         command: SqlDelete,
         #[serde(skip)]
-        span: Span
+        span: Span,
     },
     #[serde(rename = "Expr::Variable")]
     Variable {
@@ -196,4 +200,3 @@ impl Spanned for Expr {
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct ExprId(pub usize);
-

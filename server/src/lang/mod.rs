@@ -1,3 +1,3 @@
 pub mod ast;
-pub mod tokens;
 mod tests;
+pub mod tokens;

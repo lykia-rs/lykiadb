@@ -83,5 +83,5 @@ impl Spanned for Stmt {
 }
 
 #[repr(transparent)]
-#[derive(Debug, Eq, PartialEq, Clone, Copy)] 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct StmtId(pub usize);

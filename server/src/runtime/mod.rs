@@ -4,7 +4,7 @@ use self::resolver::Resolver;
 use self::std::stdlib;
 use crate::lang::ast::VisitorMut;
 
-use crate::lang::ast::parser::{Parser, ParseError};
+use crate::lang::ast::parser::{ParseError, Parser};
 use crate::lang::ast::program::AstArena;
 use crate::lang::tokens::scanner::Scanner;
 use crate::runtime::environment::Environment;

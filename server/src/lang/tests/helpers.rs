@@ -27,7 +27,6 @@ pub fn get_tokens(source: &str) -> Vec<Token> {
 
 #[cfg(test)]
 pub fn compare_parsed_to_expected(source: &str, expected: Value) {
-
     let tokens = get_tokens(source);
     let program = Parser::parse(&tokens).unwrap();
     let actual = program.to_json();

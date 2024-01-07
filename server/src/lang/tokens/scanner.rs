@@ -179,8 +179,7 @@ impl<'a> Scanner<'a> {
                 lexeme: Some(raw_str),
                 span,
             })
-        } else if !is_coerced_identifier
-            && SQL_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
+        } else if !is_coerced_identifier && SQL_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
         {
             Ok(Token {
                 tok_type: SQL_KEYWORDS

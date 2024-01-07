@@ -1,18 +1,20 @@
-use std::rc::Rc;
 use serde::Serialize;
+use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
 
 use self::{
-    expr::{Expr, ExprId},
-    sql::{SqlCollectionSubquery, SqlExpr, SqlSelect, SqlSelectCore, SqlInsert, SqlUpdate, SqlDelete},
-    stmt::{Stmt, StmtId},
+    expr::ExprId,
+    sql::{
+        SqlCollectionSubquery, SqlDelete, SqlExpr, SqlInsert, SqlSelect, SqlSelectCore, SqlUpdate,
+    },
+    stmt::StmtId,
 };
 pub mod expr;
-pub mod sql;
-pub mod stmt;
 pub mod parser;
 pub mod program;
+pub mod sql;
+pub mod stmt;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Literal {

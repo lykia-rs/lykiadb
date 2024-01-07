@@ -109,21 +109,16 @@ pub struct SqlJoin {
 #[serde(tag = "type")]
 pub enum SqlCollectionSubquery {
     #[serde(rename = "SqlCollectionSubquery::Group")]
-    Group {
-        values: Vec<SqlCollectionSubquery>
-    },
+    Group { values: Vec<SqlCollectionSubquery> },
     #[serde(rename = "SqlCollectionSubquery::Join")]
     Join {
         query: Box<SqlCollectionSubquery>,
-        joins: Vec<SqlJoin>
+        joins: Vec<SqlJoin>,
     },
     #[serde(rename = "SqlCollectionSubquery::Collection")]
     Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlCollectionSubquery::Select")]
-    Select {
-        expr: ExprId,
-        alias: Option<Token>,
-    },
+    Select { expr: ExprId, alias: Option<Token> },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -150,11 +145,9 @@ pub struct SqlSelect {
 #[serde(tag = "type")]
 pub enum SqlValues {
     #[serde(rename = "SqlValues::Values")]
-    Values {
-        values: Vec<SqlExpr>
-    },
+    Values { values: Vec<SqlExpr> },
     #[serde(rename = "SqlValues::Select")]
-    Select(SqlSelect)
+    Select(SqlSelect),
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]

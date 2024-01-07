@@ -1,14 +1,14 @@
 use super::expr::{Expr, ExprId, Operation};
-use super::program::{Program, AstArena};
+use super::program::{AstArena, Program};
 use super::sql::{
-    SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
-    SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
-    SqlCollectionIdentifier, SqlSelectCore, SqlInsert, SqlValues, SqlDelete, SqlUpdate
+    SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
+    SqlExpr, SqlInsert, SqlJoin, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
+    SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::stmt::{Stmt, StmtId};
 use super::Literal;
 use crate::lang::tokens::token::{
-    Keyword::*, Span, Spanned, SqlKeyword::*, SqlKeyword, Symbol::*, Token, TokenType, TokenType::*,
+    Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
@@ -291,7 +291,9 @@ impl<'a> Parser<'a> {
     fn continue_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.alloc_statement(Stmt::Continue { span: tok.span }))
+        Ok(self
+            .arena
+            .alloc_statement(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self) -> ParseResult<StmtId> {
@@ -503,19 +505,18 @@ impl<'a> Parser<'a> {
 
     fn sql_collection_identifier(&mut self) -> ParseResult<Option<SqlCollectionIdentifier>> {
         if self.cmp_tok(&Identifier { dollar: false }) {
-
             if self.match_next_all_of(&[
                 Identifier { dollar: false },
                 sym!(Dot),
                 Identifier { dollar: false },
             ]) {
-                return Ok(Some(SqlCollectionIdentifier{
+                return Ok(Some(SqlCollectionIdentifier {
                     namespace: Some(self.peek_bw(3).clone()),
                     name: self.peek_bw(1).clone(),
                     alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
                 }));
             }
-            return Ok(Some(SqlCollectionIdentifier{
+            return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
                 name: self.expected(Identifier { dollar: false })?.clone(),
                 alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
@@ -533,7 +534,6 @@ impl<'a> Parser<'a> {
 
         if let Some(collection) = self.sql_collection_identifier()? {
             let values = if self.cmp_tok(&skw!(Select)) {
-
                 let select_inner = self.sql_select_inner();
 
                 if select_inner.is_err() {
@@ -559,14 +559,10 @@ impl<'a> Parser<'a> {
                 });
             };
             Ok(self.arena.alloc_expression(Expr::Insert {
-                command: SqlInsert {
-                    collection,
-                    values,
-                },
+                command: SqlInsert { collection, values },
                 span: Span::default(),
             }))
-        }
-        else {
+        } else {
             Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
             })
@@ -631,8 +627,7 @@ impl<'a> Parser<'a> {
                 },
                 span: Span::default(),
             }))
-        }
-        else {
+        } else {
             Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
             })
@@ -735,7 +730,7 @@ impl<'a> Parser<'a> {
             if select_inner.is_err() {
                 return Err(select_inner.err().unwrap());
             }
-            
+
             Ok(select_inner.unwrap())
         };
 
@@ -872,12 +867,16 @@ impl<'a> Parser<'a> {
 
         if !joins.is_empty() {
             return Ok(SqlCollectionSubquery::Join {
-                query: Box::new(SqlCollectionSubquery::Group { values: subquery_group }),
+                query: Box::new(SqlCollectionSubquery::Group {
+                    values: subquery_group,
+                }),
                 joins,
             });
         }
 
-        return Ok(SqlCollectionSubquery::Group { values: subquery_group });
+        return Ok(SqlCollectionSubquery::Group {
+            values: subquery_group,
+        });
     }
 
     fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
