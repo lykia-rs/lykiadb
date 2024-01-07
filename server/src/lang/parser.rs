@@ -563,7 +563,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 self.expected(sym!(RightParen))?;
-                SqlValues::Values(values)
+                SqlValues::Values { values }
             } else {
                 return Err(ParseError::UnexpectedToken {
                     token: self.peek_bw(0).clone(),
@@ -882,13 +882,13 @@ impl<'a> Parser<'a> {
         }
 
         if !joins.is_empty() {
-            return Ok(SqlCollectionSubquery::Join(
-                Box::new(SqlCollectionSubquery::Group(subquery_group)),
+            return Ok(SqlCollectionSubquery::Join {
+                query: Box::new(SqlCollectionSubquery::Group { values: subquery_group }),
                 joins,
-            ));
+            });
         }
 
-        return Ok(SqlCollectionSubquery::Group(subquery_group));
+        return Ok(SqlCollectionSubquery::Group { values: subquery_group });
     }
 
     fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {

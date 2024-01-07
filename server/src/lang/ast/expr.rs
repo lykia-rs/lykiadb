@@ -5,6 +5,7 @@ use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Lit
 use crate::lang::token::{Span, Spanned, Token};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
 pub enum Operation {
     Add,
     Subtract,
