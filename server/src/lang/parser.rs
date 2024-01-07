@@ -5,7 +5,7 @@ use super::ast::sql::{
     SqlCollectionIdentifier, SqlSelectCore, SqlInsert, SqlValues, SqlDelete, SqlUpdate
 };
 use super::ast::stmt::{Stmt, StmtId};
-use super::ast::{Literal, ParserArena};
+use super::ast::{Literal, AstArena};
 use super::token::SqlKeyword;
 use crate::lang::token::{
     Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
@@ -16,11 +16,11 @@ use std::rc::Rc;
 
 pub struct Program {
     pub root: StmtId,
-    pub arena: Rc<ParserArena>,
+    pub arena: Rc<AstArena>,
 }
 
 impl Program {
-    pub fn new(root: StmtId, arena: Rc<ParserArena>) -> Program {
+    pub fn new(root: StmtId, arena: Rc<AstArena>) -> Program {
         Program { root, arena }
     }
 }
@@ -43,7 +43,7 @@ macro_rules! binary {
             let left = current_expr;
             let right = $self.$builder()?;
 
-            current_expr = $self.arena.expression(Expr::Binary {
+            current_expr = $self.arena.alloc_expression(Expr::Binary {
                 left,
                 operation: $self.tok_type_to_op(token.tok_type),
                 right,
@@ -83,7 +83,7 @@ macro_rules! optional_with_expected {
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
-    arena: ParserArena,
+    arena: AstArena,
     in_select_depth: usize,
     in_array_depth: usize,
     in_object_depth: usize,
@@ -94,7 +94,7 @@ impl<'a> Parser<'a> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
-        let arena = ParserArena::new();
+        let arena = AstArena::new();
         let mut parser = Parser {
             tokens,
             current: 0,
@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
             statements.push(self.declaration()?);
         }
         self.expected(Eof)?;
-        Ok(self.arena.statement(Stmt::Program {
+        Ok(self.arena.alloc_statement(Stmt::Program {
             body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
@@ -155,14 +155,14 @@ impl<'a> Parser<'a> {
 
         if self.match_next(kw!(Else)) {
             let else_branch = self.statement()?;
-            return Ok(self.arena.statement(Stmt::If {
+            return Ok(self.arena.alloc_statement(Stmt::If {
                 condition,
                 body: if_branch,
                 r#else_body: Some(else_branch),
                 span: self.get_merged_span(&if_tok.span, self.arena.get_statement(else_branch)),
             }));
         }
-        Ok(self.arena.statement(Stmt::If {
+        Ok(self.arena.alloc_statement(Stmt::If {
             condition,
             body: if_branch,
             r#else_body: None,
@@ -175,7 +175,7 @@ impl<'a> Parser<'a> {
         self.expected(sym!(LeftBrace))?;
         let inner_stmt = self.block()?;
         self.match_next(sym!(Semicolon));
-        Ok(self.arena.statement(Stmt::Loop {
+        Ok(self.arena.alloc_statement(Stmt::Loop {
             condition: None,
             body: inner_stmt,
             post: None,
@@ -192,7 +192,7 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.block()?;
         self.match_next(sym!(Semicolon));
 
-        Ok(self.arena.statement(Stmt::Loop {
+        Ok(self.arena.alloc_statement(Stmt::Loop {
             condition: Some(condition),
             body: inner_stmt,
             post: None,
@@ -209,13 +209,13 @@ impl<'a> Parser<'a> {
         self.expected(sym!(Semicolon))?;
 
         if expr.is_none() {
-            return Ok(self.arena.statement(Stmt::Return {
+            return Ok(self.arena.alloc_statement(Stmt::Return {
                 span: ret_tok.span,
                 expr: None,
             }));
         }
 
-        Ok(self.arena.statement(Stmt::Return {
+        Ok(self.arena.alloc_statement(Stmt::Return {
             span: self.get_merged_span(&ret_tok.span, self.arena.get_expression(expr.unwrap())),
             expr,
         }))
@@ -244,7 +244,7 @@ impl<'a> Parser<'a> {
         } else {
             let wrapped = self.expression()?;
             self.expected(sym!(RightParen))?;
-            Some(self.arena.statement(Stmt::Expression {
+            Some(self.arena.alloc_statement(Stmt::Expression {
                 expr: wrapped,
                 span: self.arena.get_expression(wrapped).get_span(),
             }))
@@ -255,20 +255,20 @@ impl<'a> Parser<'a> {
         self.match_next(sym!(Semicolon));
 
         if initializer.is_none() {
-            return Ok(self.arena.statement(Stmt::Loop {
+            return Ok(self.arena.alloc_statement(Stmt::Loop {
                 condition,
                 body: inner_stmt,
                 post: increment,
                 span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
             }));
         }
-        let loop_stmt = self.arena.statement(Stmt::Loop {
+        let loop_stmt = self.arena.alloc_statement(Stmt::Loop {
             condition,
             body: inner_stmt,
             post: increment,
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         });
-        Ok(self.arena.statement(Stmt::Block {
+        Ok(self.arena.alloc_statement(Stmt::Block {
             body: vec![initializer.unwrap(), loop_stmt],
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         }))
@@ -287,7 +287,7 @@ impl<'a> Parser<'a> {
 
         self.expected(sym!(RightBrace))?;
 
-        Ok(self.arena.statement(Stmt::Block {
+        Ok(self.arena.alloc_statement(Stmt::Block {
             body: statements.clone(),
             span: self.get_merged_span(&opening_brace.span, &closing_brace.span),
         }))
@@ -296,19 +296,19 @@ impl<'a> Parser<'a> {
     fn break_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Break { span: tok.span }))
+        Ok(self.arena.alloc_statement(Stmt::Break { span: tok.span }))
     }
 
     fn continue_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Continue { span: tok.span }))
+        Ok(self.arena.alloc_statement(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self) -> ParseResult<StmtId> {
         let expr = self.expression()?;
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Expression {
+        Ok(self.arena.alloc_statement(Stmt::Expression {
             expr,
             span: self.arena.get_expression(expr).get_span(),
         }))
@@ -319,14 +319,14 @@ impl<'a> Parser<'a> {
         let ident = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => self.arena.expression(Expr::Literal {
+            false => self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: self.get_merged_span(&var_tok.span, &ident.span),
             }),
         };
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Declaration {
+        Ok(self.arena.alloc_statement(Stmt::Declaration {
             dst: ident,
             expr,
             span: self.get_merged_span(&var_tok.span, &self.arena.get_expression(expr).get_span()),
@@ -366,7 +366,7 @@ impl<'a> Parser<'a> {
             _ => vec![stmt_idx],
         };
 
-        Ok(self.arena.expression(Expr::Function {
+        Ok(self.arena.alloc_expression(Expr::Function {
             name: token,
             parameters,
             body: Rc::new(body),
@@ -389,7 +389,7 @@ impl<'a> Parser<'a> {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
                 Expr::Variable { name, span: _ } => {
-                    return Ok(self.arena.expression(Expr::Assignment {
+                    return Ok(self.arena.alloc_expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
                         span: self.get_merged_span(
@@ -403,7 +403,7 @@ impl<'a> Parser<'a> {
                     name,
                     span: _,
                 } => {
-                    return Ok(self.arena.expression(Expr::Set {
+                    return Ok(self.arena.alloc_expression(Expr::Set {
                         object: *object,
                         name: name.clone(),
                         value,
@@ -433,7 +433,7 @@ impl<'a> Parser<'a> {
         if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(self.arena.expression(Expr::Logical {
+            return Ok(self.arena.alloc_expression(Expr::Logical {
                 left: expr,
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
@@ -456,7 +456,7 @@ impl<'a> Parser<'a> {
         if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(self.arena.expression(Expr::Logical {
+            return Ok(self.arena.alloc_expression(Expr::Logical {
                 left: expr,
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
@@ -502,7 +502,7 @@ impl<'a> Parser<'a> {
         if self.match_next_one_of(&[sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
-            return Ok(self.arena.expression(Expr::Unary {
+            return Ok(self.arena.alloc_expression(Expr::Unary {
                 operation: self.tok_type_to_op(token.tok_type),
                 expr: unary,
                 span: self
@@ -569,7 +569,7 @@ impl<'a> Parser<'a> {
                     token: self.peek_bw(0).clone(),
                 });
             };
-            Ok(self.arena.expression(Expr::Insert {
+            Ok(self.arena.alloc_expression(Expr::Insert {
                 command: SqlInsert {
                     collection,
                     values,
@@ -611,7 +611,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Ok(self.arena.expression(Expr::Update {
+        Ok(self.arena.alloc_expression(Expr::Update {
             command: SqlUpdate {
                 collection: collection.unwrap(),
                 assignments,
@@ -635,7 +635,7 @@ impl<'a> Parser<'a> {
                 None
             };
 
-            Ok(self.arena.expression(Expr::Delete {
+            Ok(self.arena.alloc_expression(Expr::Delete {
                 command: SqlDelete {
                     collection,
                     r#where,
@@ -750,7 +750,7 @@ impl<'a> Parser<'a> {
             Ok(select_inner.unwrap())
         };
 
-        Ok(self.arena.expression(Expr::Select {
+        Ok(self.arena.alloc_expression(Expr::Select {
             span: Span::default(),
             query: query.unwrap(),
         }))
@@ -929,7 +929,7 @@ impl<'a> Parser<'a> {
                 expr = self.finish_call(expr)?;
             } else if self.match_next(sym!(Dot)) {
                 let identifier = self.expected(Identifier { dollar: false })?.clone();
-                expr = self.arena.expression(Expr::Get {
+                expr = self.arena.alloc_expression(Expr::Get {
                     object: expr,
                     name: identifier.clone(),
                     span: self.get_merged_span(
@@ -957,7 +957,7 @@ impl<'a> Parser<'a> {
 
         let paren = self.expected(sym!(RightParen))?.clone();
 
-        Ok(self.arena.expression(Expr::Call {
+        Ok(self.arena.alloc_expression(Expr::Call {
             callee,
             span: self.get_merged_span(&self.arena.get_expression(callee).get_span(), &paren.span),
             args: arguments,
@@ -1003,7 +1003,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightBrace))?;
         self.in_object_depth -= 1;
-        Ok(self.arena.expression(Expr::Literal {
+        Ok(self.arena.alloc_expression(Expr::Literal {
             value: Literal::Object(obj_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
@@ -1022,7 +1022,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightBracket))?;
         self.in_array_depth -= 1;
-        Ok(self.arena.expression(Expr::Literal {
+        Ok(self.arena.alloc_expression(Expr::Literal {
             value: Literal::Array(array_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
@@ -1038,37 +1038,37 @@ impl<'a> Parser<'a> {
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(self.arena.expression(Expr::Grouping {
+                Ok(self.arena.alloc_expression(Expr::Grouping {
                     span: self.arena.get_expression(expr).get_span(),
                     expr,
                 }))
             }
-            True => Ok(self.arena.expression(Expr::Literal {
+            True => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
                 span: tok.span,
             })),
-            False => Ok(self.arena.expression(Expr::Literal {
+            False => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
                 span: tok.span,
             })),
-            TokenType::Null => Ok(self.arena.expression(Expr::Literal {
+            TokenType::Null => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Null,
                 raw: "null".to_string(),
                 span: tok.span,
             })),
-            TokenType::Undefined => Ok(self.arena.expression(Expr::Literal {
+            TokenType::Undefined => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: tok.span,
             })),
-            Str | Num => Ok(self.arena.expression(Expr::Literal {
+            Str | Num => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: tok.literal.clone().unwrap(),
                 raw: tok.lexeme.clone().unwrap(),
                 span: tok.span,
             })),
-            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::Variable {
+            Identifier { dollar: _ } => Ok(self.arena.alloc_expression(Expr::Variable {
                 name: tok.clone(),
                 span: tok.span,
             })),

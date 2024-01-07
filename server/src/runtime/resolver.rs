@@ -1,6 +1,6 @@
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, ParserArena, VisitorMut};
+use crate::lang::ast::{Literal, AstArena, VisitorMut};
 use crate::lang::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
@@ -9,7 +9,7 @@ use std::rc::Rc;
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
-    arena: Rc<ParserArena>,
+    arena: Rc<AstArena>,
 }
 
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ pub enum ResolveError {
 }
 
 impl Resolver {
-    pub fn new(arena: Rc<ParserArena>) -> Resolver {
+    pub fn new(arena: Rc<AstArena>) -> Resolver {
         Resolver {
             scopes: vec![],
             locals: FxHashMap::default(),

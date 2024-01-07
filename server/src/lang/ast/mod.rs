@@ -65,25 +65,25 @@ pub trait SqlVisitorMut<T, Q> {
     fn visit_sql_delete(&mut self, sql_delete: &SqlDelete) -> Result<T, Q>;
 }
 
-pub struct ParserArena {
+pub struct AstArena {
     expressions: Vec<Expr>,
     statements: Vec<Stmt>,
 }
 
-impl ParserArena {
-    pub fn new() -> ParserArena {
-        ParserArena {
+impl AstArena {
+    pub fn new() -> AstArena {
+        AstArena {
             expressions: vec![],
             statements: vec![],
         }
     }
 
-    pub fn expression(&mut self, expr: Expr) -> ExprId {
+    pub fn alloc_expression(&mut self, expr: Expr) -> ExprId {
         self.expressions.push(expr);
         ExprId(self.expressions.len() - 1)
     }
 
-    pub fn statement(&mut self, stmt: Stmt) -> StmtId {
+    pub fn alloc_statement(&mut self, stmt: Stmt) -> StmtId {
         self.statements.push(stmt);
         StmtId(self.statements.len() - 1)
     }

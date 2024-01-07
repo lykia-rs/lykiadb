@@ -4,7 +4,7 @@ use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, ParserArena, VisitorMut};
+use crate::lang::ast::{Literal, AstArena, VisitorMut};
 
 use crate::lang::token::Span;
 use crate::lang::token::Spanned;
@@ -132,7 +132,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: Shared<Environment>,
     root_env: Shared<Environment>,
-    arena: Rc<ParserArena>,
+    arena: Rc<AstArena>,
     loop_stack: LoopStack,
     resolver: Rc<Resolver>,
 }
@@ -140,7 +140,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(
         env: Shared<Environment>,
-        arena: Rc<ParserArena>,
+        arena: Rc<AstArena>,
         resolver: Rc<Resolver>,
     ) -> Interpreter {
         Interpreter {
