@@ -1,4 +1,10 @@
-use super::{expr::ExprId, stmt::StmtId, sql::{SqlSelect, SqlCollectionSubquery, SqlSelectCore, SqlExpr, SqlInsert, SqlUpdate, SqlDelete}};
+use super::{
+    expr::ExprId,
+    sql::{
+        SqlCollectionSubquery, SqlDelete, SqlExpr, SqlInsert, SqlSelect, SqlSelectCore, SqlUpdate,
+    },
+    stmt::StmtId,
+};
 
 pub trait Visitor<T, Q> {
     fn visit_expr(&self, e: ExprId) -> Result<T, Q>;

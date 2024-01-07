@@ -6,10 +6,10 @@ use super::sql::{
     SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::stmt::{Stmt, StmtId};
-use super::Literal;
 use crate::lang::tokens::token::{
     Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
+use crate::lang::Literal;
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;

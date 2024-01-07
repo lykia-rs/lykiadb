@@ -6,8 +6,9 @@ use crate::lang::tokens::token::{Span, Spanned, Token};
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
     stmt::StmtId,
-    Literal,
 };
+
+use crate::lang::Literal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]

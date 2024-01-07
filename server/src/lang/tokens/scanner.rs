@@ -1,7 +1,7 @@
-use crate::lang::ast::Literal::*;
 use crate::lang::tokens::token::Symbol::*;
 use crate::lang::tokens::token::TokenType::{Eof, Identifier};
 use crate::lang::tokens::token::*;
+use crate::lang::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
 use std::rc::Rc;
