@@ -2,7 +2,7 @@ use self::error::{report_error, ExecutionError};
 use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::VisitorMut;
+use crate::lang::ast::visitor::VisitorMut;
 
 use crate::lang::ast::parser::{ParseError, Parser};
 use crate::lang::ast::program::AstArena;

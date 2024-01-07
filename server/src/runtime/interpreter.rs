@@ -5,8 +5,9 @@ use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, VisitorMut};
+use crate::lang::ast::Literal;
 
+use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
 use crate::lang::tokens::token::Spanned;
 use crate::runtime::environment::Environment;
