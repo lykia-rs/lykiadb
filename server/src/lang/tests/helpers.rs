@@ -5,7 +5,13 @@ use assert_json_diff::assert_json_eq;
 use serde_json::Value;
 
 #[cfg(test)]
-use crate::lang::{parser::Parser, scanner::Scanner, token::Token};
+use crate::lang::tokens::token::Token;
+
+#[cfg(test)]
+use crate::lang::tokens::scanner::Scanner;
+
+#[cfg(test)]
+use crate::lang::ast::parser::Parser;
 
 #[macro_export]
 macro_rules! lexm {

@@ -7,8 +7,8 @@ use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, VisitorMut};
 
-use crate::lang::token::Span;
-use crate::lang::token::Spanned;
+use crate::lang::tokens::token::Span;
+use crate::lang::tokens::token::Spanned;
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};

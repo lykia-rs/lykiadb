@@ -2,7 +2,7 @@ use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::{Literal, VisitorMut};
-use crate::lang::token::Token;
+use crate::lang::tokens::token::Token;
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;

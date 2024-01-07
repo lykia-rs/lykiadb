@@ -11,6 +11,7 @@ use self::{
 pub mod expr;
 pub mod sql;
 pub mod stmt;
+pub mod parser;
 pub mod program;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

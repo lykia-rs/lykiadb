@@ -1,7 +1,7 @@
 use phf::phf_map;
 use serde::Serialize;
+use crate::lang::ast::Literal;
 
-use super::ast::Literal;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum Symbol {

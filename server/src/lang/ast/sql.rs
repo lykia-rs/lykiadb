@@ -1,4 +1,4 @@
-use crate::lang::token::Token;
+use crate::lang::tokens::token::Token;
 use serde::Serialize;
 
 use super::expr::ExprId;

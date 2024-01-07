@@ -1,8 +1,9 @@
 use std::rc::Rc;
 use serde::Serialize;
 
+use crate::lang::tokens::token::{Span, Token, Spanned};
+
 use super::{sql::{SqlSelect, SqlInsert, SqlDelete, SqlUpdate}, stmt::StmtId, Literal};
-use crate::lang::token::{Span, Spanned, Token};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]

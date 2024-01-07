@@ -1,5 +1,5 @@
 use super::{interpreter::InterpretError, resolver::ResolveError};
-use crate::lang::{parser::ParseError, scanner::ScanError, token::Span};
+use crate::lang::{ast::parser::ParseError, tokens::scanner::ScanError, tokens::token::Span};
 
 #[derive(Debug, Clone)]
 pub enum ExecutionError {

@@ -3,8 +3,10 @@ use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
 use crate::lang::ast::VisitorMut;
-use crate::lang::parser::{ParseError, Parser};
-use crate::lang::scanner::Scanner;
+
+use crate::lang::ast::parser::{Parser, ParseError};
+use crate::lang::ast::program::AstArena;
+use crate::lang::tokens::scanner::Scanner;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
@@ -65,7 +67,7 @@ impl Runtime {
             return Err(error);
         }
         let program_unw = program.unwrap();
-        let arena = Rc::clone(&program_unw.arena);
+        let arena: Rc<AstArena> = Rc::clone(&program_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);

@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::lang::token::{Span, Spanned, Token};
+use crate::lang::tokens::token::{Span, Spanned, Token};
 
 use super::expr::ExprId;
 
