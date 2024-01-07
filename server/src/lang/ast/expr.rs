@@ -22,43 +22,52 @@ pub enum Operation {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type")]
 pub enum Expr {
+    #[serde(rename = "Expr::Select")]
     Select {
         query: SqlSelect,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Insert")]
     Insert {
         command: SqlInsert,
         #[serde(skip)]
         span: Span
     },
+    #[serde(rename = "Expr::Update")]
     Update {
         command: SqlUpdate,
         #[serde(skip)]
         span: Span
     },
+    #[serde(rename = "Expr::Delete")]
     Delete {
         command: SqlDelete,
         #[serde(skip)]
         span: Span
     },
+    #[serde(rename = "Expr::Variable")]
     Variable {
         name: Token,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Grouping")]
     Grouping {
         expr: ExprId,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Literal")]
     Literal {
         value: Literal,
         raw: String,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Function")]
     Function {
         name: Option<Token>,
         parameters: Vec<Token>,
@@ -66,6 +75,7 @@ pub enum Expr {
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Binary")]
     Binary {
         left: ExprId,
         operation: Operation,
@@ -73,18 +83,21 @@ pub enum Expr {
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Unary")]
     Unary {
         operation: Operation,
         expr: ExprId,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Assignment")]
     Assignment {
         dst: Token,
         expr: ExprId,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Logical")]
     Logical {
         left: ExprId,
         operation: Operation,
@@ -92,18 +105,21 @@ pub enum Expr {
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Call")]
     Call {
         callee: ExprId,
         args: Vec<ExprId>,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Get")]
     Get {
         object: ExprId,
         name: Token,
         #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Set")]
     Set {
         object: ExprId,
         name: Token,
