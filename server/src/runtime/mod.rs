@@ -5,7 +5,6 @@ use self::std::stdlib;
 use crate::lang::ast::VisitorMut;
 use crate::lang::parser::{ParseError, Parser};
 use crate::lang::scanner::Scanner;
-use crate::lang::serializer::ProgramSerializer;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
@@ -48,7 +47,7 @@ impl Runtime {
     pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
         let program = Parser::parse(&tokens)?;
-        println!("{}", ProgramSerializer::new(&program).to_json());
+        println!("{}", program.to_json());
         Ok(())
     }
 

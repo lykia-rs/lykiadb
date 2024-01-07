@@ -11,6 +11,7 @@ use self::{
 pub mod expr;
 pub mod sql;
 pub mod stmt;
+pub mod program;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Literal {
@@ -63,36 +64,4 @@ pub trait SqlVisitorMut<T, Q> {
     fn visit_sql_insert(&mut self, sql_insert: &SqlInsert) -> Result<T, Q>;
     fn visit_sql_update(&mut self, sql_update: &SqlUpdate) -> Result<T, Q>;
     fn visit_sql_delete(&mut self, sql_delete: &SqlDelete) -> Result<T, Q>;
-}
-
-pub struct AstArena {
-    expressions: Vec<Expr>,
-    statements: Vec<Stmt>,
-}
-
-impl AstArena {
-    pub fn new() -> AstArena {
-        AstArena {
-            expressions: vec![],
-            statements: vec![],
-        }
-    }
-
-    pub fn alloc_expression(&mut self, expr: Expr) -> ExprId {
-        self.expressions.push(expr);
-        ExprId(self.expressions.len() - 1)
-    }
-
-    pub fn alloc_statement(&mut self, stmt: Stmt) -> StmtId {
-        self.statements.push(stmt);
-        StmtId(self.statements.len() - 1)
-    }
-
-    pub fn get_expression(&self, idx: ExprId) -> &Expr {
-        &self.expressions[idx.0]
-    }
-
-    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
-        &self.statements[idx.0]
-    }
 }

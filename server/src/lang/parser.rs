@@ -1,11 +1,12 @@
 use super::ast::expr::{Expr, ExprId, Operation};
+use super::ast::program::{Program, AstArena};
 use super::ast::sql::{
     SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
     SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
     SqlCollectionIdentifier, SqlSelectCore, SqlInsert, SqlValues, SqlDelete, SqlUpdate
 };
 use super::ast::stmt::{Stmt, StmtId};
-use super::ast::{Literal, AstArena};
+use super::ast::Literal;
 use super::token::SqlKeyword;
 use crate::lang::token::{
     Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
@@ -13,17 +14,6 @@ use crate::lang::token::{
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
-
-pub struct Program {
-    pub root: StmtId,
-    pub arena: Rc<AstArena>,
-}
-
-impl Program {
-    pub fn new(root: StmtId, arena: Rc<AstArena>) -> Program {
-        Program { root, arena }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum ParseError {

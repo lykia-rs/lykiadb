@@ -1,21 +1,59 @@
+use std::rc::Rc;
+
+use super::{expr::{Expr, ExprId}, stmt::{Stmt, StmtId}};
 use serde::{Serialize, ser::SerializeMap};
 use serde_json::{Value, Map};
 
-use super::{parser::Program, ast::{stmt::StmtId, expr::ExprId}};
+pub struct Program {
+    pub root: StmtId,
+    pub arena: Rc<AstArena>,
+}
+
+impl Program {
+    pub fn new(root: StmtId, arena: Rc<AstArena>) -> Program {
+        Program { root, arena }
+    }
+}
+pub struct AstArena {
+    expressions: Vec<Expr>,
+    statements: Vec<Stmt>,
+}
+
+impl AstArena {
+    pub fn new() -> AstArena {
+        AstArena {
+            expressions: vec![],
+            statements: vec![],
+        }
+    }
+
+    pub fn alloc_expression(&mut self, expr: Expr) -> ExprId {
+        self.expressions.push(expr);
+        ExprId(self.expressions.len() - 1)
+    }
+
+    pub fn alloc_statement(&mut self, stmt: Stmt) -> StmtId {
+        self.statements.push(stmt);
+        StmtId(self.statements.len() - 1)
+    }
+
+    pub fn get_expression(&self, idx: ExprId) -> &Expr {
+        &self.expressions[idx.0]
+    }
+
+    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
+        &self.statements[idx.0]
+    }
+}
+
+
 
 const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
 const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
 
-pub struct ProgramSerializer<'a> {
-    pub program: &'a Program,
-}
-
-impl<'a> ProgramSerializer<'a> {
-    pub fn new(program: &'a Program) -> ProgramSerializer<'a> {
-        ProgramSerializer { program }
-    }
+impl Program {
     pub fn to_json(&self) -> Value {
-        self.to_json_recursive(serde_json::to_value(self.program.arena.get_statement(self.program.root)).unwrap())
+        self.to_json_recursive(serde_json::to_value(self.arena.get_statement(self.root)).unwrap())
     }
 
     fn to_json_recursive(&self, value: Value) -> Value {
@@ -37,13 +75,13 @@ impl<'a> ProgramSerializer<'a> {
         if map.contains_key(STMT_ID_PLACEHOLDER) {
             let idx = StmtId(map[STMT_ID_PLACEHOLDER].as_u64().unwrap().try_into().unwrap());
             self.to_json_recursive(
-                serde_json::to_value(self.program.arena.get_statement(idx)).unwrap()
+                serde_json::to_value(self.arena.get_statement(idx)).unwrap()
             )
         }
         else if map.contains_key(EXPR_ID_PLACEHOLDER) {
             let idx = ExprId(map[EXPR_ID_PLACEHOLDER].as_u64().unwrap().try_into().unwrap());
             self.to_json_recursive(
-                serde_json::to_value(self.program.arena.get_expression(idx)).unwrap()
+                serde_json::to_value(self.arena.get_expression(idx)).unwrap()
             )
         }
         else {

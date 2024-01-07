@@ -3,8 +3,9 @@ use rustc_hash::FxHashMap;
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
+use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, AstArena, VisitorMut};
+use crate::lang::ast::{Literal, VisitorMut};
 
 use crate::lang::token::Span;
 use crate::lang::token::Spanned;
