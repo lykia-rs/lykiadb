@@ -1,4 +1,4 @@
-use crate::lang::Literal;
+use crate::lang::{Literal, Identifier};
 use phf::phf_map;
 use serde::Serialize;
 
@@ -268,6 +268,18 @@ pub struct Token {
     pub lexeme: Option<String>,
     #[serde(skip)]
     pub span: Span,
+}
+
+impl Token {
+    pub fn extract_identifier(&self) -> Option<Identifier> {
+        match &self.tok_type {
+            TokenType::Identifier { dollar } => Some(Identifier {
+                name: self.lexeme.clone().unwrap(),
+                dollar: *dollar,
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]

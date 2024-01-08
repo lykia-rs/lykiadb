@@ -318,7 +318,7 @@ impl<'a> Parser<'a> {
         };
         self.expected(sym!(Semicolon))?;
         Ok(self.arena.alloc_statement(Stmt::Declaration {
-            dst: ident,
+            dst: ident.extract_identifier().unwrap(),
             expr,
             span: self.get_merged_span(&var_tok.span, &self.arena.get_expression(expr).get_span()),
         }))
@@ -358,8 +358,8 @@ impl<'a> Parser<'a> {
         };
 
         Ok(self.arena.alloc_expression(Expr::Function {
-            name: token,
-            parameters,
+            name: token.map(|t| t.extract_identifier().unwrap()),
+            parameters: parameters.iter().map(|t| t.extract_identifier().unwrap()).collect(),
             body: Rc::new(body),
             span: self.get_merged_span(
                 &fun_tok.span,
@@ -379,12 +379,12 @@ impl<'a> Parser<'a> {
         if self.match_next(sym!(Equal)) {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
-                Expr::Variable { name, span: _ } => {
+                Expr::Variable { name, span } => {
                     return Ok(self.arena.alloc_expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
                         span: self.get_merged_span(
-                            &name.span,
+                            span,
                             &self.arena.get_expression(value).get_span(),
                         ),
                     }));
@@ -392,14 +392,14 @@ impl<'a> Parser<'a> {
                 Expr::Get {
                     object,
                     name,
-                    span: _,
+                    span,
                 } => {
                     return Ok(self.arena.alloc_expression(Expr::Set {
                         object: *object,
                         name: name.clone(),
                         value,
                         span: self.get_merged_span(
-                            &name.span,
+                            span,
                             &self.arena.get_expression(value).get_span(),
                         ),
                     }));
@@ -511,15 +511,15 @@ impl<'a> Parser<'a> {
                 Identifier { dollar: false },
             ]) {
                 return Ok(Some(SqlCollectionIdentifier {
-                    namespace: Some(self.peek_bw(3).clone()),
-                    name: self.peek_bw(1).clone(),
-                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+                    namespace: Some(self.peek_bw(3).extract_identifier().unwrap()),
+                    name: self.peek_bw(1).extract_identifier().unwrap(),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }).map(|t| t.extract_identifier().unwrap()),
                 }));
             }
             return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
-                name: self.expected(Identifier { dollar: false })?.clone(),
-                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
+                name: self.expected(Identifier { dollar: false })?.extract_identifier().unwrap(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }).map(|t| t.extract_identifier().unwrap()),
             }));
         }
         Ok(None)
@@ -796,7 +796,7 @@ impl<'a> Parser<'a> {
             } else if self.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
             {
                 projections.push(SqlProjection::All {
-                    collection: Some(self.peek_bw(3).clone()),
+                    collection: Some(self.peek_bw(3).extract_identifier().unwrap()),
                 });
             } else {
                 let expr = self.expression().unwrap();
@@ -804,7 +804,7 @@ impl<'a> Parser<'a> {
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
                     expr: SqlExpr::Default(expr),
-                    alias,
+                    alias: alias.map(|t| t.extract_identifier().unwrap())
                 });
             }
             if !self.match_next(sym!(Comma)) {
@@ -886,7 +886,7 @@ impl<'a> Parser<'a> {
                 self.expected(sym!(RightParen))?; // closing paren
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                return Ok(SqlCollectionSubquery::Select { expr, alias });
+                return Ok(SqlCollectionSubquery::Select { expr, alias: alias.map(|t| t.extract_identifier().unwrap() ) });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
@@ -919,7 +919,7 @@ impl<'a> Parser<'a> {
                 let identifier = self.expected(Identifier { dollar: false })?.clone();
                 expr = self.arena.alloc_expression(Expr::Get {
                     object: expr,
-                    name: identifier.clone(),
+                    name: identifier.extract_identifier().unwrap(),
                     span: self.get_merged_span(
                         &self.arena.get_expression(expr).get_span(),
                         &identifier.span,
@@ -1057,7 +1057,7 @@ impl<'a> Parser<'a> {
                 span: tok.span,
             })),
             Identifier { dollar: _ } => Ok(self.arena.alloc_expression(Expr::Variable {
-                name: tok.clone(),
+                name: tok.extract_identifier().unwrap(),
                 span: tok.span,
             })),
             _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),

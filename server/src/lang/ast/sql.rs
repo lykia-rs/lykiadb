@@ -1,4 +1,4 @@
-use crate::lang::tokens::token::Token;
+use crate::lang::Identifier;
 use serde::Serialize;
 
 use super::expr::ExprId;
@@ -55,9 +55,9 @@ pub enum SqlOrdering {
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub struct SqlCollectionIdentifier {
-    pub namespace: Option<Token>,
-    pub name: Token,
-    pub alias: Option<Token>,
+    pub namespace: Option<Identifier>,
+    pub name: Identifier,
+    pub alias: Option<Identifier>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -71,9 +71,9 @@ pub enum SqlExpr {
 #[serde(tag = "type")]
 pub enum SqlProjection {
     #[serde(rename = "SqlProjection::All")]
-    All { collection: Option<Token> },
+    All { collection: Option<Identifier> },
     #[serde(rename = "SqlProjection::Expr")]
-    Expr { expr: SqlExpr, alias: Option<Token> },
+    Expr { expr: SqlExpr, alias: Option<Identifier> },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -118,7 +118,7 @@ pub enum SqlCollectionSubquery {
     #[serde(rename = "SqlCollectionSubquery::Collection")]
     Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlCollectionSubquery::Select")]
-    Select { expr: ExprId, alias: Option<Token> },
+    Select { expr: ExprId, alias: Option<Identifier> },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]

@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::rc::Rc;
 
-use crate::lang::tokens::token::{Span, Spanned, Token};
+use crate::lang::{tokens::token::{Span, Spanned}, Identifier};
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
@@ -57,7 +57,7 @@ pub enum Expr {
     },
     #[serde(rename = "Expr::Variable")]
     Variable {
-        name: Token,
+        name: Identifier,
         #[serde(skip)]
         span: Span,
     },
@@ -76,8 +76,8 @@ pub enum Expr {
     },
     #[serde(rename = "Expr::Function")]
     Function {
-        name: Option<Token>,
-        parameters: Vec<Token>,
+        name: Option<Identifier>,
+        parameters: Vec<Identifier>,
         body: Rc<Vec<StmtId>>,
         #[serde(skip)]
         span: Span,
@@ -99,7 +99,7 @@ pub enum Expr {
     },
     #[serde(rename = "Expr::Assignment")]
     Assignment {
-        dst: Token,
+        dst: Identifier,
         expr: ExprId,
         #[serde(skip)]
         span: Span,
@@ -122,14 +122,14 @@ pub enum Expr {
     #[serde(rename = "Expr::Get")]
     Get {
         object: ExprId,
-        name: Token,
+        name: Identifier,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Set")]
     Set {
         object: ExprId,
-        name: Token,
+        name: Identifier,
         value: ExprId,
         #[serde(skip)]
         span: Span,

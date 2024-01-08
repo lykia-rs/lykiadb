@@ -2,8 +2,8 @@ use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokens::token::Token;
-use crate::lang::Literal;
+use crate::lang::tokens::token::Span;
+use crate::lang::{Literal, Identifier};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
@@ -16,7 +16,7 @@ pub struct Resolver {
 
 #[derive(Debug, Clone)]
 pub enum ResolveError {
-    GenericError { token: Token, message: String },
+    GenericError { span: Span, message: String },
 }
 
 impl Resolver {
@@ -54,33 +54,33 @@ impl Resolver {
         self.visit_expr(expr).unwrap();
     }
 
-    pub fn resolve_local(&mut self, expr: ExprId, name: &Token) {
+    pub fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
         for i in (0..self.scopes.len()).rev() {
-            if self.scopes[i].contains_key(name.literal.as_ref().unwrap().as_str().unwrap()) {
+            if self.scopes[i].contains_key(&name.name) {
                 self.locals.insert(expr.0, self.scopes.len() - 1 - i);
                 return;
             }
         }
     }
 
-    pub fn declare(&mut self, name: &Token) {
+    pub fn declare(&mut self, name: &Identifier) {
         if self.scopes.is_empty() {
             return;
         }
         let last = self.scopes.last_mut();
         last.unwrap().insert(
-            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            name.name.to_string(),
             false,
         );
     }
 
-    pub fn define(&mut self, name: &Token) {
+    pub fn define(&mut self, name: &Identifier) {
         if self.scopes.is_empty() {
             return;
         }
         let last = self.scopes.last_mut();
         last.unwrap().insert(
-            name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+            name.name.to_string(),
             true,
         );
     }
@@ -123,13 +123,13 @@ impl VisitorMut<RV, ResolveError> for Resolver {
                 self.resolve_expr(*left);
                 self.resolve_expr(*right);
             }
-            Expr::Variable { name, span: _ } => {
+            Expr::Variable { name, span } => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
-                    let value = last_scope.get(name.literal.as_ref().unwrap().as_str().unwrap());
+                    let value = last_scope.get(&name.name);
                     if value.is_some() && !(*value.unwrap()) {
                         return Err(ResolveError::GenericError {
-                            token: name.clone(),
+                            span: *span,
                             message: "Can't read local variable in its own initializer."
                                 .to_string(),
                         });
@@ -168,8 +168,8 @@ impl VisitorMut<RV, ResolveError> for Resolver {
                 span: _,
             } => {
                 if name.is_some() {
-                    self.declare(name.as_ref().unwrap());
-                    self.define(name.as_ref().unwrap());
+                    self.declare(&name.as_ref().unwrap().clone());
+                    self.define(&name.as_ref().unwrap().clone());
                 }
                 self.begin_scope();
                 for param in parameters {

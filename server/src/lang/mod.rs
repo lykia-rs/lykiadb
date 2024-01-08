@@ -31,3 +31,9 @@ impl Literal {
 }
 
 impl Eq for Literal {}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct Identifier {
+    pub name: String,
+    pub dollar: bool,
+}

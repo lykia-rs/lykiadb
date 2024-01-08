@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::lang::tokens::token::{Span, Spanned, Token};
+use crate::lang::{tokens::token::{Span, Spanned}, Identifier};
 
 use super::expr::ExprId;
 
@@ -37,7 +37,7 @@ pub enum Stmt {
     },
     #[serde(rename = "Stmt::Declaration")]
     Declaration {
-        dst: Token,
+        dst: Identifier,
         expr: ExprId,
         #[serde(skip)]
         span: Span,
