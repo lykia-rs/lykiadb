@@ -359,7 +359,10 @@ impl<'a> Parser<'a> {
 
         Ok(self.arena.alloc_expression(Expr::Function {
             name: token.map(|t| t.extract_identifier().unwrap()),
-            parameters: parameters.iter().map(|t| t.extract_identifier().unwrap()).collect(),
+            parameters: parameters
+                .iter()
+                .map(|t| t.extract_identifier().unwrap())
+                .collect(),
             body: Rc::new(body),
             span: self.get_merged_span(
                 &fun_tok.span,
@@ -383,25 +386,17 @@ impl<'a> Parser<'a> {
                     return Ok(self.arena.alloc_expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
-                        span: self.get_merged_span(
-                            span,
-                            &self.arena.get_expression(value).get_span(),
-                        ),
+                        span: self
+                            .get_merged_span(span, &self.arena.get_expression(value).get_span()),
                     }));
                 }
-                Expr::Get {
-                    object,
-                    name,
-                    span,
-                } => {
+                Expr::Get { object, name, span } => {
                     return Ok(self.arena.alloc_expression(Expr::Set {
                         object: *object,
                         name: name.clone(),
                         value,
-                        span: self.get_merged_span(
-                            span,
-                            &self.arena.get_expression(value).get_span(),
-                        ),
+                        span: self
+                            .get_merged_span(span, &self.arena.get_expression(value).get_span()),
                     }));
                 }
                 _ => {
@@ -513,13 +508,18 @@ impl<'a> Parser<'a> {
                 return Ok(Some(SqlCollectionIdentifier {
                     namespace: Some(self.peek_bw(3).extract_identifier().unwrap()),
                     name: self.peek_bw(1).extract_identifier().unwrap(),
-                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }).map(|t| t.extract_identifier().unwrap()),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false })
+                        .map(|t| t.extract_identifier().unwrap()),
                 }));
             }
             return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
-                name: self.expected(Identifier { dollar: false })?.extract_identifier().unwrap(),
-                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }).map(|t| t.extract_identifier().unwrap()),
+                name: self
+                    .expected(Identifier { dollar: false })?
+                    .extract_identifier()
+                    .unwrap(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false })
+                    .map(|t| t.extract_identifier().unwrap()),
             }));
         }
         Ok(None)
@@ -804,7 +804,7 @@ impl<'a> Parser<'a> {
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
                     expr: SqlExpr::Default(expr),
-                    alias: alias.map(|t| t.extract_identifier().unwrap())
+                    alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
             if !self.match_next(sym!(Comma)) {
@@ -886,7 +886,10 @@ impl<'a> Parser<'a> {
                 self.expected(sym!(RightParen))?; // closing paren
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                return Ok(SqlCollectionSubquery::Select { expr, alias: alias.map(|t| t.extract_identifier().unwrap() ) });
+                return Ok(SqlCollectionSubquery::Select {
+                    expr,
+                    alias: alias.map(|t| t.extract_identifier().unwrap()),
+                });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.

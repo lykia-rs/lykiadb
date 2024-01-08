@@ -200,7 +200,7 @@ impl<'a> Scanner<'a> {
             Ok(Token {
                 tok_type: Identifier {
                     dollar: literal.starts_with('$'),
-                                    },
+                },
                 literal: Some(Str(literal)),
                 lexeme: Some(raw_str),
                 span,

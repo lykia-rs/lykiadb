@@ -1,4 +1,4 @@
-use crate::lang::{Literal, Identifier};
+use crate::lang::{Identifier, Literal};
 use phf::phf_map;
 use serde::Serialize;
 

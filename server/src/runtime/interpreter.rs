@@ -273,23 +273,18 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => self.eval_binary(*left, *right, *operation),
-            Expr::Variable { name, span: _ } => {
-                self.look_up_variable(&name.name, eidx)
-            }
+            Expr::Variable { name, span: _ } => self.look_up_variable(&name.name, eidx),
             Expr::Assignment { dst, expr, span: _ } => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env.borrow_mut().assign_at(
-                        distance_unv,
-                        &dst.name,
-                        evaluated.clone(),
-                    )
+                    self.env
+                        .borrow_mut()
+                        .assign_at(distance_unv, &dst.name, evaluated.clone())
                 } else {
-                    self.root_env.borrow_mut().assign(
-                        dst.name.clone(),
-                        evaluated.clone(),
-                    )
+                    self.root_env
+                        .borrow_mut()
+                        .assign(dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -352,19 +347,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 span: _,
             } => {
                 let fn_name = if name.is_some() {
-                    &name.as_ref()
-                        .unwrap()
-                        .name
+                    &name.as_ref().unwrap().name
                 } else {
                     "<anonymous>"
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
                     body: Rc::clone(body),
-                    parameters: parameters
-                        .iter()
-                        .map(|x| x.name.to_string())
-                        .collect(),
+                    parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
                     closure: self.env.clone(),
                 };
 
@@ -372,12 +362,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env.borrow_mut().declare(
-                        name.as_ref()
-                            .unwrap()
-                            .name.to_string(),
-                        callable.clone(),
-                    );
+                    self.env
+                        .borrow_mut()
+                        .declare(name.as_ref().unwrap().name.to_string(), callable.clone());
                 }
 
                 Ok(callable)
@@ -392,7 +379,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     }
                     Err(HaltReason::Error(InterpretError::PropertyNotFound {
                         span: *span,
-                        property: name.name.to_string()
+                        property: name.name.to_string(),
                     }))
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -412,10 +399,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let evaluated = self.visit_expr(*value)?;
-                    map.borrow_mut().insert(
-                        name.name.to_string(),
-                        evaluated.clone(),
-                    );
+                    map.borrow_mut()
+                        .insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -450,10 +435,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
-                self.env.borrow_mut().declare(
-                    dst.name.to_string(),
-                    evaluated.clone(),
-                );
+                self.env
+                    .borrow_mut()
+                    .declare(dst.name.to_string(), evaluated.clone());
             }
             Stmt::Block {
                 body: stmts,

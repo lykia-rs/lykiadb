@@ -1,7 +1,10 @@
 use serde::Serialize;
 use std::rc::Rc;
 
-use crate::lang::{tokens::token::{Span, Spanned}, Identifier};
+use crate::lang::{
+    tokens::token::{Span, Spanned},
+    Identifier,
+};
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},

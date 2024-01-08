@@ -73,7 +73,10 @@ pub enum SqlProjection {
     #[serde(rename = "SqlProjection::All")]
     All { collection: Option<Identifier> },
     #[serde(rename = "SqlProjection::Expr")]
-    Expr { expr: SqlExpr, alias: Option<Identifier> },
+    Expr {
+        expr: SqlExpr,
+        alias: Option<Identifier>,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -118,7 +121,10 @@ pub enum SqlCollectionSubquery {
     #[serde(rename = "SqlCollectionSubquery::Collection")]
     Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlCollectionSubquery::Select")]
-    Select { expr: ExprId, alias: Option<Identifier> },
+    Select {
+        expr: ExprId,
+        alias: Option<Identifier>,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]

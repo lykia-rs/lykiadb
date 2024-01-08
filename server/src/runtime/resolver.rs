@@ -3,7 +3,7 @@ use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
-use crate::lang::{Literal, Identifier};
+use crate::lang::{Identifier, Literal};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
@@ -68,10 +68,7 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap().insert(
-            name.name.to_string(),
-            false,
-        );
+        last.unwrap().insert(name.name.to_string(), false);
     }
 
     pub fn define(&mut self, name: &Identifier) {
@@ -79,10 +76,7 @@ impl Resolver {
             return;
         }
         let last = self.scopes.last_mut();
-        last.unwrap().insert(
-            name.name.to_string(),
-            true,
-        );
+        last.unwrap().insert(name.name.to_string(), true);
     }
 }
 

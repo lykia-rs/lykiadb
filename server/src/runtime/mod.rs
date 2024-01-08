@@ -49,7 +49,10 @@ impl Runtime {
     pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
         let program = Parser::parse(&tokens)?;
-        println!("{}", serde_json::to_string_pretty(&program.to_json()).unwrap());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&program.to_json()).unwrap()
+        );
         Ok(())
     }
 
