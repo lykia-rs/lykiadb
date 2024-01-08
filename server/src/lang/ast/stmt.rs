@@ -8,7 +8,7 @@ use crate::lang::{
 use super::expr::ExprId;
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum Stmt {
     #[serde(rename = "Stmt::Program")]
     Program {

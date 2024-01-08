@@ -14,7 +14,7 @@ use super::{
 use crate::lang::Literal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum Operation {
     Add,
     Subtract,
@@ -32,7 +32,7 @@ pub enum Operation {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum Expr {
     #[serde(rename = "Expr::Select")]
     Select {

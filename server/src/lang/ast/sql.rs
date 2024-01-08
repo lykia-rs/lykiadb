@@ -6,7 +6,7 @@ use super::expr::ExprId;
 // Enums
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlDistinct {
     #[serde(rename = "SqlDistinct::ImplicitAll")]
     ImplicitAll,
@@ -17,7 +17,7 @@ pub enum SqlDistinct {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlJoinType {
     #[serde(rename = "SqlJoinType::Left")]
     Left,
@@ -30,7 +30,7 @@ pub enum SqlJoinType {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlCompoundOperator {
     #[serde(rename = "SqlCompoundOperator::Union")]
     Union,
@@ -43,7 +43,7 @@ pub enum SqlCompoundOperator {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlOrdering {
     #[serde(rename = "SqlOrdering::Asc")]
     Asc,
@@ -53,7 +53,7 @@ pub enum SqlOrdering {
 
 //
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlCollectionIdentifier {
     pub namespace: Option<Identifier>,
     pub name: Identifier,
@@ -61,14 +61,14 @@ pub struct SqlCollectionIdentifier {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlExpr {
     #[serde(rename = "SqlExpr::Default")]
     Default(ExprId),
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlProjection {
     #[serde(rename = "SqlProjection::All")]
     All { collection: Option<Identifier> },
@@ -80,28 +80,28 @@ pub enum SqlProjection {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlLimitClause {
     pub count: SqlExpr,
     pub offset: Option<SqlExpr>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlOrderByClause {
     pub expr: SqlExpr,
     pub ordering: SqlOrdering,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlSelectCompound {
     pub operator: SqlCompoundOperator,
     pub core: SqlSelectCore,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlJoin {
     pub join_type: SqlJoinType,
     pub subquery: SqlCollectionSubquery,
@@ -109,7 +109,7 @@ pub struct SqlJoin {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlCollectionSubquery {
     #[serde(rename = "SqlCollectionSubquery::Group")]
     Group { values: Vec<SqlCollectionSubquery> },
@@ -128,7 +128,7 @@ pub enum SqlCollectionSubquery {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
@@ -139,7 +139,7 @@ pub struct SqlSelectCore {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlSelect {
     pub core: SqlSelectCore,
     pub compound: Vec<SqlSelectCompound>,
@@ -148,7 +148,7 @@ pub struct SqlSelect {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub enum SqlValues {
     #[serde(rename = "SqlValues::Values")]
     Values { values: Vec<SqlExpr> },
@@ -157,14 +157,14 @@ pub enum SqlValues {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlInsert {
     pub collection: SqlCollectionIdentifier,
     pub values: SqlValues,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlUpdate {
     pub collection: SqlCollectionIdentifier,
     pub assignments: Vec<SqlExpr>,
@@ -172,7 +172,7 @@ pub struct SqlUpdate {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "@type")]
 pub struct SqlDelete {
     pub collection: SqlCollectionIdentifier,
     pub r#where: Option<SqlExpr>,
