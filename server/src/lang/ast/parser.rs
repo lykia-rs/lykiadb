@@ -637,27 +637,6 @@ impl<'a> Parser<'a> {
     fn sql_select_inner(&mut self) -> ParseResult<SqlSelect> {
         self.in_select_depth += 1;
         let core: SqlSelectCore = self.sql_select_core()?;
-        let mut compounds: Vec<SqlSelectCompound> = vec![];
-        while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
-            let op = self.peek_bw(1);
-            let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
-                SqlCompoundOperator::UnionAll
-            } else {
-                match op.tok_type {
-                    SqlKeyword(Union) => SqlCompoundOperator::Union,
-                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
-                    SqlKeyword(Except) => SqlCompoundOperator::Except,
-                    _ => {
-                        return Err(ParseError::UnexpectedToken { token: op.clone() });
-                    }
-                }
-            };
-            let secondary_core = self.sql_select_core()?;
-            compounds.push(SqlSelectCompound {
-                operator: compound_op,
-                core: secondary_core,
-            })
-        }
         let order_by = if self.match_next(skw!(Order)) {
             self.expected(skw!(By))?;
             let mut ordering: Vec<SqlOrderByClause> = vec![];
@@ -713,7 +692,6 @@ impl<'a> Parser<'a> {
 
         Ok(SqlSelect {
             core,
-            compound: compounds,
             order_by,
             limit,
         })
@@ -760,6 +738,28 @@ impl<'a> Parser<'a> {
             None
         };
 
+        let mut compound: Option<Box<SqlSelectCompound>> = None;
+        if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
+            let op = self.peek_bw(1);
+            let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
+                SqlCompoundOperator::UnionAll
+            } else {
+                match op.tok_type {
+                    SqlKeyword(Union) => SqlCompoundOperator::Union,
+                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
+                    SqlKeyword(Except) => SqlCompoundOperator::Except,
+                    _ => {
+                        return Err(ParseError::UnexpectedToken { token: op.clone() });
+                    }
+                }
+            };
+            let secondary_core = self.sql_select_core()?;
+            compound = Some(Box::from(SqlSelectCompound {
+                operator: compound_op,
+                core: secondary_core,
+            }));
+        }
+
         Ok(SqlSelectCore {
             distinct,
             projection,
@@ -767,6 +767,7 @@ impl<'a> Parser<'a> {
             r#where,
             group_by,
             having,
+            compound
         })
     }
 

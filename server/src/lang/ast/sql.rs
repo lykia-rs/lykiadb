@@ -136,13 +136,13 @@ pub struct SqlSelectCore {
     pub r#where: Option<SqlExpr>,
     pub group_by: Option<Vec<SqlExpr>>,
     pub having: Option<SqlExpr>,
+    pub compound: Option<Box<SqlSelectCompound>>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "@type")]
 pub struct SqlSelect {
     pub core: SqlSelectCore,
-    pub compound: Vec<SqlSelectCompound>,
     pub order_by: Option<Vec<SqlOrderByClause>>,
     pub limit: Option<SqlLimitClause>,
 }
