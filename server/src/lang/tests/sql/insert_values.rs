@@ -14,96 +14,72 @@ assert_parsing! {
             name: 'John',
             surname: 'Doe',
             age: 42,
-        });" => {
-            "Program": {
-              "body": [
-                {
-                  "Declaration": {
-                    "dst": {
-                      "lexeme": "$result",
-                      "literal": {
-                        "Str": "$result"
-                      },
-                      "tok_type": {
-                        "Identifier": {
-                          "dollar": true
-                        }
-                      }
+        });" =>         {
+          "@type": "Stmt::Program",
+          "body": [
+            {
+              "@type": "Stmt::Declaration",
+              "dst": {
+                "@type": "Identifier",
+                "dollar": true,
+                "name": "$result"
+              },
+              "expr": {
+                "@type": "Expr::Insert",
+                "command": {
+                  "@type": "SqlInsert",
+                  "collection": {
+                    "@type": "SqlCollectionIdentifier",
+                    "alias": null,
+                    "name": {
+                      "@type": "Identifier",
+                      "dollar": false,
+                      "name": "users"
                     },
-                    "expr": {
-                      "Insert": {
-                        "command": {
-                          "collection": {
-                            "alias": null,
-                            "name": {
-                              "lexeme": "users",
-                              "literal": {
-                                "Str": "users"
-                              },
-                              "tok_type": {
-                                "Identifier": {
-                                  "dollar": false
-                                }
+                    "namespace": {
+                      "@type": "Identifier",
+                      "dollar": false,
+                      "name": "db"
+                    }
+                  },
+                  "values": {
+                    "@type": "SqlValues::Values",
+                    "values": [
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "",
+                        "value": {
+                          "Object": {
+                            "age": {
+                              "@type": "Expr::Literal",
+                              "raw": "42",
+                              "value": {
+                                "Num": 42.0
                               }
                             },
-                            "namespace": {
-                              "lexeme": "db",
-                              "literal": {
-                                "Str": "db"
-                              },
-                              "tok_type": {
-                                "Identifier": {
-                                  "dollar": false
-                                }
+                            "name": {
+                              "@type": "Expr::Literal",
+                              "raw": "John",
+                              "value": {
+                                "Str": "John"
+                              }
+                            },
+                            "surname": {
+                              "@type": "Expr::Literal",
+                              "raw": "Doe",
+                              "value": {
+                                "Str": "Doe"
                               }
                             }
-                          },
-                          "values": {
-                            "Values": [
-                              {
-                                "Default": {
-                                  "Literal": {
-                                    "raw": "",
-                                    "value": {
-                                      "Object": {
-                                        "age": {
-                                          "Literal": {
-                                            "raw": "42",
-                                            "value": {
-                                              "Num": 42.0
-                                            }
-                                          }
-                                        },
-                                        "name": {
-                                          "Literal": {
-                                            "raw": "John",
-                                            "value": {
-                                              "Str": "John"
-                                            }
-                                          }
-                                        },
-                                        "surname": {
-                                          "Literal": {
-                                            "raw": "Doe",
-                                            "value": {
-                                              "Str": "Doe"
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            ]
                           }
                         }
                       }
-                    }
+                    ]
                   }
                 }
-              ]
+              }
             }
-          }
+          ]
+        }
     }
 }
