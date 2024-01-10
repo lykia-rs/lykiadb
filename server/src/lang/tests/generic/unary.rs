@@ -11,17 +11,44 @@ use crate::assert_parsing;
 assert_parsing! {
     minus_1: {
         "-1;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Unary",
-                        "operation": "Subtract",
+                        "@type": "Expr::Unary",
+                        "operation": {
+                            "@type": "Subtract"
+                        },
                         "expr": {
-                            "type": "Expr::Literal",
-                            "value": "Num(1.0)",
+                            "@type": "Expr::Literal",
+                            "value": {
+                                "Num": 1.0
+                            },
                             "raw": "1"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    not_true: {
+        "!true;" => {
+            "@type": "Stmt::Program",
+            "body": [
+                {
+                    "@type": "Stmt::Expression",
+                    "expr": {
+                        "@type": "Expr::Unary",
+                        "operation": {
+                            "@type": "Not"
+                        },
+                        "expr": {
+                            "@type": "Expr::Literal",
+                            "value": {
+                                "Bool": true
+                            },
+                            "raw": "true"
                         }
                     }
                 }

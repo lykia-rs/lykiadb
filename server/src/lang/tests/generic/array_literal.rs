@@ -10,146 +10,161 @@ use crate::assert_parsing;
 #[cfg(test)]
 assert_parsing! {
     empty_expr: {
-        "var $arr = [];" => {
-            "type": "Stmt::Program",
+        "[];" => {
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Declaration",
-                    "variable": "$arr",
-                    "expr": {
-                        "type": "Expr::Literal",
-                        "raw": "",
-                        "value": {
-                            "type": "Array",
-                            "value": []
-                        }
-                    }
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Literal",
+                  "raw": "",
+                  "value": {
+                    "Array": []
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     empty_declare: {
         "var $arr = [];" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Declaration",
-                    "variable": "$arr",
-                    "expr": {
-                        "type": "Expr::Literal",
-                        "raw": "",
-                        "value": {
-                            "type": "Array",
-                            "value": []
-                        }
-                    }
+              {
+                "@type": "Stmt::Declaration",
+                "dst": {
+                  "@type": "Identifier",
+                  "dollar": true,
+                  "name": "$arr"
+                },
+                "expr": {
+                  "@type": "Expr::Literal",
+                  "raw": "",
+                  "value": {
+                    "Array": []
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     plain_declare: {
         "var $arr = [1, 'abc', { \\key: `val` }];" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Declaration",
-                    "variable": "$arr",
-                    "expr": {
-                        "type": "Expr::Literal",
+              {
+                "@type": "Stmt::Declaration",
+                "dst": {
+                  "@type": "Identifier",
+                  "dollar": true,
+                  "name": "$arr"
+                },
+                "expr": {
+                  "@type": "Expr::Literal",
+                  "raw": "",
+                  "value": {
+                    "Array": [
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "1",
+                        "value": {
+                          "Num": 1.0
+                        }
+                      },
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "abc",
+                        "value": {
+                          "Str": "abc"
+                        }
+                      },
+                      {
+                        "@type": "Expr::Literal",
                         "raw": "",
                         "value": {
-                            "type": "Array",
-                            "value": [
-                                {
-                                    "type": "Expr::Literal",
-                                    "value": "Num(1.0)",
-                                    "raw": "1",
-                                },
-                                {
-                                    "type": "Expr::Literal",
-                                    "value": "Str(\"abc\")",
-                                    "raw": "abc",
-                                },
-                                {
-                                  "type": "Expr::Literal",
-                                  "raw": "",
-                                  "value": {
-                                      "type": "Object",
-                                      "value": [
-                                          {
-                                            "key": "key",
-                                            "value": {
-                                              "type": "Expr::Literal",
-                                              "value": "Str(\"val\")",
-                                              "raw": "val",
-                                            }
-                                          },
-                                      ]
-                                  }
+                          "Object": {
+                            "key": {
+                              "@type": "Expr::Literal",
+                              "raw": "val",
+                              "value": {
+                                "Str": "val"
                               }
-                            ]
+                            }
+                          }
                         }
-                    }
+                      }
+                    ]
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     two_dimensional: {
         "var $arr = [[1, 2], [3, 4]];" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Declaration",
-                    "variable": "$arr",
-                    "expr": {
-                        "type": "Expr::Literal",
+              {
+                "@type": "Stmt::Declaration",
+                "dst": {
+                  "@type": "Identifier",
+                  "dollar": true,
+                  "name": "$arr"
+                },
+                "expr": {
+                  "@type": "Expr::Literal",
+                  "raw": "",
+                  "value": {
+                    "Array": [
+                      {
+                        "@type": "Expr::Literal",
                         "raw": "",
                         "value": {
-                            "type": "Array",
-                            "value": [
-                                {
-                                    "type": "Expr::Literal",
-                                    "raw": "",
-                                    "value": {
-                                        "type": "Array",
-                                        "value": [
-                                            {
-                                                "type": "Expr::Literal",
-                                                "value": "Num(1.0)",
-                                                "raw": "1",
-                                            },
-                                            {
-                                                "type": "Expr::Literal",
-                                                "value": "Num(2.0)",
-                                                "raw": "2",
-                                            }
-                                        ]
-                                    }
-                                },
-                                {
-                                    "type": "Expr::Literal",
-                                    "raw": "",
-                                    "value": {
-                                        "type": "Array",
-                                        "value": [
-                                            {
-                                                "type": "Expr::Literal",
-                                                "value": "Num(3.0)",
-                                                "raw": "3",
-                                            },
-                                            {
-                                                "type": "Expr::Literal",
-                                                "value": "Num(4.0)",
-                                                "raw": "4",
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
+                          "Array": [
+                            {
+                              "@type": "Expr::Literal",
+                              "raw": "1",
+                              "value": {
+                                "Num": 1.0
+                              }
+                            },
+                            {
+                              "@type": "Expr::Literal",
+                              "raw": "2",
+                              "value": {
+                                "Num": 2.0
+                              }
+                            }
+                          ]
                         }
-                    }
+                      },
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "",
+                        "value": {
+                          "Array": [
+                            {
+                              "@type": "Expr::Literal",
+                              "raw": "3",
+                              "value": {
+                                "Num": 3.0
+                              }
+                            },
+                            {
+                              "@type": "Expr::Literal",
+                              "raw": "4",
+                              "value": {
+                                "Num": 4.0
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
                 }
+              }
             ]
-        }
+          }
     }
 }

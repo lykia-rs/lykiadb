@@ -11,13 +11,15 @@ use crate::assert_parsing;
 assert_parsing! {
     number_1: {
         "1;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(1.0)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Num": 1.0
+                          },
                         "raw": "1"
                     }
                 }
@@ -26,13 +28,15 @@ assert_parsing! {
     },
     number_floating: {
         "4.0;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(4.0)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Num": 4.0
+                          },
                         "raw": "4.0"
                     }
                 }
@@ -41,13 +45,15 @@ assert_parsing! {
     },
     number_e: {
         "1e2;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(100.0)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Num": 100.0
+                        },
                         "raw": "1e2"
                     }
                 }
@@ -56,13 +62,15 @@ assert_parsing! {
     },
     number_e_floating_0: {
         "1.7976931348623157E+308;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(1.7976931348623157e308)",
+                        "@type": "Expr::Literal",
+                        "value":  {
+                            "Num": 1.7976931348623157e308
+                          },
                         "raw": "1.7976931348623157E+308"
                     }
                 }
@@ -71,13 +79,15 @@ assert_parsing! {
     },
     number_e_floating_1: {
         "1.7976931348623157E308;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(1.7976931348623157e308)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Num": 1.7976931348623157e308
+                          },
                         "raw": "1.7976931348623157E308"
                     }
                 }
@@ -86,13 +96,15 @@ assert_parsing! {
     },
     number_e_floating_2: {
         "1.7976931348623155E-308;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Num(1.7976931348623155e-308)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Num": 1.7976931348623155e-308
+                          },
                         "raw": "1.7976931348623155E-308"
                     }
                 }
