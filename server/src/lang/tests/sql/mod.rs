@@ -1,3 +1,4 @@
+pub mod insert_values;
 pub mod select_complex;
 pub mod select_compound;
 pub mod select_distinct;

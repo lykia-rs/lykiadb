@@ -3,11 +3,13 @@ use rustc_hash::FxHashMap;
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
+use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::ast::{Literal, ParserArena, VisitorMut};
+use crate::lang::Literal;
 
-use crate::lang::token::Span;
-use crate::lang::token::Spanned;
+use crate::lang::ast::visitor::VisitorMut;
+use crate::lang::tokens::token::Span;
+use crate::lang::tokens::token::Spanned;
 use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
@@ -132,7 +134,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: Shared<Environment>,
     root_env: Shared<Environment>,
-    arena: Rc<ParserArena>,
+    arena: Rc<AstArena>,
     loop_stack: LoopStack,
     resolver: Rc<Resolver>,
 }
@@ -140,7 +142,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(
         env: Shared<Environment>,
-        arena: Rc<ParserArena>,
+        arena: Rc<AstArena>,
         resolver: Rc<Resolver>,
     ) -> Interpreter {
         Interpreter {
@@ -251,6 +253,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         let e = a.get_expression(eidx);
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
+            Expr::Insert { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Update { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Delete { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
             Expr::Literal {
                 value,
                 raw: _,
@@ -268,23 +273,18 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => self.eval_binary(*left, *right, *operation),
-            Expr::Variable { name, span: _ } => {
-                self.look_up_variable(name.literal.as_ref().unwrap().as_str().unwrap(), eidx)
-            }
+            Expr::Variable { name, span: _ } => self.look_up_variable(&name.name, eidx),
             Expr::Assignment { dst, expr, span: _ } => {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env.borrow_mut().assign_at(
-                        distance_unv,
-                        dst.literal.as_ref().unwrap().as_str().unwrap(),
-                        evaluated.clone(),
-                    )
+                    self.env
+                        .borrow_mut()
+                        .assign_at(distance_unv, &dst.name, evaluated.clone())
                 } else {
-                    self.root_env.borrow_mut().assign(
-                        dst.literal.as_ref().unwrap().as_str().unwrap().to_string(),
-                        evaluated.clone(),
-                    )
+                    self.root_env
+                        .borrow_mut()
+                        .assign(dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -347,23 +347,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 span: _,
             } => {
                 let fn_name = if name.is_some() {
-                    name.as_ref()
-                        .unwrap()
-                        .literal
-                        .as_ref()
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
+                    &name.as_ref().unwrap().name
                 } else {
                     "<anonymous>"
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
                     body: Rc::clone(body),
-                    parameters: parameters
-                        .iter()
-                        .map(|x| x.literal.as_ref().unwrap().as_str().unwrap().to_string())
-                        .collect(),
+                    parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
                     closure: self.env.clone(),
                 };
 
@@ -371,17 +362,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env.borrow_mut().declare(
-                        name.as_ref()
-                            .unwrap()
-                            .literal
-                            .as_ref()
-                            .unwrap()
-                            .as_str()
-                            .unwrap()
-                            .to_string(),
-                        callable.clone(),
-                    );
+                    self.env
+                        .borrow_mut()
+                        .declare(name.as_ref().unwrap().name.to_string(), callable.clone());
                 }
 
                 Ok(callable)
@@ -390,13 +373,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let borrowed = map.borrow();
-                    let v = borrowed.get(name.literal.as_ref().unwrap().as_str().unwrap());
+                    let v = borrowed.get(&name.name.clone());
                     if v.is_some() {
                         return Ok(v.unwrap().clone());
                     }
                     Err(HaltReason::Error(InterpretError::PropertyNotFound {
                         span: *span,
-                        property: name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
+                        property: name.name.to_string(),
                     }))
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -416,10 +399,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let evaluated = self.visit_expr(*value)?;
-                    map.borrow_mut().insert(
-                        name.literal.as_ref().unwrap().as_str().unwrap().to_string(),
-                        evaluated.clone(),
-                    );
+                    map.borrow_mut()
+                        .insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -454,10 +435,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
-                self.env.borrow_mut().declare(
-                    dst.literal.as_ref().unwrap().as_str().unwrap().to_string(),
-                    evaluated.clone(),
-                );
+                self.env
+                    .borrow_mut()
+                    .declare(dst.name.to_string(), evaluated.clone());
             }
             Stmt::Block {
                 body: stmts,

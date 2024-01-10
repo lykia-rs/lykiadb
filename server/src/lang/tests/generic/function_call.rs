@@ -11,26 +11,32 @@ use crate::assert_parsing;
 assert_parsing! {
     print_50: {
         "print(50);" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Call",
-                        "callee": {
-                            "type": "Expr::Variable",
-                            "name": "print"
-                        },
-                        "args": [
-                            {
-                                "type": "Expr::Literal",
-                                "value": "Num(50.0)",
-                                "raw": "50"
-                            }
-                        ]
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Call",
+                  "args": [
+                    {
+                      "@type": "Expr::Literal",
+                      "raw": "50",
+                      "value": {
+                        "Num": 50.0
+                      }
                     }
+                  ],
+                  "callee": {
+                    "@type": "Expr::Variable",
+                    "name": {
+                      "@type": "Identifier",
+                      "dollar": false,
+                      "name": "print"
+                    }
+                  }
                 }
+              }
             ]
-        }
+          }
     }
 }

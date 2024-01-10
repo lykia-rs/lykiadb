@@ -1,29 +1,18 @@
-use super::ast::expr::{Expr, ExprId, Operation};
-use super::ast::sql::{
-    SqlCollectionSubquery, SqlCompoundOperator, SqlDistinct, SqlExpr, SqlJoin, SqlJoinType,
-    SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound,
-    SqlSelectCore,
+use super::expr::{Expr, ExprId, Operation};
+use super::program::{AstArena, Program};
+use super::sql::{
+    SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
+    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
+    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
-use super::ast::stmt::{Stmt, StmtId};
-use super::ast::{Literal, ParserArena};
-use super::token::SqlKeyword;
-use crate::lang::token::{
-    Keyword::*, Span, Spanned, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
+use super::stmt::{Stmt, StmtId};
+use crate::lang::tokens::token::{
+    Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
+use crate::lang::Literal;
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
-
-pub struct Program {
-    pub root: StmtId,
-    pub arena: Rc<ParserArena>,
-}
-
-impl Program {
-    pub fn new(root: StmtId, arena: Rc<ParserArena>) -> Program {
-        Program { root, arena }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum ParseError {
@@ -43,7 +32,7 @@ macro_rules! binary {
             let left = current_expr;
             let right = $self.$builder()?;
 
-            current_expr = $self.arena.expression(Expr::Binary {
+            current_expr = $self.arena.alloc_expression(Expr::Binary {
                 left,
                 operation: $self.tok_type_to_op(token.tok_type),
                 right,
@@ -83,8 +72,8 @@ macro_rules! optional_with_expected {
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
-    arena: ParserArena,
-    in_sql_depth: usize,
+    arena: AstArena,
+    in_select_depth: usize,
     in_array_depth: usize,
     in_object_depth: usize,
 }
@@ -94,12 +83,12 @@ impl<'a> Parser<'a> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
-        let arena = ParserArena::new();
+        let arena = AstArena::new();
         let mut parser = Parser {
             tokens,
             current: 0,
             arena,
-            in_sql_depth: 0,
+            in_select_depth: 0,
             in_array_depth: 0,
             in_object_depth: 0,
         };
@@ -113,7 +102,7 @@ impl<'a> Parser<'a> {
             statements.push(self.declaration()?);
         }
         self.expected(Eof)?;
-        Ok(self.arena.statement(Stmt::Program {
+        Ok(self.arena.alloc_statement(Stmt::Program {
             body: statements.clone(),
             span: self.get_merged_span(
                 self.arena.get_statement(statements[0]),
@@ -155,14 +144,14 @@ impl<'a> Parser<'a> {
 
         if self.match_next(kw!(Else)) {
             let else_branch = self.statement()?;
-            return Ok(self.arena.statement(Stmt::If {
+            return Ok(self.arena.alloc_statement(Stmt::If {
                 condition,
                 body: if_branch,
                 r#else_body: Some(else_branch),
                 span: self.get_merged_span(&if_tok.span, self.arena.get_statement(else_branch)),
             }));
         }
-        Ok(self.arena.statement(Stmt::If {
+        Ok(self.arena.alloc_statement(Stmt::If {
             condition,
             body: if_branch,
             r#else_body: None,
@@ -175,7 +164,7 @@ impl<'a> Parser<'a> {
         self.expected(sym!(LeftBrace))?;
         let inner_stmt = self.block()?;
         self.match_next(sym!(Semicolon));
-        Ok(self.arena.statement(Stmt::Loop {
+        Ok(self.arena.alloc_statement(Stmt::Loop {
             condition: None,
             body: inner_stmt,
             post: None,
@@ -192,7 +181,7 @@ impl<'a> Parser<'a> {
         let inner_stmt = self.block()?;
         self.match_next(sym!(Semicolon));
 
-        Ok(self.arena.statement(Stmt::Loop {
+        Ok(self.arena.alloc_statement(Stmt::Loop {
             condition: Some(condition),
             body: inner_stmt,
             post: None,
@@ -209,13 +198,13 @@ impl<'a> Parser<'a> {
         self.expected(sym!(Semicolon))?;
 
         if expr.is_none() {
-            return Ok(self.arena.statement(Stmt::Return {
+            return Ok(self.arena.alloc_statement(Stmt::Return {
                 span: ret_tok.span,
                 expr: None,
             }));
         }
 
-        Ok(self.arena.statement(Stmt::Return {
+        Ok(self.arena.alloc_statement(Stmt::Return {
             span: self.get_merged_span(&ret_tok.span, self.arena.get_expression(expr.unwrap())),
             expr,
         }))
@@ -244,7 +233,7 @@ impl<'a> Parser<'a> {
         } else {
             let wrapped = self.expression()?;
             self.expected(sym!(RightParen))?;
-            Some(self.arena.statement(Stmt::Expression {
+            Some(self.arena.alloc_statement(Stmt::Expression {
                 expr: wrapped,
                 span: self.arena.get_expression(wrapped).get_span(),
             }))
@@ -255,20 +244,20 @@ impl<'a> Parser<'a> {
         self.match_next(sym!(Semicolon));
 
         if initializer.is_none() {
-            return Ok(self.arena.statement(Stmt::Loop {
+            return Ok(self.arena.alloc_statement(Stmt::Loop {
                 condition,
                 body: inner_stmt,
                 post: increment,
                 span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
             }));
         }
-        let loop_stmt = self.arena.statement(Stmt::Loop {
+        let loop_stmt = self.arena.alloc_statement(Stmt::Loop {
             condition,
             body: inner_stmt,
             post: increment,
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         });
-        Ok(self.arena.statement(Stmt::Block {
+        Ok(self.arena.alloc_statement(Stmt::Block {
             body: vec![initializer.unwrap(), loop_stmt],
             span: self.get_merged_span(&for_tok.span, self.arena.get_statement(inner_stmt)),
         }))
@@ -287,7 +276,7 @@ impl<'a> Parser<'a> {
 
         self.expected(sym!(RightBrace))?;
 
-        Ok(self.arena.statement(Stmt::Block {
+        Ok(self.arena.alloc_statement(Stmt::Block {
             body: statements.clone(),
             span: self.get_merged_span(&opening_brace.span, &closing_brace.span),
         }))
@@ -296,19 +285,21 @@ impl<'a> Parser<'a> {
     fn break_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Break { span: tok.span }))
+        Ok(self.arena.alloc_statement(Stmt::Break { span: tok.span }))
     }
 
     fn continue_statement(&mut self) -> ParseResult<StmtId> {
         let tok = self.peek_bw(1);
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Continue { span: tok.span }))
+        Ok(self
+            .arena
+            .alloc_statement(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self) -> ParseResult<StmtId> {
         let expr = self.expression()?;
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Expression {
+        Ok(self.arena.alloc_statement(Stmt::Expression {
             expr,
             span: self.arena.get_expression(expr).get_span(),
         }))
@@ -319,15 +310,15 @@ impl<'a> Parser<'a> {
         let ident = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => self.arena.expression(Expr::Literal {
+            false => self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: self.get_merged_span(&var_tok.span, &ident.span),
             }),
         };
         self.expected(sym!(Semicolon))?;
-        Ok(self.arena.statement(Stmt::Declaration {
-            dst: ident,
+        Ok(self.arena.alloc_statement(Stmt::Declaration {
+            dst: ident.extract_identifier().unwrap(),
             expr,
             span: self.get_merged_span(&var_tok.span, &self.arena.get_expression(expr).get_span()),
         }))
@@ -366,9 +357,12 @@ impl<'a> Parser<'a> {
             _ => vec![stmt_idx],
         };
 
-        Ok(self.arena.expression(Expr::Function {
-            name: token,
-            parameters,
+        Ok(self.arena.alloc_expression(Expr::Function {
+            name: token.map(|t| t.extract_identifier().unwrap()),
+            parameters: parameters
+                .iter()
+                .map(|t| t.extract_identifier().unwrap())
+                .collect(),
             body: Rc::new(body),
             span: self.get_merged_span(
                 &fun_tok.span,
@@ -388,29 +382,21 @@ impl<'a> Parser<'a> {
         if self.match_next(sym!(Equal)) {
             let value = self.assignment()?;
             match self.arena.get_expression(expr) {
-                Expr::Variable { name, span: _ } => {
-                    return Ok(self.arena.expression(Expr::Assignment {
+                Expr::Variable { name, span } => {
+                    return Ok(self.arena.alloc_expression(Expr::Assignment {
                         dst: name.clone(),
                         expr: value,
-                        span: self.get_merged_span(
-                            &name.span,
-                            &self.arena.get_expression(value).get_span(),
-                        ),
+                        span: self
+                            .get_merged_span(span, &self.arena.get_expression(value).get_span()),
                     }));
                 }
-                Expr::Get {
-                    object,
-                    name,
-                    span: _,
-                } => {
-                    return Ok(self.arena.expression(Expr::Set {
+                Expr::Get { object, name, span } => {
+                    return Ok(self.arena.alloc_expression(Expr::Set {
                         object: *object,
                         name: name.clone(),
                         value,
-                        span: self.get_merged_span(
-                            &name.span,
-                            &self.arena.get_expression(value).get_span(),
-                        ),
+                        span: self
+                            .get_merged_span(span, &self.arena.get_expression(value).get_span()),
                     }));
                 }
                 _ => {
@@ -425,7 +411,7 @@ impl<'a> Parser<'a> {
 
     fn or(&mut self) -> ParseResult<ExprId> {
         let expr = self.and()?;
-        let operator = if self.in_sql_depth > 0 {
+        let operator = if self.in_select_depth > 0 {
             skw!(Or)
         } else {
             sym!(LogicalOr)
@@ -433,7 +419,7 @@ impl<'a> Parser<'a> {
         if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.and()?;
-            return Ok(self.arena.expression(Expr::Logical {
+            return Ok(self.arena.alloc_expression(Expr::Logical {
                 left: expr,
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
@@ -448,7 +434,7 @@ impl<'a> Parser<'a> {
 
     fn and(&mut self) -> ParseResult<ExprId> {
         let expr = self.equality()?;
-        let operator = if self.in_sql_depth > 0 {
+        let operator = if self.in_select_depth > 0 {
             skw!(And)
         } else {
             sym!(LogicalAnd)
@@ -456,7 +442,7 @@ impl<'a> Parser<'a> {
         if self.match_next(operator) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
-            return Ok(self.arena.expression(Expr::Logical {
+            return Ok(self.arena.alloc_expression(Expr::Logical {
                 left: expr,
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right,
@@ -470,7 +456,7 @@ impl<'a> Parser<'a> {
     }
 
     fn equality(&mut self) -> ParseResult<ExprId> {
-        if self.in_sql_depth > 0 {
+        if self.in_select_depth > 0 {
             binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
         } else {
             binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
@@ -502,43 +488,155 @@ impl<'a> Parser<'a> {
         if self.match_next_one_of(&[sym!(Minus), sym!(Bang)]) {
             let token = (*self.peek_bw(1)).clone();
             let unary = self.unary()?;
-            return Ok(self.arena.expression(Expr::Unary {
+            return Ok(self.arena.alloc_expression(Expr::Unary {
                 operation: self.tok_type_to_op(token.tok_type),
                 expr: unary,
                 span: self
                     .get_merged_span(&token.span, &self.arena.get_expression(unary).get_span()),
             }));
         }
-        self.sql_select()
+        self.sql_insert()
     }
 
-    fn sql_select(&mut self) -> ParseResult<ExprId> {
-        if !self.cmp_tok(&skw!(Select)) {
-            return self.call();
+    fn sql_collection_identifier(&mut self) -> ParseResult<Option<SqlCollectionIdentifier>> {
+        if self.cmp_tok(&Identifier { dollar: false }) {
+            if self.match_next_all_of(&[
+                Identifier { dollar: false },
+                sym!(Dot),
+                Identifier { dollar: false },
+            ]) {
+                return Ok(Some(SqlCollectionIdentifier {
+                    namespace: Some(self.peek_bw(3).extract_identifier().unwrap()),
+                    name: self.peek_bw(1).extract_identifier().unwrap(),
+                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false })
+                        .map(|t| t.extract_identifier().unwrap()),
+                }));
+            }
+            return Ok(Some(SqlCollectionIdentifier {
+                namespace: None,
+                name: self
+                    .expected(Identifier { dollar: false })?
+                    .extract_identifier()
+                    .unwrap(),
+                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false })
+                    .map(|t| t.extract_identifier().unwrap()),
+            }));
         }
-        self.in_sql_depth += 1;
-        let core: SqlSelectCore = self.sql_select_core()?;
-        let mut compounds: Vec<SqlSelectCompound> = vec![];
-        while self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
-            let op = self.peek_bw(1);
-            let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
-                SqlCompoundOperator::UnionAll
-            } else {
-                match op.tok_type {
-                    SqlKeyword(Union) => SqlCompoundOperator::Union,
-                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
-                    SqlKeyword(Except) => SqlCompoundOperator::Except,
-                    _ => {
-                        return Err(ParseError::UnexpectedToken { token: op.clone() });
+        Ok(None)
+    }
+
+    fn sql_insert(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Insert)) {
+            return self.sql_update();
+        }
+
+        self.expected(skw!(Into))?;
+
+        if let Some(collection) = self.sql_collection_identifier()? {
+            let values = if self.cmp_tok(&skw!(Select)) {
+                let select_inner = self.sql_select_inner();
+
+                if select_inner.is_err() {
+                    return Err(select_inner.err().unwrap());
+                }
+
+                SqlValues::Select(select_inner.unwrap())
+            } else if self.match_next(skw!(Values)) {
+                self.expected(sym!(LeftParen))?;
+                let mut values: Vec<SqlExpr> = vec![];
+                loop {
+                    let value = self.expression()?;
+                    values.push(SqlExpr::Default(value));
+                    if !self.match_next(sym!(Comma)) {
+                        break;
                     }
                 }
+                self.expected(sym!(RightParen))?;
+                SqlValues::Values { values }
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    token: self.peek_bw(0).clone(),
+                });
             };
-            let secondary_core = self.sql_select_core()?;
-            compounds.push(SqlSelectCompound {
-                operator: compound_op,
-                core: secondary_core,
+            Ok(self.arena.alloc_expression(Expr::Insert {
+                command: SqlInsert { collection, values },
+                span: Span::default(),
+            }))
+        } else {
+            Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
             })
         }
+    }
+
+    fn sql_update(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Update)) {
+            return self.sql_delete();
+        }
+
+        let collection = self.sql_collection_identifier()?;
+
+        self.expected(skw!(Set))?;
+
+        let mut assignments: Vec<SqlExpr> = vec![];
+
+        loop {
+            self.expected(Identifier { dollar: false })?;
+            self.expected(sym!(Equal))?;
+            let value = self.expression()?;
+            assignments.push(SqlExpr::Default(value));
+            if !self.match_next(sym!(Comma)) {
+                break;
+            }
+        }
+
+        let r#where = if self.match_next(skw!(Where)) {
+            Some(SqlExpr::Default(self.expression()?))
+        } else {
+            None
+        };
+
+        Ok(self.arena.alloc_expression(Expr::Update {
+            command: SqlUpdate {
+                collection: collection.unwrap(),
+                assignments,
+                r#where,
+            },
+            span: Span::default(),
+        }))
+    }
+
+    fn sql_delete(&mut self) -> ParseResult<ExprId> {
+        if !self.match_next(skw!(Delete)) {
+            return self.sql_select();
+        }
+
+        self.expected(skw!(From))?;
+
+        if let Some(collection) = self.sql_collection_identifier()? {
+            let r#where = if self.match_next(skw!(Where)) {
+                Some(SqlExpr::Default(self.expression()?))
+            } else {
+                None
+            };
+
+            Ok(self.arena.alloc_expression(Expr::Delete {
+                command: SqlDelete {
+                    collection,
+                    r#where,
+                },
+                span: Span::default(),
+            }))
+        } else {
+            Err(ParseError::UnexpectedToken {
+                token: self.peek_bw(0).clone(),
+            })
+        }
+    }
+
+    fn sql_select_inner(&mut self) -> ParseResult<SqlSelect> {
+        self.in_select_depth += 1;
+        let core: SqlSelectCore = self.sql_select_core()?;
         let order_by = if self.match_next(skw!(Order)) {
             self.expected(skw!(By))?;
             let mut ordering: Vec<SqlOrderByClause> = vec![];
@@ -590,16 +688,33 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.in_sql_depth -= 1;
+        self.in_select_depth -= 1;
 
-        Ok(self.arena.expression(Expr::Select {
+        Ok(SqlSelect {
+            core,
+            order_by,
+            limit,
+        })
+    }
+
+    fn sql_select(&mut self) -> ParseResult<ExprId> {
+        if !self.cmp_tok(&skw!(Select)) {
+            return self.call();
+        }
+
+        let query: ParseResult<SqlSelect> = {
+            let select_inner = self.sql_select_inner();
+
+            if select_inner.is_err() {
+                return Err(select_inner.err().unwrap());
+            }
+
+            Ok(select_inner.unwrap())
+        };
+
+        Ok(self.arena.alloc_expression(Expr::Select {
             span: Span::default(),
-            query: SqlSelect {
-                core,
-                compound: compounds,
-                order_by,
-                limit,
-            },
+            query: query.unwrap(),
         }))
     }
 
@@ -623,6 +738,29 @@ impl<'a> Parser<'a> {
             None
         };
 
+        let compound: Option<Box<SqlSelectCompound>> =
+            if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
+                let op = self.peek_bw(1);
+                let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
+                    SqlCompoundOperator::UnionAll
+                } else {
+                    match op.tok_type {
+                        SqlKeyword(Union) => SqlCompoundOperator::Union,
+                        SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
+                        SqlKeyword(Except) => SqlCompoundOperator::Except,
+                        _ => {
+                            return Err(ParseError::UnexpectedToken { token: op.clone() });
+                        }
+                    }
+                };
+                Some(Box::from(SqlSelectCompound {
+                    operator: compound_op,
+                    core: self.sql_select_core()?,
+                }))
+            } else {
+                None
+            };
+
         Ok(SqlSelectCore {
             distinct,
             projection,
@@ -630,6 +768,7 @@ impl<'a> Parser<'a> {
             r#where,
             group_by,
             having,
+            compound,
         })
     }
 
@@ -659,7 +798,7 @@ impl<'a> Parser<'a> {
             } else if self.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
             {
                 projections.push(SqlProjection::All {
-                    collection: Some(self.peek_bw(3).clone()),
+                    collection: Some(self.peek_bw(3).extract_identifier().unwrap()),
                 });
             } else {
                 let expr = self.expression().unwrap();
@@ -667,7 +806,7 @@ impl<'a> Parser<'a> {
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
                     expr: SqlExpr::Default(expr),
-                    alias,
+                    alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
             if !self.match_next(sym!(Comma)) {
@@ -688,54 +827,51 @@ impl<'a> Parser<'a> {
         let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
 
         loop {
-            let subquery = self.sql_select_subquery_collection()?;
-            subquery_group.push(subquery);
+            let left = self.sql_select_subquery_collection()?;
+            subquery_group.push(left);
+            while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+                // If the next token is a join keyword, then it must be a join subquery
+                let peek = self.peek_bw(1);
+                let join_type = if peek.tok_type == skw!(Inner) {
+                    self.expected(skw!(Join))?;
+                    SqlJoinType::Inner
+                } else if peek.tok_type == skw!(Left) {
+                    optional_with_expected!(self, skw!(Outer), skw!(Join));
+                    SqlJoinType::Left
+                } else if peek.tok_type == skw!(Right) {
+                    optional_with_expected!(self, skw!(Outer), skw!(Join));
+                    SqlJoinType::Right
+                } else if peek.tok_type == skw!(Join) {
+                    SqlJoinType::Inner
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        token: peek.clone(),
+                    });
+                };
+                let right = self.sql_select_subquery_collection()?;
+                let join_constraint: Option<SqlExpr> = if self.match_next(skw!(On)) {
+                    Some(SqlExpr::Default(self.expression()?))
+                } else {
+                    None
+                };
+
+                let left_popped = subquery_group.pop().unwrap();
+
+                subquery_group.push(SqlCollectionSubquery::Join {
+                    left: Box::new(left_popped),
+                    right: Box::new(right),
+                    join_type,
+                    constraint: join_constraint,
+                });
+            }
             if !self.match_next(sym!(Comma)) {
                 break;
             }
         }
 
-        let mut joins: Vec<SqlJoin> = vec![];
-
-        while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
-            // If the next token is a join keyword, then it must be a join subquery
-            let peek = self.peek_bw(1);
-            let join_type = if peek.tok_type == skw!(Inner) {
-                self.expected(skw!(Join))?;
-                SqlJoinType::Inner
-            } else if peek.tok_type == skw!(Left) {
-                optional_with_expected!(self, skw!(Outer), skw!(Join));
-                SqlJoinType::Left
-            } else if peek.tok_type == skw!(Right) {
-                optional_with_expected!(self, skw!(Outer), skw!(Join));
-                SqlJoinType::Right
-            } else if peek.tok_type == skw!(Join) {
-                SqlJoinType::Inner
-            } else {
-                return Err(ParseError::UnexpectedToken {
-                    token: peek.clone(),
-                });
-            };
-            let subquery = self.sql_select_subquery_collection()?;
-            let mut join_constraint: Option<SqlExpr> = None;
-            if self.match_next(skw!(On)) {
-                join_constraint = Some(SqlExpr::Default(self.expression()?));
-            }
-            joins.push(SqlJoin {
-                join_type,
-                subquery,
-                join_constraint,
-            });
-        }
-
-        if !joins.is_empty() {
-            return Ok(SqlCollectionSubquery::Join(
-                Box::new(SqlCollectionSubquery::Group(subquery_group)),
-                joins,
-            ));
-        }
-
-        return Ok(SqlCollectionSubquery::Group(subquery_group));
+        return Ok(SqlCollectionSubquery::Group {
+            values: subquery_group,
+        });
     }
 
     fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
@@ -745,30 +881,17 @@ impl<'a> Parser<'a> {
                 self.expected(sym!(RightParen))?; // closing paren
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                return Ok(SqlCollectionSubquery::Select { expr, alias });
+                return Ok(SqlCollectionSubquery::Select {
+                    expr,
+                    alias: alias.map(|t| t.extract_identifier().unwrap()),
+                });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             return Ok(parsed);
-        } else if self.cmp_tok(&Identifier { dollar: false }) {
-            // If the next token is not a left paren, then it must be a collection getter
-            if self.match_next_all_of(&[
-                Identifier { dollar: false },
-                sym!(Dot),
-                Identifier { dollar: false },
-            ]) {
-                return Ok(SqlCollectionSubquery::Collection {
-                    namespace: Some(self.peek_bw(3).clone()),
-                    name: self.peek_bw(1).clone(),
-                    alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-                });
-            }
-            return Ok(SqlCollectionSubquery::Collection {
-                namespace: None,
-                name: self.expected(Identifier { dollar: false })?.clone(),
-                alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false }),
-            });
+        } else if let Some(collection) = self.sql_collection_identifier()? {
+            return Ok(SqlCollectionSubquery::Collection(collection));
         } else {
             Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
@@ -792,9 +915,9 @@ impl<'a> Parser<'a> {
                 expr = self.finish_call(expr)?;
             } else if self.match_next(sym!(Dot)) {
                 let identifier = self.expected(Identifier { dollar: false })?.clone();
-                expr = self.arena.expression(Expr::Get {
+                expr = self.arena.alloc_expression(Expr::Get {
                     object: expr,
-                    name: identifier.clone(),
+                    name: identifier.extract_identifier().unwrap(),
                     span: self.get_merged_span(
                         &self.arena.get_expression(expr).get_span(),
                         &identifier.span,
@@ -820,7 +943,7 @@ impl<'a> Parser<'a> {
 
         let paren = self.expected(sym!(RightParen))?.clone();
 
-        Ok(self.arena.expression(Expr::Call {
+        Ok(self.arena.alloc_expression(Expr::Call {
             callee,
             span: self.get_merged_span(&self.arena.get_expression(callee).get_span(), &paren.span),
             args: arguments,
@@ -866,7 +989,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightBrace))?;
         self.in_object_depth -= 1;
-        Ok(self.arena.expression(Expr::Literal {
+        Ok(self.arena.alloc_expression(Expr::Literal {
             value: Literal::Object(obj_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
@@ -885,7 +1008,7 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightBracket))?;
         self.in_array_depth -= 1;
-        Ok(self.arena.expression(Expr::Literal {
+        Ok(self.arena.alloc_expression(Expr::Literal {
             value: Literal::Array(array_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
@@ -901,38 +1024,38 @@ impl<'a> Parser<'a> {
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
                 self.expected(sym!(RightParen))?;
-                Ok(self.arena.expression(Expr::Grouping {
+                Ok(self.arena.alloc_expression(Expr::Grouping {
                     span: self.arena.get_expression(expr).get_span(),
                     expr,
                 }))
             }
-            True => Ok(self.arena.expression(Expr::Literal {
+            True => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
                 span: tok.span,
             })),
-            False => Ok(self.arena.expression(Expr::Literal {
+            False => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
                 span: tok.span,
             })),
-            TokenType::Null => Ok(self.arena.expression(Expr::Literal {
+            TokenType::Null => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Null,
                 raw: "null".to_string(),
                 span: tok.span,
             })),
-            TokenType::Undefined => Ok(self.arena.expression(Expr::Literal {
+            TokenType::Undefined => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: tok.span,
             })),
-            Str | Num => Ok(self.arena.expression(Expr::Literal {
+            Str | Num => Ok(self.arena.alloc_expression(Expr::Literal {
                 value: tok.literal.clone().unwrap(),
                 raw: tok.lexeme.clone().unwrap(),
                 span: tok.span,
             })),
-            Identifier { dollar: _ } => Ok(self.arena.expression(Expr::Variable {
-                name: tok.clone(),
+            Identifier { dollar: _ } => Ok(self.arena.alloc_expression(Expr::Variable {
+                name: tok.extract_identifier().unwrap(),
                 span: tok.span,
             })),
             _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),
@@ -1030,7 +1153,7 @@ impl<'a> Parser<'a> {
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {
-                    if self.in_sql_depth > 0 {
+                    if self.in_select_depth > 0 {
                         Operation::IsEqual
                     } else {
                         unreachable!()

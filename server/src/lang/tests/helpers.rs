@@ -5,7 +5,13 @@ use assert_json_diff::assert_json_eq;
 use serde_json::Value;
 
 #[cfg(test)]
-use crate::lang::{parser::Parser, scanner::Scanner, token::Token};
+use crate::lang::tokens::token::Token;
+
+#[cfg(test)]
+use crate::lang::tokens::scanner::Scanner;
+
+#[cfg(test)]
+use crate::lang::ast::parser::Parser;
 
 #[macro_export]
 macro_rules! lexm {
@@ -21,11 +27,9 @@ pub fn get_tokens(source: &str) -> Vec<Token> {
 
 #[cfg(test)]
 pub fn compare_parsed_to_expected(source: &str, expected: Value) {
-    use crate::lang::serializer::ProgramSerializer;
-
     let tokens = get_tokens(source);
-    let parsed = Parser::parse(&tokens).unwrap();
-    let actual = ProgramSerializer::new(&parsed).to_json();
+    let program = Parser::parse(&tokens).unwrap();
+    let actual = program.to_json();
     assert_json_eq!(actual, expected);
 }
 

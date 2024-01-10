@@ -2,10 +2,11 @@ use self::error::{report_error, ExecutionError};
 use self::interpreter::HaltReason;
 use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::VisitorMut;
-use crate::lang::parser::{ParseError, Parser};
-use crate::lang::scanner::Scanner;
-use crate::lang::serializer::ProgramSerializer;
+use crate::lang::ast::visitor::VisitorMut;
+
+use crate::lang::ast::parser::{ParseError, Parser};
+use crate::lang::ast::program::AstArena;
+use crate::lang::tokens::scanner::Scanner;
 use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
@@ -48,7 +49,10 @@ impl Runtime {
     pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
         let tokens = Scanner::scan(source).unwrap();
         let program = Parser::parse(&tokens)?;
-        println!("{}", ProgramSerializer::new(&program).to_string());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&program.to_json()).unwrap()
+        );
         Ok(())
     }
 
@@ -66,7 +70,7 @@ impl Runtime {
             return Err(error);
         }
         let program_unw = program.unwrap();
-        let arena = Rc::clone(&program_unw.arena);
+        let arena: Rc<AstArena> = Rc::clone(&program_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);

@@ -1,11 +1,20 @@
+use serde::Serialize;
 use std::rc::Rc;
 
-use serde::{Deserialize, Serialize};
+use crate::lang::{
+    tokens::token::{Span, Spanned},
+    Identifier,
+};
 
-use super::{sql::SqlSelect, stmt::StmtId, Literal};
-use crate::lang::token::{Span, Spanned, Token};
+use super::{
+    sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
+    stmt::StmtId,
+};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+use crate::lang::Literal;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "@type")]
 pub enum Operation {
     Add,
     Subtract,
@@ -22,67 +31,110 @@ pub enum Operation {
     Not,
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "@type")]
 pub enum Expr {
+    #[serde(rename = "Expr::Select")]
     Select {
         query: SqlSelect,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Insert")]
+    Insert {
+        command: SqlInsert,
+        #[serde(skip)]
+        span: Span,
+    },
+    #[serde(rename = "Expr::Update")]
+    Update {
+        command: SqlUpdate,
+        #[serde(skip)]
+        span: Span,
+    },
+    #[serde(rename = "Expr::Delete")]
+    Delete {
+        command: SqlDelete,
+        #[serde(skip)]
+        span: Span,
+    },
+    #[serde(rename = "Expr::Variable")]
     Variable {
-        name: Token,
+        name: Identifier,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Grouping")]
     Grouping {
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Literal")]
     Literal {
         value: Literal,
         raw: String,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Function")]
     Function {
-        name: Option<Token>,
-        parameters: Vec<Token>,
+        name: Option<Identifier>,
+        parameters: Vec<Identifier>,
         body: Rc<Vec<StmtId>>,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Binary")]
     Binary {
         left: ExprId,
         operation: Operation,
         right: ExprId,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Unary")]
     Unary {
         operation: Operation,
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Assignment")]
     Assignment {
-        dst: Token,
+        dst: Identifier,
         expr: ExprId,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Logical")]
     Logical {
         left: ExprId,
         operation: Operation,
         right: ExprId,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Call")]
     Call {
         callee: ExprId,
         args: Vec<ExprId>,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Get")]
     Get {
         object: ExprId,
-        name: Token,
+        name: Identifier,
+        #[serde(skip)]
         span: Span,
     },
+    #[serde(rename = "Expr::Set")]
     Set {
         object: ExprId,
-        name: Token,
+        name: Identifier,
         value: ExprId,
+        #[serde(skip)]
         span: Span,
     },
 }
@@ -91,6 +143,9 @@ impl Spanned for Expr {
     fn get_span(&self) -> Span {
         match self {
             Expr::Select { query: _, span }
+            | Expr::Insert { command: _, span }
+            | Expr::Delete { command: _, span }
+            | Expr::Update { command: _, span }
             | Expr::Variable { name: _, span }
             | Expr::Grouping { expr: _, span }
             | Expr::Literal {
@@ -147,5 +202,5 @@ impl Spanned for Expr {
 }
 
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub struct ExprId(pub usize);

@@ -1,7 +1,7 @@
-use crate::lang::ast::Literal::*;
-use crate::lang::token::Symbol::*;
-use crate::lang::token::TokenType::{Eof, Identifier};
-use crate::lang::token::*;
+use crate::lang::tokens::token::Symbol::*;
+use crate::lang::tokens::token::TokenType::{Eof, Identifier};
+use crate::lang::tokens::token::*;
+use crate::lang::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
 use std::rc::Rc;
@@ -179,8 +179,7 @@ impl<'a> Scanner<'a> {
                 lexeme: Some(raw_str),
                 span,
             })
-        } else if !is_coerced_identifier
-            && SQL_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
+        } else if !is_coerced_identifier && SQL_KEYWORDS.contains_key(&raw_str.to_ascii_uppercase())
         {
             Ok(Token {
                 tok_type: SQL_KEYWORDS
@@ -381,7 +380,7 @@ impl<'a> Scanner<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::lang::token::TokenType::Eof;
+    use crate::lang::tokens::token::TokenType::Eof;
     use crate::{kw, lexm, skw};
 
     use super::*;

@@ -11,13 +11,15 @@ use crate::assert_parsing;
 assert_parsing! {
     bool_false: {
         "false;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Bool(false)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Bool": false
+                        },
                         "raw": "false"
                     }
                 }
@@ -26,13 +28,15 @@ assert_parsing! {
     },
     bool_true: {
         "true;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
-                        "value": "Bool(true)",
+                        "@type": "Expr::Literal",
+                        "value": {
+                            "Bool": true
+                        },
                         "raw": "true"
                     }
                 }
@@ -41,12 +45,12 @@ assert_parsing! {
     },
     undef: {
         "undefined;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
+                        "@type": "Expr::Literal",
                         "value": "Undefined",
                         "raw": "undefined"
                     }
@@ -56,12 +60,12 @@ assert_parsing! {
     },
     null: {
         "null;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Literal",
+                        "@type": "Expr::Literal",
                         "value": "Null",
                         "raw": "null"
                     }

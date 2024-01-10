@@ -11,223 +11,323 @@ use crate::assert_parsing;
 assert_parsing! {
     plain: {
         "SELECT * from users where id = 1;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "where": {
-                                    "type": "Expr::Binary",
-                                    "operation": "IsEqual",
-                                    "left": {
-                                        "type": "Expr::Variable",
-                                        "name": "id",
-                                    },
-                                    "right": {
-                                        "type": "Expr::Literal",
-                                        "value": "Num(1.0)",
-                                        "raw": "1"
-                                    }
-                                },
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::ImplicitAll"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::All",
+                          "collection": null
                         }
-                    }
+                      ],
+                      "where": {
+                        "@type": "Expr::Binary",
+                        "left": {
+                          "@type": "Expr::Variable",
+                          "name": {
+                            "@type": "Identifier",
+                            "dollar": false,
+                            "name": "id"
+                          }
+                        },
+                        "operation": {
+                          "@type": "IsEqual"
+                        },
+                        "right": {
+                          "@type": "Expr::Literal",
+                          "raw": "1",
+                          "value": {
+                            "Num": 1.0
+                          }
+                        }
+                      }
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     multi_0: {
         "SELECT * from users where id > 100 and name = 'John';" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "where": {
-                                    "type": "Expr::Logical",
-                                    "operation": "And",
-                                    "left": {
-                                        "type": "Expr::Binary",
-                                        "operation": "Greater",
-                                        "left": {
-                                            "type": "Expr::Variable",
-                                            "name": "id",
-                                        },
-                                        "right": {
-                                            "type": "Expr::Literal",
-                                            "value": "Num(100.0)",
-                                            "raw": "100"
-                                        }
-                                    },
-                                    "right": {
-                                        "type": "Expr::Binary",
-                                        "operation": "IsEqual",
-                                        "left": {
-                                            "type": "Expr::Variable",
-                                            "name": "name",
-                                        },
-                                        "right": {
-                                            "type": "Expr::Literal",
-                                            "value": "Str(\"John\")",
-                                            "raw": "John"
-                                        }
-                                    }
-                                },
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::ImplicitAll"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::All",
+                          "collection": null
                         }
-                    }
+                      ],
+                      "where": {
+                        "@type": "Expr::Logical",
+                        "left": {
+                          "@type": "Expr::Binary",
+                          "left": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "id"
+                            }
+                          },
+                          "operation": {
+                            "@type": "Greater"
+                          },
+                          "right": {
+                            "@type": "Expr::Literal",
+                            "raw": "100",
+                            "value": {
+                              "Num": 100.0
+                            }
+                          }
+                        },
+                        "operation": {
+                          "@type": "And"
+                        },
+                        "right": {
+                          "@type": "Expr::Binary",
+                          "left": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "name"
+                            }
+                          },
+                          "operation": {
+                            "@type": "IsEqual"
+                          },
+                          "right": {
+                            "@type": "Expr::Literal",
+                            "raw": "John",
+                            "value": {
+                              "Str": "John"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     multi_1: {
         "SELECT * from users where (id > 100 and name = 'John') or (id < 10 and name = 'Jane');" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "projection": [{
-                                    "type": "All",
-                                    "collection": null
-                                }],
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "where": {
-                                    "type": "Expr::Logical",
-                                    "operation": "Or",
-                                    "left": {
-                                        "type": "Expr::Grouping",
-                                        "expr": {
-                                            "type": "Expr::Logical",
-                                            "operation": "And",
-                                            "left": {
-                                                "type": "Expr::Binary",
-                                                "operation": "Greater",
-                                                "left": {
-                                                    "type": "Expr::Variable",
-                                                    "name": "id",
-                                                },
-                                                "right": {
-                                                    "type": "Expr::Literal",
-                                                    "value": "Num(100.0)",
-                                                    "raw": "100"
-                                                }
-                                            },
-                                            "right": {
-                                                "type": "Expr::Binary",
-                                                "operation": "IsEqual",
-                                                "left": {
-                                                    "type": "Expr::Variable",
-                                                    "name": "name",
-                                                },
-                                                "right": {
-                                                    "type": "Expr::Literal",
-                                                    "value": "Str(\"John\")",
-                                                    "raw": "John"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "right": {
-                                        "type": "Expr::Grouping",
-                                        "expr": {
-                                            "type": "Expr::Logical",
-                                            "operation": "And",
-                                            "left": {
-                                                "type": "Expr::Binary",
-                                                "operation": "Less",
-                                                "left": {
-                                                    "type": "Expr::Variable",
-                                                    "name": "id",
-                                                },
-                                                "right": {
-                                                    "type": "Expr::Literal",
-                                                    "value": "Num(10.0)",
-                                                    "raw": "10"
-                                                }
-                                            },
-                                            "right": {
-                                                "type": "Expr::Binary",
-                                                "operation": "IsEqual",
-                                                "left": {
-                                                    "type": "Expr::Variable",
-                                                    "name": "name",
-                                                },
-                                                "right": {
-                                                    "type": "Expr::Literal",
-                                                    "value": "Str(\"Jane\")",
-                                                    "raw": "Jane"
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::ImplicitAll"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::All",
+                          "collection": null
                         }
-                    }
+                      ],
+                      "where": {
+                        "@type": "Expr::Logical",
+                        "left": {
+                          "@type": "Expr::Grouping",
+                          "expr": {
+                            "@type": "Expr::Logical",
+                            "left": {
+                              "@type": "Expr::Binary",
+                              "left": {
+                                "@type": "Expr::Variable",
+                                "name": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "id"
+                                }
+                              },
+                              "operation": {
+                                "@type": "Greater"
+                              },
+                              "right": {
+                                "@type": "Expr::Literal",
+                                "raw": "100",
+                                "value": {
+                                  "Num": 100.0
+                                }
+                              }
+                            },
+                            "operation": {
+                              "@type": "And"
+                            },
+                            "right": {
+                              "@type": "Expr::Binary",
+                              "left": {
+                                "@type": "Expr::Variable",
+                                "name": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "name"
+                                }
+                              },
+                              "operation": {
+                                "@type": "IsEqual"
+                              },
+                              "right": {
+                                "@type": "Expr::Literal",
+                                "raw": "John",
+                                "value": {
+                                  "Str": "John"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "operation": {
+                          "@type": "Or"
+                        },
+                        "right": {
+                          "@type": "Expr::Grouping",
+                          "expr": {
+                            "@type": "Expr::Logical",
+                            "left": {
+                              "@type": "Expr::Binary",
+                              "left": {
+                                "@type": "Expr::Variable",
+                                "name": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "id"
+                                }
+                              },
+                              "operation": {
+                                "@type": "Less"
+                              },
+                              "right": {
+                                "@type": "Expr::Literal",
+                                "raw": "10",
+                                "value": {
+                                  "Num": 10.0
+                                }
+                              }
+                            },
+                            "operation": {
+                              "@type": "And"
+                            },
+                            "right": {
+                              "@type": "Expr::Binary",
+                              "left": {
+                                "@type": "Expr::Variable",
+                                "name": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "name"
+                                }
+                              },
+                              "operation": {
+                                "@type": "IsEqual"
+                              },
+                              "right": {
+                                "@type": "Expr::Literal",
+                                "raw": "Jane",
+                                "value": {
+                                  "Str": "Jane"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     }
 }

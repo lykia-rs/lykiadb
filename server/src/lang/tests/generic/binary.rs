@@ -11,26 +11,32 @@ use crate::assert_parsing;
 assert_parsing! {
     one_plus_two: {
         "1 + 2;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Binary",
-                        "operation": "Add",
-                        "left": {
-                            "type": "Expr::Literal",
-                            "value": "Num(1.0)",
-                            "raw": "1"
-                        },
-                        "right": {
-                            "type": "Expr::Literal",
-                            "value": "Num(2.0)",
-                            "raw": "2"
-                        }
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Binary",
+                  "left": {
+                    "@type": "Expr::Literal",
+                    "raw": "1",
+                    "value": {
+                      "Num": 1.0
                     }
+                  },
+                  "operation": {
+                    "@type": "Add"
+                  },
+                  "right": {
+                    "@type": "Expr::Literal",
+                    "raw": "2",
+                    "value": {
+                      "Num": 2.0
+                    }
+                  }
                 }
+              }
             ]
-        }
+          }
     }
 }

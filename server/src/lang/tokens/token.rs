@@ -1,9 +1,8 @@
+use crate::lang::{Identifier, Literal};
 use phf::phf_map;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-use super::ast::Literal;
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum Symbol {
     Comma,
     Colon,
@@ -31,7 +30,7 @@ pub enum Symbol {
     LogicalOr,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum TokenType {
     Str,
     Num,
@@ -49,7 +48,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum Keyword {
     Class,
     Else,
@@ -66,7 +65,7 @@ pub enum Keyword {
     Loop,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub enum SqlKeyword {
     /*
         Bool,
@@ -262,15 +261,28 @@ pub static SQL_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "WRITE" => skw!(SqlKeyword::Write),
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct Token {
     pub tok_type: TokenType,
     pub literal: Option<Literal>,
     pub lexeme: Option<String>,
+    #[serde(skip)]
     pub span: Span,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+impl Token {
+    pub fn extract_identifier(&self) -> Option<Identifier> {
+        match &self.tok_type {
+            TokenType::Identifier { dollar } => Some(Identifier {
+                name: self.lexeme.clone().unwrap(),
+                dollar: *dollar,
+            }),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

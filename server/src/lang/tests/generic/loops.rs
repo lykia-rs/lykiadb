@@ -10,228 +10,296 @@ use crate::assert_parsing;
 #[cfg(test)]
 assert_parsing! {
     loop_0: {
-        "loop {}" => {
-            "type": "Stmt::Program",
+        "loop {}" =>  {
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Loop",
-                    "condition": null,
-                    "post": null,
-                    "body": {
-                        "type": "Stmt::Block",
-                        "body": [],
-                    }
-                }
+              {
+                "@type": "Stmt::Loop",
+                "body": {
+                  "@type": "Stmt::Block",
+                  "body": []
+                },
+                "condition": null,
+                "post": null
+              }
             ]
         }
     },
     loop_1: {
         "loop { print(1); }" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Loop",
-                    "condition": null,
-                    "post": null,
-                    "body": {
-                        "type": "Stmt::Block",
-                        "body": [
-                            {
-                                "type": "Stmt::Expression",
-                                "expr": {
-                                    "type": "Expr::Call",
-                                    "callee": {
-                                        "type": "Expr::Variable",
-                                        "name": "print"
-                                    },
-                                    "args": [
-                                        {
-                                            "type": "Expr::Literal",
-                                            "value": "Num(1.0)",
-                                            "raw": "1"
-                                        }
-                                    ]
-                                }
+              {
+                "@type": "Stmt::Loop",
+                "body": {
+                  "@type": "Stmt::Block",
+                  "body": [
+                    {
+                      "@type": "Stmt::Expression",
+                      "expr": {
+                        "@type": "Expr::Call",
+                        "args": [
+                          {
+                            "@type": "Expr::Literal",
+                            "raw": "1",
+                            "value": {
+                              "Num": 1.0
                             }
-                        ]
+                          }
+                        ],
+                        "callee": {
+                          "@type": "Expr::Variable",
+                          "name": {
+                            "@type": "Identifier",
+                            "dollar": false,
+                            "name": "print"
+                          }
+                        }
+                      }
                     }
-                }
+                  ]
+                },
+                "condition": null,
+                "post": null
+              }
             ]
         }
     },
     for_0: {
         "for (var $i = 0; $i < 10; $i = $i + 1) {}" => {
-            "type": "Stmt::Program",
-            "body":         [
-                {
-                  "type": "Stmt::Block",
-                  "body": [
-                    {
-                        "type": "Stmt::Declaration",
-                        "variable": "$i",
-                        "expr": {
-                            "raw": "0",
-                            "type": "Expr::Literal",
-                            "value": "Num(0.0)"
-                        },
+            "@type": "Stmt::Program",
+            "body": [
+              {
+                "@type": "Stmt::Block",
+                "body": [
+                  {
+                    "@type": "Stmt::Declaration",
+                    "dst": {
+                      "@type": "Identifier",
+                      "dollar": true,
+                      "name": "$i"
                     },
-                    {
-                      "type": "Stmt::Loop",
-                      "body": {
-                        "type": "Stmt::Block",
-                        "body": [],
-                      },
-                      "condition": {
-                        "left": {
-                            "name": "$i",
-                            "type": "Expr::Variable"
-                        },
-                        "operation": "Less",
-                        "right": {
-                            "raw": "10",
-                            "type": "Expr::Literal",
-                            "value": "Num(10.0)"
-                        },
-                        "type": "Expr::Binary"
-                      },
-                      "post": {
-                        "type": "Stmt::Expression",
-                        "expr": {
-                          "dst": "$i",
-                          "type": "Expr::Assignment",
-                          "expr": {
-                            "type": "Expr::Binary",
-                            "left": {
-                                "name": "$i",
-                                "type": "Expr::Variable"
-                            },
-                            "operation": "Add",
-                            "right": {
-                                "raw": "1",
-                                "type": "Expr::Literal",
-                                "value": "Num(1.0)"
-                            },
-                          },
-                        },
-                      },
+                    "expr": {
+                      "@type": "Expr::Literal",
+                      "raw": "0",
+                      "value": {
+                        "Num": 0.0
+                      }
                     }
-                  ]
-                }
+                  },
+                  {
+                    "@type": "Stmt::Loop",
+                    "body": {
+                      "@type": "Stmt::Block",
+                      "body": []
+                    },
+                    "condition": {
+                      "@type": "Expr::Binary",
+                      "left": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "dollar": true,
+                          "name": "$i"
+                        }
+                      },
+                      "operation": {
+                        "@type": "Less"
+                      },
+                      "right": {
+                        "@type": "Expr::Literal",
+                        "raw": "10",
+                        "value": {
+                          "Num": 10.0
+                        }
+                      }
+                    },
+                    "post": {
+                      "@type": "Stmt::Expression",
+                      "expr": {
+                        "@type": "Expr::Assignment",
+                        "dst": {
+                          "@type": "Identifier",
+                          "dollar": true,
+                          "name": "$i"
+                        },
+                        "expr": {
+                          "@type": "Expr::Binary",
+                          "left": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": true,
+                              "name": "$i"
+                            }
+                          },
+                          "operation": {
+                            "@type": "Add"
+                          },
+                          "right": {
+                            "@type": "Expr::Literal",
+                            "raw": "1",
+                            "value": {
+                              "Num": 1.0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
             ]
-        }
+          }
     },
     for_1: {
         "for (var $i = 0; $i < 10; $i = $i + 1) { print($i); }" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                  "type": "Stmt::Block",
-                  "body": [
-                    {
-                        "type": "Stmt::Declaration",
-                        "variable": "$i",
-                        "expr": {
-                            "raw": "0",
-                            "type": "Expr::Literal",
-                            "value": "Num(0.0)"
-                        },
+              {
+                "@type": "Stmt::Block",
+                "body": [
+                  {
+                    "@type": "Stmt::Declaration",
+                    "dst": {
+                      "@type": "Identifier",
+                      "dollar": true,
+                      "name": "$i"
                     },
-                    {
-                      "type": "Stmt::Loop",
-                      "body": {
-                        "type": "Stmt::Block",
-                        "body": [
-                            {
-                                "type": "Stmt::Expression",
-                                "expr": {
-                                    "type": "Expr::Call",
-                                    "callee": {
-                                        "type": "Expr::Variable",
-                                        "name": "print"
-                                    },
-                                    "args": [
-                                        {
-                                            "type": "Expr::Variable",
-                                            "name": "$i"
-                                        }
-                                    ]
-                                }
-                            }
-                        ],
-                      },
-                      "condition": {
-                        "left": {
-                            "name": "$i",
-                            "type": "Expr::Variable"
-                        },
-                        "operation": "Less",
-                        "right": {
-                            "raw": "10",
-                            "type": "Expr::Literal",
-                            "value": "Num(10.0)"
-                        },
-                        "type": "Expr::Binary"
-                      },
-                      "post": {
-                        "type": "Stmt::Expression",
-                        "expr": {
-                          "dst": "$i",
-                          "type": "Expr::Assignment",
-                          "expr": {
-                            "type": "Expr::Binary",
-                            "left": {
-                                "name": "$i",
-                                "type": "Expr::Variable"
-                            },
-                            "operation": "Add",
-                            "right": {
-                                "raw": "1",
-                                "type": "Expr::Literal",
-                                "value": "Num(1.0)"
-                            },
-                          },
-                        },
-                      },
+                    "expr": {
+                      "@type": "Expr::Literal",
+                      "raw": "0",
+                      "value": {
+                        "Num": 0.0
+                      }
                     }
-                  ]
-                }
+                  },
+                  {
+                    "@type": "Stmt::Loop",
+                    "body": {
+                      "@type": "Stmt::Block",
+                      "body": [
+                        {
+                          "@type": "Stmt::Expression",
+                          "expr": {
+                            "@type": "Expr::Call",
+                            "args": [
+                              {
+                                "@type": "Expr::Variable",
+                                "name": {
+                                  "@type": "Identifier",
+                                  "dollar": true,
+                                  "name": "$i"
+                                }
+                              }
+                            ],
+                            "callee": {
+                              "@type": "Expr::Variable",
+                              "name": {
+                                "@type": "Identifier",
+                                "dollar": false,
+                                "name": "print"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "condition": {
+                      "@type": "Expr::Binary",
+                      "left": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "dollar": true,
+                          "name": "$i"
+                        }
+                      },
+                      "operation": {
+                        "@type": "Less"
+                      },
+                      "right": {
+                        "@type": "Expr::Literal",
+                        "raw": "10",
+                        "value": {
+                          "Num": 10.0
+                        }
+                      }
+                    },
+                    "post": {
+                      "@type": "Stmt::Expression",
+                      "expr": {
+                        "@type": "Expr::Assignment",
+                        "dst": {
+                          "@type": "Identifier",
+                          "dollar": true,
+                          "name": "$i"
+                        },
+                        "expr": {
+                          "@type": "Expr::Binary",
+                          "left": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": true,
+                              "name": "$i"
+                            }
+                          },
+                          "operation": {
+                            "@type": "Add"
+                          },
+                          "right": {
+                            "@type": "Expr::Literal",
+                            "raw": "1",
+                            "value": {
+                              "Num": 1.0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
             ]
-        }
+          }
     },
     for_infinite: {
         "for (;;) {}" => {
-            "type": "Stmt::Program",
-            "body":  [
-                {
-                    "type": "Stmt::Loop",
-                    "body": {
-                        "type": "Stmt::Block",
-                        "body": [],
-                    },
-                    "condition": null,
-                    "post": null,
-                }
+            "@type": "Stmt::Program",
+            "body": [
+              {
+                "@type": "Stmt::Loop",
+                "body": {
+                  "@type": "Stmt::Block",
+                  "body": []
+                },
+                "condition": null,
+                "post": null
+              }
             ]
-        }
+          }
     },
     while_infinite: {
         "while (true) {}" => {
-            "type": "Stmt::Program",
-            "body":  [
-                {
-                    "type": "Stmt::Loop",
-                    "body": {
-                        "type": "Stmt::Block",
-                        "body": [],
-                    },
-                    "condition": {
-                        "type": "Expr::Literal",
-                        "value": "Bool(true)",
-                        "raw": "true"
-                    },
-                    "post": null,
-                }
+            "@type": "Stmt::Program",
+            "body": [
+              {
+                "@type": "Stmt::Loop",
+                "body": {
+                  "@type": "Stmt::Block",
+                  "body": []
+                },
+                "condition": {
+                  "@type": "Expr::Literal",
+                  "raw": "true",
+                  "value": {
+                    "Bool": true
+                  }
+                },
+                "post": null
+              }
             ]
-        }
+          }
     }
 }

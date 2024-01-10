@@ -11,125 +11,173 @@ use crate::assert_parsing;
 assert_parsing! {
     implicit_all: {
         "SELECT surname from users;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "ImplicitAll",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "alias": null,
-                                    "expr": {
-                                        "type": "Expr::Variable",
-                                        "name": "surname",
-                                    },
-                                    "type": "Expr"
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::ImplicitAll"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::Expr",
+                          "alias": null,
+                          "expr": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "surname"
+                            }
+                          }
                         }
-                    }
+                      ],
+                      "where": null
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     explicit_all: {
         "SELECT all surname from users;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "All",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "alias": null,
-                                    "expr": {
-                                        "type": "Expr::Variable",
-                                        "name": "surname",
-                                    },
-                                    "type": "Expr"
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::All"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::Expr",
+                          "alias": null,
+                          "expr": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "surname"
+                            }
+                          }
                         }
-                    }
+                      ],
+                      "where": null
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     },
     distinct: {
         "SELECT distinct surname from users;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
-                {
-                    "type": "Stmt::Expression",
-                    "expr": {
-                        "type": "Expr::Select",
-                        "value": {
-                            "core": {
-                                "distinct": "Distinct",
-                                "from": {
-                                    "type": "Group",
-                                    "subqueries": [{
-                                        "type": "Collection",
-                                        "alias": null,
-                                        "name": "users",
-                                        "namespace": null,
-                                    }],
-                                },
-                                "projection": [{
-                                    "alias": null,
-                                    "expr": {
-                                        "type": "Expr::Variable",
-                                        "name": "surname",
-                                    },
-                                    "type": "Expr"
-                                }],
-                                "where": null,
-                                "group_by": null,
-                                "having": null
+              {
+                "@type": "Stmt::Expression",
+                "expr": {
+                  "@type": "Expr::Select",
+                  "query": {
+                    "@type": "SqlSelect",
+                    "core": {
+                      "@type": "SqlSelectCore",
+                      "compound": null,
+                      "distinct": {
+                        "@type": "SqlDistinct::Distinct"
+                      },
+                      "from": {
+                        "@type": "SqlCollectionSubquery::Group",
+                        "values": [
+                          {
+                            "@type": "SqlCollectionIdentifier",
+                            "alias": null,
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
                             },
-                            "compound": [],
-                            "limit": null,
-                            "order_by": null
+                            "namespace": null
+                          }
+                        ]
+                      },
+                      "group_by": null,
+                      "having": null,
+                      "projection": [
+                        {
+                          "@type": "SqlProjection::Expr",
+                          "alias": null,
+                          "expr": {
+                            "@type": "Expr::Variable",
+                            "name": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "surname"
+                            }
+                          }
                         }
-                    }
+                      ],
+                      "where": null
+                    },
+                    "limit": null,
+                    "order_by": null
+                  }
                 }
+              }
             ]
-        }
+          }
     }
 }

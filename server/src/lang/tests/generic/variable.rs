@@ -11,13 +11,17 @@ use crate::assert_parsing;
 assert_parsing! {
     declare_a: {
         "var $a;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Declaration",
-                    "variable": "$a",
+                    "@type": "Stmt::Declaration",
+                    "dst": {
+                        "@type": "Identifier",
+                        "dollar": true,
+                        "name": "$a"
+                    },
                     "expr": {
-                        "type": "Expr::Literal",
+                        "@type": "Expr::Literal",
                         "value": "Undefined",
                         "raw": "undefined"
                     }
@@ -27,13 +31,17 @@ assert_parsing! {
     },
     var_a: {
         "$a;" => {
-            "type": "Stmt::Program",
+            "@type": "Stmt::Program",
             "body": [
                 {
-                    "type": "Stmt::Expression",
+                    "@type": "Stmt::Expression",
                     "expr": {
-                        "type": "Expr::Variable",
-                        "name": "$a"
+                        "@type": "Expr::Variable",
+                        "name": {
+                            "@type": "Identifier",
+                            "dollar": true,
+                            "name": "$a"
+                        }
                     }
                 }
             ]
