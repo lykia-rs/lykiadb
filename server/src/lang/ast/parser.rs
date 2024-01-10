@@ -2,8 +2,8 @@ use super::expr::{Expr, ExprId, Operation};
 use super::program::{AstArena, Program};
 use super::sql::{
     SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
-    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
-    SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
+    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
+    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::stmt::{Stmt, StmtId};
 use crate::lang::tokens::token::{
@@ -738,28 +738,28 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let compound: Option<Box<SqlSelectCompound>> = if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
-            let op = self.peek_bw(1);
-            let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
-                SqlCompoundOperator::UnionAll
-            } else {
-                match op.tok_type {
-                    SqlKeyword(Union) => SqlCompoundOperator::Union,
-                    SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
-                    SqlKeyword(Except) => SqlCompoundOperator::Except,
-                    _ => {
-                        return Err(ParseError::UnexpectedToken { token: op.clone() });
+        let compound: Option<Box<SqlSelectCompound>> =
+            if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
+                let op = self.peek_bw(1);
+                let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
+                    SqlCompoundOperator::UnionAll
+                } else {
+                    match op.tok_type {
+                        SqlKeyword(Union) => SqlCompoundOperator::Union,
+                        SqlKeyword(Intersect) => SqlCompoundOperator::Intersect,
+                        SqlKeyword(Except) => SqlCompoundOperator::Except,
+                        _ => {
+                            return Err(ParseError::UnexpectedToken { token: op.clone() });
+                        }
                     }
-                }
+                };
+                Some(Box::from(SqlSelectCompound {
+                    operator: compound_op,
+                    core: self.sql_select_core()?,
+                }))
+            } else {
+                None
             };
-            Some(Box::from(SqlSelectCompound {
-                operator: compound_op,
-                core: self.sql_select_core()?,
-            }))
-        }
-        else {
-            None
-        };
 
         Ok(SqlSelectCore {
             distinct,
@@ -768,7 +768,7 @@ impl<'a> Parser<'a> {
             r#where,
             group_by,
             having,
-            compound
+            compound,
         })
     }
 
@@ -850,19 +850,17 @@ impl<'a> Parser<'a> {
                 let right = self.sql_select_subquery_collection()?;
                 let join_constraint: Option<SqlExpr> = if self.match_next(skw!(On)) {
                     Some(SqlExpr::Default(self.expression()?))
-                }
-                else {
+                } else {
                     None
                 };
-    
+
                 subquery_group.push(SqlCollectionSubquery::Join {
                     left: Box::new(left),
                     right: Box::new(right),
                     join_type,
                     constraint: join_constraint,
                 });
-            }
-            else {
+            } else {
                 subquery_group.push(left);
             }
             if !self.match_next(sym!(Comma)) {
