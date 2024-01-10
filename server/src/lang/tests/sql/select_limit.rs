@@ -11,33 +11,32 @@ use crate::assert_parsing;
 assert_parsing! {
     limit_5: {
         "SELECT * from users limit 5;" => {
+          "@type": "Stmt::Program",
           "body": [
             {
+              "@type": "Stmt::Expression",
               "expr": {
+                "@type": "Expr::Select",
                 "query": {
-                  "compound": [],
+                  "@type": "SqlSelect",
                   "core": {
+                    "@type": "SqlSelectCore",
+                    "compound": null,
                     "distinct": {
-                      "type": "SqlDistinct::ImplicitAll"
+                      "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlCollectionSubquery::Group",
                       "values": [
                         {
+                          "@type": "SqlCollectionIdentifier",
                           "alias": null,
                           "name": {
-                            "lexeme": "users",
-                            "literal": {
-                              "Str": "users"
-                            },
-                            "tok_type": {
-                              "Identifier": {
-                                "dollar": false
-                              }
-                            }
+                            "@type": "Identifier",
+                            "dollar": false,
+                            "name": "users"
                           },
-                          "namespace": null,
-                          "type": "SqlCollectionIdentifier"
+                          "namespace": null
                         }
                       ]
                     },
@@ -45,135 +44,123 @@ assert_parsing! {
                     "having": null,
                     "projection": [
                       {
-                        "collection": null,
-                        "type": "SqlProjection::All"
+                        "@type": "SqlProjection::All",
+                        "collection": null
                       }
                     ],
-                    "type": "SqlSelectCore",
                     "where": null
                   },
                   "limit": {
+                    "@type": "SqlLimitClause",
                     "count": {
+                      "@type": "Expr::Literal",
                       "raw": "5",
-                      "type": "Expr::Literal",
                       "value": {
                         "Num": 5.0
                       }
                     },
-                    "offset": null,
-                    "type": "SqlLimitClause"
+                    "offset": null
                   },
-                  "order_by": null,
-                  "type": "SqlSelect"
-                },
-                "type": "Expr::Select"
-              },
-              "type": "Stmt::Expression"
+                  "order_by": null
+                }
+              }
             }
-          ],
-          "type": "Stmt::Program"
+          ]
         }
     },
     limit_5_offset_10: {
-        "SELECT * from users limit 5 offset 10;" => {
-          "type": "Stmt::Program",
+        "SELECT * from users limit 5 offset 10;" =>         {
+          "@type": "Stmt::Program",
           "body": [
             {
-              "type": "Stmt::Expression",
+              "@type": "Stmt::Expression",
               "expr": {
-                "type": "Expr::Select",
+                "@type": "Expr::Select",
                 "query": {
-                  "type": "SqlSelect",
-                  "compound": [],
+                  "@type": "SqlSelect",
                   "core": {
+                    "@type": "SqlSelectCore",
+                    "compound": null,
                     "distinct": {
-                      "type": "SqlDistinct::ImplicitAll"
+                      "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlCollectionSubquery::Group",
                       "values": [
                         {
-                          "type": "SqlCollectionIdentifier",
+                          "@type": "SqlCollectionIdentifier",
                           "alias": null,
                           "name": {
-                            "lexeme": "users",
-                            "literal": {
-                              "Str": "users"
-                            },
-                            "tok_type": {
-                              "Identifier": {
-                                "dollar": false
-                              }
-                            }
+                            "@type": "Identifier",
+                            "dollar": false,
+                            "name": "users"
                           },
-                          "namespace": null,
+                          "namespace": null
                         }
-                      ],
+                      ]
                     },
                     "group_by": null,
                     "having": null,
                     "projection": [
                       {
-                        "collection": null,
-                        "type": "SqlProjection::All"
+                        "@type": "SqlProjection::All",
+                        "collection": null
                       }
                     ],
-                    "type": "SqlSelectCore",
                     "where": null
                   },
                   "limit": {
+                    "@type": "SqlLimitClause",
                     "count": {
+                      "@type": "Expr::Literal",
                       "raw": "5",
-                      "type": "Expr::Literal",
                       "value": {
                         "Num": 5.0
                       }
                     },
                     "offset": {
+                      "@type": "Expr::Literal",
                       "raw": "10",
-                      "type": "Expr::Literal",
                       "value": {
                         "Num": 10.0
                       }
-                    },
-                    "type": "SqlLimitClause"
+                    }
                   },
-                  "order_by": null,
-                },
-              },
+                  "order_by": null
+                }
+              }
             }
           ]
         }
     },
     limit_10_offset_5: {
         "SELECT * from users limit 5, 10;" => {
+          "@type": "Stmt::Program",
           "body": [
             {
+              "@type": "Stmt::Expression",
               "expr": {
+                "@type": "Expr::Select",
                 "query": {
-                  "compound": [],
+                  "@type": "SqlSelect",
                   "core": {
+                    "@type": "SqlSelectCore",
+                    "compound": null,
                     "distinct": {
-                      "type": "SqlDistinct::ImplicitAll"
+                      "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlCollectionSubquery::Group",
                       "values": [
                         {
+                          "@type": "SqlCollectionIdentifier",
                           "alias": null,
                           "name": {
-                            "lexeme": "users",
-                            "literal": {
-                              "Str": "users"
-                            },
-                            "tok_type": {
-                              "Identifier": {
-                                "dollar": false
-                              }
-                            }
+                            "@type": "Identifier",
+                            "dollar": false,
+                            "name": "users"
                           },
-                          "namespace": null,
-                          "type": "SqlCollectionIdentifier"
+                          "namespace": null
                         }
                       ]
                     },
@@ -181,39 +168,34 @@ assert_parsing! {
                     "having": null,
                     "projection": [
                       {
-                        "collection": null,
-                        "type": "SqlProjection::All"
+                        "@type": "SqlProjection::All",
+                        "collection": null
                       }
                     ],
-                    "type": "SqlSelectCore",
                     "where": null
                   },
                   "limit": {
+                    "@type": "SqlLimitClause",
                     "count": {
+                      "@type": "Expr::Literal",
                       "raw": "10",
-                      "type": "Expr::Literal",
                       "value": {
                         "Num": 10.0
                       }
                     },
                     "offset": {
+                      "@type": "Expr::Literal",
                       "raw": "5",
-                      "type": "Expr::Literal",
                       "value": {
                         "Num": 5.0
                       }
-                    },
-                    "type": "SqlLimitClause"
+                    }
                   },
-                  "order_by": null,
-                  "type": "SqlSelect"
-                },
-                "type": "Expr::Select"
-              },
-              "type": "Stmt::Expression"
+                  "order_by": null
+                }
+              }
             }
-          ],
-          "type": "Stmt::Program"
+          ]
         }
     }
 }
