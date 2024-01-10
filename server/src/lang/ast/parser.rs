@@ -2,7 +2,7 @@ use super::expr::{Expr, ExprId, Operation};
 use super::program::{AstArena, Program};
 use super::sql::{
     SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
-    SqlExpr, SqlInsert, SqlJoin, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
+    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
     SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::stmt::{Stmt, StmtId};
@@ -738,8 +738,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let mut compound: Option<Box<SqlSelectCompound>> = None;
-        if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
+        let compound: Option<Box<SqlSelectCompound>> = if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
             let op = self.peek_bw(1);
             let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
                 SqlCompoundOperator::UnionAll
@@ -753,12 +752,14 @@ impl<'a> Parser<'a> {
                     }
                 }
             };
-            let secondary_core = self.sql_select_core()?;
-            compound = Some(Box::from(SqlSelectCompound {
+            Some(Box::from(SqlSelectCompound {
                 operator: compound_op,
-                core: secondary_core,
-            }));
+                core: self.sql_select_core()?,
+            }))
         }
+        else {
+            None
+        };
 
         Ok(SqlSelectCore {
             distinct,
@@ -826,53 +827,47 @@ impl<'a> Parser<'a> {
         let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
 
         loop {
-            let subquery = self.sql_select_subquery_collection()?;
-            subquery_group.push(subquery);
+            let left = self.sql_select_subquery_collection()?;
+            if self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+                // If the next token is a join keyword, then it must be a join subquery
+                let peek = self.peek_bw(1);
+                let join_type = if peek.tok_type == skw!(Inner) {
+                    self.expected(skw!(Join))?;
+                    SqlJoinType::Inner
+                } else if peek.tok_type == skw!(Left) {
+                    optional_with_expected!(self, skw!(Outer), skw!(Join));
+                    SqlJoinType::Left
+                } else if peek.tok_type == skw!(Right) {
+                    optional_with_expected!(self, skw!(Outer), skw!(Join));
+                    SqlJoinType::Right
+                } else if peek.tok_type == skw!(Join) {
+                    SqlJoinType::Inner
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        token: peek.clone(),
+                    });
+                };
+                let right = self.sql_select_subquery_collection()?;
+                let join_constraint: Option<SqlExpr> = if self.match_next(skw!(On)) {
+                    Some(SqlExpr::Default(self.expression()?))
+                }
+                else {
+                    None
+                };
+    
+                subquery_group.push(SqlCollectionSubquery::Join {
+                    left: Box::new(left),
+                    right: Box::new(right),
+                    join_type,
+                    constraint: join_constraint,
+                });
+            }
+            else {
+                subquery_group.push(left);
+            }
             if !self.match_next(sym!(Comma)) {
                 break;
             }
-        }
-
-        let mut joins: Vec<SqlJoin> = vec![];
-
-        while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
-            // If the next token is a join keyword, then it must be a join subquery
-            let peek = self.peek_bw(1);
-            let join_type = if peek.tok_type == skw!(Inner) {
-                self.expected(skw!(Join))?;
-                SqlJoinType::Inner
-            } else if peek.tok_type == skw!(Left) {
-                optional_with_expected!(self, skw!(Outer), skw!(Join));
-                SqlJoinType::Left
-            } else if peek.tok_type == skw!(Right) {
-                optional_with_expected!(self, skw!(Outer), skw!(Join));
-                SqlJoinType::Right
-            } else if peek.tok_type == skw!(Join) {
-                SqlJoinType::Inner
-            } else {
-                return Err(ParseError::UnexpectedToken {
-                    token: peek.clone(),
-                });
-            };
-            let subquery = self.sql_select_subquery_collection()?;
-            let mut join_constraint: Option<SqlExpr> = None;
-            if self.match_next(skw!(On)) {
-                join_constraint = Some(SqlExpr::Default(self.expression()?));
-            }
-            joins.push(SqlJoin {
-                join_type,
-                subquery,
-                join_constraint,
-            });
-        }
-
-        if !joins.is_empty() {
-            return Ok(SqlCollectionSubquery::Join {
-                query: Box::new(SqlCollectionSubquery::Group {
-                    values: subquery_group,
-                }),
-                joins,
-            });
         }
 
         return Ok(SqlCollectionSubquery::Group {

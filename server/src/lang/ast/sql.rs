@@ -102,28 +102,22 @@ pub struct SqlSelectCompound {
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "@type")]
-pub struct SqlJoin {
-    pub join_type: SqlJoinType,
-    pub subquery: SqlCollectionSubquery,
-    pub join_constraint: Option<SqlExpr>,
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize)]
-#[serde(tag = "@type")]
 pub enum SqlCollectionSubquery {
     #[serde(rename = "SqlCollectionSubquery::Group")]
     Group { values: Vec<SqlCollectionSubquery> },
-    #[serde(rename = "SqlCollectionSubquery::Join")]
-    Join {
-        query: Box<SqlCollectionSubquery>,
-        joins: Vec<SqlJoin>,
-    },
     #[serde(rename = "SqlCollectionSubquery::Collection")]
     Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlCollectionSubquery::Select")]
     Select {
         expr: ExprId,
         alias: Option<Identifier>,
+    },
+    #[serde(rename = "SqlCollectionSubquery::Join")]
+    Join {
+        left: Box<SqlCollectionSubquery>,
+        join_type: SqlJoinType,
+        right: Box<SqlCollectionSubquery>,
+        constraint: Option<SqlExpr>,
     },
 }
 
