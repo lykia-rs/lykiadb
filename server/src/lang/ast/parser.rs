@@ -828,7 +828,8 @@ impl<'a> Parser<'a> {
 
         loop {
             let left = self.sql_select_subquery_collection()?;
-            if self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+            subquery_group.push(left);
+            while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
                 // If the next token is a join keyword, then it must be a join subquery
                 let peek = self.peek_bw(1);
                 let join_type = if peek.tok_type == skw!(Inner) {
@@ -854,14 +855,14 @@ impl<'a> Parser<'a> {
                     None
                 };
 
+                let left_popped = subquery_group.pop().unwrap();
+
                 subquery_group.push(SqlCollectionSubquery::Join {
-                    left: Box::new(left),
+                    left: Box::new(left_popped),
                     right: Box::new(right),
                     join_type,
                     constraint: join_constraint,
                 });
-            } else {
-                subquery_group.push(left);
             }
             if !self.match_next(sym!(Comma)) {
                 break;
