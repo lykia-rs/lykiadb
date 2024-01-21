@@ -6,7 +6,6 @@ use serde::Serialize;
 use self::ast::expr::ExprId;
 
 pub mod ast;
-mod tests;
 pub mod tokens;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

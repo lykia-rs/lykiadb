@@ -379,6 +379,16 @@ impl<'a> Scanner<'a> {
 }
 
 #[cfg(test)]
+pub mod test_helpers {
+    #[macro_export]
+    macro_rules! lexm {
+        ($a: literal) => {
+            Some($a.to_owned())
+        };
+    }
+}
+
+#[cfg(test)]
 mod test {
     use crate::lang::tokens::token::TokenType::Eof;
     use crate::{kw, lexm, skw};

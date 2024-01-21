@@ -19,7 +19,6 @@ mod eval;
 pub mod interpreter;
 mod resolver;
 mod std;
-mod tests;
 pub mod types;
 
 pub struct Runtime {

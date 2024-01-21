@@ -1,10 +1,4 @@
-#![recursion_limit = "192"]
-extern crate core;
-
-mod cli;
-pub mod lang;
-pub mod runtime;
-pub mod util;
+use lykiadb_server::cli;
 
 fn main() {
     cli::init();
