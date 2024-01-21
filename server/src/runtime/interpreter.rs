@@ -504,14 +504,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 }
 
 pub mod test_helpers {
-    use std::rc::Rc;
-    use rustc_hash::FxHashMap;
     use crate::runtime::environment::Environment;
     use crate::runtime::interpreter::{HaltReason, Interpreter};
     use crate::runtime::std::stdlib;
     use crate::runtime::types::{Function, Stateful, RV};
     use crate::runtime::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
+    use rustc_hash::FxHashMap;
+    use std::rc::Rc;
 
     #[derive(Clone)]
     pub struct Output {
@@ -580,13 +580,11 @@ pub mod test_helpers {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use crate::runtime::types::RV;
 
     use super::test_helpers::get_runtime;
-
 
     #[test]
     fn test_unary_evaluation() {

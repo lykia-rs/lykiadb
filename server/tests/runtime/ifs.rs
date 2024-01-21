@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
+use std::rc::Rc;
 
 #[test]
 fn test_if() {
