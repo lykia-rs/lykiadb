@@ -1,5 +1,3 @@
-extern crate core;
-
 pub mod cli;
 pub mod lang;
 pub mod runtime;
