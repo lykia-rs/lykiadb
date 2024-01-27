@@ -4,17 +4,26 @@ name = "lykiadb-server"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+liblykia = { path = "../liblykia" }
 bumpalo = "3.12.2"
-clap = { version = "4.4.6", features = ["derive"] }
 phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
 ariadne = { features = ["auto-color"] }
 assert-json-diff = "2.0.2"
+tokio = { version = "~1.35.1", features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "time",
+    "sync",
+] }
+
+tokio-stream = { version = "~0.1.6", features = ["net"] }
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }

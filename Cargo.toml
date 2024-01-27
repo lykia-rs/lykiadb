@@ -1,6 +1,6 @@
 [workspace]
 resolver = "1"
-members = ["server"]
+members = ["server", "liblykia", "cli"]
 
 [profile.release]
 opt-level = 3

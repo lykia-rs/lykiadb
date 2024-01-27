@@ -1,0 +1,8 @@
+[package]
+authors = ["Vedat Can Keklik <vcankeklik@gmail.com>"]
+name = "liblykia"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bson = "2.9.0"
