@@ -4,7 +4,7 @@ use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::environment::EnvId;
 
@@ -22,7 +22,7 @@ pub enum Function {
         name: String,
         parameters: Vec<String>,
         closure: EnvId,
-        body: Rc<Vec<StmtId>>,
+        body: Arc<Vec<StmtId>>,
     },
 }
 
@@ -94,12 +94,12 @@ impl Function {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RV {
-    Str(Rc<String>),
+    Str(Arc<String>),
     Num(f64),
     Bool(bool),
     Object(Shared<FxHashMap<String, RV>>),
     Array(Shared<Vec<RV>>),
-    Callable(Option<usize>, Rc<Function>),
+    Callable(Option<usize>, Arc<Function>),
     Undefined,
     NaN,
     Null,
@@ -114,7 +114,7 @@ impl<'de> Deserialize<'de> for RV {
     {
         let value = serde_json::Value::deserialize(deserializer)?;
         match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Rc::new(s))),
+            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
             serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
             serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
             serde_json::Value::Null => Ok(RV::Null),

@@ -6,12 +6,12 @@ use crate::lang::tokens::token::Span;
 use crate::lang::{Identifier, Literal};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
-    arena: Rc<AstArena>,
+    arena: Arc<AstArena>,
 }
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub enum ResolveError {
 }
 
 impl Resolver {
-    pub fn new(arena: Rc<AstArena>) -> Resolver {
+    pub fn new(arena: Arc<AstArena>) -> Resolver {
         Resolver {
             scopes: vec![],
             locals: FxHashMap::default(),
@@ -82,7 +82,7 @@ impl Resolver {
 
 impl VisitorMut<RV, ResolveError> for Resolver {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
             Expr::Literal {
@@ -207,7 +207,7 @@ impl VisitorMut<RV, ResolveError> for Resolver {
     }
 
     fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, ResolveError> {
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -10,7 +10,7 @@ pub mod tokens;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Literal {
-    Str(Rc<String>),
+    Str(Arc<String>),
     Num(f64),
     Bool(bool),
     Undefined,

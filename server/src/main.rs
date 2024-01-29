@@ -13,14 +13,14 @@ struct Server {
 
 pub struct ServerSession {
     conn: Connection,
-    //runtime: Runtime
+    // runtime: Runtime
 }
 
 impl ServerSession {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
             conn: Connection::new(stream),
-            //runtime: Runtime::new(RuntimeMode::File)
+            // runtime: Runtime::new(RuntimeMode::File)
         }
     }
 

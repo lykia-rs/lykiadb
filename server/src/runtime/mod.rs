@@ -1,3 +1,5 @@
+use ::std::sync::Arc;
+
 use self::environment::EnvironmentArena;
 use self::error::{report_error, ExecutionError};
 use self::interpreter::{HaltReason, Output};
@@ -11,7 +13,6 @@ use crate::lang::tokens::scanner::Scanner;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::Shared;
-use ::std::rc::Rc;
 
 pub mod environment;
 mod error;
@@ -61,7 +62,7 @@ impl Runtime {
             return Err(error);
         }
         let program_unw = program.unwrap();
-        let arena: Rc<AstArena> = Rc::clone(&program_unw.arena);
+        let arena: Arc<AstArena> = Arc::clone(&program_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);
@@ -75,7 +76,7 @@ impl Runtime {
             env_arena.declare(env, name.to_string(), value);
         }
 
-        let mut interpreter = Interpreter::new(env_arena, env, arena, Rc::new(resolver));
+        let mut interpreter = Interpreter::new(env_arena, env, arena, Arc::new(resolver));
         let out = interpreter.visit_stmt(program_unw.root);
 
         if self.mode == RuntimeMode::Repl {

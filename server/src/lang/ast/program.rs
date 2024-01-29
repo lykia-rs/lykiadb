@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use super::{
     expr::{Expr, ExprId},
@@ -9,11 +9,11 @@ use serde_json::{Map, Value};
 
 pub struct Program {
     pub root: StmtId,
-    pub arena: Rc<AstArena>,
+    pub arena: Arc<AstArena>,
 }
 
 impl Program {
-    pub fn new(root: StmtId, arena: Rc<AstArena>) -> Program {
+    pub fn new(root: StmtId, arena: Arc<AstArena>) -> Program {
         Program { root, arena }
     }
 }

@@ -4,7 +4,7 @@ use crate::lang::tokens::token::*;
 use crate::lang::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::str::Chars;
 
 pub struct Scanner<'a> {
@@ -81,7 +81,7 @@ impl<'a> Scanner<'a> {
         let len = raw_str.len();
         Ok(Token {
             tok_type: TokenType::Str,
-            literal: Some(Str(Rc::new(raw_str.clone()))),
+            literal: Some(Str(Arc::new(raw_str.clone()))),
             lexeme: Some(raw_str),
             span: Span {
                 start: start,
@@ -192,9 +192,9 @@ impl<'a> Scanner<'a> {
             })
         } else {
             let literal = if is_escaped_identifier {
-                Rc::new(raw_str[1..].to_string())
+                Arc::new(raw_str[1..].to_string())
             } else {
-                Rc::new(raw_str.clone())
+                Arc::new(raw_str.clone())
             };
 
             Ok(Token {
@@ -574,7 +574,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Str,
-                    literal: Some(Str(Rc::new("hello world".to_string()))),
+                    literal: Some(Str(Arc::new("hello world".to_string()))),
                     lexeme: lexm!("hello world"),
                     span: Span {
                         line: 0,
@@ -607,7 +607,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Rc::new("helloIdentifier".to_string()))),
+                    literal: Some(Str(Arc::new("helloIdentifier".to_string()))),
                     lexeme: lexm!("helloIdentifier"),
                     span: Span {
                         line: 0,
@@ -637,7 +637,7 @@ mod test {
             vec![
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
-                    literal: Some(Str(Rc::new("$myPreciseVariable".to_string()))),
+                    literal: Some(Str(Arc::new("$myPreciseVariable".to_string()))),
                     lexeme: lexm!("$myPreciseVariable"),
                     span: Span {
                         line: 0,
@@ -648,7 +648,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
-                    literal: Some(Str(Rc::new("$my_precise_variable".to_string()))),
+                    literal: Some(Str(Arc::new("$my_precise_variable".to_string()))),
                     lexeme: lexm!("$my_precise_variable"),
                     span: Span {
                         line: 0,
@@ -659,7 +659,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Rc::new("myPreciseFunction".to_string()))),
+                    literal: Some(Str(Arc::new("myPreciseFunction".to_string()))),
                     lexeme: lexm!("myPreciseFunction"),
                     span: Span {
                         line: 0,
@@ -670,7 +670,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Rc::new("my_precise_function".to_string()))),
+                    literal: Some(Str(Arc::new("my_precise_function".to_string()))),
                     lexeme: lexm!("my_precise_function"),
                     span: Span {
                         line: 0,
@@ -681,7 +681,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Rc::new("for".to_string()))),
+                    literal: Some(Str(Arc::new("for".to_string()))),
                     lexeme: lexm!("\\for"),
                     span: Span {
                         line: 0,
@@ -692,7 +692,7 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
-                    literal: Some(Str(Rc::new("$edge_case".to_string()))),
+                    literal: Some(Str(Arc::new("$edge_case".to_string()))),
                     lexeme: lexm!("\\$edge_case"),
                     span: Span {
                         line: 0,
@@ -724,7 +724,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("abc"),
-                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    literal: Some(Str(Arc::new("abc".to_string()))),
                     span: Span {
                         line: 0,
                         start: 0,
@@ -735,7 +735,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("abc"),
-                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    literal: Some(Str(Arc::new("abc".to_string()))),
                     span: Span {
                         line: 0,
                         start: 6,
@@ -746,7 +746,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("abc"),
-                    literal: Some(Str(Rc::new("abc".to_string()))),
+                    literal: Some(Str(Arc::new("abc".to_string()))),
                     span: Span {
                         line: 0,
                         start: 12,
@@ -757,7 +757,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("'abc'"),
-                    literal: Some(Str(Rc::new("'abc'".to_string()))),
+                    literal: Some(Str(Arc::new("'abc'".to_string()))),
                     span: Span {
                         line: 0,
                         start: 18,
@@ -768,7 +768,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("`abc`"),
-                    literal: Some(Str(Rc::new("`abc`".to_string()))),
+                    literal: Some(Str(Arc::new("`abc`".to_string()))),
                     span: Span {
                         line: 0,
                         start: 26,
@@ -779,7 +779,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("\"abc\""),
-                    literal: Some(Str(Rc::new("\"abc\"".to_string()))),
+                    literal: Some(Str(Arc::new("\"abc\"".to_string()))),
                     span: Span {
                         line: 0,
                         start: 34,
@@ -790,7 +790,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Str,
                     lexeme: lexm!("`abc`"),
-                    literal: Some(Str(Rc::new("`abc`".to_string()))),
+                    literal: Some(Str(Arc::new("`abc`".to_string()))),
                     span: Span {
                         line: 0,
                         start: 42,

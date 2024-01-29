@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::lang::{
     tokens::token::{Span, Spanned},
@@ -81,7 +81,7 @@ pub enum Expr {
     Function {
         name: Option<Identifier>,
         parameters: Vec<Identifier>,
-        body: Rc<Vec<StmtId>>,
+        body: Arc<Vec<StmtId>>,
         #[serde(skip)]
         span: Span,
     },

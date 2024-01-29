@@ -12,7 +12,7 @@ use crate::lang::tokens::token::{
 use crate::lang::Literal;
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum ParseError {
@@ -93,7 +93,7 @@ impl<'a> Parser<'a> {
             in_object_depth: 0,
         };
         let program = parser.program()?;
-        Ok(Program::new(program, Rc::new(parser.arena)))
+        Ok(Program::new(program, Arc::new(parser.arena)))
     }
 
     fn program(&mut self) -> ParseResult<StmtId> {
@@ -363,7 +363,7 @@ impl<'a> Parser<'a> {
                 .iter()
                 .map(|t| t.extract_identifier().unwrap())
                 .collect(),
-            body: Rc::new(body),
+            body: Arc::new(body),
             span: self.get_merged_span(
                 &fun_tok.span,
                 &self.arena.get_statement(stmt_idx).get_span(),

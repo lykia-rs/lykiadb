@@ -1,5 +1,5 @@
 use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[test]
 fn test_if() {
@@ -15,6 +15,6 @@ fn test_if() {
     else {
         TestUtils.out(\"< 20\");
     }",
-        vec![RV::Str(Rc::new("50 > $a > 20".to_string()))],
+        vec![RV::Str(Arc::new("50 > $a > 20".to_string()))],
     );
 }

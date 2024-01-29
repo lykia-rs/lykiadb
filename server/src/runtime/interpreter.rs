@@ -16,7 +16,7 @@ use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::alloc_shared;
 
-use std::rc::Rc;
+use std::sync::Arc;
 use std::vec;
 
 #[derive(Debug, Clone)]
@@ -136,23 +136,23 @@ pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
     env_arena: EnvironmentArena,
-    arena: Rc<AstArena>,
+    arena: Arc<AstArena>,
     loop_stack: LoopStack,
-    resolver: Rc<Resolver>,
+    resolver: Arc<Resolver>,
 }
 
 impl Interpreter {
     pub fn new(
         env_arena: EnvironmentArena,
         env: EnvId,
-        arena: Rc<AstArena>,
-        resolver: Rc<Resolver>,
+        arena: Arc<AstArena>,
+        resolver: Arc<Resolver>,
     ) -> Interpreter {
         Interpreter {
             env_arena,
             env: env,
             root_env: env,
-            arena: Rc::clone(&arena),
+            arena: Arc::clone(&arena),
             loop_stack: LoopStack::new(),
             resolver,
         }
@@ -239,7 +239,7 @@ impl Interpreter {
 
     pub fn literal_to_rv(&mut self, literal: &Literal) -> RV {
         match literal {
-            Literal::Str(s) => RV::Str(Rc::clone(s)),
+            Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
             Literal::Bool(b) => RV::Bool(*b),
             Literal::Undefined => RV::Undefined,
@@ -263,13 +263,13 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
-            Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
-            Expr::Insert { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
-            Expr::Update { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
-            Expr::Delete { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
+            Expr::Insert { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Update { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Delete { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
             Expr::Literal {
                 value,
                 raw: _,
@@ -365,7 +365,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
-                    body: Rc::clone(body),
+                    body: Arc::clone(body),
                     parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
                     closure: self.env.clone(),
                 };
@@ -432,7 +432,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             return Ok(RV::Undefined);
         }
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {

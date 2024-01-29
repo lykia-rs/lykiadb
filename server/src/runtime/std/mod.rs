@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
@@ -27,14 +27,14 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     benchmark_namespace.insert(
         "fib".to_owned(),
-        RV::Callable(Some(1), Rc::new(Function::Lambda { function: nt_fib })),
+        RV::Callable(Some(1), Arc::new(Function::Lambda { function: nt_fib })),
     );
 
     json_namespace.insert(
         "stringify".to_owned(),
         RV::Callable(
             Some(1),
-            Rc::new(Function::Lambda {
+            Arc::new(Function::Lambda {
                 function: nt_json_encode,
             }),
         ),
@@ -44,7 +44,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "parse".to_owned(),
         RV::Callable(
             Some(1),
-            Rc::new(Function::Lambda {
+            Arc::new(Function::Lambda {
                 function: nt_json_decode,
             }),
         ),
@@ -52,7 +52,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     time_namespace.insert(
         "clock".to_owned(),
-        RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
+        RV::Callable(Some(0), Arc::new(Function::Lambda { function: nt_clock })),
     );
 
     if out.is_some() {
@@ -60,7 +60,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
         test_namespace.insert(
             "out".to_owned(),
-            RV::Callable(None, Rc::new(Function::Stateful(out.unwrap().clone()))),
+            RV::Callable(None, Arc::new(Function::Stateful(out.unwrap().clone()))),
         );
 
         std.insert(
@@ -77,7 +77,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert("Time".to_owned(), RV::Object(alloc_shared(time_namespace)));
     std.insert(
         "print".to_owned(),
-        RV::Callable(None, Rc::new(Function::Lambda { function: nt_print })),
+        RV::Callable(None, Arc::new(Function::Lambda { function: nt_print })),
     );
 
     std

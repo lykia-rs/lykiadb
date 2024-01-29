@@ -1,6 +1,6 @@
 use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[test]
 fn test_loop_statements_0() {
@@ -38,18 +38,18 @@ fn test_loop_statements_1() {
         }
     }",
         vec![
-            RV::Str(Rc::new("15:0".to_string())),
-            RV::Str(Rc::new("15:1".to_string())),
-            RV::Str(Rc::new("15:2".to_string())),
-            RV::Str(Rc::new("15:3".to_string())),
-            RV::Str(Rc::new("16:0".to_string())),
-            RV::Str(Rc::new("16:1".to_string())),
-            RV::Str(Rc::new("16:2".to_string())),
-            RV::Str(Rc::new("16:3".to_string())),
-            RV::Str(Rc::new("17:0".to_string())),
-            RV::Str(Rc::new("17:1".to_string())),
-            RV::Str(Rc::new("17:2".to_string())),
-            RV::Str(Rc::new("17:3".to_string())),
+            RV::Str(Arc::new("15:0".to_string())),
+            RV::Str(Arc::new("15:1".to_string())),
+            RV::Str(Arc::new("15:2".to_string())),
+            RV::Str(Arc::new("15:3".to_string())),
+            RV::Str(Arc::new("16:0".to_string())),
+            RV::Str(Arc::new("16:1".to_string())),
+            RV::Str(Arc::new("16:2".to_string())),
+            RV::Str(Arc::new("16:3".to_string())),
+            RV::Str(Arc::new("17:0".to_string())),
+            RV::Str(Arc::new("17:1".to_string())),
+            RV::Str(Arc::new("17:2".to_string())),
+            RV::Str(Arc::new("17:3".to_string())),
         ],
     );
 }

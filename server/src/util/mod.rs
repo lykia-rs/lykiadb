@@ -1,7 +1,9 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, sync::Arc};
 
-pub type Shared<T> = Rc<RefCell<T>>;
+
+
+pub type Shared<T> = Arc<RefCell<T>>;
 
 pub fn alloc_shared<T>(obj: T) -> Shared<T> {
-    Rc::new(RefCell::new(obj))
+    Arc::new(RefCell::new(obj))
 }
