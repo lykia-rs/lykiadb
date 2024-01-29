@@ -32,9 +32,9 @@ Lykia is a toy document database basically written for educational purposes. It 
 - [x] Core scripting language
 - [x] A minimal standard library
 - [x] Data manipulation language ("SELECT", "INSERT", "UPDATE", "DELETE")
+- [x] Event loop, client-server communication
 - [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
 - [ ] In-memory (dummy) storage engine (in progress)
-- [ ] Async runtime/event loop (in progress)
 - [ ] Query planning
 - [ ] Persistent storage engine (Bitcask)
 - [ ] B-Tree implementation for indexing

@@ -1,7 +1,9 @@
 use rustc_hash::FxHashMap;
 
+use super::environment::{EnvId, Environment};
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
+use super::types::Stateful;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
@@ -10,12 +12,11 @@ use crate::lang::Literal;
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
 use crate::lang::tokens::token::Spanned;
-use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
-use crate::util::{alloc_shared, Shared};
 
-use std::rc::Rc;
+use std::borrow::{Borrow, BorrowMut};
+use std::sync::Arc;
 use std::vec;
 
 #[derive(Debug, Clone)]
@@ -132,23 +133,26 @@ impl LoopStack {
 }
 
 pub struct Interpreter {
-    env: Shared<Environment>,
-    root_env: Shared<Environment>,
-    arena: Rc<AstArena>,
+    env: EnvId,
+    root_env: EnvId,
+    env_man: Environment,
+    arena: Arc<AstArena>,
     loop_stack: LoopStack,
-    resolver: Rc<Resolver>,
+    resolver: Arc<Resolver>,
 }
 
 impl Interpreter {
     pub fn new(
-        env: Shared<Environment>,
-        arena: Rc<AstArena>,
-        resolver: Rc<Resolver>,
+        env_man: Environment,
+        env: EnvId,
+        arena: Arc<AstArena>,
+        resolver: Arc<Resolver>,
     ) -> Interpreter {
         Interpreter {
-            env: env.clone(),
+            env_man,
+            env: env,
             root_env: env,
-            arena: Rc::clone(&arena),
+            arena: Arc::clone(&arena),
             loop_stack: LoopStack::new(),
             resolver,
         }
@@ -180,32 +184,42 @@ impl Interpreter {
     fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
         if let Some(unwrapped) = distance {
-            self.env.borrow().read_at(unwrapped, name)
+            self.env_man.read_at(self.env, unwrapped, name)
         } else {
-            self.root_env.borrow().read(name)
+            self.env_man.read(self.root_env, name)
         }
     }
 
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<StmtId>,
-        environment: Shared<Environment>,
+        closure: EnvId,
+        parameters: &Vec<String>,
+        arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        self.execute_block(statements, Some(environment))
+        let fn_env = self.env_man.push(Some(closure));
+
+        for (i, param) in parameters.iter().enumerate() {
+            // TODO: Remove clone here
+            self.env_man
+                .declare(fn_env, param.to_string(), arguments.get(i).unwrap().clone());
+        }
+
+        self.execute_block(statements, Some(fn_env))
     }
 
     pub fn execute_block(
         &mut self,
         statements: &Vec<StmtId>,
-        env_opt: Option<Shared<Environment>>,
+        env_opt: Option<EnvId>,
     ) -> Result<RV, HaltReason> {
-        let mut env_tmp: Option<Shared<Environment>> = None;
+        let mut env_tmp: Option<EnvId> = None;
 
         if let Some(env_opt_unwrapped) = env_opt {
-            env_tmp = Some(self.env.clone());
+            env_tmp = Some(self.env);
             self.env = env_opt_unwrapped;
         } else {
-            self.env = Environment::new(Some(self.env.clone()));
+            self.env = self.env_man.push(Some(self.env));
         }
         let mut ret = Ok(RV::Undefined);
 
@@ -218,14 +232,14 @@ impl Interpreter {
         if let Some(env_tmp_unwrapped) = env_tmp {
             self.env = env_tmp_unwrapped;
         } else {
-            self.env = self.env.clone().borrow_mut().pop();
+            self.env = self.env_man.pop(self.env);
         }
         ret
     }
 
     pub fn literal_to_rv(&mut self, literal: &Literal) -> RV {
         match literal {
-            Literal::Str(s) => RV::Str(Rc::clone(s)),
+            Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
             Literal::Bool(b) => RV::Bool(*b),
             Literal::Undefined => RV::Undefined,
@@ -236,11 +250,11 @@ impl Interpreter {
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
                 }
-                RV::Object(alloc_shared(new_map))
+                RV::Object(Arc::new(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect();
-                RV::Array(alloc_shared(collected))
+                RV::Array(Arc::new(collected))
             }
         }
     }
@@ -249,13 +263,13 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let e = a.get_expression(eidx);
         match e {
-            Expr::Select { query, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", query)))),
-            Expr::Insert { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
-            Expr::Update { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
-            Expr::Delete { command, span: _ } => Ok(RV::Str(Rc::new(format!("{:?}", command)))),
+            Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
+            Expr::Insert { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Update { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Delete { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
             Expr::Literal {
                 value,
                 raw: _,
@@ -278,13 +292,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env
-                        .borrow_mut()
-                        .assign_at(distance_unv, &dst.name, evaluated.clone())
+                    self.env_man
+                        .assign_at(self.env, distance_unv, &dst.name, evaluated.clone())
                 } else {
-                    self.root_env
-                        .borrow_mut()
-                        .assign(dst.name.clone(), evaluated.clone())
+                    self.env_man
+                        .assign(self.env, dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -353,7 +365,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
-                    body: Rc::clone(body),
+                    body: Arc::clone(body),
                     parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
                     closure: self.env.clone(),
                 };
@@ -362,9 +374,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env
-                        .borrow_mut()
-                        .declare(name.as_ref().unwrap().name.to_string(), callable.clone());
+                    self.env_man.declare(
+                        self.env,
+                        name.as_ref().unwrap().name.to_string(),
+                        callable.clone(),
+                    );
                 }
 
                 Ok(callable)
@@ -372,8 +386,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Get { object, name, span } => {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
-                    let borrowed = map.borrow();
-                    let v = borrowed.get(&name.name.clone());
+                    let cloned = map.clone();
+                    let v = cloned.get(&name.name.clone());
                     if v.is_some() {
                         return Ok(v.unwrap().clone());
                     }
@@ -399,8 +413,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let evaluated = self.visit_expr(*value)?;
-                    map.borrow_mut()
-                        .insert(name.name.to_string(), evaluated.clone());
+                    // TODO(vck): Set should really set the value
+                    /*let borrowed: &mut FxHashMap<String, RV> = map.borrow_mut();
+                    borrowed.insert(name.name.to_string(), evaluated.clone());*/
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -421,7 +436,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             return Ok(RV::Undefined);
         }
         // TODO: Remove clone here
-        let a = Rc::clone(&self.arena);
+        let a = Arc::clone(&self.arena);
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {
@@ -435,9 +450,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
-                self.env
-                    .borrow_mut()
-                    .declare(dst.name.to_string(), evaluated.clone());
+                self.env_man
+                    .declare(self.env, dst.name.to_string(), evaluated.clone());
             }
             Stmt::Block {
                 body: stmts,
@@ -503,71 +517,48 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
+#[derive(Clone)]
+pub struct Output {
+    out: Vec<RV>,
+}
+
+impl Output {
+    pub fn new() -> Output {
+        Output { out: Vec::new() }
+    }
+
+    pub fn push(&mut self, rv: RV) {
+        self.out.push(rv);
+    }
+
+    pub fn expect(&mut self, rv: Vec<RV>) {
+        assert_eq!(self.out, rv);
+    }
+}
+
+impl Stateful for Output {
+    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
+        for item in rv {
+            self.push(item.clone());
+        }
+        Ok(RV::Undefined)
+    }
+}
+
 pub mod test_helpers {
-    use crate::runtime::environment::Environment;
-    use crate::runtime::interpreter::{HaltReason, Interpreter};
-    use crate::runtime::std::stdlib;
-    use crate::runtime::types::{Function, Stateful, RV};
+    use crate::runtime::types::RV;
     use crate::runtime::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
-    use rustc_hash::FxHashMap;
-    use std::rc::Rc;
 
-    #[derive(Clone)]
-    pub struct Output {
-        out: Vec<RV>,
-    }
-
-    impl Output {
-        pub fn new() -> Output {
-            Output { out: Vec::new() }
-        }
-
-        pub fn push(&mut self, rv: RV) {
-            self.out.push(rv);
-        }
-
-        pub fn expect(&mut self, rv: Vec<RV>) {
-            assert_eq!(self.out, rv);
-        }
-    }
-
-    impl Stateful for Output {
-        fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
-            for item in rv {
-                self.push(item.clone());
-            }
-            Ok(RV::Undefined)
-        }
-    }
+    use super::Output;
 
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
-        let env = Environment::new(None);
-
         let out = alloc_shared(Output::new());
 
-        let mut native_fns = stdlib();
-
-        let mut test_namespace = FxHashMap::default();
-
-        test_namespace.insert(
-            "out".to_owned(),
-            RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
-        );
-
-        native_fns.insert(
-            "TestUtils".to_owned(),
-            RV::Object(alloc_shared(test_namespace)),
-        );
-
-        for (name, value) in native_fns {
-            env.borrow_mut().declare(name, value);
-        }
-
         (
-            out,
+            out.clone(),
             Runtime {
-                env,
+                out: Some(out),
                 mode: RuntimeMode::File,
             },
         )
@@ -576,7 +567,7 @@ pub mod test_helpers {
     pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code);
-        out.borrow_mut().expect(output);
+        out.write().unwrap().expect(output);
     }
 }
 
@@ -597,7 +588,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
             RV::Bool(false),
@@ -616,7 +607,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Num(7.0),
             RV::Num(28.0),
             RV::Num(13.0),
@@ -638,7 +629,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Bool(true),
             RV::Bool(true),
             RV::Bool(false),

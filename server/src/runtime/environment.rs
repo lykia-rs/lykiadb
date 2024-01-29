@@ -1,46 +1,63 @@
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
-use crate::util::{alloc_shared, Shared};
 use core::panic;
 use rustc_hash::FxHashMap;
+use std::borrow::{Borrow, BorrowMut};
 
 use super::interpreter::InterpretError;
 
+#[repr(transparent)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub struct EnvId(pub usize);
+
+#[derive(Debug)]
+struct EnvironmentFrame {
+    map: FxHashMap<String, RV>,
+    pub parent: Option<EnvId>,
+}
+
 #[derive(Debug)]
 pub struct Environment {
-    map: FxHashMap<String, RV>,
-    pub parent: Option<Shared<Environment>>,
+    envs: Vec<EnvironmentFrame>,
 }
 
 impl Environment {
-    pub fn new(parent: Option<Shared<Environment>>) -> Shared<Environment> {
-        alloc_shared(Environment {
+    pub fn new() -> Self {
+        let mut arena = Environment { envs: vec![] };
+        arena.push(None);
+        arena
+    }
+
+    pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
+        self.envs.push(EnvironmentFrame {
             map: FxHashMap::default(),
             parent,
-        })
+        });
+        EnvId(self.envs.len() - 1)
     }
 
-    pub fn pop(&mut self) -> Shared<Environment> {
-        self.parent.clone().unwrap()
+    pub fn pop(&self, env_id: EnvId) -> EnvId {
+        // TODO(vck): Remove the env for real
+        self.envs[env_id.0].parent.unwrap()
     }
 
-    pub fn declare(&mut self, name: String, value: RV) {
-        self.map.insert(name, value);
+    pub fn top(&self) -> EnvId {
+        EnvId(self.envs.len() - 1)
     }
 
-    pub fn assign(&mut self, name: String, value: RV) -> Result<bool, HaltReason> {
-        if self.map.contains_key(&name) {
-            self.map.insert(name, value);
+    pub fn declare(&mut self, env_id: EnvId, name: String, value: RV) {
+        self.envs[env_id.0].map.insert(name, value);
+    }
+
+    pub fn assign(&mut self, env_id: EnvId, name: String, value: RV) -> Result<bool, HaltReason> {
+        let env = self.envs[env_id.0].borrow();
+        if env.map.contains_key(&name) {
+            self.envs[env_id.0].borrow_mut().map.insert(name, value);
             return Ok(true);
         }
 
-        if self.parent.is_some() {
-            return self
-                .parent
-                .as_mut()
-                .unwrap()
-                .borrow_mut()
-                .assign(name, value);
+        if env.parent.is_some() {
+            return self.assign(env.parent.unwrap(), name, value);
         }
         Err(HaltReason::Error(InterpretError::Other {
             message: format!("Assignment to an undefined variable '{}'", &name),
@@ -49,29 +66,36 @@ impl Environment {
 
     pub fn assign_at(
         &mut self,
+        env_id: EnvId,
         distance: usize,
         name: &str,
         value: RV,
     ) -> Result<bool, HaltReason> {
-        let ancestor = self.ancestor(distance);
+        let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
-            unwrapped.borrow_mut().map.insert(name.to_string(), value);
+            self.envs[unwrapped.0]
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
         } else {
-            self.map.insert(name.to_string(), value);
+            self.envs[env_id.0]
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
         }
 
         Ok(true)
     }
 
-    pub fn read(&self, name: &str) -> Result<RV, HaltReason> {
-        if self.map.contains_key(name) {
+    pub fn read(&self, env_id: EnvId, name: &str) -> Result<RV, HaltReason> {
+        if self.envs[env_id.0].map.contains_key(name) {
             // TODO(vck): Remove clone
-            return Ok(self.map.get(name).unwrap().clone());
+            return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
         }
 
-        if self.parent.is_some() {
-            return self.parent.as_ref().unwrap().borrow().read(name);
+        if self.envs[env_id.0].parent.is_some() {
+            return self.read(self.envs[env_id.0].parent.unwrap(), name);
         }
 
         Err(HaltReason::Error(InterpretError::Other {
@@ -79,26 +103,26 @@ impl Environment {
         }))
     }
 
-    pub fn read_at(&self, distance: usize, name: &str) -> Result<RV, HaltReason> {
-        let ancestor = self.ancestor(distance);
+    pub fn read_at(&self, env_id: EnvId, distance: usize, name: &str) -> Result<RV, HaltReason> {
+        let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
             // TODO(vck): Remove clone
-            return Ok(unwrapped.borrow().map.get(name).unwrap().clone());
+            return Ok(self.envs[unwrapped.0].map.get(name).unwrap().clone());
         }
-        return Ok(self.map.get(name).unwrap().clone());
+        return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
     }
 
-    pub fn ancestor(&self, distance: usize) -> Option<Shared<Environment>> {
+    pub fn ancestor(&self, env_id: EnvId, distance: usize) -> Option<EnvId> {
         if distance == 0 {
             return None;
         }
         if distance == 1 {
-            return Some(self.parent.as_ref().unwrap().clone());
+            return Some(self.envs[env_id.0].parent.unwrap());
         }
-        if self.parent.is_some() {
-            let pref = self.parent.as_ref().unwrap().borrow_mut();
-            return pref.ancestor(distance - 1);
+        if self.envs[env_id.0].parent.is_some() {
+            let pref = self.envs[env_id.0].parent.unwrap();
+            return self.ancestor(pref, distance - 1);
         }
         panic!("Invalid variable distance.");
     }
@@ -110,48 +134,47 @@ mod test {
 
     #[test]
     fn test_read_basic() {
-        let env = super::Environment::new(None);
-        env.borrow_mut().declare("five".to_string(), RV::Num(5.0));
-        assert_eq!(env.borrow().read("five").unwrap(), RV::Num(5.0));
+        let mut env_man = super::Environment::new();
+        let env = env_man.top();
+        env_man.declare(env, "five".to_string(), RV::Num(5.0));
+        assert_eq!(env_man.read(env, "five").unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_read_from_parent() {
-        let parent = super::Environment::new(None);
-        parent
-            .borrow_mut()
-            .declare("five".to_string(), RV::Num(5.0));
-        let child = super::Environment::new(Some(parent.clone()));
-        assert_eq!(child.borrow().read("five").unwrap(), RV::Num(5.0));
+        let mut env_man = super::Environment::new();
+        let parent = env_man.top();
+        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        let child = env_man.push(Some(parent));
+        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_write_to_parent() {
-        let parent = super::Environment::new(None);
-        parent
-            .borrow_mut()
-            .declare("five".to_string(), RV::Num(5.0));
-        let child = super::Environment::new(Some(parent.clone()));
-        child
-            .borrow_mut()
-            .assign("five".to_string(), RV::Num(5.1))
+        let mut env_man = super::Environment::new();
+        let parent = env_man.top();
+        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        let child = env_man.push(Some(parent));
+        env_man
+            .assign(child, "five".to_string(), RV::Num(5.1))
             .unwrap();
-        assert_eq!(parent.borrow().read("five").unwrap(), RV::Num(5.1));
-        assert_eq!(child.borrow().read("five").unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(parent, "five").unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.1));
     }
 
     #[test]
     fn test_read_undefined_variable() {
-        let env = super::Environment::new(None);
-        assert!(env.borrow().read("five").is_err());
+        let env_man = super::Environment::new();
+        let env = env_man.top();
+        assert!(env_man.read(env, "five").is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
-        let env = super::Environment::new(None);
-        assert!(env
-            .borrow_mut()
-            .assign("five".to_string(), RV::Num(5.0))
+        let mut env_man = super::Environment::new();
+        let env = env_man.top();
+        assert!(env_man
+            .assign(env, "five".to_string(), RV::Num(5.0))
             .is_err());
     }
 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lykiadb_server::runtime::{RuntimeMode, Runtime};
+use lykiadb_server::runtime::{Runtime, RuntimeMode};
 
 fn runtime(filename: &str) {
     let file = File::open(filename).unwrap();

@@ -1,11 +1,12 @@
 use crate::lang::ast::stmt::StmtId;
-use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
-use std::rc::Rc;
+use std::sync::Arc;
+
+use super::environment::EnvId;
 
 pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
@@ -16,12 +17,12 @@ pub enum Function {
     Lambda {
         function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
     },
-    Stateful(Shared<dyn Stateful>),
+    Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: String,
         parameters: Vec<String>,
-        closure: Shared<Environment>,
-        body: Rc<Vec<StmtId>>,
+        closure: EnvId,
+        body: Arc<Vec<StmtId>>,
     },
 }
 
@@ -77,37 +78,26 @@ impl Display for Function {
 impl Function {
     pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
-            Function::Stateful(stateful) => stateful.borrow_mut().call(interpreter, arguments),
+            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
                 parameters,
                 closure,
                 body,
-            } => {
-                let fn_env = Environment::new(Some(Rc::clone(closure)));
-
-                for (i, param) in parameters.iter().enumerate() {
-                    // TODO: Remove clone here
-                    fn_env
-                        .borrow_mut()
-                        .declare(param.to_string(), arguments.get(i).unwrap().clone());
-                }
-
-                interpreter.user_fn_call(body, fn_env)
-            }
+            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RV {
-    Str(Rc<String>),
+    Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Object(Shared<FxHashMap<String, RV>>),
-    Array(Shared<Vec<RV>>),
-    Callable(Option<usize>, Rc<Function>),
+    Object(Arc<FxHashMap<String, RV>>),
+    Array(Arc<Vec<RV>>),
+    Callable(Option<usize>, Arc<Function>),
     Undefined,
     NaN,
     Null,
@@ -122,7 +112,7 @@ impl<'de> Deserialize<'de> for RV {
     {
         let value = serde_json::Value::deserialize(deserializer)?;
         match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Rc::new(s))),
+            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
             serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
             serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
             serde_json::Value::Null => Ok(RV::Null),

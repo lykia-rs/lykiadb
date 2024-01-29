@@ -1,0 +1,1 @@
+Benchmark.fib(35);

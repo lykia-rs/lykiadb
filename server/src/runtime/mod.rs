@@ -1,5 +1,8 @@
+use ::std::sync::Arc;
+
+use self::environment::Environment;
 use self::error::{report_error, ExecutionError};
-use self::interpreter::HaltReason;
+use self::interpreter::{HaltReason, Output};
 use self::resolver::Resolver;
 use self::std::stdlib;
 use crate::lang::ast::visitor::VisitorMut;
@@ -7,11 +10,9 @@ use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::ast::parser::{ParseError, Parser};
 use crate::lang::ast::program::AstArena;
 use crate::lang::tokens::scanner::Scanner;
-use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::Shared;
-use ::std::rc::Rc;
 
 pub mod environment;
 mod error;
@@ -22,8 +23,8 @@ mod std;
 pub mod types;
 
 pub struct Runtime {
-    env: Shared<Environment>,
     mode: RuntimeMode,
+    out: Option<Shared<Output>>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -34,15 +35,7 @@ pub enum RuntimeMode {
 
 impl Runtime {
     pub fn new(mode: RuntimeMode) -> Runtime {
-        let env = Environment::new(None);
-
-        let native_fns = stdlib();
-
-        for (name, value) in native_fns {
-            env.borrow_mut().declare(name.to_string(), value);
-        }
-
-        Runtime { env, mode }
+        Runtime { mode, out: None }
     }
 
     pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
@@ -69,12 +62,21 @@ impl Runtime {
             return Err(error);
         }
         let program_unw = program.unwrap();
-        let arena: Rc<AstArena> = Rc::clone(&program_unw.arena);
+        let arena: Arc<AstArena> = Arc::clone(&program_unw.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);
         //
-        let mut interpreter = Interpreter::new(self.env.clone(), arena, Rc::new(resolver));
+        let mut env_man = Environment::new();
+        let env = env_man.top();
+
+        let native_fns = stdlib(self.out.clone());
+
+        for (name, value) in native_fns {
+            env_man.declare(env, name.to_string(), value);
+        }
+
+        let mut interpreter = Interpreter::new(env_man, env, arena, Arc::new(resolver));
         let out = interpreter.visit_stmt(program_unw.root);
 
         if self.mode == RuntimeMode::Repl {

@@ -1,5 +1,5 @@
 use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[test]
 fn test_higher_order_0() {
@@ -63,8 +63,8 @@ fn test_resolving_read_0() {
         showA();
     }",
         vec![
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("global".to_string())),
         ],
     );
 }
@@ -87,9 +87,9 @@ fn test_resolving_read_1() {
         showB();
     }",
         vec![
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("block".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("block".to_string())),
         ],
     );
 }
@@ -110,8 +110,8 @@ fn test_resolving_read_2() {
         }
         }",
         vec![
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("global".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("global".to_string())),
         ],
     );
 }
@@ -141,10 +141,10 @@ fn test_resolving_write_0() {
         showB();
     }",
         vec![
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("block".to_string())),
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("test".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("block".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("test".to_string())),
         ],
     );
 }
@@ -160,8 +160,8 @@ fn test_anonymous_fn_0() {
             a();
         ",
         vec![
-            RV::Str(Rc::new("hello".to_string())),
-            RV::Str(Rc::new("hello".to_string())),
+            RV::Str(Arc::new("hello".to_string())),
+            RV::Str(Arc::new("hello".to_string())),
         ],
     );
 }
@@ -176,8 +176,8 @@ fn test_anonymous_fn_1() {
                 a();
         ",
         vec![
-            RV::Str(Rc::new("hello".to_string())),
-            RV::Str(Rc::new("hello".to_string())),
+            RV::Str(Arc::new("hello".to_string())),
+            RV::Str(Arc::new("hello".to_string())),
         ],
     );
 }
@@ -191,7 +191,7 @@ fn test_anonymous_fn_2() {
 
             $pr();
         ",
-        vec![RV::Str(Rc::new("hello".to_string()))],
+        vec![RV::Str(Arc::new("hello".to_string()))],
     );
 }
 
@@ -202,7 +202,7 @@ fn test_anonymous_fn_3() {
                 TestUtils.out(\"hello\");
                 })();
         ",
-        vec![RV::Str(Rc::new("hello".to_string()))],
+        vec![RV::Str(Arc::new("hello".to_string()))],
     );
 }
 
@@ -231,10 +231,10 @@ fn test_resolving_write_1() {
         $showB();
     }",
         vec![
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("block".to_string())),
-            RV::Str(Rc::new("global".to_string())),
-            RV::Str(Rc::new("test".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("block".to_string())),
+            RV::Str(Arc::new("global".to_string())),
+            RV::Str(Arc::new("test".to_string())),
         ],
     );
 }
@@ -264,8 +264,8 @@ fn test_resolve_object() {
         $a.myFun();
         ",
         vec![
-            RV::Str(Rc::new("outer $text".to_string())),
-            RV::Str(Rc::new("inner $text".to_string())),
+            RV::Str(Arc::new("outer $text".to_string())),
+            RV::Str(Arc::new("inner $text".to_string())),
         ],
     );
 }
@@ -314,10 +314,10 @@ fn test_resolve_deeper_object() {
         $a.b.c1.myFun();
         ",
         vec![
-            RV::Str(Rc::new("outer $text".to_string())),
-            RV::Str(Rc::new("c0 inner $text".to_string())),
-            RV::Str(Rc::new("outer $text".to_string())),
-            RV::Str(Rc::new("c1 inner $text".to_string())),
+            RV::Str(Arc::new("outer $text".to_string())),
+            RV::Str(Arc::new("c0 inner $text".to_string())),
+            RV::Str(Arc::new("outer $text".to_string())),
+            RV::Str(Arc::new("c1 inner $text".to_string())),
         ],
     );
 }

@@ -5,4 +5,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bson = "2.9.0"
+bson = { version = "2.9.0" }
+serde = { version = "1.0.188", features=["derive", "rc"] }
+bytes = "1.5.0"
+tokio = { version = "~1.35.1", features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "time",
+    "sync",
+] }

@@ -1,5 +1,5 @@
 use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[test]
 fn test_blocks_0() {
@@ -24,15 +24,15 @@ fn test_blocks_0() {
     TestUtils.out($b);
     TestUtils.out($c);",
         vec![
-            RV::Str(Rc::new("inner a".to_string())),
-            RV::Str(Rc::new("outer b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
-            RV::Str(Rc::new("outer a".to_string())),
-            RV::Str(Rc::new("outer b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
-            RV::Str(Rc::new("global a".to_string())),
-            RV::Str(Rc::new("global b".to_string())),
-            RV::Str(Rc::new("global c".to_string())),
+            RV::Str(Arc::new("inner a".to_string())),
+            RV::Str(Arc::new("outer b".to_string())),
+            RV::Str(Arc::new("global c".to_string())),
+            RV::Str(Arc::new("outer a".to_string())),
+            RV::Str(Arc::new("outer b".to_string())),
+            RV::Str(Arc::new("global c".to_string())),
+            RV::Str(Arc::new("global a".to_string())),
+            RV::Str(Arc::new("global b".to_string())),
+            RV::Str(Arc::new("global c".to_string())),
         ],
     );
 }

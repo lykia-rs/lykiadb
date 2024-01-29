@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::lang::ast::expr::Operation;
 use crate::runtime::types::RV;
@@ -87,7 +87,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Num(l), Operation::IsEqual, RV::Num(r)) => RV::Bool(l == r),
         //
         (RV::Str(l), Operation::Add, RV::Str(r)) => {
-            RV::Str(Rc::new(l.to_string() + &r.to_string()))
+            RV::Str(Arc::new(l.to_string() + &r.to_string()))
         }
         (RV::Str(l), Operation::Less, RV::Str(r)) => RV::Bool(l < r),
         (RV::Str(l), Operation::LessEqual, RV::Str(r)) => RV::Bool(l <= r),
@@ -104,17 +104,17 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Bool(l), Operation::IsEqual, RV::Bool(r)) => RV::Bool(l == r),
         //
         (RV::Str(s), Operation::Add, RV::Num(num)) => {
-            RV::Str(Rc::new(s.to_string() + &num.to_string()))
+            RV::Str(Arc::new(s.to_string() + &num.to_string()))
         }
         (RV::Num(num), Operation::Add, RV::Str(s)) => {
-            RV::Str(Rc::new(num.to_string() + &s.to_string()))
+            RV::Str(Arc::new(num.to_string() + &s.to_string()))
         }
         //
         (RV::Str(s), Operation::Add, RV::Bool(bool)) => {
-            RV::Str(Rc::new(s.to_string() + &bool.to_string()))
+            RV::Str(Arc::new(s.to_string() + &bool.to_string()))
         }
         (RV::Bool(bool), Operation::Add, RV::Str(s)) => {
-            RV::Str(Rc::new(bool.to_string() + &s.to_string()))
+            RV::Str(Arc::new(bool.to_string() + &s.to_string()))
         }
         //
         (_, Operation::Less, _)
@@ -136,7 +136,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
 
 #[cfg(test)]
 mod test {
-    use std::{f64::INFINITY, rc::Rc};
+    use std::{f64::INFINITY, rc::Rc, sync::Arc};
 
     use rustc_hash::FxHashMap;
 
@@ -146,7 +146,6 @@ mod test {
             eval::{coerce2number, eval_binary, is_value_truthy},
             types::{Function, RV},
         },
-        util::alloc_shared,
     };
 
     #[test]
@@ -161,17 +160,17 @@ mod test {
         assert_eq!(is_value_truthy(RV::Num(1.0)), true);
         assert_eq!(is_value_truthy(RV::Num(0.0)), false);
         assert_eq!(is_value_truthy(RV::Num(-1.0)), true);
-        assert_eq!(is_value_truthy(RV::Str(Rc::new("".to_owned()))), false);
-        assert_eq!(is_value_truthy(RV::Str(Rc::new("foo".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Array(alloc_shared(vec![]))), true);
+        assert_eq!(is_value_truthy(RV::Str(Arc::new("".to_owned()))), false);
+        assert_eq!(is_value_truthy(RV::Str(Arc::new("foo".to_owned()))), true);
+        assert_eq!(is_value_truthy(RV::Array(Arc::new(vec![]))), true);
         assert_eq!(
-            is_value_truthy(RV::Object(alloc_shared(FxHashMap::default()))),
+            is_value_truthy(RV::Object(Arc::new(FxHashMap::default()))),
             true
         );
         assert_eq!(
             is_value_truthy(RV::Callable(
                 Some(1),
-                Rc::new(Function::Lambda {
+                Arc::new(Function::Lambda {
                     function: |_, _| Ok(RV::Undefined)
                 })
             )),
@@ -184,7 +183,7 @@ mod test {
         assert_eq!(coerce2number(RV::Num(1.0)), Some(1.0));
         assert_eq!(coerce2number(RV::Bool(false)), Some(0.0));
         assert_eq!(coerce2number(RV::Bool(true)), Some(1.0));
-        assert_eq!(coerce2number(RV::Str(Rc::new("".to_owned()))), None);
+        assert_eq!(coerce2number(RV::Str(Arc::new("".to_owned()))), None);
     }
 
     #[test]
@@ -200,19 +199,19 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Add
             ),
-            RV::Str(Rc::new("ab".to_string()))
+            RV::Str(Arc::new("ab".to_string()))
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Add
             ),
-            RV::Str(Rc::new("ba".to_string()))
+            RV::Str(Arc::new("ba".to_string()))
         );
         //
         assert_eq!(
@@ -313,16 +312,16 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Subtract
             ),
             RV::NaN
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Subtract
             ),
             RV::NaN
@@ -384,16 +383,16 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Multiply
             ),
             RV::NaN
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Multiply
             ),
             RV::NaN
@@ -455,16 +454,16 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Divide
             ),
             RV::NaN
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Divide
             ),
             RV::NaN
@@ -519,14 +518,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::IsEqual
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::IsEqual
             ),
@@ -535,8 +534,8 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::IsEqual
             ),
             RV::Bool(false)
@@ -591,14 +590,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::IsNotEqual
             ),
             RV::Bool(true)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::IsNotEqual
             ),
@@ -607,8 +606,8 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::IsNotEqual
             ),
             RV::Bool(true)
@@ -667,14 +666,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Less
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::Less
             ),
@@ -683,24 +682,24 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Less
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Less
             ),
             RV::Bool(true)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Less
             ),
             RV::Bool(false)
@@ -759,14 +758,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::LessEqual
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::LessEqual
             ),
@@ -775,24 +774,24 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::LessEqual
             ),
             RV::Bool(true)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::LessEqual
             ),
             RV::Bool(true)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::LessEqual
             ),
             RV::Bool(false)
@@ -851,14 +850,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Greater
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::Greater
             ),
@@ -867,24 +866,24 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Greater
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::Greater
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Greater
             ),
             RV::Bool(true)
@@ -943,14 +942,14 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Num(1.0),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::GreaterEqual
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Num(1.0),
                 Operation::GreaterEqual
             ),
@@ -959,24 +958,24 @@ mod test {
         //
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::GreaterEqual
             ),
             RV::Bool(true)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
-                RV::Str(Rc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
                 Operation::GreaterEqual
             ),
             RV::Bool(false)
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("b".to_string())),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("b".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::GreaterEqual
             ),
             RV::Bool(true)
@@ -1105,15 +1104,15 @@ mod test {
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Bool(true),
                 Operation::Add
             ),
-            RV::Str(Rc::new("atrue".to_string()))
+            RV::Str(Arc::new("atrue".to_string()))
         );
         assert_eq!(
             eval_binary(
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 RV::Bool(true),
                 Operation::Less
             ),
@@ -1164,15 +1163,15 @@ mod test {
         assert_eq!(
             eval_binary(
                 RV::Bool(true),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Add
             ),
-            RV::Str(Rc::new("truea".to_string()))
+            RV::Str(Arc::new("truea".to_string()))
         );
         assert_eq!(
             eval_binary(
                 RV::Bool(true),
-                RV::Str(Rc::new("a".to_string())),
+                RV::Str(Arc::new("a".to_string())),
                 Operation::Less
             ),
             RV::Bool(false)
