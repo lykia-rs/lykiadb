@@ -1,7 +1,9 @@
 use rustc_hash::FxHashMap;
 
+use super::environment::{EnvId, EnvironmentArena};
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
+use super::types::Stateful;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
@@ -10,10 +12,9 @@ use crate::lang::Literal;
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
 use crate::lang::tokens::token::Spanned;
-use crate::runtime::environment::Environment;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
-use crate::util::{alloc_shared, Shared};
+use crate::util::alloc_shared;
 
 use std::rc::Rc;
 use std::vec;
@@ -132,8 +133,9 @@ impl LoopStack {
 }
 
 pub struct Interpreter {
-    env: Shared<Environment>,
-    root_env: Shared<Environment>,
+    env: EnvId,
+    root_env: EnvId,
+    env_arena: EnvironmentArena,
     arena: Rc<AstArena>,
     loop_stack: LoopStack,
     resolver: Rc<Resolver>,
@@ -141,12 +143,14 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(
-        env: Shared<Environment>,
+        env_arena: EnvironmentArena,
+        env: EnvId,
         arena: Rc<AstArena>,
         resolver: Rc<Resolver>,
     ) -> Interpreter {
         Interpreter {
-            env: env.clone(),
+            env_arena,
+            env: env,
             root_env: env,
             arena: Rc::clone(&arena),
             loop_stack: LoopStack::new(),
@@ -180,32 +184,42 @@ impl Interpreter {
     fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
         if let Some(unwrapped) = distance {
-            self.env.borrow().read_at(unwrapped, name)
+            self.env_arena.read_at(self.env, unwrapped, name)
         } else {
-            self.root_env.borrow().read(name)
+            self.env_arena.read(self.root_env, name)
         }
     }
 
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<StmtId>,
-        environment: Shared<Environment>,
+        closure: EnvId,
+        parameters: &Vec<String>,
+        arguments: &[RV]
     ) -> Result<RV, HaltReason> {
-        self.execute_block(statements, Some(environment))
+        let fn_env = self.env_arena.push(Some(closure));
+
+        for (i, param) in parameters.iter().enumerate() {
+            // TODO: Remove clone here
+            self.env_arena
+                .declare(fn_env, param.to_string(), arguments.get(i).unwrap().clone());
+        }
+
+        self.execute_block(statements, Some(fn_env))
     }
 
     pub fn execute_block(
         &mut self,
         statements: &Vec<StmtId>,
-        env_opt: Option<Shared<Environment>>,
+        env_opt: Option<EnvId>,
     ) -> Result<RV, HaltReason> {
-        let mut env_tmp: Option<Shared<Environment>> = None;
+        let mut env_tmp: Option<EnvId> = None;
 
         if let Some(env_opt_unwrapped) = env_opt {
-            env_tmp = Some(self.env.clone());
+            env_tmp = Some(self.env);
             self.env = env_opt_unwrapped;
         } else {
-            self.env = Environment::new(Some(self.env.clone()));
+            self.env = self.env_arena.push(Some(self.env));
         }
         let mut ret = Ok(RV::Undefined);
 
@@ -218,7 +232,7 @@ impl Interpreter {
         if let Some(env_tmp_unwrapped) = env_tmp {
             self.env = env_tmp_unwrapped;
         } else {
-            self.env = self.env.clone().borrow_mut().pop();
+            self.env = self.env_arena.pop(self.env);
         }
         ret
     }
@@ -278,13 +292,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env
-                        .borrow_mut()
-                        .assign_at(distance_unv, &dst.name, evaluated.clone())
+                    self.env_arena
+                        .assign_at( self.env, distance_unv, &dst.name, evaluated.clone())
                 } else {
-                    self.root_env
-                        .borrow_mut()
-                        .assign(dst.name.clone(), evaluated.clone())
+                    self.env_arena
+                        .assign( self.env, dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -362,9 +374,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env
-                        .borrow_mut()
-                        .declare(name.as_ref().unwrap().name.to_string(), callable.clone());
+                    self.env_arena
+                        .declare(self.env, name.as_ref().unwrap().name.to_string(), callable.clone());
                 }
 
                 Ok(callable)
@@ -435,9 +446,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
-                self.env
-                    .borrow_mut()
-                    .declare(dst.name.to_string(), evaluated.clone());
+                self.env_arena
+                    .declare(self.env, dst.name.to_string(), evaluated.clone());
             }
             Stmt::Block {
                 body: stmts,
@@ -503,71 +513,49 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
+
+#[derive(Clone)]
+pub struct Output {
+    out: Vec<RV>,
+}
+
+impl Output {
+    pub fn new() -> Output {
+        Output { out: Vec::new() }
+    }
+
+    pub fn push(&mut self, rv: RV) {
+        self.out.push(rv);
+    }
+
+    pub fn expect(&mut self, rv: Vec<RV>) {
+        assert_eq!(self.out, rv);
+    }
+}
+
+impl Stateful for Output {
+    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
+        for item in rv {
+            self.push(item.clone());
+        }
+        Ok(RV::Undefined)
+    }
+}
+
 pub mod test_helpers {
-    use crate::runtime::environment::Environment;
-    use crate::runtime::interpreter::{HaltReason, Interpreter};
-    use crate::runtime::std::stdlib;
-    use crate::runtime::types::{Function, Stateful, RV};
+    use crate::runtime::types::RV;
     use crate::runtime::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
-    use rustc_hash::FxHashMap;
-    use std::rc::Rc;
 
-    #[derive(Clone)]
-    pub struct Output {
-        out: Vec<RV>,
-    }
-
-    impl Output {
-        pub fn new() -> Output {
-            Output { out: Vec::new() }
-        }
-
-        pub fn push(&mut self, rv: RV) {
-            self.out.push(rv);
-        }
-
-        pub fn expect(&mut self, rv: Vec<RV>) {
-            assert_eq!(self.out, rv);
-        }
-    }
-
-    impl Stateful for Output {
-        fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
-            for item in rv {
-                self.push(item.clone());
-            }
-            Ok(RV::Undefined)
-        }
-    }
+    use super::Output;
 
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
-        let env = Environment::new(None);
-
         let out = alloc_shared(Output::new());
 
-        let mut native_fns = stdlib();
-
-        let mut test_namespace = FxHashMap::default();
-
-        test_namespace.insert(
-            "out".to_owned(),
-            RV::Callable(None, Rc::new(Function::Stateful(out.clone()))),
-        );
-
-        native_fns.insert(
-            "TestUtils".to_owned(),
-            RV::Object(alloc_shared(test_namespace)),
-        );
-
-        for (name, value) in native_fns {
-            env.borrow_mut().declare(name, value);
-        }
-
         (
-            out,
+            out.clone(),
             Runtime {
-                env,
+                out: Some(out),
                 mode: RuntimeMode::File,
             },
         )

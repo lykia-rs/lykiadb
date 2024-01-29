@@ -1,11 +1,12 @@
 use crate::lang::ast::stmt::StmtId;
-use crate::runtime::environment::Environment;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
+
+use super::environment::EnvId;
 
 pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
@@ -20,7 +21,7 @@ pub enum Function {
     UserDefined {
         name: String,
         parameters: Vec<String>,
-        closure: Shared<Environment>,
+        closure: EnvId,
         body: Rc<Vec<StmtId>>,
     },
 }
@@ -85,16 +86,7 @@ impl Function {
                 closure,
                 body,
             } => {
-                let fn_env = Environment::new(Some(Rc::clone(closure)));
-
-                for (i, param) in parameters.iter().enumerate() {
-                    // TODO: Remove clone here
-                    fn_env
-                        .borrow_mut()
-                        .declare(param.to_string(), arguments.get(i).unwrap().clone());
-                }
-
-                interpreter.user_fn_call(body, fn_env)
+                interpreter.user_fn_call(body, *closure, parameters, arguments)
             }
         }
     }

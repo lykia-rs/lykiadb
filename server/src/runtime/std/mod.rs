@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
 
-use crate::util::alloc_shared;
+use crate::util::{alloc_shared, Shared};
 
 use self::{
     fib::nt_fib,
@@ -11,14 +11,14 @@ use self::{
     time::nt_clock,
 };
 
-use super::types::{Function, RV};
+use super::{interpreter::Output, types::{Function, RV}};
 
 pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
 
-pub fn stdlib() -> FxHashMap<String, RV> {
+pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = FxHashMap::default();
 
     let mut benchmark_namespace = FxHashMap::default();
@@ -54,6 +54,20 @@ pub fn stdlib() -> FxHashMap<String, RV> {
         "clock".to_owned(),
         RV::Callable(Some(0), Rc::new(Function::Lambda { function: nt_clock })),
     );
+
+    if out.is_some() {
+        let mut test_namespace = FxHashMap::default();
+
+        test_namespace.insert(
+            "out".to_owned(),
+            RV::Callable(None, Rc::new(Function::Stateful(out.unwrap().clone()))),
+        );
+
+        std.insert(
+            "TestUtils".to_owned(),
+            RV::Object(alloc_shared(test_namespace)),
+        );
+    }
 
     std.insert(
         "Benchmark".to_owned(),
