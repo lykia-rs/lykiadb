@@ -46,16 +46,18 @@ Lykia is a toy document database basically written for educational purposes. It 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
 
-REPL:
+Run the server:
 
 ```shell
-$ cargo run
+$ cargo run --release --bin lykiadb-server
 ```
-Alternatively, you can run a Lykia script by passing its name as the first argument.
+Run the client:
 
 ```shell 
-$ cargo run server/examples/fib.ly
+$ cargo run --release --bin lykiadb-shell cli/examples/fib.ly
 ```
+
+Client transmits the fib.ly in an infinite loop.
 
 ## License
 Lykia is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.

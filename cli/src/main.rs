@@ -84,7 +84,6 @@ async fn run_file(filename: &str, print_ast: bool) {
 
         let response = session.handle().await;
         println!("{:?}", response);
-        tokio::time::sleep(Duration::from_secs(2)).await;
     }
 
 }

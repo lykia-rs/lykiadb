@@ -35,12 +35,11 @@ impl ServerSession {
                             let bson_response = bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)));
                             self.conn.write(Message::Response(Response::Value(bson_response.unwrap()))).await.unwrap();
                         }
-                        self.conn
-                            .write(Message::Response(Response::Value(
-                                bson::to_bson(&1515).unwrap(),
-                            )))
-                            .await
-                            .unwrap();
+                        else {
+                            let err = execution.err().unwrap();
+                            
+                            self.conn.write(Message::Response(Response::Value(bson::to_bson(&format!("Error: {:?}", err)).unwrap()))).await.unwrap();
+                        }
                     }
                 },
                 _ => panic!("Unsupported message type"),
