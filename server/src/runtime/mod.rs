@@ -1,6 +1,6 @@
 use ::std::sync::Arc;
 
-use self::environment::EnvironmentArena;
+use self::environment::Environment;
 use self::error::{report_error, ExecutionError};
 use self::interpreter::{HaltReason, Output};
 use self::resolver::Resolver;
@@ -67,7 +67,7 @@ impl Runtime {
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);
         //
-        let mut env_arena = EnvironmentArena::new();
+        let mut env_arena = Environment::new();
         let env = env_arena.top();
 
         let native_fns = stdlib(self.out.clone());

@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap;
 
-use super::environment::{EnvId, EnvironmentArena};
+use super::environment::{EnvId, Environment};
 use super::eval::{coerce2number, eval_binary, is_value_truthy};
 use super::resolver::Resolver;
 use super::types::Stateful;
@@ -135,7 +135,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
-    env_arena: EnvironmentArena,
+    env_arena: Environment,
     arena: Arc<AstArena>,
     loop_stack: LoopStack,
     resolver: Arc<Resolver>,
@@ -143,7 +143,7 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(
-        env_arena: EnvironmentArena,
+        env_arena: Environment,
         env: EnvId,
         arena: Arc<AstArena>,
         resolver: Arc<Resolver>,

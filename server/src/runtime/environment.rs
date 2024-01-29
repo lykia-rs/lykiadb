@@ -11,29 +11,25 @@ use super::interpreter::InterpretError;
 pub struct EnvId(pub usize);
 
 #[derive(Debug)]
-pub struct Environment {
+struct EnvironmentFrame {
     map: FxHashMap<String, RV>,
     pub parent: Option<EnvId>,
 }
 
 #[derive(Debug)]
-pub struct EnvironmentArena {
-    pub envs: Vec<Environment>,
+pub struct Environment {
+    envs: Vec<EnvironmentFrame>,
 }
 
-impl EnvironmentArena {
+impl Environment {
     pub fn new() -> Self {
-        let mut arena = EnvironmentArena { envs: vec![] };
+        let mut arena = Environment { envs: vec![] };
         arena.push(None);
         arena
     }
 
-    fn get(&self, idx: EnvId) -> &Environment {
-        &self.envs[idx.0]
-    }
-
     pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
-        self.envs.push(Environment {
+        self.envs.push(EnvironmentFrame {
             map: FxHashMap::default(),
             parent,
         });
@@ -41,12 +37,16 @@ impl EnvironmentArena {
     }
 
     pub fn pop(&self, env_id: EnvId) -> EnvId {
-        // TODO: Remove the env for real
-        self.get(env_id).parent.unwrap()
+        // TODO(vck): Remove the env for real
+        self.envs[env_id.0].parent.unwrap()
     }
 
     pub fn top(&self) -> EnvId {
         EnvId(self.envs.len() - 1)
+    }
+
+    pub fn declare(&mut self, env_id: EnvId, name: String, value: RV) {
+        self.envs[env_id.0].map.insert(name, value);
     }
 
     pub fn assign(&mut self, env_id: EnvId, name: String, value: RV) -> Result<bool, HaltReason> {
@@ -89,13 +89,13 @@ impl EnvironmentArena {
     }
 
     pub fn read(&self, env_id: EnvId, name: &str) -> Result<RV, HaltReason> {
-        if self.get(env_id).map.contains_key(name) {
+        if self.envs[env_id.0].map.contains_key(name) {
             // TODO(vck): Remove clone
-            return Ok(self.get(env_id).map.get(name).unwrap().clone());
+            return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
         }
 
-        if self.get(env_id).parent.is_some() {
-            return self.read(self.get(env_id).parent.unwrap(), name);
+        if self.envs[env_id.0].parent.is_some() {
+            return self.read(self.envs[env_id.0].parent.unwrap(), name);
         }
 
         Err(HaltReason::Error(InterpretError::Other {
@@ -108,9 +108,9 @@ impl EnvironmentArena {
 
         if let Some(unwrapped) = ancestor {
             // TODO(vck): Remove clone
-            return Ok(self.get(unwrapped).map.get(name).unwrap().clone());
+            return Ok(self.envs[unwrapped.0].map.get(name).unwrap().clone());
         }
-        return Ok(self.get(env_id).map.get(name).unwrap().clone());
+        return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
     }
 
     pub fn ancestor(&self, env_id: EnvId, distance: usize) -> Option<EnvId> {
@@ -118,17 +118,13 @@ impl EnvironmentArena {
             return None;
         }
         if distance == 1 {
-            return Some(self.get(env_id).parent.unwrap());
+            return Some(self.envs[env_id.0].parent.unwrap());
         }
-        if self.get(env_id).parent.is_some() {
-            let pref = self.get(env_id).parent.unwrap();
+        if self.envs[env_id.0].parent.is_some() {
+            let pref = self.envs[env_id.0].parent.unwrap();
             return self.ancestor(pref, distance - 1);
         }
         panic!("Invalid variable distance.");
-    }
-
-    pub fn declare(&mut self, env_id: EnvId, name: String, value: RV) {
-        self.envs[env_id.0].map.insert(name, value);
     }
 }
 
@@ -138,7 +134,7 @@ mod test {
 
     #[test]
     fn test_read_basic() {
-        let mut env_arena = super::EnvironmentArena::new();
+        let mut env_arena = super::Environment::new();
         let env = env_arena.top();
         env_arena.declare(env, "five".to_string(), RV::Num(5.0));
         assert_eq!(env_arena.read(env, "five").unwrap(), RV::Num(5.0));
@@ -146,7 +142,7 @@ mod test {
 
     #[test]
     fn test_read_from_parent() {
-        let mut env_arena = super::EnvironmentArena::new();
+        let mut env_arena = super::Environment::new();
         let parent = env_arena.top();
         env_arena.declare(parent, "five".to_string(), RV::Num(5.0));
         let child = env_arena.push(Some(parent));
@@ -155,7 +151,7 @@ mod test {
 
     #[test]
     fn test_write_to_parent() {
-        let mut env_arena = super::EnvironmentArena::new();
+        let mut env_arena = super::Environment::new();
         let parent = env_arena.top();
         env_arena.declare(parent, "five".to_string(), RV::Num(5.0));
         let child = env_arena.push(Some(parent));
@@ -168,14 +164,14 @@ mod test {
 
     #[test]
     fn test_read_undefined_variable() {
-        let env_arena = super::EnvironmentArena::new();
+        let env_arena = super::Environment::new();
         let env = env_arena.top();
         assert!(env_arena.read(env, "five").is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
-        let mut env_arena = super::EnvironmentArena::new();
+        let mut env_arena = super::Environment::new();
         let env = env_arena.top();
         assert!(env_arena
             .assign(env, "five".to_string(), RV::Num(5.0))
