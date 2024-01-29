@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
-use crate::util::{alloc_shared, Shared};
+use crate::util::Shared;
 
 use self::{
     fib::nt_fib,
@@ -68,16 +68,16 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
         std.insert(
             "TestUtils".to_owned(),
-            RV::Object(alloc_shared(test_namespace)),
+            RV::Object(Arc::new(test_namespace)),
         );
     }
 
     std.insert(
         "Benchmark".to_owned(),
-        RV::Object(alloc_shared(benchmark_namespace)),
+        RV::Object(Arc::new(benchmark_namespace)),
     );
-    std.insert("JSON".to_owned(), RV::Object(alloc_shared(json_namespace)));
-    std.insert("Time".to_owned(), RV::Object(alloc_shared(time_namespace)));
+    std.insert("JSON".to_owned(), RV::Object(Arc::new(json_namespace)));
+    std.insert("Time".to_owned(), RV::Object(Arc::new(time_namespace)));
     std.insert(
         "print".to_owned(),
         RV::Callable(None, Arc::new(Function::Lambda { function: nt_print })),

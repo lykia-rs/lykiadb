@@ -1,7 +1,7 @@
-use std::{cell::RefCell, sync::Arc};
+use std::sync::{Arc, RwLock};
 
-pub type Shared<T> = Arc<RefCell<T>>;
+pub type Shared<T> = Arc<RwLock<T>>;
 
 pub fn alloc_shared<T>(obj: T) -> Shared<T> {
-    Arc::new(RefCell::new(obj))
+    Arc::new(RwLock::new(obj))
 }

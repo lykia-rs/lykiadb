@@ -14,8 +14,8 @@ use crate::lang::tokens::token::Span;
 use crate::lang::tokens::token::Spanned;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
-use crate::util::alloc_shared;
 
+use std::borrow::{Borrow, BorrowMut};
 use std::sync::Arc;
 use std::vec;
 
@@ -250,11 +250,11 @@ impl Interpreter {
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
                 }
-                RV::Object(alloc_shared(new_map))
+                RV::Object(Arc::new(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect();
-                RV::Array(alloc_shared(collected))
+                RV::Array(Arc::new(collected))
             }
         }
     }
@@ -386,8 +386,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Get { object, name, span } => {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
-                    let borrowed = map.borrow();
-                    let v = borrowed.get(&name.name.clone());
+                    let cloned = map.clone();
+                    let v = cloned.get(&name.name.clone());
                     if v.is_some() {
                         return Ok(v.unwrap().clone());
                     }
@@ -413,8 +413,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let evaluated = self.visit_expr(*value)?;
-                    map.borrow_mut()
-                        .insert(name.name.to_string(), evaluated.clone());
+                    // TODO(vck): Set should really set the value
+                    /*let borrowed: &mut FxHashMap<String, RV> = map.borrow_mut();
+                    borrowed.insert(name.name.to_string(), evaluated.clone());*/
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
@@ -566,7 +567,7 @@ pub mod test_helpers {
     pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code);
-        out.borrow_mut().expect(output);
+        out.write().unwrap().expect(output);
     }
 }
 
@@ -587,7 +588,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
             RV::Bool(false),
@@ -606,7 +607,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Num(7.0),
             RV::Num(28.0),
             RV::Num(13.0),
@@ -628,7 +629,7 @@ mod test {
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(&code);
-        out.borrow_mut().expect(vec![
+        out.write().unwrap().expect(vec![
             RV::Bool(true),
             RV::Bool(true),
             RV::Bool(false),

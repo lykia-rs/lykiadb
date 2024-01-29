@@ -17,7 +17,7 @@ pub enum Function {
     Lambda {
         function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
     },
-    Stateful(Shared<dyn Stateful>),
+    Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: String,
         parameters: Vec<String>,
@@ -78,7 +78,7 @@ impl Display for Function {
 impl Function {
     pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
         match self {
-            Function::Stateful(stateful) => stateful.borrow_mut().call(interpreter, arguments),
+            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
@@ -95,8 +95,8 @@ pub enum RV {
     Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Object(Shared<FxHashMap<String, RV>>),
-    Array(Shared<Vec<RV>>),
+    Object(Arc<FxHashMap<String, RV>>),
+    Array(Arc<Vec<RV>>),
     Callable(Option<usize>, Arc<Function>),
     Undefined,
     NaN,

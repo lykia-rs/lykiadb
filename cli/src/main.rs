@@ -1,6 +1,5 @@
 use std::{
-    fs::File,
-    io::{BufReader, Read},
+    fs::File, io::{BufReader, Read}, time::Duration
 };
 
 use clap::Parser;
@@ -77,11 +76,17 @@ async fn run_file(filename: &str, print_ast: bool) {
     // Initialize the connection state. This allocates read/write buffers to
     // perform redis protocol frame parsing.
     let mut session = ClientSession::new(socket);
+    loop {
+        session
+            .send(Message::Request(Request::Run(content.to_string())))
+            .await
+            .unwrap();
 
-    session
-        .send(Message::Request(Request::Run(content)))
-        .await
-        .unwrap();
+        let response = session.handle().await;
+        println!("{:?}", response);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+
 }
 
 #[tokio::main]

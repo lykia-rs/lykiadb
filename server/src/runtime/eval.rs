@@ -146,7 +146,6 @@ mod test {
             eval::{coerce2number, eval_binary, is_value_truthy},
             types::{Function, RV},
         },
-        util::alloc_shared,
     };
 
     #[test]
@@ -163,9 +162,9 @@ mod test {
         assert_eq!(is_value_truthy(RV::Num(-1.0)), true);
         assert_eq!(is_value_truthy(RV::Str(Arc::new("".to_owned()))), false);
         assert_eq!(is_value_truthy(RV::Str(Arc::new("foo".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Array(alloc_shared(vec![]))), true);
+        assert_eq!(is_value_truthy(RV::Array(Arc::new(vec![]))), true);
         assert_eq!(
-            is_value_truthy(RV::Object(alloc_shared(FxHashMap::default()))),
+            is_value_truthy(RV::Object(Arc::new(FxHashMap::default()))),
             true
         );
         assert_eq!(
