@@ -4,8 +4,8 @@ use crate::lang::tokens::token::*;
 use crate::lang::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
-use std::sync::Arc;
 use std::str::Chars;
+use std::sync::Arc;
 
 pub struct Scanner<'a> {
     chars: Peekable<Enumerate<Chars<'a>>>,

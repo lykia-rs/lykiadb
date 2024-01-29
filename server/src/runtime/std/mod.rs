@@ -11,7 +11,10 @@ use self::{
     time::nt_clock,
 };
 
-use super::{interpreter::Output, types::{Function, RV}};
+use super::{
+    interpreter::Output,
+    types::{Function, RV},
+};
 
 pub mod fib;
 pub mod json;

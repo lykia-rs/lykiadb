@@ -195,7 +195,7 @@ impl Interpreter {
         statements: &Vec<StmtId>,
         closure: EnvId,
         parameters: &Vec<String>,
-        arguments: &[RV]
+        arguments: &[RV],
     ) -> Result<RV, HaltReason> {
         let fn_env = self.env_arena.push(Some(closure));
 
@@ -293,10 +293,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env_arena
-                        .assign_at( self.env, distance_unv, &dst.name, evaluated.clone())
+                        .assign_at(self.env, distance_unv, &dst.name, evaluated.clone())
                 } else {
                     self.env_arena
-                        .assign( self.env, dst.name.clone(), evaluated.clone())
+                        .assign(self.env, dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -374,8 +374,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env_arena
-                        .declare(self.env, name.as_ref().unwrap().name.to_string(), callable.clone());
+                    self.env_arena.declare(
+                        self.env,
+                        name.as_ref().unwrap().name.to_string(),
+                        callable.clone(),
+                    );
                 }
 
                 Ok(callable)
@@ -512,7 +515,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         Ok(RV::Undefined)
     }
 }
-
 
 #[derive(Clone)]
 pub struct Output {

@@ -1,22 +1,25 @@
 use bson::Bson;
 use bytes::BytesMut;
 use serde::{Deserialize, Serialize};
-use tokio::{io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter}, net::TcpStream};
+use tokio::{
+    io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter},
+    net::TcpStream,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
-    Run(String)
+    Run(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    Value(Bson)
+    Value(Bson),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Message {
     Request(Request),
-    Response(Response)
+    Response(Response),
 }
 
 #[derive(Debug)]
@@ -62,7 +65,9 @@ impl Connection {
                 if self.read_buffer.is_empty() {
                     return Ok(None);
                 } else {
-                    return Err(CommunicationError::GenericError("Connection reset by peer".to_owned()));
+                    return Err(CommunicationError::GenericError(
+                        "Connection reset by peer".to_owned(),
+                    ));
                 }
             }
         }

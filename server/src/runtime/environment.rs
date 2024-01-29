@@ -1,8 +1,8 @@
 use crate::runtime::interpreter::HaltReason;
 use crate::runtime::types::RV;
 use core::panic;
-use std::borrow::{Borrow, BorrowMut};
 use rustc_hash::FxHashMap;
+use std::borrow::{Borrow, BorrowMut};
 
 use super::interpreter::InterpretError;
 
@@ -23,9 +23,7 @@ pub struct EnvironmentArena {
 
 impl EnvironmentArena {
     pub fn new() -> Self {
-        let mut arena = EnvironmentArena {
-            envs: vec![]
-        };
+        let mut arena = EnvironmentArena { envs: vec![] };
         arena.push(None);
         arena
     }
@@ -76,9 +74,15 @@ impl EnvironmentArena {
         let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
-            self.envs[unwrapped.0].borrow_mut().map.insert(name.to_string(), value);
+            self.envs[unwrapped.0]
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
         } else {
-            self.envs[env_id.0].borrow_mut().map.insert(name.to_string(), value);
+            self.envs[env_id.0]
+                .borrow_mut()
+                .map
+                .insert(name.to_string(), value);
         }
 
         Ok(true)
@@ -128,7 +132,6 @@ impl EnvironmentArena {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use crate::runtime::types::RV;
@@ -156,7 +159,8 @@ mod test {
         let parent = env_arena.top();
         env_arena.declare(parent, "five".to_string(), RV::Num(5.0));
         let child = env_arena.push(Some(parent));
-        env_arena.assign(child, "five".to_string(), RV::Num(5.1))
+        env_arena
+            .assign(child, "five".to_string(), RV::Num(5.1))
             .unwrap();
         assert_eq!(env_arena.read(parent, "five").unwrap(), RV::Num(5.1));
         assert_eq!(env_arena.read(child, "five").unwrap(), RV::Num(5.1));
@@ -173,6 +177,8 @@ mod test {
     fn test_assign_to_undefined_variable() {
         let mut env_arena = super::EnvironmentArena::new();
         let env = env_arena.top();
-        assert!(env_arena.assign(env, "five".to_string(), RV::Num(5.0)).is_err());
+        assert!(env_arena
+            .assign(env, "five".to_string(), RV::Num(5.0))
+            .is_err());
     }
 }

@@ -8,7 +8,7 @@ use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
 
 struct Server {
-    listener: Option<TcpListener>
+    listener: Option<TcpListener>,
 }
 
 pub struct ServerSession {
@@ -35,10 +35,15 @@ impl ServerSession {
                             let bson_response = bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)));
                             self.conn.write(Message::Response(Response::Value(bson_response.unwrap()))).await;
                         }*/
-                        self.conn.write(Message::Response(Response::Value(bson::to_bson(&1515).unwrap()))).await.unwrap();
-                    },
+                        self.conn
+                            .write(Message::Response(Response::Value(
+                                bson::to_bson(&1515).unwrap(),
+                            )))
+                            .await
+                            .unwrap();
+                    }
                 },
-                _ => panic!("Unsupported message type")
+                _ => panic!("Unsupported message type"),
             }
         }
     }
@@ -50,9 +55,7 @@ impl ServerSession {
 
 impl Server {
     pub fn new() -> Result<Self, Error> {
-        Ok(Server {
-            listener: None,
-        })
+        Ok(Server { listener: None })
     }
 
     pub async fn listen(mut self, addr: &str) -> Result<Self, Error> {
@@ -77,13 +80,8 @@ impl Server {
         }
         Ok(())
     }
-
 }
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    Server::new()?
-        .listen("0.0.0.0:19191")
-        .await?
-        .serve()
-        .await
+    Server::new()?.listen("0.0.0.0:19191").await?.serve().await
 }

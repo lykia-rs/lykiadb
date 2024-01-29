@@ -1,4 +1,7 @@
-use std::{fs::File, io::{BufReader, Read}};
+use std::{
+    fs::File,
+    io::{BufReader, Read},
+};
 
 use clap::Parser;
 use liblykia::protocol::connection::{CommunicationError, Connection, Message, Request};
@@ -38,7 +41,6 @@ fn run_repl() {
     }*/
 }
 
-
 pub struct ClientSession {
     conn: Connection,
 }
@@ -46,7 +48,7 @@ pub struct ClientSession {
 impl ClientSession {
     pub fn new(stream: TcpStream) -> Self {
         ClientSession {
-            conn: Connection::new(stream) 
+            conn: Connection::new(stream),
         }
     }
 
@@ -65,7 +67,6 @@ async fn run_file(filename: &str, print_ast: bool) {
     let file = File::open(filename).expect("File couldn't be opened.");
 
     let mut content: String = String::new();
-    
 
     BufReader::new(file)
         .read_to_string(&mut content)
@@ -77,8 +78,10 @@ async fn run_file(filename: &str, print_ast: bool) {
     // perform redis protocol frame parsing.
     let mut session = ClientSession::new(socket);
 
-    session.send(Message::Request(Request::Run(content))).await.unwrap();
-
+    session
+        .send(Message::Request(Request::Run(content)))
+        .await
+        .unwrap();
 }
 
 #[tokio::main]

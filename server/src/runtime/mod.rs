@@ -24,7 +24,7 @@ pub mod types;
 
 pub struct Runtime {
     mode: RuntimeMode,
-    out: Option<Shared<Output>>
+    out: Option<Shared<Output>>,
 }
 
 #[derive(Eq, PartialEq)]
