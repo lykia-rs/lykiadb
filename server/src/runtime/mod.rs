@@ -67,16 +67,16 @@ impl Runtime {
         let mut resolver = Resolver::new(arena.clone());
         resolver.resolve_stmt(program_unw.root);
         //
-        let mut env_arena = Environment::new();
-        let env = env_arena.top();
+        let mut env_man = Environment::new();
+        let env = env_man.top();
 
         let native_fns = stdlib(self.out.clone());
 
         for (name, value) in native_fns {
-            env_arena.declare(env, name.to_string(), value);
+            env_man.declare(env, name.to_string(), value);
         }
 
-        let mut interpreter = Interpreter::new(env_arena, env, arena, Arc::new(resolver));
+        let mut interpreter = Interpreter::new(env_man, env, arena, Arc::new(resolver));
         let out = interpreter.visit_stmt(program_unw.root);
 
         if self.mode == RuntimeMode::Repl {

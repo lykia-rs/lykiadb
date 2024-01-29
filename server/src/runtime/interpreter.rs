@@ -135,7 +135,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
-    env_arena: Environment,
+    env_man: Environment,
     arena: Arc<AstArena>,
     loop_stack: LoopStack,
     resolver: Arc<Resolver>,
@@ -143,13 +143,13 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(
-        env_arena: Environment,
+        env_man: Environment,
         env: EnvId,
         arena: Arc<AstArena>,
         resolver: Arc<Resolver>,
     ) -> Interpreter {
         Interpreter {
-            env_arena,
+            env_man,
             env: env,
             root_env: env,
             arena: Arc::clone(&arena),
@@ -184,9 +184,9 @@ impl Interpreter {
     fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
         let distance = self.resolver.get_distance(eid);
         if let Some(unwrapped) = distance {
-            self.env_arena.read_at(self.env, unwrapped, name)
+            self.env_man.read_at(self.env, unwrapped, name)
         } else {
-            self.env_arena.read(self.root_env, name)
+            self.env_man.read(self.root_env, name)
         }
     }
 
@@ -197,11 +197,11 @@ impl Interpreter {
         parameters: &Vec<String>,
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        let fn_env = self.env_arena.push(Some(closure));
+        let fn_env = self.env_man.push(Some(closure));
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            self.env_arena
+            self.env_man
                 .declare(fn_env, param.to_string(), arguments.get(i).unwrap().clone());
         }
 
@@ -219,7 +219,7 @@ impl Interpreter {
             env_tmp = Some(self.env);
             self.env = env_opt_unwrapped;
         } else {
-            self.env = self.env_arena.push(Some(self.env));
+            self.env = self.env_man.push(Some(self.env));
         }
         let mut ret = Ok(RV::Undefined);
 
@@ -232,7 +232,7 @@ impl Interpreter {
         if let Some(env_tmp_unwrapped) = env_tmp {
             self.env = env_tmp_unwrapped;
         } else {
-            self.env = self.env_arena.pop(self.env);
+            self.env = self.env_man.pop(self.env);
         }
         ret
     }
@@ -292,10 +292,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let distance = self.resolver.get_distance(eidx);
                 let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env_arena
+                    self.env_man
                         .assign_at(self.env, distance_unv, &dst.name, evaluated.clone())
                 } else {
-                    self.env_arena
+                    self.env_man
                         .assign(self.env, dst.name.clone(), evaluated.clone())
                 };
                 if result.is_err() {
@@ -374,7 +374,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env_arena.declare(
+                    self.env_man.declare(
                         self.env,
                         name.as_ref().unwrap().name.to_string(),
                         callable.clone(),
@@ -449,7 +449,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr(*expr)?;
-                self.env_arena
+                self.env_man
                     .declare(self.env, dst.name.to_string(), evaluated.clone());
             }
             Stmt::Block {

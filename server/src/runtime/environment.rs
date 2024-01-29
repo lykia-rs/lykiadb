@@ -134,46 +134,46 @@ mod test {
 
     #[test]
     fn test_read_basic() {
-        let mut env_arena = super::Environment::new();
-        let env = env_arena.top();
-        env_arena.declare(env, "five".to_string(), RV::Num(5.0));
-        assert_eq!(env_arena.read(env, "five").unwrap(), RV::Num(5.0));
+        let mut env_man = super::Environment::new();
+        let env = env_man.top();
+        env_man.declare(env, "five".to_string(), RV::Num(5.0));
+        assert_eq!(env_man.read(env, "five").unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_read_from_parent() {
-        let mut env_arena = super::Environment::new();
-        let parent = env_arena.top();
-        env_arena.declare(parent, "five".to_string(), RV::Num(5.0));
-        let child = env_arena.push(Some(parent));
-        assert_eq!(env_arena.read(child, "five").unwrap(), RV::Num(5.0));
+        let mut env_man = super::Environment::new();
+        let parent = env_man.top();
+        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        let child = env_man.push(Some(parent));
+        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_write_to_parent() {
-        let mut env_arena = super::Environment::new();
-        let parent = env_arena.top();
-        env_arena.declare(parent, "five".to_string(), RV::Num(5.0));
-        let child = env_arena.push(Some(parent));
-        env_arena
+        let mut env_man = super::Environment::new();
+        let parent = env_man.top();
+        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        let child = env_man.push(Some(parent));
+        env_man
             .assign(child, "five".to_string(), RV::Num(5.1))
             .unwrap();
-        assert_eq!(env_arena.read(parent, "five").unwrap(), RV::Num(5.1));
-        assert_eq!(env_arena.read(child, "five").unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(parent, "five").unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.1));
     }
 
     #[test]
     fn test_read_undefined_variable() {
-        let env_arena = super::Environment::new();
-        let env = env_arena.top();
-        assert!(env_arena.read(env, "five").is_err());
+        let env_man = super::Environment::new();
+        let env = env_man.top();
+        assert!(env_man.read(env, "five").is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
-        let mut env_arena = super::Environment::new();
-        let env = env_arena.top();
-        assert!(env_arena
+        let mut env_man = super::Environment::new();
+        let env = env_man.top();
+        assert!(env_man
             .assign(env, "five".to_string(), RV::Num(5.0))
             .is_err());
     }
