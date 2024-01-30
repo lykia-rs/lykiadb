@@ -14,8 +14,8 @@ use crate::lang::tokens::token::Span;
 use crate::lang::tokens::token::Spanned;
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
+use crate::util::alloc_shared;
 
-use std::borrow::{Borrow, BorrowMut};
 use std::sync::Arc;
 use std::vec;
 
@@ -250,11 +250,11 @@ impl Interpreter {
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
                 }
-                RV::Object(Arc::new(new_map))
+                RV::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(*x).unwrap()).collect();
-                RV::Array(Arc::new(collected))
+                RV::Array(alloc_shared(collected))
             }
         }
     }
@@ -387,7 +387,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let cloned = map.clone();
-                    let v = cloned.get(&name.name.clone());
+                    let borrowed = cloned.read().unwrap();
+                    let v = borrowed.get(&name.name.clone());
                     if v.is_some() {
                         return Ok(v.unwrap().clone());
                     }
@@ -414,8 +415,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if let RV::Object(map) = object_eval {
                     let evaluated = self.visit_expr(*value)?;
                     // TODO(vck): Set should really set the value
-                    /*let borrowed: &mut FxHashMap<String, RV> = map.borrow_mut();
-                    borrowed.insert(name.name.to_string(), evaluated.clone());*/
+                    let mut borrowed = map.write().unwrap();
+                    borrowed.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {

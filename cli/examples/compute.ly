@@ -1,1 +1,3 @@
-Benchmark.fib(35);
+var $a = {};
+$a.test = 100;
+print($a);
