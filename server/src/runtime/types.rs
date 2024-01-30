@@ -90,20 +90,30 @@ impl Function {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum RV {
     Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Object(Arc<FxHashMap<String, RV>>),
-    Array(Arc<Vec<RV>>),
+    Object(Shared<FxHashMap<String, RV>>),
+    Array(Shared<Vec<RV>>),
     Callable(Option<usize>, Arc<Function>),
     Undefined,
     NaN,
     Null,
 }
 
-impl Eq for RV {}
+
+impl PartialEq for RV {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (RV::Array(_), RV::Array(_))
+            | (RV::Object(_), RV::Object(_)) => false,
+            (_, _) => self == other,
+        }
+    }
+}
+
 
 impl<'de> Deserialize<'de> for RV {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
