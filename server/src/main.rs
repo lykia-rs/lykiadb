@@ -13,14 +13,14 @@ struct Server {
 
 pub struct ServerSession {
     conn: Connection,
-    runtime: Runtime
+    runtime: Runtime,
 }
 
 impl ServerSession {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
             conn: Connection::new(stream),
-            runtime: Runtime::new(RuntimeMode::File)
+            runtime: Runtime::new(RuntimeMode::File),
         }
     }
 
@@ -32,8 +32,12 @@ impl ServerSession {
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(&command);
                         if execution.is_ok() {
-                            let bson_response = bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)));
-                            self.conn.write(Message::Response(Response::Value(bson_response.unwrap()))).await.unwrap();
+                            let bson_response =
+                                bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)));
+                            self.conn
+                                .write(Message::Response(Response::Value(bson_response.unwrap())))
+                                .await
+                                .unwrap();
                         }
                         self.conn
                             .write(Message::Response(Response::Value(

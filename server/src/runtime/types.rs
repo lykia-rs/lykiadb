@@ -103,17 +103,14 @@ pub enum RV {
     Null,
 }
 
-
 impl PartialEq for RV {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (RV::Array(_), RV::Array(_))
-            | (RV::Object(_), RV::Object(_)) => false,
+            (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
             (_, _) => self == other,
         }
     }
 }
-
 
 impl<'de> Deserialize<'de> for RV {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

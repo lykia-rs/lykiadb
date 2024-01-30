@@ -1,5 +1,7 @@
 use std::{
-    fs::File, io::{BufReader, Read}, time::Duration
+    fs::File,
+    io::{BufReader, Read},
+    time::Duration,
 };
 
 use clap::Parser;
@@ -86,7 +88,6 @@ async fn run_file(filename: &str, print_ast: bool) {
         println!("{:?}", response);
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
-
 }
 
 #[tokio::main]

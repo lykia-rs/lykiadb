@@ -141,10 +141,12 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
-        lang::ast::expr::Operation, runtime::{
+        lang::ast::expr::Operation,
+        runtime::{
             eval::{coerce2number, eval_binary, is_value_truthy},
             types::{Function, RV},
-        }, util::alloc_shared
+        },
+        util::alloc_shared,
     };
 
     #[test]
