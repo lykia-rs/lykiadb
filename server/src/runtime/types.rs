@@ -3,8 +3,8 @@ use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::borrow::BorrowMut;
 use std::fmt::{Debug, Display, Formatter};
+use std::ops;
 use std::sync::Arc;
 
 use super::environment::EnvId;
@@ -112,10 +112,6 @@ impl RV {
         self.is_truthy().partial_cmp(&other)
     }
 
-    pub fn coerce_to_bool(&self) -> Option<bool> {
-        Some(self.is_truthy())
-    }
-
     pub fn coerce_to_number(&self) -> Option<f64> {
         match self {
             RV::Num(value) => Some(*value),
@@ -212,6 +208,101 @@ impl PartialOrd for RV {
         }
     }
 }
+
+impl ops::Add for RV {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        match (&self, &rhs) {
+            (RV::NaN, _)
+            | (_, RV::NaN) => RV::NaN,
+            //
+            (RV::Bool(_), RV::Bool(_)) |
+            (RV::Num(_), RV::Bool(_)) |
+            (RV::Bool(_), RV::Num(_)) => RV::Num(self.coerce_to_number().unwrap() + rhs.coerce_to_number().unwrap()),
+
+            (RV::Num(l), RV::Num(r)) => RV::Num(l + r),
+            //
+            (RV::Str(l), RV::Str(r)) => {
+                RV::Str(Arc::new(l.to_string() + &r.to_string()))
+            }
+            //
+            (RV::Str(s), RV::Num(num)) => {
+                RV::Str(Arc::new(s.to_string() + &num.to_string()))
+            }
+            (RV::Num(num), RV::Str(s)) => {
+                RV::Str(Arc::new(num.to_string() + &s.to_string()))
+            }
+            //
+            (RV::Str(s), RV::Bool(bool)) => {
+                RV::Str(Arc::new(s.to_string() + &bool.to_string()))
+            }
+            (RV::Bool(bool), RV::Str(s)) => {
+                RV::Str(Arc::new(bool.to_string() + &s.to_string()))
+            }
+            //
+            (_, _) => RV::NaN,
+        }
+    }
+}
+
+impl ops::Sub for RV {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
+            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
+            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (l, r) => 
+                l.coerce_to_number()
+                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .map(|(a, b)| RV::Num(a - b))
+                .unwrap_or(RV::NaN),
+        }
+    }
+}
+
+impl ops::Mul for RV {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
+            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
+            (RV::Null, _) | (_, RV::Null) => RV::NaN,
+            (l, r) => 
+                l.coerce_to_number()
+                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .map(|(a, b)| RV::Num(a * b))
+                .unwrap_or(RV::NaN),
+        }
+    }
+}
+
+impl ops::Div for RV {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
+            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
+            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (l, r) => 
+                l.coerce_to_number()
+                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .map(|(a, b)| {
+                    if a == 0.0 && b == 0.0 {
+                        RV::NaN
+                    } else {
+                        RV::Num(a / b)
+                    }
+                })
+                .unwrap_or(RV::NaN),
+        }
+    }
+}
+
 
 impl<'de> Deserialize<'de> for RV {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
