@@ -480,8 +480,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             } => {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
-                    && (condition.is_none()
-                        || self.visit_expr(condition.unwrap())?.is_truthy())
+                    && (condition.is_none() || self.visit_expr(condition.unwrap())?.is_truthy())
                 {
                     self.visit_stmt(*body)?;
                     self.loop_stack

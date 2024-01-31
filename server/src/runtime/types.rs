@@ -136,8 +136,7 @@ impl RV {
 impl PartialEq for RV {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (RV::Array(_), RV::Array(_)) 
-            | (RV::Object(_), RV::Object(_)) => false,
+            (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
             //
             (RV::Callable(_, _), RV::Callable(_, _)) => false,
             //
@@ -147,19 +146,16 @@ impl PartialEq for RV {
             (RV::Null, RV::Undefined) => true,
             (RV::Undefined, RV::Null) => true,
             //
-            (RV::NaN, _)
-            | (_, RV::NaN) => false,
-            (RV::Null, _)
-            | (_, RV::Null) => false,
-            (RV::Undefined, _)
-            | (_, RV::Undefined) => false,
+            (RV::NaN, _) | (_, RV::NaN) => false,
+            (RV::Null, _) | (_, RV::Null) => false,
+            (RV::Undefined, _) | (_, RV::Undefined) => false,
             //
             (RV::Str(a), RV::Str(b)) => a == b,
             (RV::Num(a), RV::Num(b)) => a == b,
             (RV::Bool(a), RV::Bool(b)) => a == b,
             //
-            (RV::Str(a), RV::Num(b)) => self.eq_str_num(*b),
-            (RV::Num(a), RV::Str(b)) => other.eq_str_num(*a),
+            (RV::Str(_), RV::Num(b)) => self.eq_str_num(*b),
+            (RV::Num(a), RV::Str(_)) => other.eq_str_num(*a),
             //
             (RV::Str(_), RV::Bool(b)) => self.eq_any_bool(*b),
             (RV::Bool(a), RV::Str(_)) => other.eq_any_bool(*a),
@@ -174,10 +170,8 @@ impl PartialEq for RV {
 
 impl PartialOrd for RV {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-
         match (self, other) {
-            (RV::Array(_), RV::Array(_)) 
-            | (RV::Object(_), RV::Object(_)) => None,
+            (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
             //
             (RV::Callable(_, _), RV::Callable(_, _)) => None,
             //
@@ -187,12 +181,9 @@ impl PartialOrd for RV {
             (RV::Null, RV::Undefined) => Some(std::cmp::Ordering::Equal),
             (RV::Undefined, RV::Null) => Some(std::cmp::Ordering::Equal),
             //
-            (RV::NaN, _)
-            | (_, RV::NaN) => None,
-            (RV::Null, _)
-            | (_, RV::Null) => None,
-            (RV::Undefined, _)
-            | (_, RV::Undefined) => None,
+            (RV::NaN, _) | (_, RV::NaN) => None,
+            (RV::Null, _) | (_, RV::Null) => None,
+            (RV::Undefined, _) | (_, RV::Undefined) => None,
             //
             (RV::Str(a), RV::Str(b)) => Some(a.cmp(b)),
             (RV::Num(a), RV::Num(b)) => a.partial_cmp(b),
@@ -214,7 +205,7 @@ impl PartialOrd for RV {
             (RV::Str(_), RV::Bool(b)) => self.partial_cmp_str_bool(*b),
             (RV::Bool(a), RV::Str(_)) => other.partial_cmp_str_bool(*a),
             //
-            (RV::Num(num), RV::Bool(b))  => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
+            (RV::Num(num), RV::Bool(b)) => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
             (RV::Bool(b), RV::Num(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
             //
             _ => None,
@@ -296,7 +287,8 @@ mod test {
                 Arc::new(Function::Lambda {
                     function: |_, _| Ok(RV::Undefined)
                 })
-            )).is_truthy(),
+            ))
+            .is_truthy(),
             true
         );
     }

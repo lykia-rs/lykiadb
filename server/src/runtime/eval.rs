@@ -1,7 +1,6 @@
-use std::sync::Arc;
 use crate::lang::ast::expr::Operation;
 use crate::runtime::types::RV;
-
+use std::sync::Arc;
 
 #[inline(always)]
 pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
@@ -20,20 +19,22 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::GreaterEqual => RV::Bool(left_eval >= right_eval),
         _ => {
             let (left_coerced, right_coerced) = match (&left_eval, &operation, &right_eval) {
-                (RV::Num(n), _, RV::Bool(_)) => (RV::Num(*n), RV::Num(right_eval.coerce_to_number().unwrap())),
-                (RV::Bool(_), _, RV::Num(n)) => (RV::Num(left_eval.coerce_to_number().unwrap()), RV::Num(*n)),
+                (RV::Num(n), _, RV::Bool(_)) => {
+                    (RV::Num(*n), RV::Num(right_eval.coerce_to_number().unwrap()))
+                }
+                (RV::Bool(_), _, RV::Num(n)) => {
+                    (RV::Num(left_eval.coerce_to_number().unwrap()), RV::Num(*n))
+                }
                 (RV::Bool(l), Operation::Add, RV::Bool(r))
                 | (RV::Bool(l), Operation::Subtract, RV::Bool(r))
                 | (RV::Bool(l), Operation::Multiply, RV::Bool(r))
-                | (RV::Bool(l), Operation::Divide, RV::Bool(r)) => {
-                    (
-                        RV::Num(left_eval.coerce_to_number().unwrap()), 
-                        RV::Num(right_eval.coerce_to_number().unwrap())
-                    )
-                }
+                | (RV::Bool(l), Operation::Divide, RV::Bool(r)) => (
+                    RV::Num(left_eval.coerce_to_number().unwrap()),
+                    RV::Num(right_eval.coerce_to_number().unwrap()),
+                ),
                 (_, _, _) => (left_eval, right_eval),
             };
-        
+
             match (left_coerced, operation, right_coerced) {
                 (RV::NaN, Operation::Add, _)
                 | (_, Operation::Add, RV::NaN)
@@ -82,7 +83,6 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
             }
         }
     }
-    
 }
 
 #[cfg(test)]
@@ -91,10 +91,7 @@ mod test {
 
     use crate::{
         lang::ast::expr::Operation,
-        runtime::{
-            eval::eval_binary,
-            types::RV,
-        },
+        runtime::{eval::eval_binary, types::RV},
     };
 
     #[test]

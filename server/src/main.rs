@@ -38,11 +38,15 @@ impl ServerSession {
                                 .write(Message::Response(Response::Value(bson_response.unwrap())))
                                 .await
                                 .unwrap();
-                        }
-                        else {
+                        } else {
                             let err = execution.err().unwrap();
-                            
-                            self.conn.write(Message::Response(Response::Value(bson::to_bson(&format!("Error: {:?}", err)).unwrap()))).await.unwrap();
+
+                            self.conn
+                                .write(Message::Response(Response::Value(
+                                    bson::to_bson(&format!("Error: {:?}", err)).unwrap(),
+                                )))
+                                .await
+                                .unwrap();
                         }
                     }
                 },
