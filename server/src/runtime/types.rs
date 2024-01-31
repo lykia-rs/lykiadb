@@ -214,32 +214,21 @@ impl ops::Add for RV {
 
     fn add(self, rhs: Self) -> Self::Output {
         match (&self, &rhs) {
-            (RV::NaN, _)
-            | (_, RV::NaN) => RV::NaN,
+            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             //
-            (RV::Bool(_), RV::Bool(_)) |
-            (RV::Num(_), RV::Bool(_)) |
-            (RV::Bool(_), RV::Num(_)) => RV::Num(self.coerce_to_number().unwrap() + rhs.coerce_to_number().unwrap()),
+            (RV::Bool(_), RV::Bool(_)) | (RV::Num(_), RV::Bool(_)) | (RV::Bool(_), RV::Num(_)) => {
+                RV::Num(self.coerce_to_number().unwrap() + rhs.coerce_to_number().unwrap())
+            }
 
             (RV::Num(l), RV::Num(r)) => RV::Num(l + r),
             //
-            (RV::Str(l), RV::Str(r)) => {
-                RV::Str(Arc::new(l.to_string() + &r.to_string()))
-            }
+            (RV::Str(l), RV::Str(r)) => RV::Str(Arc::new(l.to_string() + &r.to_string())),
             //
-            (RV::Str(s), RV::Num(num)) => {
-                RV::Str(Arc::new(s.to_string() + &num.to_string()))
-            }
-            (RV::Num(num), RV::Str(s)) => {
-                RV::Str(Arc::new(num.to_string() + &s.to_string()))
-            }
+            (RV::Str(s), RV::Num(num)) => RV::Str(Arc::new(s.to_string() + &num.to_string())),
+            (RV::Num(num), RV::Str(s)) => RV::Str(Arc::new(num.to_string() + &s.to_string())),
             //
-            (RV::Str(s), RV::Bool(bool)) => {
-                RV::Str(Arc::new(s.to_string() + &bool.to_string()))
-            }
-            (RV::Bool(bool), RV::Str(s)) => {
-                RV::Str(Arc::new(bool.to_string() + &s.to_string()))
-            }
+            (RV::Str(s), RV::Bool(bool)) => RV::Str(Arc::new(s.to_string() + &bool.to_string())),
+            (RV::Bool(bool), RV::Str(s)) => RV::Str(Arc::new(bool.to_string() + &s.to_string())),
             //
             (_, _) => RV::NaN,
         }
@@ -254,8 +243,8 @@ impl ops::Sub for RV {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
-            (l, r) => 
-                l.coerce_to_number()
+            (l, r) => l
+                .coerce_to_number()
                 .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a - b))
                 .unwrap_or(RV::NaN),
@@ -270,9 +259,9 @@ impl ops::Mul for RV {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
-            (RV::Null, _) | (_, RV::Null) => RV::NaN,
-            (l, r) => 
-                l.coerce_to_number()
+            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (l, r) => l
+                .coerce_to_number()
                 .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a * b))
                 .unwrap_or(RV::NaN),
@@ -288,8 +277,8 @@ impl ops::Div for RV {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
-            (l, r) => 
-                l.coerce_to_number()
+            (l, r) => l
+                .coerce_to_number()
                 .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
                 .map(|(a, b)| {
                     if a == 0.0 && b == 0.0 {
@@ -302,7 +291,6 @@ impl ops::Div for RV {
         }
     }
 }
-
 
 impl<'de> Deserialize<'de> for RV {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

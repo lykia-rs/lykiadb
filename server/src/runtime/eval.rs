@@ -20,7 +20,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::Subtract => left_eval - right_eval,
         Operation::Multiply => left_eval * right_eval,
         Operation::Divide => left_eval / right_eval,
-        _ => RV::Undefined
+        _ => RV::Undefined,
     }
 }
 
