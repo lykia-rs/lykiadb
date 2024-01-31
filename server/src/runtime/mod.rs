@@ -16,7 +16,6 @@ use crate::util::Shared;
 
 pub mod environment;
 mod error;
-mod eval;
 pub mod interpreter;
 mod resolver;
 mod std;

@@ -1,9 +1,8 @@
 use rustc_hash::FxHashMap;
 
 use super::environment::{EnvId, Environment};
-use super::eval::eval_binary;
 use super::resolver::Resolver;
-use super::types::Stateful;
+use super::types::{eval_binary, Stateful};
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
