@@ -13,26 +13,6 @@ macro_rules! bool2num {
         }
     };
 }
-#[inline(always)]
-pub fn is_value_truthy(rv: RV) -> bool {
-    match rv {
-        RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
-        RV::Str(value) => !value.is_empty(),
-        RV::Bool(value) => value,
-        RV::Null | RV::Undefined | RV::NaN => false,
-        _ => true,
-    }
-}
-
-#[inline(always)]
-pub fn coerce2number(val: RV) -> Option<f64> {
-    match val {
-        RV::Num(value) => Some(value),
-        RV::Bool(true) => Some(1.0),
-        RV::Bool(false) => Some(0.0),
-        _ => None,
-    }
-}
 
 #[inline(always)]
 pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
@@ -54,12 +34,15 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (_, _, _) => (left_eval, right_eval),
     };
 
+    if operation == Operation::IsEqual {
+        return RV::Bool(left_coerced == right_coerced);
+    }
+
+    if operation == Operation::IsNotEqual {
+        return RV::Bool(left_coerced != right_coerced);
+    }
+
     match (left_coerced, operation, right_coerced) {
-        (RV::Null, Operation::IsEqual, RV::Null) => RV::Bool(true),
-        (RV::Null, Operation::IsNotEqual, RV::Null) => RV::Bool(false),
-        //
-        (_, Operation::IsEqual, RV::Null) | (RV::Null, Operation::IsEqual, _) => RV::Bool(false),
-        //
         (RV::NaN, Operation::Add, _)
         | (_, Operation::Add, RV::NaN)
         | (RV::NaN, Operation::Subtract, _)
@@ -83,8 +66,6 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Num(l), Operation::LessEqual, RV::Num(r)) => RV::Bool(l <= r),
         (RV::Num(l), Operation::Greater, RV::Num(r)) => RV::Bool(l > r),
         (RV::Num(l), Operation::GreaterEqual, RV::Num(r)) => RV::Bool(l >= r),
-        (RV::Num(l), Operation::IsNotEqual, RV::Num(r)) => RV::Bool(l != r),
-        (RV::Num(l), Operation::IsEqual, RV::Num(r)) => RV::Bool(l == r),
         //
         (RV::Str(l), Operation::Add, RV::Str(r)) => {
             RV::Str(Arc::new(l.to_string() + &r.to_string()))
@@ -93,15 +74,11 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (RV::Str(l), Operation::LessEqual, RV::Str(r)) => RV::Bool(l <= r),
         (RV::Str(l), Operation::Greater, RV::Str(r)) => RV::Bool(l > r),
         (RV::Str(l), Operation::GreaterEqual, RV::Str(r)) => RV::Bool(l >= r),
-        (RV::Str(l), Operation::IsNotEqual, RV::Str(r)) => RV::Bool(l != r),
-        (RV::Str(l), Operation::IsEqual, RV::Str(r)) => RV::Bool(l == r),
         //
         (RV::Bool(l), Operation::Less, RV::Bool(r)) => RV::Bool(!l & r),
         (RV::Bool(l), Operation::LessEqual, RV::Bool(r)) => RV::Bool(l <= r),
         (RV::Bool(l), Operation::Greater, RV::Bool(r)) => RV::Bool(l & !r),
         (RV::Bool(l), Operation::GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
-        (RV::Bool(l), Operation::IsNotEqual, RV::Bool(r)) => RV::Bool(l != r),
-        (RV::Bool(l), Operation::IsEqual, RV::Bool(r)) => RV::Bool(l == r),
         //
         (RV::Str(s), Operation::Add, RV::Num(num)) => {
             RV::Str(Arc::new(s.to_string() + &num.to_string()))
@@ -120,10 +97,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         (_, Operation::Less, _)
         | (_, Operation::LessEqual, _)
         | (_, Operation::Greater, _)
-        | (_, Operation::GreaterEqual, _)
-        | (_, Operation::IsEqual, _) => RV::Bool(false),
-        //
-        (_, Operation::IsNotEqual, _) => RV::Bool(true),
+        | (_, Operation::GreaterEqual, _) => RV::Bool(false),
         //
         (_, Operation::Add, _)
         | (_, Operation::Subtract, _)
@@ -136,56 +110,15 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
 
 #[cfg(test)]
 mod test {
-    use std::{f64::INFINITY, rc::Rc, sync::Arc};
-
-    use rustc_hash::FxHashMap;
+    use std::{f64::INFINITY, sync::Arc};
 
     use crate::{
         lang::ast::expr::Operation,
         runtime::{
-            eval::{coerce2number, eval_binary, is_value_truthy},
-            types::{Function, RV},
+            eval::eval_binary,
+            types::RV,
         },
-        util::alloc_shared,
     };
-
-    #[test]
-    fn test_is_value_truthy() {
-        assert_eq!(is_value_truthy(RV::Null), false);
-        assert_eq!(is_value_truthy(RV::Undefined), false);
-        assert_eq!(is_value_truthy(RV::NaN), false);
-        assert_eq!(is_value_truthy(RV::Bool(false)), false);
-        assert_eq!(is_value_truthy(RV::Bool(true)), true);
-        assert_eq!(is_value_truthy(RV::Num(0.0)), false);
-        assert_eq!(is_value_truthy(RV::Num(0.1)), true);
-        assert_eq!(is_value_truthy(RV::Num(1.0)), true);
-        assert_eq!(is_value_truthy(RV::Num(0.0)), false);
-        assert_eq!(is_value_truthy(RV::Num(-1.0)), true);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("".to_owned()))), false);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("foo".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Array(alloc_shared(vec![]))), true);
-        assert_eq!(
-            is_value_truthy(RV::Object(alloc_shared(FxHashMap::default()))),
-            true
-        );
-        assert_eq!(
-            is_value_truthy(RV::Callable(
-                Some(1),
-                Arc::new(Function::Lambda {
-                    function: |_, _| Ok(RV::Undefined)
-                })
-            )),
-            true
-        );
-    }
-
-    #[test]
-    fn test_coerce2number() {
-        assert_eq!(coerce2number(RV::Num(1.0)), Some(1.0));
-        assert_eq!(coerce2number(RV::Bool(false)), Some(0.0));
-        assert_eq!(coerce2number(RV::Bool(true)), Some(1.0));
-        assert_eq!(coerce2number(RV::Str(Arc::new("".to_owned()))), None);
-    }
 
     #[test]
     fn test_eval_binary_addition() {

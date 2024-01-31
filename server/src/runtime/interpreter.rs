@@ -1,9 +1,9 @@
 use rustc_hash::FxHashMap;
 
 use super::environment::{EnvId, Environment};
-use super::eval::{coerce2number, eval_binary, is_value_truthy};
+use super::eval::eval_binary;
 use super::resolver::Resolver;
-use super::types::Stateful;
+use super::types::{coerce2number, is_value_truthy, Stateful};
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
