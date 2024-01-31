@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use super::environment::{EnvId, Environment};
 use super::eval::eval_binary;
 use super::resolver::Resolver;
-use super::types::{coerce2number, is_value_truthy, Stateful};
+use super::types::Stateful;
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
@@ -160,12 +160,12 @@ impl Interpreter {
 
     fn eval_unary(&mut self, operation: &Operation, eidx: ExprId) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
-            if let Some(num) = coerce2number(self.visit_expr(eidx)?) {
+            if let Some(num) = self.visit_expr(eidx)?.coerce_to_number() {
                 return Ok(RV::Num(-num));
             }
             Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(!is_value_truthy(self.visit_expr(eidx)?)))
+            Ok(RV::Bool(!self.visit_expr(eidx)?.is_truthy()))
         }
     }
 
@@ -309,7 +309,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => {
-                let is_true = is_value_truthy(self.visit_expr(*left)?);
+                let is_true = self.visit_expr(*left)?.is_truthy();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -317,7 +317,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(is_value_truthy(self.visit_expr(*right)?)))
+                Ok(RV::Bool(self.visit_expr(*right)?.is_truthy()))
             }
             Expr::Call { callee, args, span } => {
                 let eval = self.visit_expr(*callee)?;
@@ -466,7 +466,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 r#else_body: r#else,
                 span: _,
             } => {
-                if is_value_truthy(self.visit_expr(*condition)?) {
+                if self.visit_expr(*condition)?.is_truthy() {
                     self.visit_stmt(*body)?;
                 } else if let Some(else_stmt) = r#else {
                     self.visit_stmt(*else_stmt)?;
@@ -481,7 +481,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
-                        || is_value_truthy(self.visit_expr(condition.unwrap())?))
+                        || self.visit_expr(condition.unwrap())?.is_truthy())
                 {
                     self.visit_stmt(*body)?;
                     self.loop_stack

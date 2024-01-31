@@ -1,18 +1,7 @@
 use std::sync::Arc;
-
 use crate::lang::ast::expr::Operation;
 use crate::runtime::types::RV;
 
-#[macro_export]
-macro_rules! bool2num {
-    ($val: expr) => {
-        if $val {
-            1.0
-        } else {
-            0.0
-        }
-    };
-}
 
 #[inline(always)]
 pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
@@ -22,90 +11,78 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
             - Add support for array operations
             - Add support for function operations
     */
-    let (left_coerced, right_coerced) = match (&left_eval, &operation, &right_eval) {
-        (RV::Num(n), _, RV::Bool(bool)) => (RV::Num(*n), RV::Num(bool2num!(*bool))),
-        (RV::Bool(bool), _, RV::Num(n)) => (RV::Num(bool2num!(*bool)), RV::Num(*n)),
-        (RV::Bool(l), Operation::Add, RV::Bool(r))
-        | (RV::Bool(l), Operation::Subtract, RV::Bool(r))
-        | (RV::Bool(l), Operation::Multiply, RV::Bool(r))
-        | (RV::Bool(l), Operation::Divide, RV::Bool(r)) => {
-            (RV::Num(bool2num!(*l)), RV::Num(bool2num!(*r)))
-        }
-        (_, _, _) => (left_eval, right_eval),
-    };
-
-    if operation == Operation::IsEqual {
-        return RV::Bool(left_coerced == right_coerced);
-    }
-
-    if operation == Operation::IsNotEqual {
-        return RV::Bool(left_coerced != right_coerced);
-    }
-
-    match (left_coerced, operation, right_coerced) {
-        (RV::NaN, Operation::Add, _)
-        | (_, Operation::Add, RV::NaN)
-        | (RV::NaN, Operation::Subtract, _)
-        | (_, Operation::Subtract, RV::NaN)
-        | (RV::NaN, Operation::Multiply, _)
-        | (_, Operation::Multiply, RV::NaN)
-        | (RV::NaN, Operation::Divide, _)
-        | (_, Operation::Divide, RV::NaN) => RV::NaN,
-        //
-        (RV::Num(l), Operation::Add, RV::Num(r)) => RV::Num(l + r),
-        (RV::Num(l), Operation::Subtract, RV::Num(r)) => RV::Num(l - r),
-        (RV::Num(l), Operation::Multiply, RV::Num(r)) => RV::Num(l * r),
-        (RV::Num(l), Operation::Divide, RV::Num(r)) => {
-            if l == 0.0 && r == 0.0 {
-                RV::NaN
-            } else {
-                RV::Num(l / r)
+    match operation {
+        Operation::IsEqual => RV::Bool(left_eval == right_eval),
+        Operation::IsNotEqual => RV::Bool(left_eval != right_eval),
+        Operation::Less => RV::Bool(left_eval < right_eval),
+        Operation::LessEqual => RV::Bool(left_eval <= right_eval),
+        Operation::Greater => RV::Bool(left_eval > right_eval),
+        Operation::GreaterEqual => RV::Bool(left_eval >= right_eval),
+        _ => {
+            let (left_coerced, right_coerced) = match (&left_eval, &operation, &right_eval) {
+                (RV::Num(n), _, RV::Bool(_)) => (RV::Num(*n), RV::Num(right_eval.coerce_to_number().unwrap())),
+                (RV::Bool(_), _, RV::Num(n)) => (RV::Num(left_eval.coerce_to_number().unwrap()), RV::Num(*n)),
+                (RV::Bool(l), Operation::Add, RV::Bool(r))
+                | (RV::Bool(l), Operation::Subtract, RV::Bool(r))
+                | (RV::Bool(l), Operation::Multiply, RV::Bool(r))
+                | (RV::Bool(l), Operation::Divide, RV::Bool(r)) => {
+                    (
+                        RV::Num(left_eval.coerce_to_number().unwrap()), 
+                        RV::Num(right_eval.coerce_to_number().unwrap())
+                    )
+                }
+                (_, _, _) => (left_eval, right_eval),
+            };
+        
+            match (left_coerced, operation, right_coerced) {
+                (RV::NaN, Operation::Add, _)
+                | (_, Operation::Add, RV::NaN)
+                | (RV::NaN, Operation::Subtract, _)
+                | (_, Operation::Subtract, RV::NaN)
+                | (RV::NaN, Operation::Multiply, _)
+                | (_, Operation::Multiply, RV::NaN)
+                | (RV::NaN, Operation::Divide, _)
+                | (_, Operation::Divide, RV::NaN) => RV::NaN,
+                //
+                (RV::Num(l), Operation::Add, RV::Num(r)) => RV::Num(l + r),
+                (RV::Num(l), Operation::Subtract, RV::Num(r)) => RV::Num(l - r),
+                (RV::Num(l), Operation::Multiply, RV::Num(r)) => RV::Num(l * r),
+                (RV::Num(l), Operation::Divide, RV::Num(r)) => {
+                    if l == 0.0 && r == 0.0 {
+                        RV::NaN
+                    } else {
+                        RV::Num(l / r)
+                    }
+                }
+                //
+                (RV::Str(l), Operation::Add, RV::Str(r)) => {
+                    RV::Str(Arc::new(l.to_string() + &r.to_string()))
+                }
+                //
+                (RV::Str(s), Operation::Add, RV::Num(num)) => {
+                    RV::Str(Arc::new(s.to_string() + &num.to_string()))
+                }
+                (RV::Num(num), Operation::Add, RV::Str(s)) => {
+                    RV::Str(Arc::new(num.to_string() + &s.to_string()))
+                }
+                //
+                (RV::Str(s), Operation::Add, RV::Bool(bool)) => {
+                    RV::Str(Arc::new(s.to_string() + &bool.to_string()))
+                }
+                (RV::Bool(bool), Operation::Add, RV::Str(s)) => {
+                    RV::Str(Arc::new(bool.to_string() + &s.to_string()))
+                }
+                //
+                (_, Operation::Add, _)
+                | (_, Operation::Subtract, _)
+                | (_, Operation::Multiply, _)
+                | (_, Operation::Divide, _) => RV::NaN,
+                //
+                (_, _, _) => RV::Undefined,
             }
         }
-        (RV::Num(l), Operation::Less, RV::Num(r)) => RV::Bool(l < r),
-        (RV::Num(l), Operation::LessEqual, RV::Num(r)) => RV::Bool(l <= r),
-        (RV::Num(l), Operation::Greater, RV::Num(r)) => RV::Bool(l > r),
-        (RV::Num(l), Operation::GreaterEqual, RV::Num(r)) => RV::Bool(l >= r),
-        //
-        (RV::Str(l), Operation::Add, RV::Str(r)) => {
-            RV::Str(Arc::new(l.to_string() + &r.to_string()))
-        }
-        (RV::Str(l), Operation::Less, RV::Str(r)) => RV::Bool(l < r),
-        (RV::Str(l), Operation::LessEqual, RV::Str(r)) => RV::Bool(l <= r),
-        (RV::Str(l), Operation::Greater, RV::Str(r)) => RV::Bool(l > r),
-        (RV::Str(l), Operation::GreaterEqual, RV::Str(r)) => RV::Bool(l >= r),
-        //
-        (RV::Bool(l), Operation::Less, RV::Bool(r)) => RV::Bool(!l & r),
-        (RV::Bool(l), Operation::LessEqual, RV::Bool(r)) => RV::Bool(l <= r),
-        (RV::Bool(l), Operation::Greater, RV::Bool(r)) => RV::Bool(l & !r),
-        (RV::Bool(l), Operation::GreaterEqual, RV::Bool(r)) => RV::Bool(l >= r),
-        //
-        (RV::Str(s), Operation::Add, RV::Num(num)) => {
-            RV::Str(Arc::new(s.to_string() + &num.to_string()))
-        }
-        (RV::Num(num), Operation::Add, RV::Str(s)) => {
-            RV::Str(Arc::new(num.to_string() + &s.to_string()))
-        }
-        //
-        (RV::Str(s), Operation::Add, RV::Bool(bool)) => {
-            RV::Str(Arc::new(s.to_string() + &bool.to_string()))
-        }
-        (RV::Bool(bool), Operation::Add, RV::Str(s)) => {
-            RV::Str(Arc::new(bool.to_string() + &s.to_string()))
-        }
-        //
-        (_, Operation::Less, _)
-        | (_, Operation::LessEqual, _)
-        | (_, Operation::Greater, _)
-        | (_, Operation::GreaterEqual, _) => RV::Bool(false),
-        //
-        (_, Operation::Add, _)
-        | (_, Operation::Subtract, _)
-        | (_, Operation::Multiply, _)
-        | (_, Operation::Divide, _) => RV::NaN,
-        //
-        (_, _, _) => RV::Undefined,
     }
+    
 }
 
 #[cfg(test)]

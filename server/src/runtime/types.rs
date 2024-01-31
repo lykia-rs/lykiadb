@@ -3,6 +3,7 @@ use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::borrow::BorrowMut;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
@@ -36,29 +37,6 @@ impl Function {
                 closure: _,
                 body: _,
             } => write!(f, "{}", name),
-        }
-    }
-}
-
-impl PartialEq for Function {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Function::Lambda { function: _ }, Function::Lambda { function: _ }) => false,
-            (
-                a @ Function::UserDefined {
-                    name: _,
-                    parameters: _,
-                    closure: _,
-                    body: _,
-                },
-                b @ Function::UserDefined {
-                    name: _,
-                    parameters: _,
-                    closure: _,
-                    body: _,
-                },
-            ) => a == b,
-            _ => false,
         }
     }
 }
@@ -103,48 +81,56 @@ pub enum RV {
     Null,
 }
 
-#[inline(always)]
-pub fn is_value_truthy(rv: RV) -> bool {
-    match rv {
-        RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
-        RV::Str(value) => !(value.is_empty() || *value == "0"),
-        RV::Bool(value) => value,
-        RV::Null | RV::Undefined | RV::NaN => false,
-        _ => true,
+impl RV {
+    pub fn is_truthy(&self) -> bool {
+        match &self {
+            RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
+            RV::Str(value) => !value.is_empty(),
+            RV::Bool(value) => *value,
+            RV::Null | RV::Undefined | RV::NaN => false,
+            _ => true,
+        }
     }
-}
 
-#[inline(always)]
-pub fn coerce2number(val: RV) -> Option<f64> {
-    match val {
-        RV::Num(value) => Some(value),
-        RV::Bool(true) => Some(1.0),
-        RV::Bool(false) => Some(0.0),
-        _ => None,
+    pub fn eq_any_bool(&self, b: bool) -> bool {
+        self.is_truthy() == b
     }
-}
 
-#[inline(always)]
-pub fn coerce2bool(val: RV) -> Option<f64> {
-    match val {
-        RV::Num(value) => Some(value),
-        RV::Bool(true) => Some(1.0),
-        RV::Bool(false) => Some(0.0),
-        _ => None,
+    pub fn eq_str_num(&self, n: f64) -> bool {
+        if let RV::Str(s) = self {
+            if let Ok(num) = s.parse::<f64>() {
+                return num == n;
+            }
+        }
+        false
     }
-}
 
-#[inline(always)]
-pub fn cmp_str_num(s: &str, n: f64) -> bool {
-    if let Ok(num) = s.parse::<f64>() {
-        return num == n;
+    pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
+        if let Some(num) = self.coerce_to_number() {
+            return num.partial_cmp(&if other { 1.0 } else { 0.0 });
+        }
+        self.is_truthy().partial_cmp(&other)
     }
-    false
-}
 
-#[inline(always)]
-pub fn cmp_any_bool(s: &RV, b: bool) -> bool {
-    is_value_truthy(s.clone()) == b
+    pub fn coerce_to_bool(&self) -> Option<bool> {
+        Some(self.is_truthy())
+    }
+
+    pub fn coerce_to_number(&self) -> Option<f64> {
+        match self {
+            RV::Num(value) => Some(*value),
+            RV::Bool(true) => Some(1.0),
+            RV::Bool(false) => Some(0.0),
+            RV::Str(s) => {
+                if let Ok(num) = s.parse::<f64>() {
+                    Some(num)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 impl PartialEq for RV {
@@ -172,16 +158,66 @@ impl PartialEq for RV {
             (RV::Num(a), RV::Num(b)) => a == b,
             (RV::Bool(a), RV::Bool(b)) => a == b,
             //
-            (RV::Str(a), RV::Num(b)) => cmp_str_num(a, *b),
-            (RV::Num(a), RV::Str(b)) => cmp_str_num(b, *a),
+            (RV::Str(a), RV::Num(b)) => self.eq_str_num(*b),
+            (RV::Num(a), RV::Str(b)) => other.eq_str_num(*a),
             //
-            (RV::Str(_), RV::Bool(b)) => cmp_any_bool(self, *b),
-            (RV::Bool(a), RV::Str(_)) => cmp_any_bool(other, *a),
+            (RV::Str(_), RV::Bool(b)) => self.eq_any_bool(*b),
+            (RV::Bool(a), RV::Str(_)) => other.eq_any_bool(*a),
             //
-            (RV::Num(_), RV::Bool(b)) => cmp_any_bool(self, *b),
-            (RV::Bool(a), RV::Num(_)) => cmp_any_bool(other, *a),
+            (RV::Num(_), RV::Bool(b)) => self.eq_any_bool(*b),
+            (RV::Bool(a), RV::Num(_)) => other.eq_any_bool(*a),
             //
             _ => false,
+        }
+    }
+}
+
+impl PartialOrd for RV {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+
+        match (self, other) {
+            (RV::Array(_), RV::Array(_)) 
+            | (RV::Object(_), RV::Object(_)) => None,
+            //
+            (RV::Callable(_, _), RV::Callable(_, _)) => None,
+            //
+            (RV::Null, RV::Null) => Some(std::cmp::Ordering::Equal),
+            (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
+            (RV::NaN, RV::NaN) => Some(std::cmp::Ordering::Equal),
+            (RV::Null, RV::Undefined) => Some(std::cmp::Ordering::Equal),
+            (RV::Undefined, RV::Null) => Some(std::cmp::Ordering::Equal),
+            //
+            (RV::NaN, _)
+            | (_, RV::NaN) => None,
+            (RV::Null, _)
+            | (_, RV::Null) => None,
+            (RV::Undefined, _)
+            | (_, RV::Undefined) => None,
+            //
+            (RV::Str(a), RV::Str(b)) => Some(a.cmp(b)),
+            (RV::Num(a), RV::Num(b)) => a.partial_cmp(b),
+            (RV::Bool(a), RV::Bool(b)) => a.partial_cmp(b),
+            //
+            (RV::Str(a), RV::Num(b)) => {
+                if let Ok(num) = a.parse::<f64>() {
+                    return num.partial_cmp(b);
+                }
+                None
+            }
+            (RV::Num(a), RV::Str(b)) => {
+                if let Ok(num) = b.parse::<f64>() {
+                    return a.partial_cmp(&num);
+                }
+                None
+            }
+            //
+            (RV::Str(_), RV::Bool(b)) => self.partial_cmp_str_bool(*b),
+            (RV::Bool(a), RV::Str(_)) => other.partial_cmp_str_bool(*a),
+            //
+            (RV::Num(num), RV::Bool(b))  => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
+            (RV::Bool(b), RV::Num(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
+            //
+            _ => None,
         }
     }
 }
@@ -228,48 +264,48 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
-        runtime::types::{coerce2number, is_value_truthy, Function, RV},
+        runtime::types::{Function, RV},
         util::alloc_shared,
     };
 
     #[test]
     fn test_is_value_truthy() {
-        assert_eq!(is_value_truthy(RV::Null), false);
-        assert_eq!(is_value_truthy(RV::Undefined), false);
-        assert_eq!(is_value_truthy(RV::NaN), false);
-        assert_eq!(is_value_truthy(RV::Bool(false)), false);
-        assert_eq!(is_value_truthy(RV::Bool(true)), true);
-        assert_eq!(is_value_truthy(RV::Num(0.0)), false);
-        assert_eq!(is_value_truthy(RV::Num(0.1)), true);
-        assert_eq!(is_value_truthy(RV::Num(1.0)), true);
-        assert_eq!(is_value_truthy(RV::Num(0.0)), false);
-        assert_eq!(is_value_truthy(RV::Num(-1.0)), true);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("".to_owned()))), false);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("0".to_owned()))), false);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("false".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("true".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Str(Arc::new("foo".to_owned()))), true);
-        assert_eq!(is_value_truthy(RV::Array(alloc_shared(vec![]))), true);
+        assert_eq!((RV::Null).is_truthy(), false);
+        assert_eq!((RV::Undefined).is_truthy(), false);
+        assert_eq!((RV::NaN).is_truthy(), false);
+        assert_eq!((RV::Bool(false)).is_truthy(), false);
+        assert_eq!((RV::Bool(true)).is_truthy(), true);
+        assert_eq!((RV::Num(0.0)).is_truthy(), false);
+        assert_eq!((RV::Num(0.1)).is_truthy(), true);
+        assert_eq!((RV::Num(-0.1)).is_truthy(), true);
+        assert_eq!((RV::Num(1.0)).is_truthy(), true);
+        assert_eq!((RV::Num(-1.0)).is_truthy(), true);
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).is_truthy(), false);
+        assert_eq!((RV::Str(Arc::new("0".to_owned()))).is_truthy(), true);
+        assert_eq!((RV::Str(Arc::new("false".to_owned()))).is_truthy(), true);
+        assert_eq!((RV::Str(Arc::new("true".to_owned()))).is_truthy(), true);
+        assert_eq!((RV::Str(Arc::new("foo".to_owned()))).is_truthy(), true);
+        assert_eq!((RV::Array(alloc_shared(vec![]))).is_truthy(), true);
         assert_eq!(
-            is_value_truthy(RV::Object(alloc_shared(FxHashMap::default()))),
+            (RV::Object(alloc_shared(FxHashMap::default()))).is_truthy(),
             true
         );
         assert_eq!(
-            is_value_truthy(RV::Callable(
+            (RV::Callable(
                 Some(1),
                 Arc::new(Function::Lambda {
                     function: |_, _| Ok(RV::Undefined)
                 })
-            )),
+            )).is_truthy(),
             true
         );
     }
 
     #[test]
     fn test_coerce2number() {
-        assert_eq!(coerce2number(RV::Num(1.0)), Some(1.0));
-        assert_eq!(coerce2number(RV::Bool(false)), Some(0.0));
-        assert_eq!(coerce2number(RV::Bool(true)), Some(1.0));
-        assert_eq!(coerce2number(RV::Str(Arc::new("".to_owned()))), None);
+        assert_eq!((RV::Num(1.0)).coerce_to_number(), Some(1.0));
+        assert_eq!((RV::Bool(false)).coerce_to_number(), Some(0.0));
+        assert_eq!((RV::Bool(true)).coerce_to_number(), Some(1.0));
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).coerce_to_number(), None);
     }
 }
