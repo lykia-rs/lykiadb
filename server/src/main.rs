@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use liblykia::protocol::connection::{CommunicationError, Connection, Message, Request, Response};
+use lykiadb_server::net::{CommunicationError, Connection, Message, Request, Response};
 use lykiadb_server::runtime::types::RV;
 use lykiadb_server::runtime::{Runtime, RuntimeMode};
 use tokio::net::{TcpListener, TcpStream};
