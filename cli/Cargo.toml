@@ -6,5 +6,5 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.6", features = ["derive"] }
-liblykia = { path = "../liblykia" }
+lykiadb-server = { path = "../server" }
 tokio = { version = "~1.35.1" }

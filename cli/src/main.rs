@@ -1,11 +1,10 @@
 use std::{
     fs::File,
     io::{BufReader, Read},
-    time::Duration,
 };
 
 use clap::Parser;
-use liblykia::protocol::connection::{CommunicationError, Connection, Message, Request};
+use lykiadb_server::net::{CommunicationError, Connection, Message, Request};
 use tokio::net::TcpStream;
 
 #[derive(Parser, Debug)]

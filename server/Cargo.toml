@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-liblykia = { path = "../liblykia" }
+bytes = "1.5.0"
 bson = { version = "2.9.0" }
 bumpalo = "3.12.2"
 phf = { version = "0.11", default-features = false, features = ["macros"] }
@@ -14,7 +14,15 @@ serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
 ariadne = { features = ["auto-color"] }
 assert-json-diff = "2.0.2"
-tokio = { version = "~1.35.1" }
+tokio = { version = "~1.35.1", features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "time",
+    "sync",
+] }
 tokio-stream = { version = "~0.1.6", features = ["net"] }
 
 [dev-dependencies]
