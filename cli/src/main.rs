@@ -4,7 +4,8 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_server::net::{CommunicationError, Connection, Message, Request};
+use lykiadb_server::net::{Message, Request};
+use lykiadb_shell::ClientSession;
 use tokio::net::TcpStream;
 
 #[derive(Parser, Debug)]
@@ -41,28 +42,6 @@ fn run_repl() {
     }*/
 }
 
-pub struct ClientSession {
-    conn: Connection,
-}
-
-impl ClientSession {
-    pub fn new(stream: TcpStream) -> Self {
-        ClientSession {
-            conn: Connection::new(stream),
-        }
-    }
-
-    pub async fn handle(&mut self) {
-        if let Some(message) = self.conn.read().await.unwrap() {
-            println!("{:?}", message);
-        }
-    }
-
-    pub async fn send(&mut self, msg: Message) -> Result<(), CommunicationError> {
-        self.conn.write(msg).await
-    }
-}
-
 async fn run_file(filename: &str, print_ast: bool) {
     let file = File::open(filename).expect("File couldn't be opened.");
 
@@ -74,8 +53,6 @@ async fn run_file(filename: &str, print_ast: bool) {
 
     let socket = TcpStream::connect("localhost:19191").await.unwrap();
 
-    // Initialize the connection state. This allocates read/write buffers to
-    // perform redis protocol frame parsing.
     let mut session = ClientSession::new(socket);
     loop {
         session
