@@ -1,3 +1,5 @@
+use super::environment::EnvId;
+use crate::lang::ast::expr::Operation;
 use crate::lang::ast::stmt::StmtId;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::Shared;
@@ -6,8 +8,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops;
 use std::sync::Arc;
-use super::environment::EnvId;
-use crate::lang::ast::expr::Operation;
 
 pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
@@ -350,7 +350,6 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use std::{f64::INFINITY, sync::Arc};
@@ -358,7 +357,9 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
-        lang::ast::expr::Operation, runtime::types::{eval_binary, Function, RV}, util::alloc_shared
+        lang::ast::expr::Operation,
+        runtime::types::{eval_binary, Function, RV},
+        util::alloc_shared,
     };
 
     #[test]

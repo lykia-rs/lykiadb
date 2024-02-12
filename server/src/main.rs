@@ -32,7 +32,9 @@ impl ServerSession {
                     Request::Ast(source) => {
                         let ast = self.runtime.ast(&source);
                         self.conn
-                            .write(Message::Response(Response::Value(bson::to_bson(&ast.unwrap()).unwrap())))
+                            .write(Message::Response(Response::Value(
+                                bson::to_bson(&ast.unwrap()).unwrap(),
+                            )))
                             .await
                             .unwrap();
                     }

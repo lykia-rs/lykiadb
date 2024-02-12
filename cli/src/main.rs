@@ -56,15 +56,11 @@ async fn run_file(filename: &str, print_ast: bool) {
     let mut session = ClientSession::new(socket);
     let msg = if print_ast {
         Message::Request(Request::Ast(content.to_string()))
-    }
-    else {
+    } else {
         Message::Request(Request::Run(content.to_string()))
     };
 
-    session
-        .send(msg)
-        .await
-        .unwrap();
+    session.send(msg).await.unwrap();
 
     let response = session.handle().await;
     println!("{:?}", response);
