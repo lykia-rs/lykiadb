@@ -9,6 +9,7 @@ use tokio::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
     Run(String),
+    Ast(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

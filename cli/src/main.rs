@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufReader, Read},
+    io::{stdin, stdout, BufReader, Read, Write},
 };
 
 use clap::Parser;
@@ -18,18 +18,9 @@ struct Args {
     print_ast: bool,
 }
 
-/*pub fn init() {
-    let args = Args::parse();
-    match args.filename {
-        Some(filename) => run_file(&filename, args.print_ast),
-        None => run_repl(),
-    }
-}*/
-
-fn run_repl() {
-    /*println!("REPL mode");
+async fn run_repl() {
+    println!("REPL mode");
     let mut line = String::new();
-    let mut runtime = Runtime::new(RuntimeMode::Repl);
     loop {
         print!("lykia > ");
         let _ = stdout().flush();
@@ -37,9 +28,18 @@ fn run_repl() {
         if line.is_empty() || line.trim() == ".exit" {
             break;
         }
-        // send line to server
+        let socket = TcpStream::connect("localhost:19191").await.unwrap();
+
+        let mut session = ClientSession::new(socket);
+        session
+            .send(Message::Request(Request::Run(line.to_string())))
+            .await
+            .unwrap();
+
+        let response = session.handle().await;
+        println!("{:?}", response);
         line.clear();
-    }*/
+    }
 }
 
 async fn run_file(filename: &str, print_ast: bool) {
@@ -54,15 +54,20 @@ async fn run_file(filename: &str, print_ast: bool) {
     let socket = TcpStream::connect("localhost:19191").await.unwrap();
 
     let mut session = ClientSession::new(socket);
-    loop {
-        session
-            .send(Message::Request(Request::Run(content.to_string())))
-            .await
-            .unwrap();
-
-        let response = session.handle().await;
-        println!("{:?}", response);
+    let msg = if print_ast {
+        Message::Request(Request::Ast(content.to_string()))
     }
+    else {
+        Message::Request(Request::Run(content.to_string()))
+    };
+
+    session
+        .send(msg)
+        .await
+        .unwrap();
+
+    let response = session.handle().await;
+    println!("{:?}", response);
 }
 
 #[tokio::main]
@@ -70,6 +75,6 @@ async fn main() {
     let args = Args::parse();
     match args.filename {
         Some(filename) => run_file(&filename, args.print_ast).await,
-        None => (),
+        None => run_repl().await,
     };
 }

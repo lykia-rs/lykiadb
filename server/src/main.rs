@@ -29,6 +29,13 @@ impl ServerSession {
             println!("{:?}", message);
             match message {
                 Message::Request(req) => match req {
+                    Request::Ast(source) => {
+                        let ast = self.runtime.ast(&source);
+                        self.conn
+                            .write(Message::Response(Response::Value(bson::to_bson(&ast.unwrap()).unwrap())))
+                            .await
+                            .unwrap();
+                    }
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(&command);
                         if execution.is_ok() {

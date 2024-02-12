@@ -1,5 +1,7 @@
 use ::std::sync::Arc;
 
+use serde_json::Value;
+
 use self::environment::Environment;
 use self::error::{report_error, ExecutionError};
 use self::interpreter::{HaltReason, Output};
@@ -37,14 +39,10 @@ impl Runtime {
         Runtime { mode, out: None }
     }
 
-    pub fn print_ast(&mut self, source: &str) -> Result<(), ParseError> {
+    pub fn ast(&mut self, source: &str) -> Result<Value, ParseError> {
         let tokens = Scanner::scan(source).unwrap();
         let program = Parser::parse(&tokens)?;
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&program.to_json()).unwrap()
-        );
-        Ok(())
+        Ok(program.to_json())
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
