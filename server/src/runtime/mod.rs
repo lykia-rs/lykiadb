@@ -1,6 +1,7 @@
 use ::std::sync::Arc;
 
 use serde_json::Value;
+use tracing::info;
 
 use self::environment::Environment;
 use self::error::{report_error, ExecutionError};
@@ -77,7 +78,7 @@ impl Runtime {
         let out = interpreter.visit_stmt(program_unw.root);
 
         if self.mode == RuntimeMode::Repl {
-            println!("{:?}", out);
+            info!("{:?}", out);
         }
 
         if let Ok(val) = out {

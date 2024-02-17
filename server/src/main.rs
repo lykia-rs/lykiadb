@@ -1,11 +1,25 @@
 use std::io::Error;
-
 use lykiadb_server::net::{CommunicationError, Connection, Message, Request, Response};
 use lykiadb_server::runtime::types::RV;
 use lykiadb_server::runtime::{Runtime, RuntimeMode};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
+use tracing::info;
+
+const ASCII_ART: &str = r"
+$$\                 $$\       $$\           $$$$$$$\  $$$$$$$\  
+$$ |                $$ |      \__|          $$  __$$\ $$  __$$\ 
+$$ |      $$\   $$\ $$ |  $$\ $$\  $$$$$$\  $$ |  $$ |$$ |  $$ |
+$$ |      $$ |  $$ |$$ | $$  |$$ | \____$$\ $$ |  $$ |$$$$$$$\ |
+$$ |      $$ |  $$ |$$$$$$  / $$ | $$$$$$$ |$$ |  $$ |$$  __$$\ 
+$$ |      $$ |  $$ |$$  _$$<  $$ |$$  __$$ |$$ |  $$ |$$ |  $$ |
+$$$$$$$$\ \$$$$$$$ |$$ | \$$\ $$ |\$$$$$$$ |$$$$$$$  |$$$$$$$  |
+\________| \____$$ |\__|  \__|\__| \_______|\_______/ \_______/ 
+          $$\   $$ |                                            
+          \$$$$$$  |                                            
+           \______/                                                  
+";
 
 struct Server {
     listener: Option<TcpListener>,
@@ -26,7 +40,7 @@ impl ServerSession {
 
     pub async fn handle(&mut self) {
         while let Some(message) = self.conn.read().await.unwrap() {
-            println!("{:?}", message);
+            info!("{:?}", message);
             match message {
                 Message::Request(req) => match req {
                     Request::Ast(source) => {
@@ -76,7 +90,8 @@ impl Server {
 
     pub async fn listen(mut self, addr: &str) -> Result<Self, Error> {
         let listener = TcpListener::bind(addr).await?;
-        println!("Listening on {}", listener.local_addr()?);
+        println!("{ASCII_ART}");
+        info!("Listening on {}", listener.local_addr()?);
         self.listener = Some(listener);
         Ok(self)
     }
@@ -88,9 +103,9 @@ impl Server {
                 let peer = socket.peer_addr()?;
                 tokio::spawn(async move {
                     let mut session = ServerSession::new(socket);
-                    println!("Client {} connected", peer);
+                    info!("Client {} connected", peer);
                     session.handle().await;
-                    println!("Client {} disconnected", peer);
+                    info!("Client {} disconnected", peer);
                 });
             }
         }
@@ -99,5 +114,6 @@ impl Server {
 }
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    tracing_subscriber::fmt::init();
     Server::new()?.listen("0.0.0.0:19191").await?.serve().await
 }

@@ -21,6 +21,8 @@ struct Args {
 async fn run_repl() {
     println!("REPL mode");
     let mut line = String::new();
+    let socket = TcpStream::connect("localhost:19191").await.unwrap();
+    let mut session = ClientSession::new(socket);
     loop {
         print!("lykia > ");
         let _ = stdout().flush();
@@ -28,9 +30,6 @@ async fn run_repl() {
         if line.is_empty() || line.trim() == ".exit" {
             break;
         }
-        let socket = TcpStream::connect("localhost:19191").await.unwrap();
-
-        let mut session = ClientSession::new(socket);
         session
             .send(Message::Request(Request::Run(line.to_string())))
             .await
