@@ -15,7 +15,7 @@ impl ClientSession {
     pub async fn handle(&mut self) -> Result<Message, ()> {
         match self.conn.read().await.unwrap() {
             Some(message) => Ok(message),
-            None => Err(())
+            None => Err(()),
         }
     }
 

@@ -17,7 +17,7 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
     Value(Bson),
-    Error(ExecutionError)
+    Error(ExecutionError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
