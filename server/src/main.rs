@@ -1,24 +1,24 @@
-use std::io::Error;
 use lykiadb_server::net::{CommunicationError, Connection, Message, Request, Response};
 use lykiadb_server::runtime::types::RV;
 use lykiadb_server::runtime::{Runtime, RuntimeMode};
+use std::io::Error;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
 use tracing::info;
 
 const ASCII_ART: &str = r"
-$$\                 $$\       $$\           $$$$$$$\  $$$$$$$\  
-$$ |                $$ |      \__|          $$  __$$\ $$  __$$\ 
+$$\                 $$\       $$\           $$$$$$$\  $$$$$$$\
+$$ |                $$ |      \__|          $$  __$$\ $$  __$$\
 $$ |      $$\   $$\ $$ |  $$\ $$\  $$$$$$\  $$ |  $$ |$$ |  $$ |
 $$ |      $$ |  $$ |$$ | $$  |$$ | \____$$\ $$ |  $$ |$$$$$$$\ |
-$$ |      $$ |  $$ |$$$$$$  / $$ | $$$$$$$ |$$ |  $$ |$$  __$$\ 
+$$ |      $$ |  $$ |$$$$$$  / $$ | $$$$$$$ |$$ |  $$ |$$  __$$\
 $$ |      $$ |  $$ |$$  _$$<  $$ |$$  __$$ |$$ |  $$ |$$ |  $$ |
 $$$$$$$$\ \$$$$$$$ |$$ | \$$\ $$ |\$$$$$$$ |$$$$$$$  |$$$$$$$  |
-\________| \____$$ |\__|  \__|\__| \_______|\_______/ \_______/ 
-          $$\   $$ |                                            
-          \$$$$$$  |                                            
-           \______/                                                  
+\________| \____$$ |\__|  \__|\__| \_______|\_______/ \_______/
+          $$\   $$ |
+          \$$$$$$  |
+           \______/
 ";
 
 struct Server {
