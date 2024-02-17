@@ -6,6 +6,7 @@ use crate::lang::tokens::token::Span;
 use crate::lang::{Identifier, Literal};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub struct Resolver {
@@ -14,7 +15,7 @@ pub struct Resolver {
     arena: Arc<AstArena>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResolveError {
     GenericError { span: Span, message: String },
 }

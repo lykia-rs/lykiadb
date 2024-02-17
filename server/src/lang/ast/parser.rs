@@ -12,9 +12,10 @@ use crate::lang::tokens::token::{
 use crate::lang::Literal;
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParseError {
     UnexpectedToken { token: Token },
     MissingToken { token: Token, expected: TokenType },

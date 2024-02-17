@@ -12,9 +12,10 @@ impl ClientSession {
         }
     }
 
-    pub async fn handle(&mut self) {
-        if let Some(message) = self.conn.read().await.unwrap() {
-            println!("{:?}", message);
+    pub async fn handle(&mut self) -> Result<Message, ()> {
+        match self.conn.read().await.unwrap() {
+            Some(message) => Ok(message),
+            None => Err(())
         }
     }
 

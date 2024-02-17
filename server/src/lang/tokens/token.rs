@@ -1,8 +1,8 @@
 use crate::lang::{Identifier, Literal};
 use phf::phf_map;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
     Comma,
     Colon,
@@ -30,7 +30,7 @@ pub enum Symbol {
     LogicalOr,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum TokenType {
     Str,
     Num,
@@ -48,7 +48,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Keyword {
     Class,
     Else,
@@ -65,7 +65,7 @@ pub enum Keyword {
     Loop,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum SqlKeyword {
     /*
         Bool,
@@ -261,12 +261,11 @@ pub static SQL_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "WRITE" => skw!(SqlKeyword::Write),
 };
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Token {
     pub tok_type: TokenType,
     pub literal: Option<Literal>,
     pub lexeme: Option<String>,
-    #[serde(skip)]
     pub span: Span,
 }
 
@@ -282,7 +281,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

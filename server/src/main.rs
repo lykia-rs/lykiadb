@@ -5,7 +5,7 @@ use std::io::Error;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
-use tracing::info;
+use tracing::{error, info};
 
 const ASCII_ART: &str = r"
 $$\                 $$\       $$\           $$$$$$$\  $$$$$$$\
@@ -65,15 +65,13 @@ impl ServerSession {
                             let err = execution.err().unwrap();
 
                             self.conn
-                                .write(Message::Response(Response::Value(
-                                    bson::to_bson(&format!("Error: {:?}", err)).unwrap(),
-                                )))
+                                .write(Message::Response(Response::Error(err)))
                                 .await
                                 .unwrap();
                         }
                     }
                 },
-                _ => panic!("Unsupported message type"),
+                _ => error!("Unsupported message type"),
             }
         }
     }

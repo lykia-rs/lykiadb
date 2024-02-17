@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use self::ast::expr::ExprId;
 
 pub mod ast;
 pub mod tokens;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Literal {
     Str(Arc<String>),
     Num(f64),

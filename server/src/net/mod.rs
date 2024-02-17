@@ -6,6 +6,8 @@ use tokio::{
     net::TcpStream,
 };
 
+use crate::runtime::error::ExecutionError;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
     Run(String),
@@ -15,6 +17,7 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
     Value(Bson),
+    Error(ExecutionError)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

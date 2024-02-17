@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::lang::tokens::token::Symbol::*;
 use crate::lang::tokens::token::TokenType::{Eof, Identifier};
 use crate::lang::tokens::token::*;
@@ -12,7 +14,7 @@ pub struct Scanner<'a> {
     line: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ScanError {
     UnexpectedCharacter { span: Span },
     UnterminatedString { span: Span },

@@ -4,7 +4,7 @@ use serde_json::Value;
 use tracing::info;
 
 use self::environment::Environment;
-use self::error::{report_error, ExecutionError};
+use self::error::ExecutionError;
 use self::interpreter::{HaltReason, Output};
 use self::resolver::Resolver;
 use self::std::stdlib;
@@ -18,7 +18,7 @@ use crate::runtime::types::RV;
 use crate::util::Shared;
 
 pub mod environment;
-mod error;
+pub mod error;
 pub mod interpreter;
 mod resolver;
 mod std;
@@ -50,13 +50,11 @@ impl Runtime {
         let tokens = Scanner::scan(source);
         if tokens.is_err() {
             let error = error::ExecutionError::Scan(tokens.err().unwrap());
-            report_error("filename", source, error.clone());
             return Err(error);
         }
         let program = Parser::parse(&tokens.unwrap());
         if program.is_err() {
             let error = error::ExecutionError::Parse(program.err().unwrap());
-            report_error("filename", source, error.clone());
             return Err(error);
         }
         let program_unw = program.unwrap();
@@ -89,7 +87,6 @@ impl Runtime {
                 HaltReason::Return(rv) => Ok(rv),
                 HaltReason::Error(interpret_err) => {
                     let error = error::ExecutionError::Interpret(interpret_err);
-                    report_error("<script>", source, error.clone());
                     Err(error)
                 }
             }

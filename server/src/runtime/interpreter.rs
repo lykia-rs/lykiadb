@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 
 use super::environment::{EnvId, Environment};
 use super::resolver::Resolver;
@@ -18,7 +19,7 @@ use crate::util::alloc_shared;
 use std::sync::Arc;
 use std::vec;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
     NotCallable {
         span: Span,

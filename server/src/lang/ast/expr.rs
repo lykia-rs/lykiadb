@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::lang::{
@@ -202,5 +202,5 @@ impl Spanned for Expr {
 }
 
 #[repr(transparent)]
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Deserialize)]
 pub struct ExprId(pub usize);

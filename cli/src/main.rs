@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_server::net::{Message, Request};
+use lykiadb_server::{net::{Message, Request, Response}, runtime::error::report_error};
 use lykiadb_shell::ClientSession;
 use tokio::net::TcpStream;
 
@@ -35,8 +35,16 @@ async fn run_repl() {
             .await
             .unwrap();
 
-        let response = session.handle().await;
-        println!("{:?}", response);
+        let response = session.handle().await.unwrap();
+
+        match response {
+            Message::Response(Response::Value(result)) 
+                => println!("{result}"),
+            Message::Response(Response::Error(err)) 
+                => report_error("prompt", &line, err.clone()),
+            _ => panic!("")
+        }
+    
         line.clear();
     }
 }
@@ -61,8 +69,14 @@ async fn run_file(filename: &str, print_ast: bool) {
 
     session.send(msg).await.unwrap();
 
-    let response = session.handle().await;
-    println!("{:?}", response);
+    let response = session.handle().await.unwrap();
+    match response {
+        Message::Response(Response::Value(result)) 
+            => println!("{result}"),
+        Message::Response(Response::Error(err)) 
+            => report_error(filename, &content, err.clone()),
+        _ => panic!("")
+    }
 }
 
 #[tokio::main]
