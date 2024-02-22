@@ -1,12 +1,12 @@
-use bson::Bson;
 use bytes::BytesMut;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::{
     io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
 
-use crate::runtime::error::ExecutionError;
+use crate::runtime::{error::ExecutionError, types::RV};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
@@ -16,7 +16,8 @@ pub enum Request {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    Value(Bson),
+    Value(RV),
+    Program(Value),
     Error(ExecutionError),
 }
 

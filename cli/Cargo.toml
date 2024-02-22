@@ -7,4 +7,5 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.6", features = ["derive"] }
 lykiadb-server = { path = "../server" }
+serde_json = "1.0.105"
 tokio = { version = "~1.35.1" }

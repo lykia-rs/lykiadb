@@ -46,8 +46,8 @@ impl ServerSession {
                     Request::Ast(source) => {
                         let ast = self.runtime.ast(&source);
                         self.conn
-                            .write(Message::Response(Response::Value(
-                                bson::to_bson(&ast.unwrap()).unwrap(),
+                            .write(Message::Response(Response::Program(
+                                ast.unwrap(),
                             )))
                             .await
                             .unwrap();
@@ -55,10 +55,7 @@ impl ServerSession {
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(&command);
                         let response = if execution.is_ok() {
-                            Response::Value(
-                                bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)))
-                                    .unwrap(),
-                            )
+                            Response::Value(execution.ok().or_else(|| Some(RV::Undefined)).unwrap())
                         } else {
                             Response::Error(execution.err().unwrap())
                         };

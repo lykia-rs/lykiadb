@@ -41,7 +41,8 @@ async fn run_repl() {
         let response = session.handle().await.unwrap();
 
         match response {
-            Message::Response(Response::Value(result)) => println!("{}", result),
+            Message::Response(Response::Value(result)) => println!("{:?}", result),
+            Message::Response(Response::Program(value)) => println!("{}", serde_json::to_string_pretty(&value).unwrap()),
             Message::Response(Response::Error(err)) => report_error("prompt", &line, err.clone()),
             _ => panic!(""),
         }
@@ -72,7 +73,8 @@ async fn run_file(filename: &str, print_ast: bool) {
 
     let response = session.handle().await.unwrap();
     match response {
-        Message::Response(Response::Value(result)) => println!("{result}"),
+        Message::Response(Response::Value(result)) => println!("{:?}", result),
+        Message::Response(Response::Program(value)) => println!("{}", serde_json::to_string_pretty(&value).unwrap()),
         Message::Response(Response::Error(err)) => report_error(filename, &content, err.clone()),
         _ => panic!(""),
     }
