@@ -55,17 +55,15 @@ impl ServerSession {
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(&command);
                         let response = if execution.is_ok() {
-                            Response::Value(bson::to_bson(
-                                &execution.ok().or_else(|| Some(RV::Undefined))
-                            ).unwrap())
+                            Response::Value(
+                                bson::to_bson(&execution.ok().or_else(|| Some(RV::Undefined)))
+                                    .unwrap(),
+                            )
                         } else {
                             Response::Error(execution.err().unwrap())
                         };
 
-                        self.conn
-                            .write(Message::Response(response))
-                            .await
-                            .unwrap();
+                        self.conn.write(Message::Response(response)).await.unwrap();
                     }
                 },
                 _ => error!("Unsupported message type"),

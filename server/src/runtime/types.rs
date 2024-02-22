@@ -99,14 +99,14 @@ impl<'de> Deserialize<'de> for RV {
                     vec.push(serde_json::from_value(item).unwrap());
                 }
                 Ok(RV::Array(alloc_shared(vec)))
-            },
+            }
             serde_json::Value::Object(obj) => {
                 let mut map = FxHashMap::default();
                 for (key, value) in obj {
                     map.insert(key, serde_json::from_value(value).unwrap());
                 }
                 Ok(RV::Object(alloc_shared(map)))
-            },
+            }
             serde_json::Value::Null => Ok(RV::Null),
         }
     }
@@ -132,15 +132,17 @@ impl Serialize for RV {
                     seq.serialize_element(&item)?;
                 }
                 seq.end()
-            },
+            }
             RV::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+                let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>)
+                    .read()
+                    .unwrap();
                 for (key, value) in (&arr).iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
-            },
+            }
         }
     }
 }
