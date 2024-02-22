@@ -41,7 +41,7 @@ async fn run_repl() {
         let response = session.handle().await.unwrap();
 
         match response {
-            Message::Response(Response::Value(result)) => println!("{result}"),
+            Message::Response(Response::Value(result)) => println!("{}", result),
             Message::Response(Response::Error(err)) => report_error("prompt", &line, err.clone()),
             _ => panic!(""),
         }

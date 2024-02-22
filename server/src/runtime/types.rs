@@ -2,12 +2,14 @@ use super::environment::EnvId;
 use crate::lang::ast::expr::Operation;
 use crate::lang::ast::stmt::StmtId;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
-use crate::util::Shared;
+use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;
+use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
+use std::borrow::Borrow;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
@@ -79,6 +81,68 @@ pub enum RV {
     Undefined,
     NaN,
     Null,
+}
+
+impl<'de> Deserialize<'de> for RV {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        match value {
+            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
+            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
+            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
+            serde_json::Value::Array(arr) => {
+                let mut vec = Vec::new();
+                for item in arr {
+                    vec.push(serde_json::from_value(item).unwrap());
+                }
+                Ok(RV::Array(alloc_shared(vec)))
+            },
+            serde_json::Value::Object(obj) => {
+                let mut map = FxHashMap::default();
+                for (key, value) in obj {
+                    map.insert(key, serde_json::from_value(value).unwrap());
+                }
+                Ok(RV::Object(alloc_shared(map)))
+            },
+            serde_json::Value::Null => Ok(RV::Null),
+        }
+    }
+}
+
+impl Serialize for RV {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            RV::Str(s) => serializer.serialize_str(s),
+            RV::Num(n) => serializer.serialize_f64(*n),
+            RV::Bool(b) => serializer.serialize_bool(*b),
+            RV::Undefined => serializer.serialize_none(),
+            RV::NaN => serializer.serialize_none(),
+            RV::Null => serializer.serialize_none(),
+            RV::Callable(_, _) => serializer.serialize_none(),
+            RV::Array(arr) => {
+                let mut seq = serializer.serialize_seq(None).unwrap();
+                let arr = (arr.borrow() as &RwLock<Vec<RV>>).read().unwrap();
+                for item in (&arr).iter() {
+                    seq.serialize_element(&item)?;
+                }
+                seq.end()
+            },
+            RV::Object(obj) => {
+                let mut map = serializer.serialize_map(None).unwrap();
+                let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+                for (key, value) in (&arr).iter() {
+                    map.serialize_entry(key, value)?;
+                }
+                map.end()
+            },
+        }
+    }
 }
 
 impl RV {
@@ -288,41 +352,6 @@ impl ops::Div for RV {
                     }
                 })
                 .unwrap_or(RV::NaN),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for RV {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
-            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
-            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
-            serde_json::Value::Null => Ok(RV::Null),
-            _ => Ok(RV::Undefined),
-        }
-    }
-}
-
-impl Serialize for RV {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            RV::Str(s) => serializer.serialize_str(s),
-            RV::Num(n) => serializer.serialize_f64(*n),
-            RV::Bool(b) => serializer.serialize_bool(*b),
-            RV::Undefined => serializer.serialize_none(),
-            RV::NaN => serializer.serialize_none(),
-            RV::Null => serializer.serialize_none(),
-            RV::Callable(_, _) => serializer.serialize_none(),
-            RV::Array(_) => serializer.serialize_none(),
-            RV::Object(_) => serializer.serialize_none(),
         }
     }
 }
