@@ -46,9 +46,7 @@ impl ServerSession {
                     Request::Ast(source) => {
                         let ast = self.runtime.ast(&source);
                         self.conn
-                            .write(Message::Response(Response::Program(
-                                ast.unwrap(),
-                            )))
+                            .write(Message::Response(Response::Program(ast.unwrap())))
                             .await
                             .unwrap();
                     }
