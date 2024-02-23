@@ -113,17 +113,19 @@ impl Runtime {
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let tokens = Scanner::scan(source)?;
-        //
         let owned_arena = self.arena.take();
         let program = Parser::parse(&tokens, owned_arena.unwrap())?;
         self.arena = Some(program.arena);
-        //
 
         let mut resolver = Resolver::new(self.arena.as_ref().unwrap());
         resolver.resolve_stmt(program.root);
-        //
-        let env = self.env_man.as_ref().read().unwrap().top();
+
+        /*
+            TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
+            writable environment to the interpreter.
+        */
         let env_guard = self.env_man.as_ref().write().unwrap();
+        let env = self.env_man.as_ref().read().unwrap().top();
 
         let mut interpreter = Interpreter::new(
             env_guard,
