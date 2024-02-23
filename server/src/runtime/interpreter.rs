@@ -555,13 +555,7 @@ pub mod test_helpers {
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
         let out = alloc_shared(Output::new());
 
-        (
-            out.clone(),
-            Runtime::new(
-                RuntimeMode::File,
-                Some(out),
-            )
-        )
+        (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
     }
 
     pub fn exec_assert(code: &str, output: Vec<RV>) -> () {

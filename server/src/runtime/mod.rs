@@ -94,7 +94,12 @@ impl Runtime {
         for (name, value) in native_fns {
             env_man.declare(env, name.to_string(), value);
         }
-        Runtime { mode, out, arena: Some(AstArena::new()), env_man: alloc_shared(env_man) }
+        Runtime {
+            mode,
+            out,
+            arena: Some(AstArena::new()),
+            env_man: alloc_shared(env_man),
+        }
     }
 
     pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
@@ -120,7 +125,12 @@ impl Runtime {
         let env = self.env_man.as_ref().read().unwrap().top();
         let env_guard = self.env_man.as_ref().write().unwrap();
 
-        let mut interpreter = Interpreter::new(env_guard, env, self.arena.as_ref().unwrap(), Arc::new(resolver));
+        let mut interpreter = Interpreter::new(
+            env_guard,
+            env,
+            self.arena.as_ref().unwrap(),
+            Arc::new(resolver),
+        );
 
         let out = interpreter.visit_stmt(program.root);
 
