@@ -1,7 +1,8 @@
 use ::std::sync::Arc;
 
 use serde_json::Value;
-use tracing::info;
+use tokio::net::TcpStream;
+use tracing::{error, info};
 
 use self::environment::Environment;
 use self::error::ExecutionError;
@@ -10,9 +11,10 @@ use self::resolver::Resolver;
 use self::std::stdlib;
 use crate::lang::ast::visitor::VisitorMut;
 
-use crate::lang::ast::parser::{ParseError, Parser};
+use crate::lang::ast::parser::Parser;
 use crate::lang::ast::program::AstArena;
 use crate::lang::tokens::scanner::Scanner;
+use crate::net::{CommunicationError, Connection, Message, Request, Response};
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::Shared;
@@ -23,6 +25,52 @@ pub mod interpreter;
 mod resolver;
 mod std;
 pub mod types;
+
+pub struct ServerSession {
+    conn: Connection,
+    runtime: Runtime,
+}
+
+impl ServerSession {
+    pub fn new(stream: TcpStream) -> Self {
+        ServerSession {
+            conn: Connection::new(stream),
+            runtime: Runtime::new(RuntimeMode::File),
+        }
+    }
+
+    pub async fn handle(&mut self) {
+        while let Some(message) = self.conn.read().await.unwrap() {
+            info!("{:?}", message);
+            match message {
+                Message::Request(req) => match req {
+                    Request::Ast(source) => {
+                        let ast = self.runtime.ast(&source);
+                        self.conn
+                            .write(Message::Response(Response::Program(ast.unwrap())))
+                            .await
+                            .unwrap();
+                    }
+                    Request::Run(command) => {
+                        let execution = self.runtime.interpret(&command);
+                        let response = if execution.is_ok() {
+                            Response::Value(execution.ok().or_else(|| Some(RV::Undefined)).unwrap())
+                        } else {
+                            Response::Error(execution.err().unwrap())
+                        };
+
+                        self.conn.write(Message::Response(response)).await.unwrap();
+                    }
+                },
+                _ => error!("Unsupported message type"),
+            }
+        }
+    }
+
+    pub async fn send(&mut self, msg: Message) -> Result<(), CommunicationError> {
+        self.conn.write(msg).await
+    }
+}
 
 pub struct Runtime {
     mode: RuntimeMode,
