@@ -172,13 +172,13 @@ impl RV {
     }
 
     pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
-        if let Some(num) = self.coerce_to_number() {
+        if let Some(num) = self.as_number() {
             return num.partial_cmp(&if other { 1.0 } else { 0.0 });
         }
         self.is_truthy().partial_cmp(&other)
     }
 
-    pub fn coerce_to_number(&self) -> Option<f64> {
+    pub fn as_number(&self) -> Option<f64> {
         match self {
             RV::Num(value) => Some(*value),
             RV::Bool(true) => Some(1.0),
@@ -283,7 +283,7 @@ impl ops::Add for RV {
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             //
             (RV::Bool(_), RV::Bool(_)) | (RV::Num(_), RV::Bool(_)) | (RV::Bool(_), RV::Num(_)) => {
-                RV::Num(self.coerce_to_number().unwrap() + rhs.coerce_to_number().unwrap())
+                RV::Num(self.as_number().unwrap() + rhs.as_number().unwrap())
             }
 
             (RV::Num(l), RV::Num(r)) => RV::Num(l + r),
@@ -310,8 +310,8 @@ impl ops::Sub for RV {
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
             (l, r) => l
-                .coerce_to_number()
-                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .as_number()
+                .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a - b))
                 .unwrap_or(RV::NaN),
         }
@@ -327,8 +327,8 @@ impl ops::Mul for RV {
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
             (l, r) => l
-                .coerce_to_number()
-                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .as_number()
+                .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a * b))
                 .unwrap_or(RV::NaN),
         }
@@ -344,8 +344,8 @@ impl ops::Div for RV {
             (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
             (l, r) => l
-                .coerce_to_number()
-                .and_then(|a| r.coerce_to_number().map(|b| (a, b)))
+                .as_number()
+                .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| {
                     if a == 0.0 && b == 0.0 {
                         RV::NaN
@@ -428,11 +428,11 @@ mod test {
     }
 
     #[test]
-    fn test_coerce2number() {
-        assert_eq!((RV::Num(1.0)).coerce_to_number(), Some(1.0));
-        assert_eq!((RV::Bool(false)).coerce_to_number(), Some(0.0));
-        assert_eq!((RV::Bool(true)).coerce_to_number(), Some(1.0));
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).coerce_to_number(), None);
+    fn test_as_number() {
+        assert_eq!((RV::Num(1.0)).as_number(), Some(1.0));
+        assert_eq!((RV::Bool(false)).as_number(), Some(0.0));
+        assert_eq!((RV::Bool(true)).as_number(), Some(1.0));
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_number(), None);
     }
 
     #[test]

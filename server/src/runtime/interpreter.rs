@@ -160,7 +160,7 @@ impl Interpreter {
 
     fn eval_unary(&mut self, operation: &Operation, eidx: ExprId) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr(eidx)?.coerce_to_number() {
+            if let Some(num) = self.visit_expr(eidx)?.as_number() {
                 return Ok(RV::Num(-num));
             }
             Ok(RV::NaN)

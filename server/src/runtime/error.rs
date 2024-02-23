@@ -11,6 +11,18 @@ pub enum ExecutionError {
     Interpret(InterpretError),
 }
 
+impl From<ParseError> for ExecutionError {
+    fn from(err: ParseError) -> Self {
+        ExecutionError::Parse(err)
+    }
+}
+
+impl From<ScanError> for ExecutionError {
+    fn from(err: ScanError) -> Self {
+        ExecutionError::Scan(err)
+    }
+}
+
 pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
     use ariadne::{Color, Label, Report, ReportKind, Source};
 

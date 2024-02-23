@@ -40,28 +40,21 @@ impl Runtime {
         Runtime { mode, out: None }
     }
 
-    pub fn ast(&mut self, source: &str) -> Result<Value, ParseError> {
-        let tokens = Scanner::scan(source).unwrap();
+    pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
+        let tokens = Scanner::scan(source)?;
         let program = Parser::parse(&tokens)?;
         Ok(program.to_json())
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let tokens = Scanner::scan(source);
-        if tokens.is_err() {
-            let error = error::ExecutionError::Scan(tokens.err().unwrap());
-            return Err(error);
-        }
-        let program = Parser::parse(&tokens.unwrap());
-        if program.is_err() {
-            let error = error::ExecutionError::Parse(program.err().unwrap());
-            return Err(error);
-        }
-        let program_unw = program.unwrap();
-        let arena: Arc<AstArena> = Arc::clone(&program_unw.arena);
+        let tokens = Scanner::scan(source)?;
+        //
+        let program = Parser::parse(&tokens)?;
+        //
+        let arena: Arc<AstArena> = Arc::clone(&program.arena);
         //
         let mut resolver = Resolver::new(arena.clone());
-        resolver.resolve_stmt(program_unw.root);
+        resolver.resolve_stmt(program.root);
         //
         let mut env_man = Environment::new();
         let env = env_man.top();
@@ -73,7 +66,7 @@ impl Runtime {
         }
 
         let mut interpreter = Interpreter::new(env_man, env, arena, Arc::new(resolver));
-        let out = interpreter.visit_stmt(program_unw.root);
+        let out = interpreter.visit_stmt(program.root);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);
