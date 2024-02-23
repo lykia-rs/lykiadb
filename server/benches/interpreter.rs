@@ -12,7 +12,7 @@ fn runtime(filename: &str) {
     BufReader::new(file)
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
-    let mut runtime = Runtime::new(RuntimeMode::File);
+    let mut runtime = Runtime::new(RuntimeMode::File, None);
     runtime.interpret(&content);
 }
 
