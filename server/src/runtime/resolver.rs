@@ -7,12 +7,11 @@ use crate::lang::{Identifier, Literal};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
-pub struct Resolver {
+pub struct Resolver<'a> {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
-    arena: Arc<AstArena>,
+    arena: &'a AstArena,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,8 +19,8 @@ pub enum ResolveError {
     GenericError { span: Span, message: String },
 }
 
-impl Resolver {
-    pub fn new(arena: Arc<AstArena>) -> Resolver {
+impl<'a> Resolver<'a> {
+    pub fn new(arena: &'a AstArena) -> Resolver<'a> {
         Resolver {
             scopes: vec![],
             locals: FxHashMap::default(),
@@ -81,9 +80,9 @@ impl Resolver {
     }
 }
 
-impl VisitorMut<RV, ResolveError> for Resolver {
+impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
-        let a = Arc::clone(&self.arena);
+        let a = self.arena;
         let e = a.get_expression(eidx);
         match e {
             Expr::Literal {
@@ -208,7 +207,7 @@ impl VisitorMut<RV, ResolveError> for Resolver {
     }
 
     fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, ResolveError> {
-        let a = Arc::clone(&self.arena);
+        let a = self.arena;
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {

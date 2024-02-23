@@ -80,11 +80,10 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
+    pub fn parse(tokens: &Vec<Token>, arena: AstArena) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
-        let arena = AstArena::new();
         let mut parser = Parser {
             tokens,
             current: 0,
@@ -94,7 +93,7 @@ impl<'a> Parser<'a> {
             in_object_depth: 0,
         };
         let program = parser.program()?;
-        Ok(Program::new(program, Arc::new(parser.arena)))
+        Ok(Program::new(program, parser.arena))
     }
 
     fn program(&mut self) -> ParseResult<StmtId> {
