@@ -124,8 +124,8 @@ impl Runtime {
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
             writable environment to the interpreter.
         */
-        let env_guard = self.env_man.as_ref().write().unwrap();
         let env = self.env_man.as_ref().read().unwrap().top();
+        let env_guard = self.env_man.as_ref().write().unwrap();
 
         let mut interpreter = Interpreter::new(
             env_guard,
