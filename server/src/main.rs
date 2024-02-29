@@ -1,11 +1,9 @@
-use lykiadb_server::net::{CommunicationError, Connection, Message, Request, Response};
-use lykiadb_server::runtime::types::RV;
-use lykiadb_server::runtime::{Runtime, RuntimeMode};
+use lykiadb_server::runtime::ServerSession;
 use std::io::Error;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
-use tracing::{error, info};
+use tracing::info;
 
 const ASCII_ART: &str = r"
 $$\                 $$\       $$\           $$$$$$$\  $$$$$$$\
@@ -23,52 +21,6 @@ $$$$$$$$\ \$$$$$$$ |$$ | \$$\ $$ |\$$$$$$$ |$$$$$$$  |$$$$$$$  |
 
 struct Server {
     listener: Option<TcpListener>,
-}
-
-pub struct ServerSession {
-    conn: Connection,
-    runtime: Runtime,
-}
-
-impl ServerSession {
-    pub fn new(stream: TcpStream) -> Self {
-        ServerSession {
-            conn: Connection::new(stream),
-            runtime: Runtime::new(RuntimeMode::File),
-        }
-    }
-
-    pub async fn handle(&mut self) {
-        while let Some(message) = self.conn.read().await.unwrap() {
-            info!("{:?}", message);
-            match message {
-                Message::Request(req) => match req {
-                    Request::Ast(source) => {
-                        let ast = self.runtime.ast(&source);
-                        self.conn
-                            .write(Message::Response(Response::Program(ast.unwrap())))
-                            .await
-                            .unwrap();
-                    }
-                    Request::Run(command) => {
-                        let execution = self.runtime.interpret(&command);
-                        let response = if execution.is_ok() {
-                            Response::Value(execution.ok().or_else(|| Some(RV::Undefined)).unwrap())
-                        } else {
-                            Response::Error(execution.err().unwrap())
-                        };
-
-                        self.conn.write(Message::Response(response)).await.unwrap();
-                    }
-                },
-                _ => error!("Unsupported message type"),
-            }
-        }
-    }
-
-    pub async fn send(&mut self, msg: Message) -> Result<(), CommunicationError> {
-        self.conn.write(msg).await
-    }
 }
 
 impl Server {

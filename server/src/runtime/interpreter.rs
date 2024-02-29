@@ -16,7 +16,7 @@ use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::alloc_shared;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLockWriteGuard};
 use std::vec;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,27 +132,27 @@ impl LoopStack {
     }
 }
 
-pub struct Interpreter {
+pub struct Interpreter<'a> {
     env: EnvId,
     root_env: EnvId,
-    env_man: Environment,
-    arena: Arc<AstArena>,
+    env_man: RwLockWriteGuard<'a, Environment>,
+    arena: &'a AstArena,
     loop_stack: LoopStack,
-    resolver: Arc<Resolver>,
+    resolver: Arc<Resolver<'a>>,
 }
 
-impl Interpreter {
+impl<'a> Interpreter<'a> {
     pub fn new(
-        env_man: Environment,
+        env_man: RwLockWriteGuard<'a, Environment>,
         env: EnvId,
-        arena: Arc<AstArena>,
-        resolver: Arc<Resolver>,
-    ) -> Interpreter {
+        arena: &'a AstArena,
+        resolver: Arc<Resolver<'a>>,
+    ) -> Interpreter<'a> {
         Interpreter {
             env_man,
             env: env,
             root_env: env,
-            arena: Arc::clone(&arena),
+            arena,
             loop_stack: LoopStack::new(),
             resolver,
         }
@@ -260,10 +260,10 @@ impl Interpreter {
     }
 }
 
-impl VisitorMut<RV, HaltReason> for Interpreter {
+impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
     fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
-        let a = Arc::clone(&self.arena);
+        let a = self.arena;
         let e = a.get_expression(eidx);
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
@@ -437,7 +437,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             return Ok(RV::Undefined);
         }
         // TODO: Remove clone here
-        let a = Arc::clone(&self.arena);
+        let a = &self.arena;
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {
@@ -555,13 +555,7 @@ pub mod test_helpers {
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
         let out = alloc_shared(Output::new());
 
-        (
-            out.clone(),
-            Runtime {
-                out: Some(out),
-                mode: RuntimeMode::File,
-            },
-        )
+        (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
     }
 
     pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
