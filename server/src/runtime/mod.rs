@@ -1,4 +1,5 @@
 use ::std::sync::Arc;
+use ::std::time::Instant;
 
 use serde_json::Value;
 use tokio::net::TcpStream;
@@ -41,8 +42,9 @@ impl ServerSession {
 
     pub async fn handle(&mut self) {
         while let Some(message) = self.conn.read().await.unwrap() {
-            info!("{:?}", message);
-            match message {
+            // Here we measure the time it takes to process a message
+            let start = Instant::now();
+            match &message {
                 Message::Request(req) => match req {
                     Request::Ast(source) => {
                         let ast = self.runtime.ast(&source);
@@ -64,6 +66,8 @@ impl ServerSession {
                 },
                 _ => error!("Unsupported message type"),
             }
+            let elapsed = start.elapsed();
+            info!("{:?} (took {:?})", message, elapsed);
         }
     }
 
