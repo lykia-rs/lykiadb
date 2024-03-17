@@ -10,10 +10,8 @@ use self::error::ExecutionError;
 use self::interpreter::{HaltReason, Output};
 use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::visitor::VisitorMut;
 
 use crate::lang::ast::parser::Parser;
-use crate::lang::ast::program::AstArena;
 use crate::lang::tokens::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
 use crate::runtime::interpreter::Interpreter;
@@ -79,7 +77,6 @@ impl ServerSession {
 pub struct Runtime {
     mode: RuntimeMode,
     out: Option<Shared<Output>>,
-    arena: Option<AstArena>,
     env_man: Shared<Environment>,
 }
 
@@ -101,28 +98,23 @@ impl Runtime {
         Runtime {
             mode,
             out,
-            arena: Some(AstArena::new()),
             env_man: alloc_shared(env_man),
         }
     }
 
     pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
         let tokens = Scanner::scan(source)?;
-        let owned_arena = self.arena.take();
-        let program = Parser::parse(&tokens, owned_arena.unwrap())?;
+        let program = Parser::parse(&tokens)?;
         let json = program.to_json();
-        self.arena = Some(program.arena);
         Ok(json)
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let tokens = Scanner::scan(source)?;
-        let owned_arena = self.arena.take();
-        let program = Parser::parse(&tokens, owned_arena.unwrap())?;
-        self.arena = Some(program.arena);
+        let program = Arc::new(Parser::parse(&tokens)?);
 
-        let mut resolver = Resolver::new(self.arena.as_ref().unwrap());
-        resolver.resolve_stmt(program.root);
+        let mut resolver = Resolver::new();
+        resolver.resolve(program.clone());
 
         /*
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
@@ -131,14 +123,9 @@ impl Runtime {
         let env = self.env_man.as_ref().read().unwrap().top();
         let env_guard = self.env_man.as_ref().write().unwrap();
 
-        let mut interpreter = Interpreter::new(
-            env_guard,
-            env,
-            self.arena.as_ref().unwrap(),
-            Arc::new(resolver),
-        );
+        let mut interpreter = Interpreter::new(env_guard, env, Arc::new(resolver));
 
-        let out = interpreter.visit_stmt(program.root);
+        let out = interpreter.interpret(program);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);

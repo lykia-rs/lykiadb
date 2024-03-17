@@ -80,10 +80,11 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse(tokens: &Vec<Token>, arena: AstArena) -> ParseResult<Program> {
+    pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
+        let arena = AstArena::new();
         let mut parser = Parser {
             tokens,
             current: 0,

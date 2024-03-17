@@ -1,5 +1,6 @@
 use super::environment::EnvId;
 use crate::lang::ast::expr::Operation;
+use crate::lang::ast::program::Program;
 use crate::lang::ast::stmt::StmtId;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::{alloc_shared, Shared};
@@ -23,6 +24,7 @@ pub enum Function {
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: String,
+        program: Arc<Program>,
         parameters: Vec<String>,
         closure: EnvId,
         body: Arc<Vec<StmtId>>,
@@ -35,6 +37,7 @@ impl Function {
             Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
             Function::UserDefined {
                 name,
+                program: _,
                 parameters: _,
                 closure: _,
                 body: _,
@@ -62,10 +65,11 @@ impl Function {
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
+                program,
                 parameters,
                 closure,
                 body,
-            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
+            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
         }
     }
 }

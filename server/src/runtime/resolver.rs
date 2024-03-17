@@ -1,5 +1,5 @@
 use crate::lang::ast::expr::{Expr, ExprId};
-use crate::lang::ast::program::AstArena;
+use crate::lang::ast::program::Program;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
@@ -7,11 +7,11 @@ use crate::lang::{Identifier, Literal};
 use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
-pub struct Resolver<'a> {
+pub struct Resolver {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
-    arena: &'a AstArena,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,12 +19,11 @@ pub enum ResolveError {
     GenericError { span: Span, message: String },
 }
 
-impl<'a> Resolver<'a> {
-    pub fn new(arena: &'a AstArena) -> Resolver<'a> {
+impl Resolver {
+    pub fn new() -> Resolver {
         Resolver {
             scopes: vec![],
             locals: FxHashMap::default(),
-            arena,
         }
     }
 
@@ -40,18 +39,23 @@ impl<'a> Resolver<'a> {
         self.scopes.pop();
     }
 
-    pub fn resolve_stmts(&mut self, statements: &Vec<StmtId>) {
+    pub fn resolve(&mut self, program: Arc<Program>) {
+        self.visit_stmt(program.clone(), program.root.clone())
+            .unwrap();
+    }
+
+    pub fn resolve_stmts(&mut self, program: Arc<Program>, statements: &Vec<StmtId>) {
         for statement in statements {
-            self.resolve_stmt(*statement);
+            self.resolve_stmt(program.clone(), *statement);
         }
     }
 
-    pub fn resolve_stmt(&mut self, statement: StmtId) {
-        self.visit_stmt(statement).unwrap();
+    pub fn resolve_stmt(&mut self, program: Arc<Program>, statement: StmtId) {
+        self.visit_stmt(program, statement).unwrap();
     }
 
-    pub fn resolve_expr(&mut self, expr: ExprId) {
-        self.visit_expr(expr).unwrap();
+    pub fn resolve_expr(&mut self, program: Arc<Program>, expr: ExprId) {
+        self.visit_expr(program, expr).unwrap();
     }
 
     pub fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
@@ -80,9 +84,9 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
-        let a = self.arena;
+impl<'a> VisitorMut<RV, ResolveError> for Resolver {
+    fn visit_expr(&mut self, program: Arc<Program>, eidx: ExprId) -> Result<RV, ResolveError> {
+        let a = &program.arena;
         let e = a.get_expression(eidx);
         match e {
             Expr::Literal {
@@ -92,30 +96,30 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(*map.get(item).unwrap())?;
+                        self.visit_expr(program.clone(), *map.get(item).unwrap())?;
                     }
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(*item)?;
+                        self.visit_expr(program.clone(), *item)?;
                     }
                 }
                 _ => (),
             },
-            Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
+            Expr::Grouping { expr, span: _ } => self.resolve_expr(program.clone(), *expr),
             Expr::Unary {
                 operation: _,
                 expr,
                 span: _,
-            } => self.resolve_expr(*expr),
+            } => self.resolve_expr(program.clone(), *expr),
             Expr::Binary {
                 operation: _,
                 left,
                 right,
                 span: _,
             } => {
-                self.resolve_expr(*left);
-                self.resolve_expr(*right);
+                self.resolve_expr(program.clone(), *left);
+                self.resolve_expr(program.clone(), *right);
             }
             Expr::Variable { name, span } => {
                 if !self.scopes.is_empty() {
@@ -132,7 +136,7 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 self.resolve_local(eidx, name);
             }
             Expr::Assignment { dst, expr, span: _ } => {
-                self.resolve_expr(*expr);
+                self.resolve_expr(program.clone(), *expr);
                 self.resolve_local(eidx, dst);
             }
             Expr::Logical {
@@ -141,18 +145,18 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 right,
                 span: _,
             } => {
-                self.resolve_expr(*left);
-                self.resolve_expr(*right);
+                self.resolve_expr(program.clone(), *left);
+                self.resolve_expr(program.clone(), *right);
             }
             Expr::Call {
                 callee,
                 args,
                 span: _,
             } => {
-                self.resolve_expr(*callee);
+                self.resolve_expr(program.clone(), *callee);
 
                 for argument in args {
-                    self.resolve_expr(*argument);
+                    self.resolve_expr(program.clone(), *argument);
                 }
             }
             Expr::Function {
@@ -170,7 +174,7 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                     self.declare(param);
                     self.define(param);
                 }
-                self.resolve_stmts(body.as_ref());
+                self.resolve_stmts(program.clone(), body.as_ref());
                 self.end_scope();
             }
             Expr::Get {
@@ -178,7 +182,7 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 name: _,
                 span: _,
             } => {
-                self.resolve_expr(*object);
+                self.resolve_expr(program.clone(), *object);
             }
             Expr::Set {
                 object,
@@ -186,8 +190,8 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 value,
                 span: _,
             } => {
-                self.resolve_expr(*object);
-                self.resolve_expr(*value);
+                self.resolve_expr(program.clone(), *object);
+                self.resolve_expr(program.clone(), *value);
             }
             Expr::Select { query: _, span: _ }
             | Expr::Insert {
@@ -206,31 +210,31 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
         Ok(RV::Undefined)
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, ResolveError> {
-        let a = self.arena;
+    fn visit_stmt(&mut self, program: Arc<Program>, sidx: StmtId) -> Result<RV, ResolveError> {
+        let a = &program.arena;
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {
                 body: stmts,
                 span: _,
             } => {
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(program.clone(), stmts);
             }
             Stmt::Block {
                 body: stmts,
                 span: _,
             } => {
                 self.begin_scope();
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(program.clone(), stmts);
                 self.end_scope();
             }
             Stmt::Break { span: _ } | Stmt::Continue { span: _ } => (),
             Stmt::Expression { expr, span: _ } => {
-                self.resolve_expr(*expr);
+                self.resolve_expr(program.clone(), *expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 self.declare(dst);
-                self.resolve_expr(*expr);
+                self.resolve_expr(program.clone(), *expr);
                 self.define(dst);
             }
             Stmt::If {
@@ -239,10 +243,10 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 r#else_body: r#else,
                 span: _,
             } => {
-                self.resolve_expr(*condition);
-                self.resolve_stmt(*body);
+                self.resolve_expr(program.clone(), *condition);
+                self.resolve_stmt(program.clone(), *body);
                 if r#else.is_some() {
-                    self.resolve_stmt(*r#else.as_ref().unwrap());
+                    self.resolve_stmt(program.clone(), *r#else.as_ref().unwrap());
                 }
             }
             Stmt::Loop {
@@ -252,16 +256,16 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 span: _,
             } => {
                 if condition.is_some() {
-                    self.resolve_expr(*condition.as_ref().unwrap());
+                    self.resolve_expr(program.clone(), *condition.as_ref().unwrap());
                 }
-                self.resolve_stmt(*body);
+                self.resolve_stmt(program.clone(), *body);
                 if post.is_some() {
-                    self.resolve_stmt(*post.as_ref().unwrap());
+                    self.resolve_stmt(program.clone(), *post.as_ref().unwrap());
                 }
             }
             Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
-                    self.resolve_expr(expr.unwrap());
+                    self.resolve_expr(program.clone(), expr.unwrap());
                 }
             }
         }
