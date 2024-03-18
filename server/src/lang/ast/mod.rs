@@ -4,3 +4,4 @@ pub mod program;
 pub mod sql;
 pub mod stmt;
 pub mod visitor;
+pub mod resolver;

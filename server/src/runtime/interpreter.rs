@@ -2,7 +2,6 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use super::environment::{EnvId, Environment};
-use super::resolver::Resolver;
 use super::types::{eval_binary, Stateful};
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
 use crate::lang::ast::program::Program;
@@ -137,21 +136,18 @@ pub struct Interpreter<'a> {
     root_env: EnvId,
     env_man: RwLockWriteGuard<'a, Environment>,
     loop_stack: LoopStack,
-    resolver: Arc<Resolver>,
 }
 
 impl<'a> Interpreter<'a> {
     pub fn new(
         env_man: RwLockWriteGuard<'a, Environment>,
         env: EnvId,
-        resolver: Arc<Resolver>,
     ) -> Interpreter<'a> {
         Interpreter {
             env_man,
             env: env,
             root_env: env,
             loop_stack: LoopStack::new(),
-            resolver,
         }
     }
 
@@ -188,8 +184,8 @@ impl<'a> Interpreter<'a> {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
-        let distance = self.resolver.get_distance(eid);
+    fn look_up_variable(&self, program: Arc<Program>, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
+        let distance = program.get_distance(eid);
         if let Some(unwrapped) = distance {
             self.env_man.read_at(self.env, unwrapped, name)
         } else {
@@ -299,9 +295,9 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 right,
                 span: _,
             } => self.eval_binary(program.clone(), *left, *right, *operation),
-            Expr::Variable { name, span: _ } => self.look_up_variable(&name.name, eidx),
+            Expr::Variable { name, span: _ } => self.look_up_variable(program.clone(), &name.name, eidx),
             Expr::Assignment { dst, expr, span: _ } => {
-                let distance = self.resolver.get_distance(eidx);
+                let distance = program.get_distance(eidx);
                 let evaluated = self.visit_expr(program.clone(), *expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env_man

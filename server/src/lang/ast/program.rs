@@ -1,6 +1,6 @@
+
 use super::{
-    expr::{Expr, ExprId},
-    stmt::{Stmt, StmtId},
+    expr::{Expr, ExprId}, stmt::{Stmt, StmtId}
 };
 use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
@@ -12,7 +12,14 @@ pub struct Program {
 
 impl Program {
     pub fn new(root: StmtId, arena: AstArena) -> Program {
-        Program { root, arena }
+        let program = Program { root, arena };
+        program
+        // TODO(vck)
+    }
+
+    pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
+        // TODO(vck): Resolve the distance of the expression from the root
+        None
     }
 }
 pub struct AstArena {

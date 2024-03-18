@@ -8,7 +8,6 @@ use tracing::{error, info};
 use self::environment::Environment;
 use self::error::ExecutionError;
 use self::interpreter::{HaltReason, Output};
-use self::resolver::Resolver;
 use self::std::stdlib;
 
 use crate::lang::ast::parser::Parser;
@@ -22,7 +21,6 @@ use crate::util::{alloc_shared, Shared};
 pub mod environment;
 pub mod error;
 pub mod interpreter;
-mod resolver;
 mod std;
 pub mod types;
 
@@ -114,9 +112,6 @@ impl Runtime {
         let tokens = Scanner::scan(source)?;
         let program = Arc::new(Parser::parse(&tokens)?);
 
-        let mut resolver = Resolver::new();
-        resolver.resolve(program.clone());
-
         /*
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
             writable environment to the interpreter.
@@ -124,7 +119,7 @@ impl Runtime {
         let env = EnvId(0);
         let env_guard = self.env_man.as_ref().write().unwrap();
 
-        let mut interpreter = Interpreter::new(env_guard, env, Arc::new(resolver));
+        let mut interpreter = Interpreter::new(env_guard, env);
 
         let out = interpreter.interpret(program);
 

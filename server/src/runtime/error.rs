@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-
-use super::{interpreter::InterpretError, resolver::ResolveError};
-use crate::lang::{ast::parser::ParseError, tokens::scanner::ScanError, tokens::token::Span};
+use super::interpreter::InterpretError;
+use crate::lang::{ast::{parser::ParseError, resolver::ResolveError}, tokens::{scanner::ScanError, token::Span}};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionError {
