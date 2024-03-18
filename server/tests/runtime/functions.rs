@@ -1,4 +1,7 @@
-use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
+use lykiadb_server::runtime::{
+    interpreter::test_helpers::{exec_assert, get_runtime},
+    types::RV,
+};
 use std::sync::Arc;
 
 #[test]
@@ -320,4 +323,40 @@ fn test_resolve_deeper_object() {
             RV::Str(Arc::new("c1 inner $text".to_string())),
         ],
     );
+}
+
+#[test]
+fn test_resolve_multiple_programs() {
+    let (out, mut runtime) = get_runtime();
+
+    let prog_0 = "
+        function resolvedFirst() {
+            var $a = \"global\";
+            {
+                function showA() {
+                    TestUtils.out($a);
+                };
+            
+                showA();
+                var $a = \"block\";
+                showA();
+            }
+        };
+        resolvedFirst();
+    ";
+    runtime.interpret(prog_0).unwrap();
+    out.write().unwrap().expect(vec![
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+    ]);
+    let prog_1 = "resolvedFirst();";
+    let err_1 = runtime.interpret(prog_1).unwrap_err();
+
+    println!("{:?}", err_1);
+    out.write().unwrap().expect(vec![
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+    ]);
 }

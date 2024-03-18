@@ -241,7 +241,7 @@ impl<'a> Interpreter<'a> {
         if let Some(env_tmp_unwrapped) = env_tmp {
             self.env = env_tmp_unwrapped;
         } else {
-            self.env = self.env_man.pop(self.env);
+            self.env = self.env_man.remove(self.env);
         }
         ret
     }
