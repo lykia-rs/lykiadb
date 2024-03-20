@@ -77,7 +77,6 @@ impl ServerSession {
 
 pub struct Runtime {
     mode: RuntimeMode,
-    out: Option<Shared<Output>>,
     env_man: Shared<Environment>,
     scopes: Vec<FxHashMap<String, bool>>,
 }
@@ -99,7 +98,6 @@ impl Runtime {
         }
         Runtime {
             mode,
-            out,
             env_man: alloc_shared(env_man),
             scopes: vec![],
         }

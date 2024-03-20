@@ -12,6 +12,19 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops;
 use std::sync::{Arc, RwLock};
 
+#[derive(Debug, Clone)]
+pub enum RV {
+    Str(Arc<String>),
+    Num(f64),
+    Bool(bool),
+    Object(Shared<FxHashMap<String, RV>>),
+    Array(Shared<Vec<RV>>),
+    Callable(Option<usize>, Arc<Function>),
+    Undefined,
+    NaN,
+    Null,
+}
+
 pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
 }
@@ -32,6 +45,20 @@ pub enum Function {
 }
 
 impl Function {
+    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
+        match self {
+            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
+            Function::Lambda { function } => function(interpreter, arguments),
+            Function::UserDefined {
+                name: _,
+                program,
+                parameters,
+                closure,
+                body,
+            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
+        }
+    }
+
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
@@ -55,64 +82,6 @@ impl Debug for Function {
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
-    }
-}
-
-impl Function {
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
-        match self {
-            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Lambda { function } => function(interpreter, arguments),
-            Function::UserDefined {
-                name,
-                program,
-                parameters,
-                closure,
-                body,
-            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum RV {
-    Str(Arc<String>),
-    Num(f64),
-    Bool(bool),
-    Object(Shared<FxHashMap<String, RV>>),
-    Array(Shared<Vec<RV>>),
-    Callable(Option<usize>, Arc<Function>),
-    Undefined,
-    NaN,
-    Null,
-}
-
-impl<'de> Deserialize<'de> for RV {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
-            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
-            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
-            serde_json::Value::Array(arr) => {
-                let mut vec = Vec::new();
-                for item in arr {
-                    vec.push(serde_json::from_value(item).unwrap());
-                }
-                Ok(RV::Array(alloc_shared(vec)))
-            }
-            serde_json::Value::Object(obj) => {
-                let mut map = FxHashMap::default();
-                for (key, value) in obj {
-                    map.insert(key, serde_json::from_value(value).unwrap());
-                }
-                Ok(RV::Object(alloc_shared(map)))
-            }
-            serde_json::Value::Null => Ok(RV::Null),
-        }
     }
 }
 
@@ -147,6 +116,35 @@ impl Serialize for RV {
                 }
                 map.end()
             }
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for RV {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        match value {
+            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
+            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
+            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
+            serde_json::Value::Array(arr) => {
+                let mut vec = Vec::new();
+                for item in arr {
+                    vec.push(serde_json::from_value(item).unwrap());
+                }
+                Ok(RV::Array(alloc_shared(vec)))
+            }
+            serde_json::Value::Object(obj) => {
+                let mut map = FxHashMap::default();
+                for (key, value) in obj {
+                    map.insert(key, serde_json::from_value(value).unwrap());
+                }
+                Ok(RV::Object(alloc_shared(map)))
+            }
+            serde_json::Value::Null => Ok(RV::Null),
         }
     }
 }

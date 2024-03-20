@@ -581,7 +581,7 @@ pub mod test_helpers {
 
     pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(code);
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(output);
     }
 }
@@ -602,7 +602,7 @@ mod test {
             TestUtils.out(!!!3);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
+        runtime.interpret(&code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
@@ -621,7 +621,7 @@ mod test {
             TestUtils.out(-5-2);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
+        runtime.interpret(&code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(7.0),
             RV::Num(28.0),
@@ -643,7 +643,7 @@ mod test {
             TestUtils.out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code);
+        runtime.interpret(&code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Bool(true),
             RV::Bool(true),

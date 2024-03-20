@@ -22,7 +22,7 @@ pub enum ResolveError {
 impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
-        arg @ (payload, root): ((), StmtId),
+        arg: ((), StmtId),
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
         self.visit_stmt(arg)?;
         let scopes = self.scopes.clone();
