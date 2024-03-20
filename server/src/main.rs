@@ -1,5 +1,8 @@
+use lykiadb_server::runtime::interpreter::test_helpers::get_runtime;
+use lykiadb_server::runtime::types::RV;
 use lykiadb_server::runtime::ServerSession;
 use std::io::Error;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
@@ -54,6 +57,38 @@ impl Server {
 }
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    let (out, mut runtime) = get_runtime();
+
+    let prog_0 = "
+        function resolvedFirst() {
+            var $a = \"global\";
+            {
+                function showA() {
+                    TestUtils.out($a);
+                };
+            
+                showA();
+                var $a = \"block\";
+                showA();
+            }
+        };
+        resolvedFirst();
+    ";
+    runtime.interpret(prog_0).unwrap();
+    out.write().unwrap().expect(vec![
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+    ]);
+    let prog_1 = "resolvedFirst();";
+    let err_1 = runtime.interpret(prog_1).unwrap_err();
+
+    println!("{:?}", err_1);
+    out.write().unwrap().expect(vec![
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+        RV::Str(Arc::new("global".to_string())),
+    ]);
     tracing_subscriber::fmt::init();
     Server::new()?.listen("0.0.0.0:19191").await?.serve().await
 }

@@ -64,12 +64,14 @@ impl Function {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
-                name: _,
+                name,
                 program,
                 parameters,
                 closure,
                 body,
-            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
+            } => {
+                interpreter.user_fn_call(body, *closure, parameters, arguments)
+            }
         }
     }
 }

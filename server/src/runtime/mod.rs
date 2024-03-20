@@ -1,6 +1,7 @@
 use ::std::sync::Arc;
 use ::std::time::Instant;
 
+use rustc_hash::FxHashMap;
 use serde_json::Value;
 use tokio::net::TcpStream;
 use tracing::{error, info};
@@ -11,6 +12,7 @@ use self::interpreter::{HaltReason, Output};
 use self::std::stdlib;
 
 use crate::lang::ast::parser::Parser;
+use crate::lang::ast::resolver::Resolver;
 use crate::lang::tokens::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
 use crate::runtime::environment::EnvId;
@@ -77,6 +79,7 @@ pub struct Runtime {
     mode: RuntimeMode,
     out: Option<Shared<Output>>,
     env_man: Shared<Environment>,
+    scopes: Vec<FxHashMap<String, bool>>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -98,6 +101,7 @@ impl Runtime {
             mode,
             out,
             env_man: alloc_shared(env_man),
+            scopes: vec![],
         }
     }
 
@@ -110,18 +114,22 @@ impl Runtime {
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let tokens = Scanner::scan(source)?;
-        let program = Arc::new(Parser::parse(&tokens)?);
+        let mut program = Parser::parse(&tokens)?;
+        let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
+        let (scopes, locals) = resolver.resolve(program.root.clone()).unwrap();
+
+        self.scopes = scopes;
+        program.set_locals(locals);
 
         /*
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
             writable environment to the interpreter.
         */
-        let env = EnvId(0);
         let env_guard = self.env_man.as_ref().write().unwrap();
 
-        let mut interpreter = Interpreter::new(env_guard, env);
+        let mut interpreter = Interpreter::new(env_guard, EnvId(0));
 
-        let out = interpreter.interpret(program);
+        let out = interpreter.interpret(Arc::new(program));
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);

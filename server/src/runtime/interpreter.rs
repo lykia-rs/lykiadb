@@ -9,8 +9,7 @@ use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::Literal;
 
 use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokens::token::Span;
-use crate::lang::tokens::token::Spanned;
+use crate::lang::tokens::token::{Span, Spanned};
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::alloc_shared;
@@ -136,6 +135,7 @@ pub struct Interpreter<'a> {
     root_env: EnvId,
     env_man: RwLockWriteGuard<'a, Environment>,
     loop_stack: LoopStack,
+    program: Option<Arc<Program>>,
 }
 
 impl<'a> Interpreter<'a> {
@@ -148,44 +148,46 @@ impl<'a> Interpreter<'a> {
             env: env,
             root_env: env,
             loop_stack: LoopStack::new(),
+            program: None,
         }
     }
 
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, HaltReason> {
-        self.visit_stmt(program.clone(), program.root)
+        self.program = Some(program.clone());
+        let res = self.visit_stmt(program.root);
+        self.program = None;
+        res
     }
 
     fn eval_unary(
         &mut self,
-        program: Arc<Program>,
         operation: &Operation,
         eidx: ExprId,
     ) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr(program, eidx)?.as_number() {
+            if let Some(num) = self.visit_expr(eidx)?.as_number() {
                 return Ok(RV::Num(-num));
             }
             Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(!self.visit_expr(program, eidx)?.is_truthy()))
+            Ok(RV::Bool(!self.visit_expr(eidx)?.is_truthy()))
         }
     }
 
     fn eval_binary(
         &mut self,
-        program: Arc<Program>,
         lidx: ExprId,
         ridx: ExprId,
         operation: Operation,
     ) -> Result<RV, HaltReason> {
-        let left_eval = self.visit_expr(program.clone(), lidx)?;
-        let right_eval = self.visit_expr(program.clone(), ridx)?;
+        let left_eval = self.visit_expr(lidx)?;
+        let right_eval = self.visit_expr(ridx)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&self, program: Arc<Program>, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
-        let distance = program.get_distance(eid);
+    fn look_up_variable(&self, name: &str, eid: ExprId) -> Result<RV, HaltReason> {
+        let distance = self.program.clone().unwrap().get_distance(eid);
         if let Some(unwrapped) = distance {
             self.env_man.read_at(self.env, unwrapped, name)
         } else {
@@ -195,7 +197,6 @@ impl<'a> Interpreter<'a> {
 
     pub fn user_fn_call(
         &mut self,
-        program: Arc<Program>,
         statements: &Vec<StmtId>,
         closure: EnvId,
         parameters: &Vec<String>,
@@ -209,12 +210,11 @@ impl<'a> Interpreter<'a> {
                 .declare(fn_env, param.to_string(), arguments.get(i).unwrap().clone());
         }
 
-        self.execute_block(program, statements, Some(fn_env))
+        self.execute_block(statements, Some(fn_env))
     }
 
-    pub fn execute_block(
+    fn execute_block(
         &mut self,
-        program: Arc<Program>,
         statements: &Vec<StmtId>,
         env_opt: Option<EnvId>,
     ) -> Result<RV, HaltReason> {
@@ -229,7 +229,7 @@ impl<'a> Interpreter<'a> {
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
-            ret = self.visit_stmt(program.clone(), *statement);
+            ret = self.visit_stmt(*statement);
             if ret.is_err() {
                 break;
             }
@@ -242,7 +242,7 @@ impl<'a> Interpreter<'a> {
         ret
     }
 
-    pub fn literal_to_rv(&mut self, program: Arc<Program>, literal: &Literal) -> RV {
+    fn literal_to_rv(&mut self, literal: &Literal) -> RV {
         match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
@@ -253,14 +253,14 @@ impl<'a> Interpreter<'a> {
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
-                    new_map.insert(k.clone(), self.visit_expr(program.clone(), *v).unwrap());
+                    new_map.insert(k.clone(), self.visit_expr(*v).unwrap());
                 }
                 RV::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr
                     .iter()
-                    .map(|x| self.visit_expr(program.clone(), *x).unwrap())
+                    .map(|x| self.visit_expr(*x).unwrap())
                     .collect();
                 RV::Array(alloc_shared(collected))
             }
@@ -269,9 +269,9 @@ impl<'a> Interpreter<'a> {
 }
 
 impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
-    fn visit_expr(&mut self, program: Arc<Program>, eidx: ExprId) -> Result<RV, HaltReason> {
+    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
-        let a = &program.arena;
+        let a = &self.program.clone().unwrap().arena;
         let e = a.get_expression(eidx);
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
@@ -282,23 +282,23 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 value,
                 raw: _,
                 span: _,
-            } => Ok(self.literal_to_rv(program.clone(), &value)),
-            Expr::Grouping { expr, span: _ } => self.visit_expr(program.clone(), *expr),
+            } => Ok(self.literal_to_rv(&value)),
+            Expr::Grouping { expr, span: _ } => self.visit_expr(*expr),
             Expr::Unary {
                 operation,
                 expr,
                 span: _,
-            } => self.eval_unary(program.clone(), operation, *expr),
+            } => self.eval_unary(operation, *expr),
             Expr::Binary {
                 operation,
                 left,
                 right,
                 span: _,
-            } => self.eval_binary(program.clone(), *left, *right, *operation),
-            Expr::Variable { name, span: _ } => self.look_up_variable(program.clone(), &name.name, eidx),
+            } => self.eval_binary(*left, *right, *operation),
+            Expr::Variable { name, span: _ } => self.look_up_variable(&name.name, eidx),
             Expr::Assignment { dst, expr, span: _ } => {
-                let distance = program.get_distance(eidx);
-                let evaluated = self.visit_expr(program.clone(), *expr)?;
+                let distance = self.program.clone().unwrap().get_distance(eidx);
+                let evaluated = self.visit_expr(*expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env_man
                         .assign_at(self.env, distance_unv, &dst.name, evaluated.clone())
@@ -317,7 +317,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 right,
                 span: _,
             } => {
-                let is_true = self.visit_expr(program.clone(), *left)?.is_truthy();
+                let is_true = self.visit_expr(*left)?.is_truthy();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -326,11 +326,11 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 }
 
                 Ok(RV::Bool(
-                    self.visit_expr(program.clone(), *right)?.is_truthy(),
+                    self.visit_expr(*right)?.is_truthy(),
                 ))
             }
             Expr::Call { callee, args, span } => {
-                let eval = self.visit_expr(program.clone(), *callee)?;
+                let eval = self.visit_expr(*callee)?;
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
@@ -344,7 +344,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                     let mut args_evaluated: Vec<RV> = vec![];
 
                     for arg in args.iter() {
-                        args_evaluated.push(self.visit_expr(program.clone(), *arg)?);
+                        args_evaluated.push(self.visit_expr(*arg)?);
                     }
                     self.loop_stack.push_fn();
 
@@ -358,7 +358,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                     }
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: program.arena.get_expression(*callee).get_span(),
+                        span: self.program.clone().unwrap().arena.get_expression(*callee).get_span(),
                     }))
                 }
             }
@@ -375,7 +375,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
-                    program: program.clone(),
+                    program: self.program.clone().unwrap(),
                     body: Arc::clone(body),
                     parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
                     closure: self.env.clone(),
@@ -395,7 +395,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 Ok(callable)
             }
             Expr::Get { object, name, span } => {
-                let object_eval = self.visit_expr(program.clone(), *object)?;
+                let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
                     let cloned = map.clone();
                     let borrowed = cloned.read().unwrap();
@@ -422,9 +422,9 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 value,
                 span: _,
             } => {
-                let object_eval = self.visit_expr(program.clone(), *object)?;
+                let object_eval = self.visit_expr(*object)?;
                 if let RV::Object(map) = object_eval {
-                    let evaluated = self.visit_expr(program.clone(), *value)?;
+                    let evaluated = self.visit_expr(*value)?;
                     // TODO(vck): Set should really set the value
                     let mut borrowed = map.write().unwrap();
                     borrowed.insert(name.name.to_string(), evaluated.clone());
@@ -441,27 +441,27 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
         }
     }
 
-    fn visit_stmt(&mut self, program: Arc<Program>, sidx: StmtId) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, HaltReason> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
             return Ok(RV::Undefined);
         }
         // TODO: Remove clone here
-        let a = &program.arena;
+        let a = &self.program.clone().unwrap().arena;
         let s = a.get_statement(sidx);
         match s {
             Stmt::Program {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(program.clone(), stmts, Some(self.env.clone()));
+                return self.execute_block(stmts, Some(self.env.clone()));
             }
             Stmt::Expression { expr, span: _ } => {
-                return self.visit_expr(program.clone(), *expr);
+                return self.visit_expr(*expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                let evaluated = self.visit_expr(program.clone(), *expr)?;
+                let evaluated = self.visit_expr(*expr)?;
                 self.env_man
                     .declare(self.env, dst.name.to_string(), evaluated.clone());
             }
@@ -469,7 +469,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(program.clone(), stmts, None);
+                return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
@@ -477,10 +477,10 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 r#else_body: r#else,
                 span: _,
             } => {
-                if self.visit_expr(program.clone(), *condition)?.is_truthy() {
-                    self.visit_stmt(program.clone(), *body)?;
+                if self.visit_expr(*condition)?.is_truthy() {
+                    self.visit_stmt(*body)?;
                 } else if let Some(else_stmt) = r#else {
-                    self.visit_stmt(program.clone(), *else_stmt)?;
+                    self.visit_stmt(*else_stmt)?;
                 }
             }
             Stmt::Loop {
@@ -493,14 +493,14 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
                         || self
-                            .visit_expr(program.clone(), condition.unwrap())?
+                            .visit_expr(condition.unwrap())?
                             .is_truthy())
                 {
-                    self.visit_stmt(program.clone(), *body)?;
+                    self.visit_stmt(*body)?;
                     self.loop_stack
                         .set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
-                        self.visit_stmt(program.clone(), *post_id)?;
+                        self.visit_stmt(*post_id)?;
                     }
                 }
                 self.loop_stack.pop_loop();
@@ -521,7 +521,7 @@ impl<'a> VisitorMut<RV, HaltReason> for Interpreter<'a> {
             }
             Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
-                    let ret = self.visit_expr(program.clone(), expr.unwrap())?;
+                    let ret = self.visit_expr(expr.unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));

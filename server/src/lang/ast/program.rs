@@ -1,25 +1,32 @@
-
 use super::{
-    expr::{Expr, ExprId}, stmt::{Stmt, StmtId}
+    expr::{Expr, ExprId},
+    stmt::{Stmt, StmtId},
 };
+use rustc_hash::FxHashMap;
 use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
 
 pub struct Program {
     pub root: StmtId,
     pub arena: AstArena,
+    locals: Option<FxHashMap<usize, usize>>,
 }
 
 impl Program {
     pub fn new(root: StmtId, arena: AstArena) -> Program {
-        let program = Program { root, arena };
-        program
-        // TODO(vck)
+        Program {
+            root,
+            arena,
+            locals: None,
+        }
+    }
+
+    pub fn set_locals(&mut self, locals: FxHashMap<usize, usize>) {
+        self.locals = Some(locals);
     }
 
     pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
-        // TODO(vck): Resolve the distance of the expression from the root
-        None
+        self.locals.as_ref().unwrap().get(&eid.0).copied()
     }
 }
 pub struct AstArena {
