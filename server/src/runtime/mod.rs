@@ -12,6 +12,7 @@ use self::interpreter::{HaltReason, Output};
 use self::std::stdlib;
 
 use crate::lang::ast::parser::Parser;
+use crate::lang::ast::program::Program;
 use crate::lang::ast::resolver::Resolver;
 use crate::lang::tokens::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
@@ -75,10 +76,32 @@ impl ServerSession {
     }
 }
 
+pub struct SourceProcessor {
+    scopes: Vec<FxHashMap<String, bool>>,
+}
+
+impl SourceProcessor {
+    pub fn new() -> SourceProcessor {
+        SourceProcessor { scopes: vec![] }
+    }
+
+    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
+        let tokens = Scanner::scan(source)?;
+        let mut program = Parser::parse(&tokens)?;
+        let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
+        let (scopes, locals) = resolver.resolve(((), program.root.clone())).unwrap();
+
+        self.scopes = scopes;
+        program.set_locals(locals);
+
+        Ok(program)
+    }
+}
+
 pub struct Runtime {
     mode: RuntimeMode,
     env_man: Shared<Environment>,
-    scopes: Vec<FxHashMap<String, bool>>,
+    source_processor: SourceProcessor,
 }
 
 #[derive(Eq, PartialEq)]
@@ -99,7 +122,7 @@ impl Runtime {
         Runtime {
             mode,
             env_man: alloc_shared(env_man),
-            scopes: vec![],
+            source_processor: SourceProcessor::new(),
         }
     }
 
@@ -111,13 +134,7 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
-        let (scopes, locals) = resolver.resolve(((), program.root.clone())).unwrap();
-
-        self.scopes = scopes;
-        program.set_locals(locals);
+        let program = self.source_processor.process(source)?;
 
         /*
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
