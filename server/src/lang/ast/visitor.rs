@@ -33,6 +33,11 @@ pub trait VisitorMut<T, Q> {
     fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
 }
 
+pub trait VisitorMutWithPayload<T, P, Q> {
+    fn visit_expr(&mut self, payload: P, e: ExprId) -> Result<T, Q>;
+    fn visit_stmt(&mut self, payload: P, e: StmtId) -> Result<T, Q>;
+}
+
 pub trait SqlVisitorMut<T, Q> {
     fn visit_sql_select(&mut self, e: &SqlSelect) -> Result<T, Q>;
     fn visit_sql_select_core(

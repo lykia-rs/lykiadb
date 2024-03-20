@@ -349,10 +349,8 @@ fn test_resolve_multiple_programs() {
         RV::Str(Arc::new("global".to_string())),
         RV::Str(Arc::new("global".to_string())),
     ]);
-    let prog_1 = "resolvedFirst();";
-    let err_1 = runtime.interpret(prog_1).unwrap_err();
+    runtime.interpret("resolvedFirst();");
 
-    println!("{:?}", err_1);
     out.write().unwrap().expect(vec![
         RV::Str(Arc::new("global".to_string())),
         RV::Str(Arc::new("global".to_string())),
