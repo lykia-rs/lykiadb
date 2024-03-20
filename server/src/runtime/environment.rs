@@ -36,9 +36,10 @@ impl Environment {
         EnvId(self.envs.len() - 1)
     }
 
-    pub fn pop(&self, env_id: EnvId) -> EnvId {
-        // TODO(vck): Remove the env for real
-        self.envs[env_id.0].parent.unwrap()
+    pub fn remove(&mut self, env_id: EnvId) -> EnvId {
+        let parent = self.envs[env_id.0].parent.unwrap();
+        self.envs.remove(env_id.0);
+        parent
     }
 
     pub fn top(&self) -> EnvId {

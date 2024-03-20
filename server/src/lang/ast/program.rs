@@ -2,17 +2,31 @@ use super::{
     expr::{Expr, ExprId},
     stmt::{Stmt, StmtId},
 };
+use rustc_hash::FxHashMap;
 use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
 
 pub struct Program {
     pub root: StmtId,
     pub arena: AstArena,
+    locals: Option<FxHashMap<usize, usize>>,
 }
 
 impl Program {
     pub fn new(root: StmtId, arena: AstArena) -> Program {
-        Program { root, arena }
+        Program {
+            root,
+            arena,
+            locals: None,
+        }
+    }
+
+    pub fn set_locals(&mut self, locals: FxHashMap<usize, usize>) {
+        self.locals = Some(locals);
+    }
+
+    pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
+        self.locals.as_ref().unwrap().get(&eid.0).copied()
     }
 }
 pub struct AstArena {

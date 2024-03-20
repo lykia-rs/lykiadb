@@ -13,7 +13,7 @@ fn runtime(filename: &str) {
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
     let mut runtime = Runtime::new(RuntimeMode::File, None);
-    runtime.interpret(&content);
+    runtime.interpret(&content).unwrap();
 }
 
 fn bench(c: &mut Criterion) {

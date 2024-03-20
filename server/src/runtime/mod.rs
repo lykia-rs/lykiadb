@@ -1,6 +1,7 @@
 use ::std::sync::Arc;
 use ::std::time::Instant;
 
+use rustc_hash::FxHashMap;
 use serde_json::Value;
 use tokio::net::TcpStream;
 use tracing::{error, info};
@@ -8,14 +9,14 @@ use tracing::{error, info};
 use self::environment::Environment;
 use self::error::ExecutionError;
 use self::interpreter::{HaltReason, Output};
-use self::resolver::Resolver;
 use self::std::stdlib;
-use crate::lang::ast::visitor::VisitorMut;
 
 use crate::lang::ast::parser::Parser;
-use crate::lang::ast::program::AstArena;
+use crate::lang::ast::program::Program;
+use crate::lang::ast::resolver::Resolver;
 use crate::lang::tokens::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
+use crate::runtime::environment::EnvId;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::{alloc_shared, Shared};
@@ -23,7 +24,6 @@ use crate::util::{alloc_shared, Shared};
 pub mod environment;
 pub mod error;
 pub mod interpreter;
-mod resolver;
 mod std;
 pub mod types;
 
@@ -76,11 +76,32 @@ impl ServerSession {
     }
 }
 
+pub struct SourceProcessor {
+    scopes: Vec<FxHashMap<String, bool>>,
+}
+
+impl SourceProcessor {
+    pub fn new() -> SourceProcessor {
+        SourceProcessor { scopes: vec![] }
+    }
+
+    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
+        let tokens = Scanner::scan(source)?;
+        let mut program = Parser::parse(&tokens)?;
+        let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
+        let (scopes, locals) = resolver.resolve(((), program.root.clone())).unwrap();
+
+        self.scopes = scopes;
+        program.set_locals(locals);
+
+        Ok(program)
+    }
+}
+
 pub struct Runtime {
     mode: RuntimeMode,
-    out: Option<Shared<Output>>,
-    arena: Option<AstArena>,
     env_man: Shared<Environment>,
+    source_processor: SourceProcessor,
 }
 
 #[derive(Eq, PartialEq)]
@@ -100,45 +121,30 @@ impl Runtime {
         }
         Runtime {
             mode,
-            out,
-            arena: Some(AstArena::new()),
             env_man: alloc_shared(env_man),
+            source_processor: SourceProcessor::new(),
         }
     }
 
     pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
         let tokens = Scanner::scan(source)?;
-        let owned_arena = self.arena.take();
-        let program = Parser::parse(&tokens, owned_arena.unwrap())?;
+        let program = Parser::parse(&tokens)?;
         let json = program.to_json();
-        self.arena = Some(program.arena);
         Ok(json)
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let owned_arena = self.arena.take();
-        let program = Parser::parse(&tokens, owned_arena.unwrap())?;
-        self.arena = Some(program.arena);
-
-        let mut resolver = Resolver::new(self.arena.as_ref().unwrap());
-        resolver.resolve_stmt(program.root);
+        let program = self.source_processor.process(source)?;
 
         /*
             TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
             writable environment to the interpreter.
         */
-        let env = self.env_man.as_ref().read().unwrap().top();
         let env_guard = self.env_man.as_ref().write().unwrap();
 
-        let mut interpreter = Interpreter::new(
-            env_guard,
-            env,
-            self.arena.as_ref().unwrap(),
-            Arc::new(resolver),
-        );
+        let mut interpreter = Interpreter::new(env_guard, EnvId(0));
 
-        let out = interpreter.visit_stmt(program.root);
+        let out = interpreter.interpret(Arc::new(program));
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);

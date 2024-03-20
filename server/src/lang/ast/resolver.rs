@@ -1,12 +1,12 @@
 use crate::lang::ast::expr::{Expr, ExprId};
-use crate::lang::ast::program::AstArena;
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::Span;
 use crate::lang::{Identifier, Literal};
-use crate::runtime::types::RV;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+
+use super::program::AstArena;
 
 pub struct Resolver<'a> {
     scopes: Vec<FxHashMap<String, bool>>,
@@ -20,41 +20,47 @@ pub enum ResolveError {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new(arena: &'a AstArena) -> Resolver<'a> {
+    pub fn resolve(
+        &mut self,
+        arg: ((), StmtId),
+    ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
+        self.visit_stmt(arg)?;
+        let scopes = self.scopes.clone();
+        let locals = self.locals.clone();
+        Ok((scopes, locals))
+    }
+
+    pub fn new(scopes: Vec<FxHashMap<String, bool>>, arena: &'a AstArena) -> Resolver<'a> {
         Resolver {
-            scopes: vec![],
+            scopes,
             locals: FxHashMap::default(),
             arena,
         }
     }
 
-    pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
-        self.locals.get(&eid.0).copied()
-    }
-
-    pub fn begin_scope(&mut self) {
+    fn begin_scope(&mut self) {
         self.scopes.push(FxHashMap::default());
     }
 
-    pub fn end_scope(&mut self) {
+    fn end_scope(&mut self) {
         self.scopes.pop();
     }
 
-    pub fn resolve_stmts(&mut self, statements: &Vec<StmtId>) {
+    fn resolve_stmts(&mut self, statements: &Vec<StmtId>) {
         for statement in statements {
             self.resolve_stmt(*statement);
         }
     }
 
-    pub fn resolve_stmt(&mut self, statement: StmtId) {
-        self.visit_stmt(statement).unwrap();
+    fn resolve_stmt(&mut self, statement: StmtId) {
+        self.visit_stmt(((), statement)).unwrap();
     }
 
-    pub fn resolve_expr(&mut self, expr: ExprId) {
-        self.visit_expr(expr).unwrap();
+    fn resolve_expr(&mut self, expr: ExprId) {
+        self.visit_expr(((), expr)).unwrap();
     }
 
-    pub fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
+    fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
         for i in (0..self.scopes.len()).rev() {
             if self.scopes[i].contains_key(&name.name) {
                 self.locals.insert(expr.0, self.scopes.len() - 1 - i);
@@ -63,7 +69,7 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    pub fn declare(&mut self, name: &Identifier) {
+    fn declare(&mut self, name: &Identifier) {
         if self.scopes.is_empty() {
             return;
         }
@@ -71,7 +77,7 @@ impl<'a> Resolver<'a> {
         last.unwrap().insert(name.name.to_string(), false);
     }
 
-    pub fn define(&mut self, name: &Identifier) {
+    fn define(&mut self, name: &Identifier) {
         if self.scopes.is_empty() {
             return;
         }
@@ -80,8 +86,8 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<RV, ResolveError> {
+impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
+    fn visit_expr(&mut self, (_, eidx): ((), ExprId)) -> Result<(), ResolveError> {
         let a = self.arena;
         let e = a.get_expression(eidx);
         match e {
@@ -92,12 +98,12 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(*map.get(item).unwrap())?;
+                        self.visit_expr(((), *map.get(item).unwrap()))?;
                     }
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(*item)?;
+                        self.visit_expr(((), *item))?;
                     }
                 }
                 _ => (),
@@ -203,10 +209,10 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                 span: _,
             } => (),
         };
-        Ok(RV::Undefined)
+        Ok(())
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<RV, ResolveError> {
+    fn visit_stmt(&mut self, (_, sidx): ((), StmtId)) -> Result<(), ResolveError> {
         let a = self.arena;
         let s = a.get_statement(sidx);
         match s {
@@ -264,7 +270,7 @@ impl<'a> VisitorMut<RV, ResolveError> for Resolver<'a> {
                     self.resolve_expr(expr.unwrap());
                 }
             }
-        }
-        Ok(RV::Undefined)
+        };
+        Ok(())
     }
 }
