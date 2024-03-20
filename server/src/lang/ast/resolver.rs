@@ -22,9 +22,9 @@ pub enum ResolveError {
 impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
-        root: StmtId,
+        arg @ (payload, root): ((), StmtId),
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
-        self.visit_stmt(root.clone())?;
+        self.visit_stmt(arg)?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
         Ok((scopes, locals))
@@ -53,11 +53,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_stmt(&mut self, statement: StmtId) {
-        self.visit_stmt(statement).unwrap();
+        self.visit_stmt(((), statement)).unwrap();
     }
 
     fn resolve_expr(&mut self, expr: ExprId) {
-        self.visit_expr(expr).unwrap();
+        self.visit_expr(((), expr)).unwrap();
     }
 
     fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
@@ -87,7 +87,7 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, eidx: ExprId) -> Result<(), ResolveError> {
+    fn visit_expr(&mut self, (_, eidx): ((), ExprId)) -> Result<(), ResolveError> {
         let a = self.arena;
         let e = a.get_expression(eidx);
         match e {
@@ -98,12 +98,12 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(*map.get(item).unwrap())?;
+                        self.visit_expr(((), *map.get(item).unwrap()))?;
                     }
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(*item)?;
+                        self.visit_expr(((), *item))?;
                     }
                 }
                 _ => (),
@@ -212,7 +212,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_stmt(&mut self, sidx: StmtId) -> Result<(), ResolveError> {
+    fn visit_stmt(&mut self, (_, sidx): ((), StmtId)) -> Result<(), ResolveError> {
         let a = self.arena;
         let s = a.get_statement(sidx);
         match s {

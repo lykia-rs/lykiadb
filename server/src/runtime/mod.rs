@@ -116,7 +116,7 @@ impl Runtime {
         let tokens = Scanner::scan(source)?;
         let mut program = Parser::parse(&tokens)?;
         let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
-        let (scopes, locals) = resolver.resolve(program.root.clone()).unwrap();
+        let (scopes, locals) = resolver.resolve(((), program.root.clone())).unwrap();
 
         self.scopes = scopes;
         program.set_locals(locals);

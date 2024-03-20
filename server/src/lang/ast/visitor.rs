@@ -9,9 +9,13 @@ use super::{
     stmt::StmtId,
 };
 
-pub trait Visitor<T, Q> {
-    fn visit_expr(&self, e: ExprId) -> Result<T, Q>;
-    fn visit_stmt(&self, e: StmtId) -> Result<T, Q>;
+pub trait Visitor<O, E, I = ()> {
+    fn visit_expr(&self, e: (I, ExprId)) -> Result<O, E>;
+    fn visit_stmt(&self, s: (I, StmtId)) -> Result<O, E>;
+}
+pub trait VisitorMut<O, E, I = ()> {
+    fn visit_expr(&mut self, e: (I, ExprId)) -> Result<O, E>;
+    fn visit_stmt(&mut self, s: (I, StmtId)) -> Result<O, E>;
 }
 
 pub trait SqlVisitor<T, Q> {
@@ -26,16 +30,6 @@ pub trait SqlVisitor<T, Q> {
     fn visit_sql_insert(&self, sql_insert: &SqlInsert) -> Result<T, Q>;
     fn visit_sql_update(&self, sql_update: &SqlUpdate) -> Result<T, Q>;
     fn visit_sql_delete(&self, sql_delete: &SqlDelete) -> Result<T, Q>;
-}
-
-pub trait VisitorMut<T, Q> {
-    fn visit_expr(&mut self, e: ExprId) -> Result<T, Q>;
-    fn visit_stmt(&mut self, e: StmtId) -> Result<T, Q>;
-}
-
-pub trait VisitorMutWithPayload<T, P, Q> {
-    fn visit_expr(&mut self, payload: P, e: ExprId) -> Result<T, Q>;
-    fn visit_stmt(&mut self, payload: P, e: StmtId) -> Result<T, Q>;
 }
 
 pub trait SqlVisitorMut<T, Q> {
