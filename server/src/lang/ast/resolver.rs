@@ -6,12 +6,12 @@ use crate::lang::{Identifier, Literal};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use super::program::AstArena;
+use super::program::Program;
 
 pub struct Resolver<'a> {
     scopes: Vec<FxHashMap<String, bool>>,
     locals: FxHashMap<usize, usize>,
-    arena: &'a AstArena,
+    program: &'a Program,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,19 +22,18 @@ pub enum ResolveError {
 impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
-        arg: ((), StmtId),
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
-        self.visit_stmt(arg)?;
+        self.visit_stmt(((), self.program.get_root()))?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
         Ok((scopes, locals))
     }
 
-    pub fn new(scopes: Vec<FxHashMap<String, bool>>, arena: &'a AstArena) -> Resolver<'a> {
+    pub fn new(scopes: Vec<FxHashMap<String, bool>>, program: &'a Program) -> Resolver<'a> {
         Resolver {
             scopes,
             locals: FxHashMap::default(),
-            arena,
+            program,
         }
     }
 
@@ -88,8 +87,7 @@ impl<'a> Resolver<'a> {
 
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
     fn visit_expr(&mut self, (_, eidx): ((), ExprId)) -> Result<(), ResolveError> {
-        let a = self.arena;
-        let e = a.get_expression(eidx);
+        let e = self.program.get_expression(eidx);
         match e {
             Expr::Literal {
                 raw: _,
@@ -213,8 +211,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
     }
 
     fn visit_stmt(&mut self, (_, sidx): ((), StmtId)) -> Result<(), ResolveError> {
-        let a = self.arena;
-        let s = a.get_statement(sidx);
+        let s = self.program.get_statement(sidx);
         match s {
             Stmt::Program {
                 body: stmts,

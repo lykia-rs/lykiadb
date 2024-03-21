@@ -148,7 +148,7 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, HaltReason> {
-        self.visit_stmt((program.clone(), program.root))
+        self.visit_stmt((program.clone(), program.get_root()))
     }
 
     fn eval_unary(
@@ -272,8 +272,8 @@ impl<'a> Interpreter<'a> {
 impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
     fn visit_expr(&mut self, (program, eidx): (Arc<Program>, ExprId)) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
-        let a = &program.clone().arena;
-        let e = a.get_expression(eidx);
+        let p = program.clone();
+        let e = p.get_expression(eidx);
 
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
@@ -364,7 +364,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                     }
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: program.clone().arena.get_expression(*callee).get_span(),
+                        span: program.clone().get_expression(*callee).get_span(),
                     }))
                 }
             }
@@ -455,8 +455,8 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
         }
 
         // TODO: Remove clone here
-        let a = &program.clone().arena;
-        let s = a.get_statement(sidx);
+        let p = program.clone();
+        let s = p.get_statement(sidx);
         match s {
             Stmt::Program {
                 body: stmts,

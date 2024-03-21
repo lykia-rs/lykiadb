@@ -7,8 +7,8 @@ use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
 
 pub struct Program {
-    pub root: StmtId,
-    pub arena: AstArena,
+    root: StmtId,
+    arena: AstArena,
     locals: Option<FxHashMap<usize, usize>>,
 }
 
@@ -27,6 +27,18 @@ impl Program {
 
     pub fn get_distance(&self, eid: ExprId) -> Option<usize> {
         self.locals.as_ref().unwrap().get(&eid.0).copied()
+    }
+
+    pub fn get_expression(&self, idx: ExprId) -> &Expr {
+        &self.arena.get_expression(idx)
+    }
+
+    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
+        &self.arena.get_statement(idx)
+    }
+
+    pub fn get_root(&self) -> StmtId {
+        self.root
     }
 }
 pub struct AstArena {

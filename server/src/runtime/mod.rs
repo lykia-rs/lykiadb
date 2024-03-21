@@ -88,8 +88,8 @@ impl SourceProcessor {
     pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
         let tokens = Scanner::scan(source)?;
         let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program.arena);
-        let (scopes, locals) = resolver.resolve(((), program.root.clone())).unwrap();
+        let mut resolver = Resolver::new(self.scopes.clone(), &program);
+        let (scopes, locals) = resolver.resolve().unwrap();
 
         self.scopes = scopes;
         program.set_locals(locals);
