@@ -40,43 +40,7 @@ impl Program {
     pub fn get_root(&self) -> StmtId {
         self.root
     }
-}
-pub struct AstArena {
-    expressions: Vec<Expr>,
-    statements: Vec<Stmt>,
-}
 
-impl AstArena {
-    pub fn new() -> AstArena {
-        AstArena {
-            expressions: vec![],
-            statements: vec![],
-        }
-    }
-
-    pub fn alloc_expression(&mut self, expr: Expr) -> ExprId {
-        self.expressions.push(expr);
-        ExprId(self.expressions.len() - 1)
-    }
-
-    pub fn alloc_statement(&mut self, stmt: Stmt) -> StmtId {
-        self.statements.push(stmt);
-        StmtId(self.statements.len() - 1)
-    }
-
-    pub fn get_expression(&self, idx: ExprId) -> &Expr {
-        &self.expressions[idx.0]
-    }
-
-    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
-        &self.statements[idx.0]
-    }
-}
-
-const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
-const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
-
-impl Program {
     pub fn to_json(&self) -> Value {
         self.to_json_recursive(serde_json::to_value(self.arena.get_statement(self.root)).unwrap())
     }
@@ -120,6 +84,40 @@ impl Program {
         }
     }
 }
+pub struct AstArena {
+    expressions: Vec<Expr>,
+    statements: Vec<Stmt>,
+}
+
+impl AstArena {
+    pub fn new() -> AstArena {
+        AstArena {
+            expressions: vec![],
+            statements: vec![],
+        }
+    }
+
+    pub fn alloc_expression(&mut self, expr: Expr) -> ExprId {
+        self.expressions.push(expr);
+        ExprId(self.expressions.len() - 1)
+    }
+
+    pub fn alloc_statement(&mut self, stmt: Stmt) -> StmtId {
+        self.statements.push(stmt);
+        StmtId(self.statements.len() - 1)
+    }
+
+    pub fn get_expression(&self, idx: ExprId) -> &Expr {
+        &self.expressions[idx.0]
+    }
+
+    pub fn get_statement(&self, idx: StmtId) -> &Stmt {
+        &self.statements[idx.0]
+    }
+}
+
+const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
+const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
 
 impl Serialize for ExprId {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
