@@ -2,20 +2,46 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use super::environment::{EnvId, Environment};
+use super::error::ExecutionError;
 use super::types::{eval_binary, Stateful};
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
+use crate::lang::ast::parser::Parser;
 use crate::lang::ast::program::Program;
+use crate::lang::ast::resolver::Resolver;
 use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::tokens::scanner::Scanner;
 use crate::lang::Literal;
 
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokens::token::{Span, Spanned};
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
-use crate::util::alloc_shared;
+use crate::util::{alloc_shared, Shared};
 
-use std::sync::{Arc, RwLockWriteGuard};
+use std::sync::Arc;
 use std::vec;
+
+pub struct SourceProcessor {
+    scopes: Vec<FxHashMap<String, bool>>,
+}
+
+impl SourceProcessor {
+    pub fn new() -> SourceProcessor {
+        SourceProcessor { scopes: vec![] }
+    }
+
+    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
+        let tokens = Scanner::scan(source)?;
+        let mut program = Parser::parse(&tokens)?;
+        let mut resolver = Resolver::new(self.scopes.clone(), &program);
+        let (scopes, locals) = resolver.resolve().unwrap();
+
+        self.scopes = scopes;
+        program.set_locals(locals);
+
+        Ok(program)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
@@ -130,25 +156,41 @@ impl LoopStack {
     }
 }
 
-pub struct Interpreter<'a> {
+pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
-    env_man: RwLockWriteGuard<'a, Environment>,
     loop_stack: LoopStack,
+    env_man: Shared<Environment>,
+    source_processor: SourceProcessor,
 }
 
-impl<'a> Interpreter<'a> {
-    pub fn new(env_man: RwLockWriteGuard<'a, Environment>, env: EnvId) -> Interpreter<'a> {
+impl Interpreter {
+    pub fn new(env_man: Shared<Environment>) -> Interpreter {
+        let env = EnvId(0);
         Interpreter {
             env_man,
-            env: env,
+            env,
             root_env: env,
             loop_stack: LoopStack::new(),
+            source_processor: SourceProcessor::new(),
         }
     }
 
-    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, HaltReason> {
-        self.visit_stmt((program.clone(), program.get_root()))
+    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+        let program = Arc::from(self.source_processor.process(source)?);
+        let out = self.visit_stmt((program.clone(), program.get_root()));
+        if let Ok(val) = out {
+            Ok(val)
+        } else {
+            let err = out.err().unwrap();
+            match err {
+                HaltReason::Return(rv) => Ok(rv),
+                HaltReason::Error(interpret_err) => {
+                    let error = ExecutionError::Interpret(interpret_err);
+                    Err(error)
+                }
+            }
+        }
     }
 
     fn eval_unary(
@@ -163,7 +205,7 @@ impl<'a> Interpreter<'a> {
             }
             Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(!self.visit_expr((program, eidx))?.is_truthy()))
+            Ok(RV::Bool(!self.visit_expr((program, eidx))?.as_bool()))
         }
     }
 
@@ -188,9 +230,12 @@ impl<'a> Interpreter<'a> {
     ) -> Result<RV, HaltReason> {
         let distance = program.clone().get_distance(eid);
         if let Some(unwrapped) = distance {
-            self.env_man.read_at(self.env, unwrapped, name)
+            self.env_man
+                .read()
+                .unwrap()
+                .read_at(self.env, unwrapped, name)
         } else {
-            self.env_man.read(self.root_env, name)
+            self.env_man.read().unwrap().read(self.root_env, name)
         }
     }
 
@@ -202,12 +247,15 @@ impl<'a> Interpreter<'a> {
         parameters: &Vec<String>,
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        let fn_env = self.env_man.push(Some(closure));
+        let fn_env = self.env_man.write().unwrap().push(Some(closure));
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            self.env_man
-                .declare(fn_env, param.to_string(), arguments.get(i).unwrap().clone());
+            self.env_man.write().unwrap().declare(
+                fn_env,
+                param.to_string(),
+                arguments.get(i).unwrap().clone(),
+            );
         }
 
         self.execute_block(program, statements, Some(fn_env))
@@ -225,7 +273,7 @@ impl<'a> Interpreter<'a> {
             env_tmp = Some(self.env);
             self.env = env_opt_unwrapped;
         } else {
-            self.env = self.env_man.push(Some(self.env));
+            self.env = self.env_man.write().unwrap().push(Some(self.env));
         }
         let mut ret = Ok(RV::Undefined);
 
@@ -238,7 +286,7 @@ impl<'a> Interpreter<'a> {
         if let Some(env_tmp_unwrapped) = env_tmp {
             self.env = env_tmp_unwrapped;
         } else {
-            self.env = self.env_man.remove(self.env);
+            self.env = self.env_man.write().unwrap().remove(self.env);
         }
         ret
     }
@@ -269,7 +317,7 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
+impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
     fn visit_expr(&mut self, (program, eidx): (Arc<Program>, ExprId)) -> Result<RV, HaltReason> {
         // TODO: Remove clone here
         let p = program.clone();
@@ -304,11 +352,18 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                 let distance = program.clone().get_distance(eidx);
                 let evaluated = self.visit_expr((program.clone(), *expr))?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env_man
-                        .assign_at(self.env, distance_unv, &dst.name, evaluated.clone())
+                    self.env_man.write().unwrap().assign_at(
+                        self.env,
+                        distance_unv,
+                        &dst.name,
+                        evaluated.clone(),
+                    )
                 } else {
-                    self.env_man
-                        .assign(self.env, dst.name.clone(), evaluated.clone())
+                    self.env_man.write().unwrap().assign(
+                        self.env,
+                        dst.name.clone(),
+                        evaluated.clone(),
+                    )
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -321,9 +376,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                 right,
                 span: _,
             } => {
-                let is_true = self
-                    .visit_expr((program.clone().clone(), *left))?
-                    .is_truthy();
+                let is_true = self.visit_expr((program.clone().clone(), *left))?.as_bool();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -332,7 +385,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                 }
 
                 Ok(RV::Bool(
-                    self.visit_expr((program.clone(), *right))?.is_truthy(),
+                    self.visit_expr((program.clone(), *right))?.as_bool(),
                 ))
             }
             Expr::Call { callee, args, span } => {
@@ -391,7 +444,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env_man.declare(
+                    self.env_man.write().unwrap().declare(
                         self.env,
                         name.as_ref().unwrap().name.to_string(),
                         callable.clone(),
@@ -469,8 +522,11 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
             }
             Stmt::Declaration { dst, expr, span: _ } => {
                 let evaluated = self.visit_expr((program.clone(), *expr))?;
-                self.env_man
-                    .declare(self.env, dst.name.to_string(), evaluated.clone());
+                self.env_man.write().unwrap().declare(
+                    self.env,
+                    dst.name.to_string(),
+                    evaluated.clone(),
+                );
             }
             Stmt::Block {
                 body: stmts,
@@ -484,7 +540,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                 r#else_body: r#else,
                 span: _,
             } => {
-                if self.visit_expr((program.clone(), *condition))?.is_truthy() {
+                if self.visit_expr((program.clone(), *condition))?.as_bool() {
                     self.visit_stmt((program.clone(), *body))?;
                 } else if let Some(else_stmt) = r#else {
                     self.visit_stmt((program.clone(), *else_stmt))?;
@@ -501,7 +557,7 @@ impl<'a> VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter<'a> {
                     && (condition.is_none()
                         || self
                             .visit_expr((program.clone(), condition.unwrap()))?
-                            .is_truthy())
+                            .as_bool())
                 {
                     self.visit_stmt((program.clone(), *body))?;
                     self.loop_stack

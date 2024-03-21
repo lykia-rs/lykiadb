@@ -1,22 +1,17 @@
-use ::std::sync::Arc;
 use ::std::time::Instant;
 
-use rustc_hash::FxHashMap;
 use serde_json::Value;
 use tokio::net::TcpStream;
 use tracing::{error, info};
 
 use self::environment::Environment;
 use self::error::ExecutionError;
-use self::interpreter::{HaltReason, Output};
+use self::interpreter::Output;
 use self::std::stdlib;
 
 use crate::lang::ast::parser::Parser;
-use crate::lang::ast::program::Program;
-use crate::lang::ast::resolver::Resolver;
 use crate::lang::tokens::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
-use crate::runtime::environment::EnvId;
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::{alloc_shared, Shared};
@@ -76,32 +71,9 @@ impl ServerSession {
     }
 }
 
-pub struct SourceProcessor {
-    scopes: Vec<FxHashMap<String, bool>>,
-}
-
-impl SourceProcessor {
-    pub fn new() -> SourceProcessor {
-        SourceProcessor { scopes: vec![] }
-    }
-
-    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program);
-        let (scopes, locals) = resolver.resolve().unwrap();
-
-        self.scopes = scopes;
-        program.set_locals(locals);
-
-        Ok(program)
-    }
-}
-
 pub struct Runtime {
     mode: RuntimeMode,
-    env_man: Shared<Environment>,
-    source_processor: SourceProcessor,
+    interpreter: Interpreter,
 }
 
 #[derive(Eq, PartialEq)]
@@ -121,8 +93,7 @@ impl Runtime {
         }
         Runtime {
             mode,
-            env_man: alloc_shared(env_man),
-            source_processor: SourceProcessor::new(),
+            interpreter: Interpreter::new(alloc_shared(env_man)),
         }
     }
 
@@ -134,33 +105,12 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let program = self.source_processor.process(source)?;
-
-        /*
-            TODO(vck): RwLock is probably an overkill here. Yet still, I couldn't find a better way to pass
-            writable environment to the interpreter.
-        */
-        let env_guard = self.env_man.as_ref().write().unwrap();
-
-        let mut interpreter = Interpreter::new(env_guard, EnvId(0));
-
-        let out = interpreter.interpret(Arc::new(program));
+        let out = self.interpreter.interpret(source);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);
         }
 
-        if let Ok(val) = out {
-            Ok(val)
-        } else {
-            let err = out.err().unwrap();
-            match err {
-                HaltReason::Return(rv) => Ok(rv),
-                HaltReason::Error(interpret_err) => {
-                    let error = error::ExecutionError::Interpret(interpret_err);
-                    Err(error)
-                }
-            }
-        }
+        out
     }
 }

@@ -150,7 +150,7 @@ impl<'de> Deserialize<'de> for RV {
 }
 
 impl RV {
-    pub fn is_truthy(&self) -> bool {
+    pub fn as_bool(&self) -> bool {
         match &self {
             RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
             RV::Str(value) => !value.is_empty(),
@@ -158,26 +158,6 @@ impl RV {
             RV::Null | RV::Undefined | RV::NaN => false,
             _ => true,
         }
-    }
-
-    pub fn eq_any_bool(&self, b: bool) -> bool {
-        self.is_truthy() == b
-    }
-
-    pub fn eq_str_num(&self, n: f64) -> bool {
-        if let RV::Str(s) = self {
-            if let Ok(num) = s.parse::<f64>() {
-                return num == n;
-            }
-        }
-        false
-    }
-
-    pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
-        if let Some(num) = self.as_number() {
-            return num.partial_cmp(&if other { 1.0 } else { 0.0 });
-        }
-        self.is_truthy().partial_cmp(&other)
     }
 
     pub fn as_number(&self) -> Option<f64> {
@@ -194,6 +174,26 @@ impl RV {
             }
             _ => None,
         }
+    }
+
+    pub fn eq_any_bool(&self, b: bool) -> bool {
+        self.as_bool() == b
+    }
+
+    pub fn eq_str_num(&self, n: f64) -> bool {
+        if let RV::Str(s) = self {
+            if let Ok(num) = s.parse::<f64>() {
+                return num == n;
+            }
+        }
+        false
+    }
+
+    pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
+        if let Some(num) = self.as_number() {
+            return num.partial_cmp(&if other { 1.0 } else { 0.0 });
+        }
+        self.as_bool().partial_cmp(&other)
     }
 }
 
@@ -397,24 +397,24 @@ mod test {
 
     #[test]
     fn test_is_value_truthy() {
-        assert_eq!((RV::Null).is_truthy(), false);
-        assert_eq!((RV::Undefined).is_truthy(), false);
-        assert_eq!((RV::NaN).is_truthy(), false);
-        assert_eq!((RV::Bool(false)).is_truthy(), false);
-        assert_eq!((RV::Bool(true)).is_truthy(), true);
-        assert_eq!((RV::Num(0.0)).is_truthy(), false);
-        assert_eq!((RV::Num(0.1)).is_truthy(), true);
-        assert_eq!((RV::Num(-0.1)).is_truthy(), true);
-        assert_eq!((RV::Num(1.0)).is_truthy(), true);
-        assert_eq!((RV::Num(-1.0)).is_truthy(), true);
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).is_truthy(), false);
-        assert_eq!((RV::Str(Arc::new("0".to_owned()))).is_truthy(), true);
-        assert_eq!((RV::Str(Arc::new("false".to_owned()))).is_truthy(), true);
-        assert_eq!((RV::Str(Arc::new("true".to_owned()))).is_truthy(), true);
-        assert_eq!((RV::Str(Arc::new("foo".to_owned()))).is_truthy(), true);
-        assert_eq!((RV::Array(alloc_shared(vec![]))).is_truthy(), true);
+        assert_eq!((RV::Null).as_bool(), false);
+        assert_eq!((RV::Undefined).as_bool(), false);
+        assert_eq!((RV::NaN).as_bool(), false);
+        assert_eq!((RV::Bool(false)).as_bool(), false);
+        assert_eq!((RV::Bool(true)).as_bool(), true);
+        assert_eq!((RV::Num(0.0)).as_bool(), false);
+        assert_eq!((RV::Num(0.1)).as_bool(), true);
+        assert_eq!((RV::Num(-0.1)).as_bool(), true);
+        assert_eq!((RV::Num(1.0)).as_bool(), true);
+        assert_eq!((RV::Num(-1.0)).as_bool(), true);
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_bool(), false);
+        assert_eq!((RV::Str(Arc::new("0".to_owned()))).as_bool(), true);
+        assert_eq!((RV::Str(Arc::new("false".to_owned()))).as_bool(), true);
+        assert_eq!((RV::Str(Arc::new("true".to_owned()))).as_bool(), true);
+        assert_eq!((RV::Str(Arc::new("foo".to_owned()))).as_bool(), true);
+        assert_eq!((RV::Array(alloc_shared(vec![]))).as_bool(), true);
         assert_eq!(
-            (RV::Object(alloc_shared(FxHashMap::default()))).is_truthy(),
+            (RV::Object(alloc_shared(FxHashMap::default()))).as_bool(),
             true
         );
         assert_eq!(
@@ -424,7 +424,7 @@ mod test {
                     function: |_, _| Ok(RV::Undefined)
                 })
             ))
-            .is_truthy(),
+            .as_bool(),
             true
         );
     }
