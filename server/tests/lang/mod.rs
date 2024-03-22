@@ -9,7 +9,7 @@ pub fn get_tokens(source: &str) -> Vec<Token> {
 }
 
 pub fn compare_parsed_to_expected(source: &str, expected: Value) {
-    use lykiadb_server::lang::ast::parser::Parser;
+    use lykiadb_server::lang::parser::Parser;
 
     let tokens = get_tokens(source);
     let program = Parser::parse(&tokens).unwrap();

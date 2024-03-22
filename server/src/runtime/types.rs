@@ -1,7 +1,7 @@
 use super::environment::EnvId;
 use crate::lang::ast::expr::Operation;
-use crate::lang::ast::program::Program;
 use crate::lang::ast::stmt::StmtId;
+use crate::lang::parser::program::Program;
 use crate::runtime::interpreter::{HaltReason, Interpreter};
 use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;

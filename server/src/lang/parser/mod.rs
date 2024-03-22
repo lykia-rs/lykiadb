@@ -1,19 +1,22 @@
-use super::expr::{Expr, ExprId, Operation};
-use super::program::{AstArena, Program};
-use super::sql::{
+use super::ast::expr::{Expr, ExprId, Operation};
+use super::ast::sql::{
     SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
     SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
-use super::stmt::{Stmt, StmtId};
+use super::ast::stmt::{Stmt, StmtId};
 use crate::lang::tokenizer::token::{
     Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::lang::Literal;
 use crate::{kw, skw, sym};
+use program::{AstArena, Program};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
+pub mod program;
+pub mod resolver;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ParseError {

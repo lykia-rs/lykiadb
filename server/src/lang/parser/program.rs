@@ -1,10 +1,11 @@
-use super::{
-    expr::{Expr, ExprId},
-    stmt::{Stmt, StmtId},
-};
 use rustc_hash::FxHashMap;
 use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
+
+use crate::lang::ast::{
+    expr::{Expr, ExprId},
+    stmt::{Stmt, StmtId},
+};
 
 pub struct Program {
     root: StmtId,

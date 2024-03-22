@@ -5,10 +5,10 @@ use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
 use super::types::{eval_binary, Stateful};
 use crate::lang::ast::expr::{Expr, ExprId, Operation};
-use crate::lang::ast::parser::Parser;
-use crate::lang::ast::program::Program;
-use crate::lang::ast::resolver::Resolver;
 use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::parser::program::Program;
+use crate::lang::parser::resolver::Resolver;
+use crate::lang::parser::Parser;
 use crate::lang::tokenizer::scanner::Scanner;
 use crate::lang::Literal;
 
