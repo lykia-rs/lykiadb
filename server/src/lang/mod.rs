@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use self::ast::expr::ExprId;
 
 pub mod ast;
-pub mod tokens;
+pub mod tokenizer;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Literal {

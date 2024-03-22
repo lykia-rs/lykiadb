@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::lang::{
-    tokens::token::{Span, Spanned},
+    tokenizer::token::{Span, Spanned},
     Identifier,
 };
 

@@ -6,7 +6,7 @@ use super::sql::{
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::stmt::{Stmt, StmtId};
-use crate::lang::tokens::token::{
+use crate::lang::tokenizer::token::{
     Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::lang::Literal;

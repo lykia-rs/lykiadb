@@ -9,11 +9,11 @@ use crate::lang::ast::parser::Parser;
 use crate::lang::ast::program::Program;
 use crate::lang::ast::resolver::Resolver;
 use crate::lang::ast::stmt::{Stmt, StmtId};
-use crate::lang::tokens::scanner::Scanner;
+use crate::lang::tokenizer::scanner::Scanner;
 use crate::lang::Literal;
 
 use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokens::token::{Span, Spanned};
+use crate::lang::tokenizer::token::{Span, Spanned};
 use crate::runtime::types::RV::Callable;
 use crate::runtime::types::{Function, RV};
 use crate::util::{alloc_shared, Shared};

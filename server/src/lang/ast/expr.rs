@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::lang::{
-    tokens::token::{Span, Spanned},
+    tokenizer::token::{Span, Spanned},
     Identifier,
 };
 

@@ -1,7 +1,7 @@
 pub mod generic;
 pub mod sql;
 use assert_json_diff::assert_json_eq;
-use lykiadb_server::lang::tokens::{scanner::Scanner, token::Token};
+use lykiadb_server::lang::tokenizer::{scanner::Scanner, token::Token};
 use serde_json::Value;
 
 pub fn get_tokens(source: &str) -> Vec<Token> {
