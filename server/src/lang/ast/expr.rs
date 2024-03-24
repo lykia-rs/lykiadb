@@ -1,3 +1,4 @@
+use serde::ser::SerializeMap;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -203,3 +204,13 @@ impl Spanned for Expr {
 }
 
 pub type ExprId = AstRef<Expr>;
+
+pub const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
+
+impl Serialize for AstRef<Expr> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(EXPR_ID_PLACEHOLDER, &self.0)?;
+        map.end()
+    }
+}

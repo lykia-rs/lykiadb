@@ -3,8 +3,8 @@ use self::program::Program;
 use super::ast::expr::{Expr, ExprId, Operation};
 use super::ast::sql::{
     SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
-    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
-    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
+    SqlExpr, SqlExprId, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
+    SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 use super::ast::stmt::{Stmt, StmtId};
 use super::ast::AstArena;
@@ -378,6 +378,96 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn sql_expression(&mut self) -> ParseResult<SqlExprId> {
+        let expr = self.expression()?;
+        let expr_conj_fst = if self.match_next_one_of(&[
+            skw!(Is),
+            skw!(Not),
+            skw!(In),
+            skw!(Between),
+            skw!(Like),
+        ]) {
+            Some((*self.peek_bw(1)).clone().tok_type)
+        } else {
+            None
+        };
+        let expr_conj_sec = if expr_conj_fst.is_some()
+            && self.match_next_one_of(&[skw!(Is), skw!(Not), skw!(In), skw!(Between), skw!(Like)])
+        {
+            Some((*self.peek_bw(1)).clone().tok_type)
+        } else {
+            None
+        };
+
+        let left = self.arena.sql_expressions.alloc(SqlExpr::Default(expr));
+
+        if expr_conj_fst.is_none() && expr_conj_sec.is_none() {
+            return Ok(left);
+        }
+
+        let right = self.sql_expression()?;
+
+        match (expr_conj_fst, expr_conj_sec) {
+            (Some(SqlKeyword(Is)), None) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::Is { left, right }));
+            }
+            (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::IsNot { left, right }));
+            }
+            (Some(SqlKeyword(In)), None) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::In { left, right }));
+            }
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::NotIn { left, right }));
+            }
+            (Some(SqlKeyword(Like)), None) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::Like { left, right }));
+            }
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => {
+                return Ok(self
+                    .arena
+                    .sql_expressions
+                    .alloc(SqlExpr::NotLike { left, right }));
+            }
+            (Some(SqlKeyword(Between)), None) => {
+                self.expected(SqlKeyword(And))?;
+                let upper = self.sql_expression()?;
+                return Ok(self.arena.sql_expressions.alloc(SqlExpr::Between {
+                    expr: left,
+                    lower: right,
+                    upper,
+                }));
+            }
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
+                self.expected(SqlKeyword(And))?;
+                let upper = self.sql_expression()?;
+                return Ok(self.arena.sql_expressions.alloc(SqlExpr::NotBetween {
+                    expr: left,
+                    lower: right,
+                    upper,
+                }));
+            }
+            _ => {
+                return Ok(self.arena.sql_expressions.alloc(SqlExpr::Default(expr)));
+            }
+        }
+    }
+
     fn expression(&mut self) -> ParseResult<ExprId> {
         match_next!(self, kw!(Fun), fun_declaration);
         self.assignment()
@@ -550,10 +640,9 @@ impl<'a> Parser<'a> {
                 SqlValues::Select(select_inner.unwrap())
             } else if self.match_next(skw!(Values)) {
                 self.expected(sym!(LeftParen))?;
-                let mut values: Vec<SqlExpr> = vec![];
+                let mut values: Vec<SqlExprId> = vec![];
                 loop {
-                    let value = self.expression()?;
-                    values.push(SqlExpr::Default(value));
+                    values.push(self.sql_expression()?);
                     if !self.match_next(sym!(Comma)) {
                         break;
                     }
@@ -585,20 +674,19 @@ impl<'a> Parser<'a> {
 
         self.expected(skw!(Set))?;
 
-        let mut assignments: Vec<SqlExpr> = vec![];
+        let mut assignments: Vec<SqlExprId> = vec![];
 
         loop {
             self.expected(Identifier { dollar: false })?;
             self.expected(sym!(Equal))?;
-            let value = self.expression()?;
-            assignments.push(SqlExpr::Default(value));
+            assignments.push(self.sql_expression()?);
             if !self.match_next(sym!(Comma)) {
                 break;
             }
         }
 
         let r#where = if self.match_next(skw!(Where)) {
-            Some(SqlExpr::Default(self.expression()?))
+            Some(self.sql_expression()?)
         } else {
             None
         };
@@ -622,7 +710,7 @@ impl<'a> Parser<'a> {
 
         if let Some(collection) = self.sql_collection_identifier()? {
             let r#where = if self.match_next(skw!(Where)) {
-                Some(SqlExpr::Default(self.expression()?))
+                Some(self.sql_expression()?)
             } else {
                 None
             };
@@ -649,7 +737,7 @@ impl<'a> Parser<'a> {
             let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
-                let order_expr = self.expression()?;
+                let order_expr = self.sql_expression()?;
                 let order = if self.match_next(skw!(Desc)) {
                     Some(SqlOrdering::Desc)
                 } else {
@@ -657,7 +745,7 @@ impl<'a> Parser<'a> {
                     Some(SqlOrdering::Asc)
                 };
                 ordering.push(SqlOrderByClause {
-                    expr: SqlExpr::Default(order_expr),
+                    expr: order_expr,
                     ordering: order.unwrap(),
                 });
                 if !self.match_next(sym!(Comma)) {
@@ -671,11 +759,11 @@ impl<'a> Parser<'a> {
         };
 
         let limit = if self.match_next(skw!(Limit)) {
-            let first_expr = SqlExpr::Default(self.expression()?);
+            let first_expr = self.sql_expression()?;
             let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
-                (Some(SqlExpr::Default(self.expression()?)), false)
+                (Some(self.sql_expression()?), false)
             } else if self.match_next(sym!(Comma)) {
-                (Some(SqlExpr::Default(self.expression()?)), true)
+                (Some(self.sql_expression()?), true)
             } else {
                 (None, false)
             };
@@ -740,7 +828,7 @@ impl<'a> Parser<'a> {
         let r#where = self.sql_select_where()?;
         let group_by = self.sql_select_group_by()?;
         let having = if group_by.is_some() && self.match_next(skw!(Having)) {
-            Some(SqlExpr::Default(self.expression()?))
+            Some(self.sql_expression()?)
         } else {
             None
         };
@@ -779,14 +867,14 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
+    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<SqlExprId>>> {
         if self.match_next(skw!(Group)) {
             self.expected(skw!(By))?;
-            let mut groups: Vec<SqlExpr> = vec![];
+            let mut groups: Vec<SqlExprId> = vec![];
 
             loop {
-                let group_expr = self.expression()?;
-                groups.push(SqlExpr::Default(group_expr));
+                let sql_expr = self.sql_expression()?;
+                groups.push(sql_expr);
                 if !self.match_next(sym!(Comma)) {
                     break;
                 }
@@ -808,11 +896,11 @@ impl<'a> Parser<'a> {
                     collection: Some(self.peek_bw(3).extract_identifier().unwrap()),
                 });
             } else {
-                let expr = self.expression().unwrap();
+                let expr = self.sql_expression().unwrap();
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
-                    expr: SqlExpr::Default(expr),
+                    expr,
                     alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
@@ -856,8 +944,8 @@ impl<'a> Parser<'a> {
                     });
                 };
                 let right = self.sql_select_subquery_collection()?;
-                let join_constraint: Option<SqlExpr> = if self.match_next(skw!(On)) {
-                    Some(SqlExpr::Default(self.expression()?))
+                let join_constraint: Option<SqlExprId> = if self.match_next(skw!(On)) {
+                    Some(self.sql_expression()?)
                 } else {
                     None
                 };
@@ -906,10 +994,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select_where(&mut self) -> ParseResult<Option<SqlExpr>> {
+    fn sql_select_where(&mut self) -> ParseResult<Option<SqlExprId>> {
         if self.match_next(skw!(Where)) {
-            let expr = self.expression()?;
-            return Ok(Some(SqlExpr::Default(expr)));
+            return Ok(Some(self.sql_expression()?));
         }
         Ok(None)
     }
