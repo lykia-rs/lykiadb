@@ -1,8 +1,9 @@
-use super::interpreter::InterpretError;
 use crate::lang::{
-    ast::{parser::ParseError, resolver::ResolveError},
-    tokens::{scanner::ScanError, token::Span},
+    parser::{resolver::ResolveError, ParseError},
+    tokenizer::{scanner::ScanError, token::Span},
 };
+
+use super::interpreter::InterpretError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

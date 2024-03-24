@@ -1,7 +1,7 @@
 pub mod generic;
 pub mod sql;
 use assert_json_diff::assert_json_eq;
-use lykiadb_server::lang::tokens::{scanner::Scanner, token::Token};
+use lykiadb_server::lang::tokenizer::{scanner::Scanner, token::Token};
 use serde_json::Value;
 
 pub fn get_tokens(source: &str) -> Vec<Token> {
@@ -9,7 +9,7 @@ pub fn get_tokens(source: &str) -> Vec<Token> {
 }
 
 pub fn compare_parsed_to_expected(source: &str, expected: Value) {
-    use lykiadb_server::lang::ast::parser::Parser;
+    use lykiadb_server::lang::parser::Parser;
 
     let tokens = get_tokens(source);
     let program = Parser::parse(&tokens).unwrap();

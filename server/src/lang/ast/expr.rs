@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 
 use crate::lang::{
-    tokens::token::{Span, Spanned},
+    tokenizer::token::{Span, Spanned},
     Identifier,
 };
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
     stmt::StmtId,
+    AstRef,
 };
 
 use crate::lang::Literal;
@@ -201,6 +202,4 @@ impl Spanned for Expr {
     }
 }
 
-#[repr(transparent)]
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Deserialize)]
-pub struct ExprId(pub usize);
+pub type ExprId = AstRef<Expr>;

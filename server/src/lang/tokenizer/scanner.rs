@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lang::tokens::token::Symbol::*;
-use crate::lang::tokens::token::TokenType::{Eof, Identifier};
-use crate::lang::tokens::token::*;
+use crate::lang::tokenizer::token::Symbol::*;
+use crate::lang::tokenizer::token::TokenType::{Eof, Identifier};
+use crate::lang::tokenizer::token::*;
 use crate::lang::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
@@ -392,7 +392,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::lang::tokens::token::TokenType::Eof;
+    use crate::lang::tokenizer::token::TokenType::Eof;
     use crate::{kw, lexm, skw};
 
     use super::*;

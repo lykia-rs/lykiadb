@@ -1,7 +1,7 @@
 use crate::lang::ast::expr::{Expr, ExprId};
 use crate::lang::ast::stmt::{Stmt, StmtId};
 use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokens::token::Span;
+use crate::lang::tokenizer::token::Span;
 use crate::lang::{Identifier, Literal};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

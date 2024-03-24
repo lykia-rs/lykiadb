@@ -9,8 +9,8 @@ use self::error::ExecutionError;
 use self::interpreter::Output;
 use self::std::stdlib;
 
-use crate::lang::ast::parser::Parser;
-use crate::lang::tokens::scanner::Scanner;
+use crate::lang::parser::Parser;
+use crate::lang::tokenizer::scanner::Scanner;
 use crate::net::{CommunicationError, Connection, Message, Request, Response};
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
