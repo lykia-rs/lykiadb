@@ -1,11 +1,11 @@
 use rustc_hash::FxHashMap;
-use serde::{ser::SerializeMap, Serialize};
 use serde_json::{Map, Value};
 
 use crate::lang::ast::{
-    expr::{Expr, ExprId},
-    stmt::{Stmt, StmtId},
-    AstRef, EXPR_ID_PLACEHOLDER, STMT_ID_PLACEHOLDER,
+    expr::{Expr, ExprId, EXPR_ID_PLACEHOLDER},
+    sql::{SqlExpr, SQL_EXPR_ID_PLACEHOLDER},
+    stmt::{Stmt, StmtId, STMT_ID_PLACEHOLDER},
+    AstRef,
 };
 
 use super::AstArena;
@@ -81,6 +81,17 @@ impl Program {
                     .unwrap(),
             );
             self.to_json_recursive(serde_json::to_value(self.arena.expressions.get(idx)).unwrap())
+        } else if map.contains_key(SQL_EXPR_ID_PLACEHOLDER) {
+            let idx = AstRef::<SqlExpr>::new(
+                map[SQL_EXPR_ID_PLACEHOLDER]
+                    .as_u64()
+                    .unwrap()
+                    .try_into()
+                    .unwrap(),
+            );
+            self.to_json_recursive(
+                serde_json::to_value(self.arena.sql_expressions.get(idx)).unwrap(),
+            )
         } else {
             serde_json::map::Map::into_iter(map)
                 .map(|(key, value)| (key, self.to_json_recursive(value)))

@@ -1,3 +1,4 @@
+use serde::ser::SerializeMap;
 use serde::Serialize;
 
 use crate::lang::{
@@ -86,3 +87,13 @@ impl Spanned for Stmt {
 }
 
 pub type StmtId = AstRef<Stmt>;
+
+pub const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
+
+impl Serialize for AstRef<Stmt> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(STMT_ID_PLACEHOLDER, &self.0)?;
+        map.end()
+    }
+}

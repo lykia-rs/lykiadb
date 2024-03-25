@@ -1,9 +1,7 @@
+use serde::Deserialize;
 use std::marker::PhantomData;
 
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Serialize};
-
-use self::{expr::Expr, stmt::Stmt};
+use self::{expr::Expr, sql::SqlExpr, stmt::Stmt};
 
 pub mod expr;
 pub mod sql;
@@ -49,6 +47,7 @@ impl<T> AstPool<T> {
 
 pub struct AstArena {
     pub expressions: AstPool<Expr>,
+    pub sql_expressions: AstPool<SqlExpr>,
     pub statements: AstPool<Stmt>,
 }
 
@@ -56,26 +55,8 @@ impl AstArena {
     pub fn new() -> AstArena {
         AstArena {
             expressions: AstPool::new(),
+            sql_expressions: AstPool::new(),
             statements: AstPool::new(),
         }
-    }
-}
-
-pub const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
-pub const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
-
-impl Serialize for AstRef<Expr> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry(EXPR_ID_PLACEHOLDER, &self.0)?;
-        map.end()
-    }
-}
-
-impl Serialize for AstRef<Stmt> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry(STMT_ID_PLACEHOLDER, &self.0)?;
-        map.end()
     }
 }
