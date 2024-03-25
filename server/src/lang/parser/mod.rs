@@ -405,67 +405,82 @@ impl<'a> Parser<'a> {
             return Ok(left);
         }
 
-        let right = self.sql_expression()?;
-
         match (expr_conj_fst, expr_conj_sec) {
             (Some(SqlKeyword(Is)), None) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::Is { left, right }));
             }
             (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::IsNot { left, right }));
             }
             (Some(SqlKeyword(In)), None) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::In { left, right }));
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::NotIn { left, right }));
             }
             (Some(SqlKeyword(Like)), None) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::Like { left, right }));
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => {
+                let right = self.sql_expression()?;
                 return Ok(self
                     .arena
                     .sql_expressions
                     .alloc(SqlExpr::NotLike { left, right }));
             }
             (Some(SqlKeyword(Between)), None) => {
-                self.expected(SqlKeyword(And))?;
-                let upper = self.sql_expression()?;
-                return Ok(self.arena.sql_expressions.alloc(SqlExpr::Between {
-                    expr: left,
-                    lower: right,
-                    upper,
-                }));
+                return Ok(self.sql_between_and(left, false)?);
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
-                self.expected(SqlKeyword(And))?;
-                let upper = self.sql_expression()?;
-                return Ok(self.arena.sql_expressions.alloc(SqlExpr::NotBetween {
-                    expr: left,
-                    lower: right,
-                    upper,
-                }));
+                return Ok(self.sql_between_and(left, true)?);
             }
             _ => {
                 return Ok(self.arena.sql_expressions.alloc(SqlExpr::Default(expr)));
             }
         }
+    }
+
+    fn sql_between_and(&mut self, left: SqlExprId, not: bool) -> ParseResult<SqlExprId> {
+        let l = self.equality()?;
+        let lower = self.arena.sql_expressions.alloc(SqlExpr::Default(l));
+
+        self.expected(skw!(And))?;
+        let u = self.equality()?;
+        let upper = self.arena.sql_expressions.alloc(SqlExpr::Default(u));
+
+        if not {
+            return Ok(self.arena.sql_expressions.alloc(SqlExpr::NotBetween {
+                expr: left,
+                lower,
+                upper,
+            }));
+        }
+
+        return Ok(self.arena.sql_expressions.alloc(SqlExpr::Between {
+            expr: left,
+            lower,
+            upper,
+        }));
     }
 
     fn expression(&mut self) -> ParseResult<ExprId> {
