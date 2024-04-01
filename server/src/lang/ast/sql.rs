@@ -1,7 +1,8 @@
 use crate::lang::Identifier;
+use serde::ser::SerializeMap;
 use serde::Serialize;
 
-use super::expr::ExprId;
+use super::{expr::ExprId, AstRef};
 
 // Enums
 
@@ -65,6 +66,30 @@ pub struct SqlCollectionIdentifier {
 pub enum SqlExpr {
     #[serde(rename = "SqlExpr::Default")]
     Default(ExprId),
+    #[serde(rename = "SqlExpr::Is")]
+    Is { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::IsNot")]
+    IsNot { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::In")]
+    In { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::NotIn")]
+    NotIn { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::Like")]
+    Like { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::NotLike")]
+    NotLike { left: SqlExprId, right: SqlExprId },
+    #[serde(rename = "SqlExpr::Between")]
+    Between {
+        expr: SqlExprId,
+        lower: SqlExprId,
+        upper: SqlExprId,
+    },
+    #[serde(rename = "SqlExpr::NotBetween")]
+    NotBetween {
+        expr: SqlExprId,
+        lower: SqlExprId,
+        upper: SqlExprId,
+    },
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -74,7 +99,7 @@ pub enum SqlProjection {
     All { collection: Option<Identifier> },
     #[serde(rename = "SqlProjection::Expr")]
     Expr {
-        expr: SqlExpr,
+        expr: SqlExprId,
         alias: Option<Identifier>,
     },
 }
@@ -82,14 +107,14 @@ pub enum SqlProjection {
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "@type")]
 pub struct SqlLimitClause {
-    pub count: SqlExpr,
-    pub offset: Option<SqlExpr>,
+    pub count: SqlExprId,
+    pub offset: Option<SqlExprId>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "@type")]
 pub struct SqlOrderByClause {
-    pub expr: SqlExpr,
+    pub expr: SqlExprId,
     pub ordering: SqlOrdering,
 }
 
@@ -117,7 +142,7 @@ pub enum SqlCollectionSubquery {
         left: Box<SqlCollectionSubquery>,
         join_type: SqlJoinType,
         right: Box<SqlCollectionSubquery>,
-        constraint: Option<SqlExpr>,
+        constraint: Option<SqlExprId>,
     },
 }
 
@@ -127,9 +152,9 @@ pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
     pub from: Option<SqlCollectionSubquery>,
-    pub r#where: Option<SqlExpr>,
-    pub group_by: Option<Vec<SqlExpr>>,
-    pub having: Option<SqlExpr>,
+    pub r#where: Option<SqlExprId>,
+    pub group_by: Option<Vec<SqlExprId>>,
+    pub having: Option<SqlExprId>,
     pub compound: Option<Box<SqlSelectCompound>>,
 }
 
@@ -145,7 +170,7 @@ pub struct SqlSelect {
 #[serde(tag = "@type")]
 pub enum SqlValues {
     #[serde(rename = "SqlValues::Values")]
-    Values { values: Vec<SqlExpr> },
+    Values { values: Vec<SqlExprId> },
     #[serde(rename = "SqlValues::Select")]
     Select(SqlSelect),
 }
@@ -161,13 +186,25 @@ pub struct SqlInsert {
 #[serde(tag = "@type")]
 pub struct SqlUpdate {
     pub collection: SqlCollectionIdentifier,
-    pub assignments: Vec<SqlExpr>,
-    pub r#where: Option<SqlExpr>,
+    pub assignments: Vec<SqlExprId>,
+    pub r#where: Option<SqlExprId>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "@type")]
 pub struct SqlDelete {
     pub collection: SqlCollectionIdentifier,
-    pub r#where: Option<SqlExpr>,
+    pub r#where: Option<SqlExprId>,
+}
+
+pub type SqlExprId = AstRef<SqlExpr>;
+
+pub const SQL_EXPR_ID_PLACEHOLDER: &'static str = "@SqlExprId";
+
+impl Serialize for AstRef<SqlExpr> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = serializer.serialize_map(Some(1))?;
+        map.serialize_entry(SQL_EXPR_ID_PLACEHOLDER, &self.0)?;
+        map.end()
+    }
 }
