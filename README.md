@@ -17,7 +17,7 @@
 </p>
 
 
-Lykia is a toy document database basically written for educational purposes. It is planned to be a modest mixture of popular kids in town (e.g. SurrealDB).
+Lykia is a toy multi-model database basically written for educational purposes.
 
 ## Overview
 - Written in Rust
@@ -34,9 +34,10 @@ Lykia is a toy document database basically written for educational purposes. It 
 - [x] Data manipulation language ("SELECT", "INSERT", "UPDATE", "DELETE")
 - [x] Event loop, client-server communication
 - [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
-- [ ] In-memory (dummy) storage engine (in progress)
-- [ ] Query planning
-- [ ] Persistent storage engine (Bitcask)
+- [ ] Query binding and planning (in progress)
+- [ ] LSM storage engine (Bitcask)
+- [ ] Column-oriented storage engine
+
 - [ ] B-Tree implementation for indexing
 - [ ] Plan optimization
 - [ ] Transaction management with MVCC
