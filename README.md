@@ -37,7 +37,6 @@ Lykia is a toy multi-model database basically written for educational purposes.
 - [ ] Query binding and planning (in progress)
 - [ ] LSM storage engine (Bitcask)
 - [ ] Column-oriented storage engine
-
 - [ ] B-Tree implementation for indexing
 - [ ] Plan optimization
 - [ ] Transaction management with MVCC
