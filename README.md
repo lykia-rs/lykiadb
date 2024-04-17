@@ -35,13 +35,11 @@ Lykia is a toy multi-model database basically written for educational purposes.
 - [x] Event loop, client-server communication
 - [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
 - [ ] Query binding and planning (in progress)
-- [ ] LSM storage engine (Bitcask)
-- [ ] Column-oriented storage engine
+- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) (in progress)
+- [ ] MVCC for transaction management (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm))
 - [ ] B-Tree implementation for indexing
 - [ ] Plan optimization
-- [ ] Transaction management with MVCC
 - [ ] Basic replication with Raft
-- [ ] Type checker
 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
