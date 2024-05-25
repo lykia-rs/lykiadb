@@ -1,6 +1,7 @@
 [workspace]
-resolver = "1"
-members = ["server", "cli"]
+resolver= "2"
+members = ["lykiadb-server", "lykiadb-shell"]
+edition = "2021"
 
 [profile.release]
 opt-level = 3

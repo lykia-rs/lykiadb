@@ -6,6 +6,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.6", features = ["derive"] }
-lykiadb-server = { path = "../server" }
+lykiadb-server = { path = "../lykiadb-server" }
 serde_json = "1.0.105"
 tokio = { version = "~1.35.1" }

@@ -47,12 +47,12 @@ To use Lykia, you can download the latest release from the GitHub releases page.
 Run the server:
 
 ```shell
-$ cargo run --release --bin lykiadb-server
+$ cargo run --release --bin lykiadb-lykiadb-server
 ```
 Run the client:
 
 ```shell 
-$ cargo run --release --bin lykiadb-shell cli/examples/fib.ly
+$ cargo run --release --bin lykiadb-shell lykiadb-shell/examples/fib.ly
 ```
 
 Client transmits the fib.ly in an infinite loop.
