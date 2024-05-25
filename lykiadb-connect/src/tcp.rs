@@ -1,15 +1,17 @@
-use lykiadb_server::net::{CommunicationError, Connection, Message};
+use bytes::BytesMut;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use lykiadb_server::net::{CommunicationError, Message, TcpConnection};
 use crate::session::ClientSession;
 
 pub(crate) struct TcpClientSession {
-    conn: Connection,
+    conn: TcpConnection,
 }
 
 impl TcpClientSession {
     pub fn new(stream: TcpStream) -> Self {
         TcpClientSession {
-            conn: Connection::new(stream),
+            conn: TcpConnection::new(stream),
         }
     }
 

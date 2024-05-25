@@ -4,11 +4,7 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_server::{
-    net::{Message, Request, Response},
-    runtime::error::report_error,
-};
-use lykiadb_connect::{get_session, Protocol};
+use lykiadb_connect::{get_session, Message, Protocol, report_error, Request, Response};
 use lykiadb_connect::session::ClientSession;
 
 #[derive(Parser, Debug)]

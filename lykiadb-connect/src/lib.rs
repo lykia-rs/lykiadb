@@ -5,7 +5,9 @@ use crate::tcp::TcpClientSession;
 pub mod session;
 mod tcp;
 mod http;
-mod protocol;
+
+pub use lykiadb_server::net::{Message, Request, Response};
+pub use lykiadb_server::runtime::error::{report_error};
 
 pub enum Protocol {
     Tcp,

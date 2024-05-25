@@ -11,7 +11,7 @@ use self::std::stdlib;
 
 use crate::lang::parser::Parser;
 use crate::lang::tokenizer::scanner::Scanner;
-use crate::net::{CommunicationError, Connection, Message, Request, Response};
+use crate::net::{CommunicationError, TcpConnection, Message, Request, Response};
 use crate::runtime::interpreter::Interpreter;
 use crate::runtime::types::RV;
 use crate::util::{alloc_shared, Shared};
@@ -23,14 +23,14 @@ mod std;
 pub mod types;
 
 pub struct ServerSession {
-    conn: Connection,
+    conn: TcpConnection,
     runtime: Runtime,
 }
 
 impl ServerSession {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
-            conn: Connection::new(stream),
+            conn: TcpConnection::new(stream),
             runtime: Runtime::new(RuntimeMode::File, None),
         }
     }

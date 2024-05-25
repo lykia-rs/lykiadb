@@ -46,14 +46,14 @@ impl From<bson::ser::Error> for CommunicationError {
     }
 }
 
-pub struct Connection {
+pub struct TcpConnection {
     pub stream: BufWriter<TcpStream>,
     pub read_buffer: BytesMut,
 }
 
-impl Connection {
-    pub fn new(stream: TcpStream) -> Connection {
-        Connection {
+impl TcpConnection {
+    pub fn new(stream: TcpStream) -> TcpConnection {
+        TcpConnection {
             stream: BufWriter::new(stream),
             read_buffer: BytesMut::with_capacity(4096),
         }
