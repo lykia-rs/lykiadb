@@ -1,6 +1,6 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use lykiadb_server::net::{CommunicationError, Message};
+use lykiadb_server::net::{CommunicationError, Message, Request};
 use lykiadb_server::net::tcp::TcpConnection;
 use crate::session::ClientSession;
 
@@ -30,5 +30,9 @@ impl ClientSession for TcpClientSession {
     async fn send_receive(&mut self, msg: Message) -> Result<Message, ()> {
         self.send(msg).await.unwrap();
         self.handle().await
+    }
+
+    async fn execute(&mut self, query: &str) -> Result<Message, ()> {
+        self.send_receive(Message::Request(Request::Run(query.to_string()))).await
     }
 }

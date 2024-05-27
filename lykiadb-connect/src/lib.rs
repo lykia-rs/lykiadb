@@ -4,7 +4,6 @@ use crate::tcp::TcpClientSession;
 
 pub mod session;
 mod tcp;
-mod http;
 
 pub use lykiadb_server::net::{Message, Request, Response};
 pub use lykiadb_server::runtime::error::{report_error};
@@ -24,4 +23,7 @@ pub async fn get_session(addr: &str, protocol: Protocol) -> impl ClientSession {
             panic!("Http not implemented!")
         }
     }
+}
+pub async fn connect(addr: &str) -> impl ClientSession {
+    get_session(addr, Protocol::Tcp).await
 }
