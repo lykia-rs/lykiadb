@@ -47,13 +47,25 @@ fn HomePage() -> impl IntoView {
     let (count, set_count) = create_signal(0);
 
     view! {
-        <button on:click=move |_| {
-            spawn_local(async {
-                add_todo("So much to do!".to_string()).await;
-            });
-        }>
-            "Add Todo"
-        </button>
+        <div class="bg-gradient-to-tl from-blue-800 to-blue-500 text-white font-mono flex flex-col min-h-screen">
+            <div class="flex flex-row-reverse flex-wrap m-auto font-bold">
+                <div class="card w-96 bg-base-100 shadow-xl">
+                  <div class="card-body">
+                    <h2 class="card-title">Click on that button</h2>
+                    <p>And see what happens...</p>
+                    <div class="card-actions justify-end">
+                      <button class="btn btn-primary" on:click=move |_| {
+                            spawn_local(async {
+                                add_todo("So much to do!".to_string()).await;
+                            });
+                        }>
+                            "Hello"
+                        </button>
+                    </div>
+                  </div>
+                </div>
+            </div>
+        </div>
     }
 }
 
