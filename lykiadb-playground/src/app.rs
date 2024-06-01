@@ -13,7 +13,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/lykiadb-playground.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
+        <Title text="LykiaDB Playground"/>
 
         // content for this welcome page
         <Router>
@@ -27,41 +27,56 @@ pub fn App() -> impl IntoView {
     }
 }
 
-#[server(AddTodo, "/api")]
-pub async fn add_todo(title: String) -> Result<(), ServerFnError> {
+#[server(ExecuteCode, "/api")]
+pub async fn execute_code(code: String) -> Result<String, ServerFnError> {
     use lykiadb_connect::session::ClientSession;
-    use lykiadb_connect::connect;
+    use lykiadb_connect::{Message, Response, connect};
 
     let mut conn = connect("localhost:19191").await;
-    conn.execute(r"
-        var $a = 100;
-        $a * 200;
-    ").await;
-    Ok(())
+    let resp = conn.execute(&code).await;
+
+    if let Ok(Message::Response(Response::Value(val))) = resp {
+        Ok(format!("{:?}", val))
+    } else {
+        Err(ServerFnError::new("Failed to execute query"))
+    }
 }
 
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
     // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
+    let (code, set_code) = create_signal("Controlled".to_string());
+
+    let executor = create_action(|c: &String| {
+        let q = c.to_owned();
+        async move {
+            execute_code(q).await
+        }
+    });
+    let result = executor.value();
 
     view! {
-        <div class="bg-gradient-to-tl from-blue-800 to-blue-500 text-white font-mono flex flex-col min-h-screen">
-            <div class="flex flex-row-reverse flex-wrap m-auto font-bold">
-                <div class="card w-96 bg-base-100 shadow-xl">
+        <div class="w-full bg-gradient-to-tl p-6 justify-center from-blue-800 to-blue-500 text-white font-mono flex flex-col min-h-screen">
+            <div class="w-full flex justify-center justify-end font-bold">
+                <div class="card sm:w-96 w-full bg-base-100 shadow-xl">
                   <div class="card-body">
-                    <h2 class="card-title">Click on that button</h2>
-                    <p>And see what happens...</p>
+                    <textarea
+                        class="text-black"
+                        on:input=move |ev| {
+                            set_code.set(event_target_value(&ev));
+                        }
+                        prop:value=code
+                    />
                     <div class="card-actions justify-end">
-                      <button class="btn btn-primary" on:click=move |_| {
-                            spawn_local(async {
-                                add_todo("So much to do!".to_string()).await;
-                            });
+                        <button class="btn btn-primary" on:click=move |_| {
+                            let c = code.get().clone();
+                            executor.dispatch(c);
                         }>
-                            "Hello"
+                            "Execute"
                         </button>
                     </div>
+                    <div class="text-black border">{move || format!("{:#?}", result.get())}</div>
                   </div>
                 </div>
             </div>
