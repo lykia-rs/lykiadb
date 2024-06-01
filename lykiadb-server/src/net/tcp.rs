@@ -1,59 +1,16 @@
 use bytes::BytesMut;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use tokio::{
-    io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter},
-    net::TcpStream,
-};
+use tokio::io::{BufWriter, AsyncReadExt, AsyncWriteExt, copy};
+use tokio::net::TcpStream;
+use crate::net::{CommunicationError, Message};
 
-use crate::runtime::{error::ExecutionError, types::RV};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Request {
-    Run(String),
-    Ast(String),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Response {
-    Value(RV),
-    Program(Value),
-    Error(ExecutionError),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Message {
-    Request(Request),
-    Response(Response),
-}
-
-#[derive(Debug)]
-pub enum CommunicationError {
-    BsonError(bson::ser::Error),
-    IoError(std::io::Error),
-    GenericError(String),
-}
-
-impl From<std::io::Error> for CommunicationError {
-    fn from(value: std::io::Error) -> Self {
-        CommunicationError::IoError(value)
-    }
-}
-
-impl From<bson::ser::Error> for CommunicationError {
-    fn from(value: bson::ser::Error) -> Self {
-        CommunicationError::BsonError(value)
-    }
-}
-
-pub struct Connection {
+pub struct TcpConnection {
     pub stream: BufWriter<TcpStream>,
     pub read_buffer: BytesMut,
 }
 
-impl Connection {
-    pub fn new(stream: TcpStream) -> Connection {
-        Connection {
+impl TcpConnection {
+    pub fn new(stream: TcpStream) -> TcpConnection {
+        TcpConnection {
             stream: BufWriter::new(stream),
             read_buffer: BytesMut::with_capacity(4096),
         }
