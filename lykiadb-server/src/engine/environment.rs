@@ -1,5 +1,5 @@
-use crate::runtime::interpreter::HaltReason;
-use crate::runtime::types::RV;
+use crate::engine::interpreter::HaltReason;
+use crate::engine::types::RV;
 use core::panic;
 use rustc_hash::FxHashMap;
 use std::borrow::{Borrow, BorrowMut};
@@ -131,7 +131,7 @@ impl Environment {
 
 #[cfg(test)]
 mod test {
-    use crate::runtime::types::RV;
+    use crate::engine::types::RV;
 
     #[test]
     fn test_read_basic() {

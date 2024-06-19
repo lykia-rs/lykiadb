@@ -1,4 +1,4 @@
-use lykiadb_server::runtime::{interpreter::test_helpers::exec_assert, types::RV};
+use lykiadb_server::engine::{interpreter::test_helpers::exec_assert, types::RV};
 use std::sync::Arc;
 
 #[test]

@@ -1,8 +1,8 @@
 use serde_json::json;
 use std::sync::Arc;
 
-use crate::runtime::interpreter::{HaltReason, InterpretError, Interpreter};
-use crate::runtime::types::RV;
+use crate::engine::interpreter::{HaltReason, InterpretError, Interpreter};
+use crate::engine::types::RV;
 
 pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))

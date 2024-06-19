@@ -2,7 +2,7 @@ use super::environment::EnvId;
 use crate::lang::ast::expr::Operation;
 use crate::lang::ast::stmt::StmtId;
 use crate::lang::parser::program::Program;
-use crate::runtime::interpreter::{HaltReason, Interpreter};
+use crate::engine::interpreter::{HaltReason, Interpreter};
 use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -391,7 +391,7 @@ mod test {
 
     use crate::{
         lang::ast::expr::Operation,
-        runtime::types::{eval_binary, Function, RV},
+        engine::types::{eval_binary, Function, RV},
         util::alloc_shared,
     };
 
