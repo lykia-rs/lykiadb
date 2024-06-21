@@ -88,8 +88,8 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, (_, e): ((), &Box<Expr>)) -> Result<(), ResolveError> {
-        match e.as_ref() {
+    fn visit_expr(&mut self, (_, e): ((), &Expr)) -> Result<(), ResolveError> {
+        match e {
             Expr::Literal {
                 raw: _,
                 span: _,
@@ -216,8 +216,8 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_stmt(&mut self, (_, s): ((), &Box<Stmt>)) -> Result<(), ResolveError> {
-        match s.as_ref() {
+    fn visit_stmt(&mut self, (_, s): ((), &Stmt)) -> Result<(), ResolveError> {
+        match s {
             Stmt::Program {
                 body: stmts,
                 span: _,

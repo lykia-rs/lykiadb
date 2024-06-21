@@ -226,7 +226,7 @@ impl Interpreter {
         &self,
         program: Arc<Program>,
         name: &str,
-        eidx: &Box<Expr>,
+        eidx: &Expr,
     ) -> Result<RV, HaltReason> {
         let distance = program.clone().get_distance(eidx);
         if let Some(unwrapped) = distance {
@@ -278,7 +278,7 @@ impl Interpreter {
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
-            ret = self.visit_stmt((program.clone(), &Box::new(statement.clone())));
+            ret = self.visit_stmt((program.clone(), statement));
             if ret.is_err() {
                 break;
             }
@@ -309,7 +309,7 @@ impl Interpreter {
             Literal::Array(arr) => {
                 let collected = arr
                     .iter()
-                    .map(|x| self.visit_expr((program.clone(), &Box::new(x.clone()))).unwrap())
+                    .map(|x| self.visit_expr((program.clone(), x)).unwrap())
                     .collect();
                 RV::Array(alloc_shared(collected))
             }
@@ -318,8 +318,8 @@ impl Interpreter {
 }
 
 impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
-    fn visit_expr(&mut self, (program, e): (Arc<Program>, &Box<Expr>)) -> Result<RV, HaltReason> {
-        match e.as_ref() {
+    fn visit_expr(&mut self, (program, e): (Arc<Program>, &Expr)) -> Result<RV, HaltReason> {
+        match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
             Expr::Insert { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
             Expr::Update { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
@@ -399,7 +399,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                     let mut args_evaluated: Vec<RV> = vec![];
 
                     for arg in args.iter() {
-                        args_evaluated.push(self.visit_expr((program.clone(), &Box::new(arg.clone())))?);
+                        args_evaluated.push(self.visit_expr((program.clone(), arg))?);
                     }
                     self.loop_stack.push_fn();
 
@@ -496,7 +496,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, (program, s): (Arc<Program>, &Box<Stmt>)) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, (program, s): (Arc<Program>, &Stmt)) -> Result<RV, HaltReason> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
@@ -505,7 +505,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
 
         // TODO: Remove clone here
         let p = program.clone();
-        match s.as_ref() {
+        match s {
             Stmt::Program {
                 body: stmts,
                 span: _,

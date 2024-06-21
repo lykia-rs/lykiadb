@@ -16,8 +16,8 @@ impl Program {
         self.locals = Some(locals);
     }
 
-    pub fn get_distance(&self, expr: &Box<Expr>) -> Option<usize> {
-        let expr_id: usize = match expr.as_ref() {
+    pub fn get_distance(&self, expr: &Expr) -> Option<usize> {
+        let expr_id: usize = match expr {
             Expr::Variable {
                 name: _,
                 span: _,
