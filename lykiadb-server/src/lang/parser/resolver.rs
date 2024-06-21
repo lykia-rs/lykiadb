@@ -47,15 +47,15 @@ impl<'a> Resolver<'a> {
 
     fn resolve_stmts(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.resolve_stmt(&Box::new(statement.clone()));
+            self.resolve_stmt(statement);
         }
     }
 
-    fn resolve_stmt(&mut self, statement: &Box<Stmt>) {
+    fn resolve_stmt(&mut self, statement: &Stmt) {
         self.visit_stmt(((), &statement)).unwrap();
     }
 
-    fn resolve_expr(&mut self, expr: &Box<Expr>) {
+    fn resolve_expr(&mut self, expr: &Expr) {
         self.visit_expr(((), expr)).unwrap();
     }
 
@@ -100,7 +100,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(((), &Box::new(item.clone())))?;
+                        self.visit_expr(((), item))?;
                     }
                 }
                 _ => (),
@@ -160,7 +160,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_expr(callee);
 
                 for argument in args {
-                    self.resolve_expr(&Box::new(argument.clone()));
+                    self.resolve_expr(argument);
                 }
             }
             Expr::Function {
