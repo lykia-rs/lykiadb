@@ -1,8 +1,8 @@
+use crate::session::ClientSession;
+use lykiadb_server::net::tcp::TcpConnection;
+use lykiadb_server::net::{CommunicationError, Message, Request};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use lykiadb_server::net::{CommunicationError, Message, Request};
-use lykiadb_server::net::tcp::TcpConnection;
-use crate::session::ClientSession;
 
 pub(crate) struct TcpClientSession {
     conn: TcpConnection,
@@ -33,6 +33,7 @@ impl ClientSession for TcpClientSession {
     }
 
     async fn execute(&mut self, query: &str) -> Result<Message, ()> {
-        self.send_receive(Message::Request(Request::Run(query.to_string()))).await
+        self.send_receive(Message::Request(Request::Run(query.to_string())))
+            .await
     }
 }
