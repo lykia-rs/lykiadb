@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::lang::ast::expr::Expr;
 use crate::lang::ast::stmt::Stmt;
 use crate::lang::ast::visitor::VisitorMut;

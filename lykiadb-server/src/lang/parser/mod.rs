@@ -37,8 +37,8 @@ macro_rules! binary {
                 operation: $self.tok_type_to_op(token.tok_type),
                 right: right.clone(),
                 span: $self.get_merged_span(
-                    &left.get_span(), 
-                    &right.get_span(), 
+                    &left.get_span(),
+                    &right.get_span(),
                 ),
             });
         }
@@ -95,10 +95,7 @@ impl<'a> Parser<'a> {
         self.expected(Eof)?;
         Ok(Box::new(Stmt::Program {
             body: statements.clone(),
-            span: self.get_merged_span(
-                &(statements[0]),
-                &(statements[statements.len() - 1]),
-            ),
+            span: self.get_merged_span(&(statements[0]), &(statements[statements.len() - 1])),
         }))
     }
 
@@ -139,8 +136,7 @@ impl<'a> Parser<'a> {
                 condition,
                 body: if_branch.clone(),
                 r#else_body: Some(else_branch.clone()),
-                span: self
-                    .get_merged_span(&if_tok.span, &else_branch.get_span()),
+                span: self.get_merged_span(&if_tok.span, &else_branch.get_span()),
             }));
         }
         Ok(Box::new(Stmt::If {
@@ -197,10 +193,7 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Box::new(Stmt::Return {
-            span: self.get_merged_span(
-                &ret_tok.span,
-                 &expr.as_ref().unwrap().get_span(),
-            ),
+            span: self.get_merged_span(&ret_tok.span, &expr.as_ref().unwrap().get_span()),
             expr,
         }))
     }
@@ -243,8 +236,7 @@ impl<'a> Parser<'a> {
                 condition,
                 body: inner_stmt.clone(),
                 post: increment,
-                span: self
-                    .get_merged_span(&for_tok.span, &inner_stmt.get_span()),
+                span: self.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
             }));
         }
         let loop_stmt = Box::new(Stmt::Loop {
@@ -376,8 +368,7 @@ impl<'a> Parser<'a> {
                         id: self.get_expr_id(),
                         dst: name.clone(),
                         expr: value.clone(),
-                        span: self
-                            .get_merged_span(span, &value.get_span()),
+                        span: self.get_merged_span(span, &value.get_span()),
                     }));
                 }
                 Expr::Get { object, name, span } => {
@@ -385,8 +376,7 @@ impl<'a> Parser<'a> {
                         object: object.clone(),
                         name: name.clone(),
                         value: value.clone(),
-                        span: self
-                            .get_merged_span(span, &value.get_span()),
+                        span: self.get_merged_span(span, &value.get_span()),
                     }));
                 }
                 _ => {
@@ -413,10 +403,7 @@ impl<'a> Parser<'a> {
                 left: expr.clone(),
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right: right.clone(),
-                span: self.get_merged_span(
-                     &expr.get_span(),
-                     &right.get_span(),
-                ),
+                span: self.get_merged_span(&expr.get_span(), &right.get_span()),
             }));
         }
         Ok(expr)
@@ -436,10 +423,7 @@ impl<'a> Parser<'a> {
                 left: expr.clone(),
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right: right.clone(),
-                span: self.get_merged_span(
-                     &expr.get_span(),
-                     &right.get_span(),
-                ),
+                span: self.get_merged_span(&expr.get_span(), &right.get_span()),
             }));
         }
         Ok(expr)
@@ -498,8 +482,7 @@ impl<'a> Parser<'a> {
                 expr = Box::new(Expr::Get {
                     object: expr.clone(),
                     name: identifier.extract_identifier().unwrap(),
-                    span: self
-                        .get_merged_span(&(expr).get_span(), &identifier.span),
+                    span: self.get_merged_span(&(expr).get_span(), &identifier.span),
                 })
             } else {
                 break;

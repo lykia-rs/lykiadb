@@ -5,17 +5,17 @@ use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
 use super::types::{eval_binary, Stateful};
 use crate::lang::ast::expr::{Expr, Operation};
-use crate::lang::ast::stmt::{Stmt};
+use crate::lang::ast::stmt::Stmt;
 use crate::lang::parser::program::Program;
 use crate::lang::parser::resolver::Resolver;
 use crate::lang::parser::Parser;
 use crate::lang::tokenizer::scanner::Scanner;
 use crate::lang::Literal;
 
-use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokenizer::token::{Span, Spanned};
 use crate::engine::types::RV::Callable;
 use crate::engine::types::{Function, RV};
+use crate::lang::ast::visitor::VisitorMut;
+use crate::lang::tokenizer::token::{Span, Spanned};
 use crate::util::{alloc_shared, Shared};
 
 use std::sync::Arc;
@@ -344,7 +344,12 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
             Expr::Variable { name, span: _, id } => {
                 self.look_up_variable(program.clone(), &name.name, e)
             }
-            Expr::Assignment { dst, expr, span: _, id } => {
+            Expr::Assignment {
+                dst,
+                expr,
+                span: _,
+                id,
+            } => {
                 let distance = program.clone().get_distance(e);
                 let evaluated = self.visit_expr((program.clone(), expr))?;
                 let result = if let Some(distance_unv) = distance {
