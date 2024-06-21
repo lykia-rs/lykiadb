@@ -1,8 +1,8 @@
 use super::environment::EnvId;
-use crate::lang::ast::expr::Operation;
-use crate::lang::ast::stmt::StmtId;
-use crate::lang::parser::program::Program;
 use crate::engine::interpreter::{HaltReason, Interpreter};
+use crate::lang::ast::expr::Operation;
+use crate::lang::ast::stmt::Stmt;
+use crate::lang::parser::program::Program;
 use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -40,7 +40,7 @@ pub enum Function {
         program: Arc<Program>,
         parameters: Vec<String>,
         closure: EnvId,
-        body: Arc<Vec<StmtId>>,
+        body: Arc<Vec<Stmt>>,
     },
 }
 
@@ -390,8 +390,8 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
-        lang::ast::expr::Operation,
         engine::types::{eval_binary, Function, RV},
+        lang::ast::expr::Operation,
         util::alloc_shared,
     };
 

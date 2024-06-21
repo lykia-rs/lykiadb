@@ -23,9 +23,9 @@ pub struct Environment {
 
 impl Environment {
     pub fn new() -> Self {
-        let mut arena = Environment { envs: vec![] };
-        arena.push(None);
-        arena
+        let mut instance = Environment { envs: vec![] };
+        instance.push(None);
+        instance
     }
 
     pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
