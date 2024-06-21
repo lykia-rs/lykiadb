@@ -1,25 +1,24 @@
-use serde::ser::SerializeMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::lang::{
     tokenizer::token::{Span, Spanned},
     Identifier,
 };
 
-use super::{expr::ExprId, AstRef};
+use super::expr::Expr;
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(tag = "@type")]
 pub enum Stmt {
     #[serde(rename = "Stmt::Program")]
     Program {
-        body: Vec<StmtId>,
+        body: Vec<Stmt>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Stmt::Expression")]
     Expression {
-        expr: ExprId,
+        expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
@@ -35,36 +34,36 @@ pub enum Stmt {
     },
     #[serde(rename = "Stmt::Block")]
     Block {
-        body: Vec<StmtId>,
+        body: Vec<Stmt>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Stmt::Declaration")]
     Declaration {
         dst: Identifier,
-        expr: ExprId,
+        expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Stmt::If")]
     If {
-        condition: ExprId,
-        body: StmtId,
-        r#else_body: Option<StmtId>,
+        condition: Box<Expr>,
+        body: Box<Stmt>,
+        r#else_body: Option<Box<Stmt>>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Stmt::Loop")]
     Loop {
-        condition: Option<ExprId>,
-        body: StmtId,
-        post: Option<StmtId>,
+        condition: Option<Box<Expr>>,
+        body: Box<Stmt>,
+        post: Option<Box<Stmt>>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Stmt::Return")]
     Return {
-        expr: Option<ExprId>,
+        expr: Option<Box<Expr>>,
         #[serde(skip)]
         span: Span,
     },
@@ -83,17 +82,5 @@ impl Spanned for Stmt {
             Stmt::Loop { span, .. } => *span,
             Stmt::Return { span, .. } => *span,
         }
-    }
-}
-
-pub type StmtId = AstRef<Stmt>;
-
-pub const STMT_ID_PLACEHOLDER: &'static str = "@StmtId";
-
-impl Serialize for AstRef<Stmt> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry(STMT_ID_PLACEHOLDER, &self.0)?;
-        map.end()
     }
 }

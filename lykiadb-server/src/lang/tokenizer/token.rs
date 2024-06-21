@@ -286,7 +286,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

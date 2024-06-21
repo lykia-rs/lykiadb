@@ -1,5 +1,7 @@
-use crate::lang::ast::expr::{Expr, ExprId};
-use crate::lang::ast::stmt::{Stmt, StmtId};
+use core::panic;
+
+use crate::lang::ast::expr::Expr;
+use crate::lang::ast::stmt::Stmt;
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokenizer::token::Span;
 use crate::lang::{Identifier, Literal};
@@ -23,7 +25,7 @@ impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
-        self.visit_stmt(((), self.program.get_root()))?;
+        self.visit_stmt(((), &self.program.get_root()))?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
         Ok((scopes, locals))
@@ -45,24 +47,24 @@ impl<'a> Resolver<'a> {
         self.scopes.pop();
     }
 
-    fn resolve_stmts(&mut self, statements: &Vec<StmtId>) {
+    fn resolve_stmts(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.resolve_stmt(*statement);
+            self.resolve_stmt(&Box::new(statement.clone()));
         }
     }
 
-    fn resolve_stmt(&mut self, statement: StmtId) {
-        self.visit_stmt(((), statement)).unwrap();
+    fn resolve_stmt(&mut self, statement: &Box<Stmt>) {
+        self.visit_stmt(((), &statement)).unwrap();
     }
 
-    fn resolve_expr(&mut self, expr: ExprId) {
+    fn resolve_expr(&mut self, expr: &Box<Expr>) {
         self.visit_expr(((), expr)).unwrap();
     }
 
-    fn resolve_local(&mut self, expr: ExprId, name: &Identifier) {
+    fn resolve_local(&mut self, expr_id: usize, name: &Identifier) {
         for i in (0..self.scopes.len()).rev() {
             if self.scopes[i].contains_key(&name.name) {
-                self.locals.insert(expr.0, self.scopes.len() - 1 - i);
+                self.locals.insert(expr_id, self.scopes.len() - 1 - i);
                 return;
             }
         }
@@ -86,9 +88,8 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, (_, eidx): ((), ExprId)) -> Result<(), ResolveError> {
-        let e = self.program.get_expression(eidx);
-        match e {
+    fn visit_expr(&mut self, (_, e): ((), &Box<Expr>)) -> Result<(), ResolveError> {
+        match e.as_ref() {
             Expr::Literal {
                 raw: _,
                 span: _,
@@ -96,32 +97,32 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(((), *map.get(item).unwrap()))?;
+                        self.visit_expr(((), map.get(item).unwrap()))?;
                     }
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(((), *item))?;
+                        self.visit_expr(((), &Box::new(item.clone())))?;
                     }
                 }
                 _ => (),
             },
-            Expr::Grouping { expr, span: _ } => self.resolve_expr(*expr),
+            Expr::Grouping { expr, span: _ } => self.resolve_expr(expr),
             Expr::Unary {
                 operation: _,
                 expr,
                 span: _,
-            } => self.resolve_expr(*expr),
+            } => self.resolve_expr(expr),
             Expr::Binary {
                 operation: _,
                 left,
                 right,
                 span: _,
             } => {
-                self.resolve_expr(*left);
-                self.resolve_expr(*right);
+                self.resolve_expr(left);
+                self.resolve_expr(right);
             }
-            Expr::Variable { name, span } => {
+            Expr::Variable { name, span, id } => {
                 if !self.scopes.is_empty() {
                     let last_scope = self.scopes.last().unwrap();
                     let value = last_scope.get(&name.name);
@@ -133,11 +134,16 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                         });
                     }
                 }
-                self.resolve_local(eidx, name);
+                self.resolve_local(*id, &name);
             }
-            Expr::Assignment { dst, expr, span: _ } => {
-                self.resolve_expr(*expr);
-                self.resolve_local(eidx, dst);
+            Expr::Assignment {
+                dst,
+                expr,
+                span: _,
+                id,
+            } => {
+                self.resolve_expr(expr);
+                self.resolve_local(*id, &dst);
             }
             Expr::Logical {
                 left,
@@ -145,18 +151,18 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 right,
                 span: _,
             } => {
-                self.resolve_expr(*left);
-                self.resolve_expr(*right);
+                self.resolve_expr(left);
+                self.resolve_expr(right);
             }
             Expr::Call {
                 callee,
                 args,
                 span: _,
             } => {
-                self.resolve_expr(*callee);
+                self.resolve_expr(callee);
 
                 for argument in args {
-                    self.resolve_expr(*argument);
+                    self.resolve_expr(&Box::new(argument.clone()));
                 }
             }
             Expr::Function {
@@ -171,8 +177,8 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 self.begin_scope();
                 for param in parameters {
-                    self.declare(param);
-                    self.define(param);
+                    self.declare(&param);
+                    self.define(&param);
                 }
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
@@ -182,7 +188,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 name: _,
                 span: _,
             } => {
-                self.resolve_expr(*object);
+                self.resolve_expr(object);
             }
             Expr::Set {
                 object,
@@ -190,8 +196,8 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 value,
                 span: _,
             } => {
-                self.resolve_expr(*object);
-                self.resolve_expr(*value);
+                self.resolve_expr(object);
+                self.resolve_expr(value);
             }
             Expr::Select { query: _, span: _ }
             | Expr::Insert {
@@ -210,31 +216,30 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_stmt(&mut self, (_, sidx): ((), StmtId)) -> Result<(), ResolveError> {
-        let s = self.program.get_statement(sidx);
-        match s {
+    fn visit_stmt(&mut self, (_, s): ((), &Box<Stmt>)) -> Result<(), ResolveError> {
+        match s.as_ref() {
             Stmt::Program {
                 body: stmts,
                 span: _,
             } => {
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(&stmts);
             }
             Stmt::Block {
                 body: stmts,
                 span: _,
             } => {
                 self.begin_scope();
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(&stmts);
                 self.end_scope();
             }
             Stmt::Break { span: _ } | Stmt::Continue { span: _ } => (),
             Stmt::Expression { expr, span: _ } => {
-                self.resolve_expr(*expr);
+                self.resolve_expr(expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                self.declare(dst);
-                self.resolve_expr(*expr);
-                self.define(dst);
+                self.declare(&dst);
+                self.resolve_expr(expr);
+                self.define(&dst);
             }
             Stmt::If {
                 condition,
@@ -242,10 +247,10 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 r#else_body: r#else,
                 span: _,
             } => {
-                self.resolve_expr(*condition);
-                self.resolve_stmt(*body);
+                self.resolve_expr(condition);
+                self.resolve_stmt(&body);
                 if r#else.is_some() {
-                    self.resolve_stmt(*r#else.as_ref().unwrap());
+                    self.resolve_stmt(r#else.as_ref().unwrap());
                 }
             }
             Stmt::Loop {
@@ -255,16 +260,16 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 span: _,
             } => {
                 if condition.is_some() {
-                    self.resolve_expr(*condition.as_ref().unwrap());
+                    self.resolve_expr(condition.as_ref().unwrap());
                 }
-                self.resolve_stmt(*body);
+                self.resolve_stmt(&body);
                 if post.is_some() {
-                    self.resolve_stmt(*post.as_ref().unwrap());
+                    self.resolve_stmt(post.as_ref().unwrap());
                 }
             }
             Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
-                    self.resolve_expr(expr.unwrap());
+                    self.resolve_expr(expr.as_ref().unwrap());
                 }
             }
         };
