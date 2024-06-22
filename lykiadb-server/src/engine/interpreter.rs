@@ -197,27 +197,27 @@ impl Interpreter {
         &mut self,
         program: Arc<Program>,
         operation: &Operation,
-        eidx: &Box<Expr>,
+        expr: &Box<Expr>,
     ) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr((program, eidx))?.as_number() {
+            if let Some(num) = self.visit_expr((program, expr))?.as_number() {
                 return Ok(RV::Num(-num));
             }
             Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(!self.visit_expr((program, eidx))?.as_bool()))
+            Ok(RV::Bool(!self.visit_expr((program, expr))?.as_bool()))
         }
     }
 
     fn eval_binary(
         &mut self,
         program: Arc<Program>,
-        lidx: &Box<Expr>,
-        ridx: &Box<Expr>,
+        lexpr: &Box<Expr>,
+        rexpr: &Box<Expr>,
         operation: Operation,
     ) -> Result<RV, HaltReason> {
-        let left_eval = self.visit_expr((program.clone(), lidx))?;
-        let right_eval = self.visit_expr((program, ridx))?;
+        let left_eval = self.visit_expr((program.clone(), lexpr))?;
+        let right_eval = self.visit_expr((program, rexpr))?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
@@ -226,9 +226,9 @@ impl Interpreter {
         &self,
         program: Arc<Program>,
         name: &str,
-        eidx: &Expr,
+        expr: &Expr,
     ) -> Result<RV, HaltReason> {
-        let distance = program.clone().get_distance(eidx);
+        let distance = program.clone().get_distance(expr);
         if let Some(unwrapped) = distance {
             self.env_man
                 .read()

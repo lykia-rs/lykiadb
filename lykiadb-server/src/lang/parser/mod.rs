@@ -329,16 +329,16 @@ impl<'a> Parser<'a> {
         }
         self.expected(sym!(RightParen))?;
         self.expected(sym!(LeftBrace))?;
-        let stmt_idx = self.block()?;
+        let stmt = self.block()?;
 
-        let inner_stmt = &(stmt_idx);
+        let inner_stmt = &(stmt);
 
         let body: Vec<Stmt> = match inner_stmt.as_ref() {
             Stmt::Block {
                 body: stmts,
                 span: _,
             } => stmts.clone(),
-            _ => vec![*stmt_idx.clone()],
+            _ => vec![*stmt.clone()],
         };
 
         Ok(Box::new(Expr::Function {
@@ -348,7 +348,7 @@ impl<'a> Parser<'a> {
                 .map(|t| t.extract_identifier().unwrap())
                 .collect(),
             body: Arc::new(body),
-            span: self.get_merged_span(&fun_tok.span, &stmt_idx.get_span()),
+            span: self.get_merged_span(&fun_tok.span, &stmt.get_span()),
         }))
     }
 
