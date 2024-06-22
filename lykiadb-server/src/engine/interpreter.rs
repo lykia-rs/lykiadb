@@ -197,7 +197,7 @@ impl Interpreter {
         &mut self,
         program: Arc<Program>,
         operation: &Operation,
-        expr: &Box<Expr>,
+        expr: &Expr,
     ) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr((program, expr))?.as_number() {
@@ -212,8 +212,8 @@ impl Interpreter {
     fn eval_binary(
         &mut self,
         program: Arc<Program>,
-        lexpr: &Box<Expr>,
-        rexpr: &Box<Expr>,
+        lexpr: &Expr,
+        rexpr: &Expr,
         operation: Operation,
     ) -> Result<RV, HaltReason> {
         let left_eval = self.visit_expr((program.clone(), lexpr))?;
