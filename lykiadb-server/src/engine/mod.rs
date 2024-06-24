@@ -1,7 +1,7 @@
 use self::environment::Environment;
 use self::error::ExecutionError;
 use self::interpreter::Output;
-use self::std::stdlib;
+use self::stdlib::stdlib;
 use crate::engine::interpreter::Interpreter;
 use crate::engine::types::RV;
 use crate::lang::parser::Parser;
@@ -13,7 +13,7 @@ use tracing::info;
 pub mod environment;
 pub mod error;
 pub mod interpreter;
-mod std;
+mod stdlib;
 pub mod types;
 
 pub struct Runtime {
