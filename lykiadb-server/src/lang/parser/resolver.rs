@@ -23,7 +23,7 @@ impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
-        self.visit_stmt(((), &self.program.get_root()))?;
+        self.visit_stmt((&self.program.get_root()))?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
         Ok((scopes, locals))
@@ -57,11 +57,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_stmt(&mut self, statement: &Stmt) {
-        self.visit_stmt(((), &statement)).unwrap();
+        self.visit_stmt((&statement)).unwrap();
     }
 
     fn resolve_expr(&mut self, expr: &Expr) {
-        self.visit_expr(((), expr)).unwrap();
+        self.visit_expr((expr)).unwrap();
     }
 
     fn resolve_local(&mut self, expr_id: usize, name: &Identifier) {
@@ -91,7 +91,7 @@ impl<'a> Resolver<'a> {
 }
 
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
-    fn visit_expr(&mut self, (_, e): ((), &Expr)) -> Result<(), ResolveError> {
+    fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
             Expr::Literal {
                 raw: _,
@@ -100,12 +100,12 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(((), map.get(item).unwrap()))?;
+                        self.visit_expr(map.get(item).unwrap())?;
                     }
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr(((), item))?;
+                        self.visit_expr((item))?;
                     }
                 }
                 _ => (),
@@ -219,7 +219,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
         Ok(())
     }
 
-    fn visit_stmt(&mut self, (_, s): ((), &Stmt)) -> Result<(), ResolveError> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ResolveError> {
         match s {
             Stmt::Program {
                 body: stmts,

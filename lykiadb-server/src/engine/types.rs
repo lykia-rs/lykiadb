@@ -2,7 +2,6 @@ use super::environment::EnvId;
 use crate::engine::interpreter::{HaltReason, Interpreter};
 use crate::lang::ast::expr::Operation;
 use crate::lang::ast::stmt::Stmt;
-use crate::lang::parser::program::Program;
 use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -37,7 +36,6 @@ pub enum Function {
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: String,
-        program: Arc<Program>,
         parameters: Vec<String>,
         closure: EnvId,
         body: Arc<Vec<Stmt>>,
@@ -51,11 +49,10 @@ impl Function {
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
-                program,
                 parameters,
                 closure,
                 body,
-            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
+            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
         }
     }
 
@@ -64,7 +61,6 @@ impl Function {
             Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
             Function::UserDefined {
                 name,
-                program: _,
                 parameters: _,
                 closure: _,
                 body: _,

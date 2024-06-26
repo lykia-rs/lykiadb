@@ -6,13 +6,13 @@ use super::{
     stmt::Stmt,
 };
 
-pub trait Visitor<O, E, I = ()> {
-    fn visit_expr(&self, e: (I, &Expr)) -> Result<O, E>;
-    fn visit_stmt(&self, s: (I, &Stmt)) -> Result<O, E>;
+pub trait Visitor<O, E> {
+    fn visit_expr(&self, e: &Expr) -> Result<O, E>;
+    fn visit_stmt(&self, s: &Stmt) -> Result<O, E>;
 }
-pub trait VisitorMut<O, E, I = ()> {
-    fn visit_expr(&mut self, e: (I, &Expr)) -> Result<O, E>;
-    fn visit_stmt(&mut self, s: (I, &Stmt)) -> Result<O, E>;
+pub trait VisitorMut<O, E> {
+    fn visit_expr(&mut self, e: &Expr) -> Result<O, E>;
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<O, E>;
 }
 
 pub trait SqlVisitor<T, Q> {
