@@ -29,10 +29,15 @@ impl<'a> Resolver<'a> {
         Ok((scopes, locals))
     }
 
-    pub fn new(scopes: Vec<FxHashMap<String, bool>>, program: &'a Program) -> Resolver<'a> {
+    pub fn new(scopes: Vec<FxHashMap<String, bool>>, program: &'a Program, previous_locals: Option<FxHashMap<usize, usize>>) -> Resolver<'a> {
         Resolver {
             scopes,
-            locals: FxHashMap::default(),
+            locals: if previous_locals.is_some() {
+                previous_locals.unwrap()
+            }
+            else {
+                FxHashMap::default()
+            },
             program,
         }
     }

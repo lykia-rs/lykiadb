@@ -23,21 +23,23 @@ use std::vec;
 
 pub struct SourceProcessor {
     scopes: Vec<FxHashMap<String, bool>>,
+    locals: FxHashMap<usize, usize>,
 }
 
 impl SourceProcessor {
     pub fn new() -> SourceProcessor {
-        SourceProcessor { scopes: vec![] }
+        SourceProcessor { scopes: vec![], locals: FxHashMap::default() }
     }
 
     pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
         let tokens = Scanner::scan(source)?;
         let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program);
+        let mut resolver = Resolver::new(self.scopes.clone(), &program, Some(self.locals.clone()));
         let (scopes, locals) = resolver.resolve().unwrap();
 
         self.scopes = scopes;
-        program.set_locals(locals);
+        self.locals = locals.clone();
+        program.set_locals(self.locals.clone());
 
         Ok(program)
     }
@@ -162,6 +164,7 @@ pub struct Interpreter {
     loop_stack: LoopStack,
     env_man: Shared<Environment>,
     source_processor: SourceProcessor,
+    current_program: Option<Arc<Program>>,
 }
 
 impl Interpreter {
@@ -173,11 +176,13 @@ impl Interpreter {
             root_env: env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
+            current_program: None
         }
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
+        self.current_program = Some(program.clone());
         let out = self.visit_stmt((program.clone(), &program.get_root()));
         if let Ok(val) = out {
             Ok(val)

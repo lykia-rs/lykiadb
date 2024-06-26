@@ -111,7 +111,13 @@ impl Environment {
             // TODO(vck): Remove clone
             return Ok(self.envs[unwrapped.0].map.get(name).unwrap().clone());
         }
-        return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
+        if let Some(val) = self.envs[env_id.0].map.get(name) {
+            return Ok(val.clone());
+        }
+
+        Err(HaltReason::Error(InterpretError::Other {
+            message: format!("Variable '{}' was not found", &name),
+        }))
     }
 
     pub fn ancestor(&self, env_id: EnvId, distance: usize) -> Option<EnvId> {
