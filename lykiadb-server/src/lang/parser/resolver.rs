@@ -23,19 +23,22 @@ impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
     ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
-        self.visit_stmt((&self.program.get_root()))?;
+        self.visit_stmt(&self.program.get_root())?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
         Ok((scopes, locals))
     }
 
-    pub fn new(scopes: Vec<FxHashMap<String, bool>>, program: &'a Program, previous_locals: Option<FxHashMap<usize, usize>>) -> Resolver<'a> {
+    pub fn new(
+        scopes: Vec<FxHashMap<String, bool>>,
+        program: &'a Program,
+        previous_locals: Option<FxHashMap<usize, usize>>,
+    ) -> Resolver<'a> {
         Resolver {
             scopes,
             locals: if previous_locals.is_some() {
                 previous_locals.unwrap()
-            }
-            else {
+            } else {
                 FxHashMap::default()
             },
             program,
@@ -57,11 +60,11 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_stmt(&mut self, statement: &Stmt) {
-        self.visit_stmt((&statement)).unwrap();
+        self.visit_stmt(&statement).unwrap();
     }
 
     fn resolve_expr(&mut self, expr: &Expr) {
-        self.visit_expr((expr)).unwrap();
+        self.visit_expr(expr).unwrap();
     }
 
     fn resolve_local(&mut self, expr_id: usize, name: &Identifier) {
@@ -105,7 +108,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 Literal::Array(items) => {
                     for item in items {
-                        self.visit_expr((item))?;
+                        self.visit_expr(item)?;
                     }
                 }
                 _ => (),

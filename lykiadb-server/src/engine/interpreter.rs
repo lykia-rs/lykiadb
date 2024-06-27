@@ -28,7 +28,10 @@ pub struct SourceProcessor {
 
 impl SourceProcessor {
     pub fn new() -> SourceProcessor {
-        SourceProcessor { scopes: vec![], locals: FxHashMap::default() }
+        SourceProcessor {
+            scopes: vec![],
+            locals: FxHashMap::default(),
+        }
     }
 
     pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
@@ -176,7 +179,7 @@ impl Interpreter {
             root_env: env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
-            current_program: None
+            current_program: None,
         }
     }
 
@@ -198,11 +201,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(
-        &mut self,
-        operation: &Operation,
-        expr: &Expr,
-    ) -> Result<RV, HaltReason> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
                 return Ok(RV::Num(-num));
@@ -225,11 +224,7 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(
-        &self,
-        name: &str,
-        expr: &Expr,
-    ) -> Result<RV, HaltReason> {
+    fn look_up_variable(&self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         let distance = self.current_program.clone().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
             self.env_man
@@ -307,10 +302,7 @@ impl Interpreter {
                 RV::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
-                let collected = arr
-                    .iter()
-                    .map(|x| self.visit_expr(x).unwrap())
-                    .collect();
+                let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
                 RV::Array(alloc_shared(collected))
             }
         }
@@ -341,9 +333,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, span: _, id } => {
-                self.look_up_variable(&name.name, e)
-            }
+            Expr::Variable { name, span: _, id } => self.look_up_variable(&name.name, e),
             Expr::Assignment {
                 dst,
                 expr,
@@ -385,9 +375,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(
-                    self.visit_expr(right)?.as_bool(),
-                ))
+                Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Call { callee, args, span } => {
                 let eval = self.visit_expr(callee)?;
@@ -552,9 +540,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
-                        || self
-                            .visit_expr(&condition.as_ref().unwrap())?
-                            .as_bool())
+                        || self.visit_expr(&condition.as_ref().unwrap())?.as_bool())
                 {
                     self.visit_stmt(&body)?;
                     self.loop_stack
