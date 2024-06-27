@@ -1,7 +1,6 @@
 use crate::session::ClientSession;
 use lykiadb_server::net::tcp::TcpConnection;
 use lykiadb_server::net::{CommunicationError, Message, Request};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 pub(crate) struct TcpClientSession {

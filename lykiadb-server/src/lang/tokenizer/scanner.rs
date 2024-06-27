@@ -70,7 +70,7 @@ impl<'a> Scanner<'a> {
         if self.is_at_end() {
             return Err(ScanError::UnterminatedString {
                 span: Span {
-                    start: start,
+                    start,
                     end: start + raw_str.len(),
                     line: self.line,
                     line_end: self.line,
@@ -86,7 +86,7 @@ impl<'a> Scanner<'a> {
             literal: Some(Str(Arc::new(raw_str.clone()))),
             lexeme: Some(raw_str),
             span: Span {
-                start: start,
+                start,
                 end: start + len + 2,
                 line: self.line,
                 line_end: self.line,
@@ -116,7 +116,7 @@ impl<'a> Scanner<'a> {
             if self.is_at_end() || !self.peek(0).is_ascii_digit() {
                 return Err(ScanError::MalformedNumberLiteral {
                     span: Span {
-                        start: start,
+                        start,
                         end: start + raw_str.len(),
                         line: self.line,
                         line_end: self.line,
@@ -136,7 +136,7 @@ impl<'a> Scanner<'a> {
             literal: Some(Num(parsed)),
             lexeme: Some(raw_str),
             span: Span {
-                start: start,
+                start,
                 end: start + len,
                 line: self.line,
                 line_end: self.line,
@@ -155,7 +155,7 @@ impl<'a> Scanner<'a> {
             raw_str.push(self.advance().1);
         }
         let span = Span {
-            start: start,
+            start,
             end: start + raw_str.len(),
             line: self.line,
             line_end: self.line,
@@ -223,7 +223,7 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some("/".to_owned()),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 1,
                     line: self.line,
                     line_end: self.line,
@@ -240,7 +240,7 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some("&&".to_owned()),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 2,
                     line: self.line,
                     line_end: self.line,
@@ -252,7 +252,7 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some("||".to_owned()),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 2,
                     line: self.line,
                     line_end: self.line,
@@ -270,7 +270,7 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some(c.to_string() + "="),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 2,
                     line: self.line,
                     line_end: self.line,
@@ -288,7 +288,7 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some(c.to_string()),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 1,
                     line: self.line,
                     line_end: self.line,
@@ -305,21 +305,21 @@ impl<'a> Scanner<'a> {
                 literal: None,
                 lexeme: Some(other.to_string()),
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 1,
                     line: self.line,
                     line_end: self.line,
                 },
             })
         } else {
-            return Err(ScanError::UnexpectedCharacter {
+            Err(ScanError::UnexpectedCharacter {
                 span: Span {
-                    start: start,
+                    start,
                     end: start + 1,
                     line: self.line,
                     line_end: self.line,
                 },
-            });
+            })
         }
     }
 
@@ -977,7 +977,7 @@ mod test {
                 Token {
                     tok_type: TokenType::Num,
                     lexeme: lexm!("1.7976931348623157E+308"),
-                    literal: Some(Num(1.7976931348623157E+308)),
+                    literal: Some(Num(1.797_693_134_862_315_7E308)),
                     span: Span {
                         line: 0,
                         start: 36,

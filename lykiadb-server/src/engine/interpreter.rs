@@ -26,6 +26,12 @@ pub struct SourceProcessor {
     locals: FxHashMap<usize, usize>,
 }
 
+impl Default for SourceProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SourceProcessor {
     pub fn new() -> SourceProcessor {
         SourceProcessor {
@@ -41,7 +47,7 @@ impl SourceProcessor {
         let (scopes, locals) = resolver.resolve().unwrap();
 
         self.scopes = scopes;
-        self.locals = locals.clone();
+        self.locals.clone_from(&locals);
         program.set_locals(self.locals.clone());
 
         Ok(program)
@@ -320,7 +326,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 value,
                 raw: _,
                 span: _,
-            } => Ok(self.literal_to_rv(&value)),
+            } => Ok(self.literal_to_rv(value)),
             Expr::Grouping { expr, span: _ } => self.visit_expr(expr),
             Expr::Unary {
                 operation,
@@ -425,7 +431,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     name: fn_name.to_string(),
                     body: Arc::clone(body),
                     parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
-                    closure: self.env.clone(),
+                    closure: self.env,
                 };
 
                 let callable = Callable(Some(parameters.len()), fun.into());
@@ -500,13 +506,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(&stmts, Some(self.env.clone()));
+                return self.execute_block(stmts, Some(self.env));
             }
             Stmt::Expression { expr, span: _ } => {
-                return self.visit_expr(&expr);
+                return self.visit_expr(expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                let evaluated = self.visit_expr(&expr)?;
+                let evaluated = self.visit_expr(expr)?;
                 self.env_man.write().unwrap().declare(
                     self.env,
                     dst.name.to_string(),
@@ -517,7 +523,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(&stmts, None);
+                return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
@@ -525,10 +531,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 r#else_body: r#else,
                 span: _,
             } => {
-                if self.visit_expr(&condition)?.as_bool() {
-                    self.visit_stmt(&body)?;
+                if self.visit_expr(condition)?.as_bool() {
+                    self.visit_stmt(body)?;
                 } else if let Some(else_stmt) = r#else {
-                    self.visit_stmt(&else_stmt)?;
+                    self.visit_stmt(else_stmt)?;
                 }
             }
             Stmt::Loop {
@@ -540,13 +546,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
-                        || self.visit_expr(&condition.as_ref().unwrap())?.as_bool())
+                        || self.visit_expr(condition.as_ref().unwrap())?.as_bool())
                 {
-                    self.visit_stmt(&body)?;
+                    self.visit_stmt(body)?;
                     self.loop_stack
                         .set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
-                        self.visit_stmt(&post_id)?;
+                        self.visit_stmt(post_id)?;
                     }
                 }
                 self.loop_stack.pop_loop();
@@ -567,7 +573,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
-                    let ret = self.visit_expr(&expr.as_ref().unwrap())?;
+                    let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
@@ -580,6 +586,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,
+}
+
+impl Default for Output {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Output {
@@ -618,7 +630,7 @@ pub mod test_helpers {
         (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
     }
 
-    pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
+    pub fn exec_assert(code: &str, output: Vec<RV>) {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
         out.write().unwrap().expect(output);
@@ -641,7 +653,7 @@ mod test {
             TestUtils.out(!!!3);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
@@ -660,7 +672,7 @@ mod test {
             TestUtils.out(-5-2);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(7.0),
             RV::Num(28.0),
@@ -682,7 +694,7 @@ mod test {
             TestUtils.out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Bool(true),
             RV::Bool(true),

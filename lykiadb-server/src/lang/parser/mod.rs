@@ -673,7 +673,7 @@ impl<'a> Parser<'a> {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     fn match_next_all_of(&mut self, tokens: &[TokenType]) -> bool {
@@ -685,7 +685,7 @@ impl<'a> Parser<'a> {
         for _ in 0..tokens.len() {
             self.advance();
         }
-        return true;
+        true
     }
 
     fn match_next_one_of(&mut self, tokens: &[TokenType]) -> bool {
@@ -1111,9 +1111,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        return Ok(SqlCollectionSubquery::Group {
+        Ok(SqlCollectionSubquery::Group {
             values: subquery_group,
-        });
+        })
     }
 
     fn sql_select_where(&mut self) -> ParseResult<Option<Box<SqlExpr>>> {
@@ -1156,7 +1156,7 @@ impl<'a> Parser<'a> {
             // If the next token is a left paren, then it must be either a select statement or a recursive subquery
             let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
-            return Ok(parsed);
+            Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
             return Ok(SqlCollectionSubquery::Collection(collection));
         } else {
@@ -1196,36 +1196,36 @@ impl<'a> Parser<'a> {
         match (expr_conj_fst, expr_conj_sec) {
             (Some(SqlKeyword(Is)), None) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::Is { left, right }));
+                Ok(Box::new(SqlExpr::Is { left, right }))
             }
             (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::IsNot { left, right }));
+                Ok(Box::new(SqlExpr::IsNot { left, right }))
             }
             (Some(SqlKeyword(In)), None) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::In { left, right }));
+                Ok(Box::new(SqlExpr::In { left, right }))
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::NotIn { left, right }));
+                Ok(Box::new(SqlExpr::NotIn { left, right }))
             }
             (Some(SqlKeyword(Like)), None) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::Like { left, right }));
+                Ok(Box::new(SqlExpr::Like { left, right }))
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => {
                 let right = self.sql_expression()?;
-                return Ok(Box::new(SqlExpr::NotLike { left, right }));
+                Ok(Box::new(SqlExpr::NotLike { left, right }))
             }
             (Some(SqlKeyword(Between)), None) => {
-                return Ok(self.sql_expression_between_and(left, false)?);
+                self.sql_expression_between_and(left, false)
             }
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
-                return Ok(self.sql_expression_between_and(left, true)?);
+                self.sql_expression_between_and(left, true)
             }
             _ => {
-                return Ok(Box::new(SqlExpr::Default(expr)));
+                Ok(Box::new(SqlExpr::Default(expr)))
             }
         }
     }
@@ -1250,10 +1250,10 @@ impl<'a> Parser<'a> {
             }));
         }
 
-        return Ok(Box::new(SqlExpr::Between {
+        Ok(Box::new(SqlExpr::Between {
             expr: left,
             lower,
             upper,
-        }));
+        }))
     }
 }

@@ -97,7 +97,7 @@ impl Serialize for RV {
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 let arr = (arr.borrow() as &RwLock<Vec<RV>>).read().unwrap();
-                for item in (&arr).iter() {
+                for item in arr.iter() {
                     seq.serialize_element(&item)?;
                 }
                 seq.end()
@@ -107,7 +107,7 @@ impl Serialize for RV {
                 let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>)
                     .read()
                     .unwrap();
-                for (key, value) in (&arr).iter() {
+                for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
@@ -393,35 +393,33 @@ mod test {
 
     #[test]
     fn test_is_value_truthy() {
-        assert_eq!((RV::Null).as_bool(), false);
-        assert_eq!((RV::Undefined).as_bool(), false);
-        assert_eq!((RV::NaN).as_bool(), false);
-        assert_eq!((RV::Bool(false)).as_bool(), false);
-        assert_eq!((RV::Bool(true)).as_bool(), true);
-        assert_eq!((RV::Num(0.0)).as_bool(), false);
-        assert_eq!((RV::Num(0.1)).as_bool(), true);
-        assert_eq!((RV::Num(-0.1)).as_bool(), true);
-        assert_eq!((RV::Num(1.0)).as_bool(), true);
-        assert_eq!((RV::Num(-1.0)).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_bool(), false);
-        assert_eq!((RV::Str(Arc::new("0".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("false".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("true".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("foo".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Array(alloc_shared(vec![]))).as_bool(), true);
-        assert_eq!(
-            (RV::Object(alloc_shared(FxHashMap::default()))).as_bool(),
-            true
+        assert!(!(RV::Null).as_bool());
+        assert!(!(RV::Undefined).as_bool());
+        assert!(!(RV::NaN).as_bool());
+        assert!(!(RV::Bool(false)).as_bool());
+        assert!((RV::Bool(true)).as_bool());
+        assert!(!(RV::Num(0.0)).as_bool());
+        assert!((RV::Num(0.1)).as_bool());
+        assert!((RV::Num(-0.1)).as_bool());
+        assert!((RV::Num(1.0)).as_bool());
+        assert!((RV::Num(-1.0)).as_bool());
+        assert!(!(RV::Str(Arc::new("".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("0".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("false".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("true".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
+        assert!((RV::Array(alloc_shared(vec![]))).as_bool());
+        assert!(
+            (RV::Object(alloc_shared(FxHashMap::default()))).as_bool()
         );
-        assert_eq!(
+        assert!(
             (RV::Callable(
                 Some(1),
                 Arc::new(Function::Lambda {
                     function: |_, _| Ok(RV::Undefined)
                 })
             ))
-            .as_bool(),
-            true
+            .as_bool()
         );
     }
 

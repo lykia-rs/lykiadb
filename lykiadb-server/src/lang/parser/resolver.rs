@@ -60,7 +60,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_stmt(&mut self, statement: &Stmt) {
-        self.visit_stmt(&statement).unwrap();
+        self.visit_stmt(statement).unwrap();
     }
 
     fn resolve_expr(&mut self, expr: &Expr) {
@@ -140,7 +140,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                         });
                     }
                 }
-                self.resolve_local(*id, &name);
+                self.resolve_local(*id, name);
             }
             Expr::Assignment {
                 dst,
@@ -149,7 +149,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 id,
             } => {
                 self.resolve_expr(expr);
-                self.resolve_local(*id, &dst);
+                self.resolve_local(*id, dst);
             }
             Expr::Logical {
                 left,
@@ -183,8 +183,8 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 self.begin_scope();
                 for param in parameters {
-                    self.declare(&param);
-                    self.define(&param);
+                    self.declare(param);
+                    self.define(param);
                 }
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
@@ -228,14 +228,14 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 body: stmts,
                 span: _,
             } => {
-                self.resolve_stmts(&stmts);
+                self.resolve_stmts(stmts);
             }
             Stmt::Block {
                 body: stmts,
                 span: _,
             } => {
                 self.begin_scope();
-                self.resolve_stmts(&stmts);
+                self.resolve_stmts(stmts);
                 self.end_scope();
             }
             Stmt::Break { span: _ } | Stmt::Continue { span: _ } => (),
@@ -243,9 +243,9 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_expr(expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                self.declare(&dst);
+                self.declare(dst);
                 self.resolve_expr(expr);
-                self.define(&dst);
+                self.define(dst);
             }
             Stmt::If {
                 condition,
@@ -254,7 +254,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 span: _,
             } => {
                 self.resolve_expr(condition);
-                self.resolve_stmt(&body);
+                self.resolve_stmt(body);
                 if r#else.is_some() {
                     self.resolve_stmt(r#else.as_ref().unwrap());
                 }
@@ -268,7 +268,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 if condition.is_some() {
                     self.resolve_expr(condition.as_ref().unwrap());
                 }
-                self.resolve_stmt(&body);
+                self.resolve_stmt(body);
                 if post.is_some() {
                     self.resolve_stmt(post.as_ref().unwrap());
                 }

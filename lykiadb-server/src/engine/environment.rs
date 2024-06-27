@@ -21,6 +21,12 @@ pub struct Environment {
     envs: Vec<EnvironmentFrame>,
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Environment {
     pub fn new() -> Self {
         let mut instance = Environment { envs: vec![] };
