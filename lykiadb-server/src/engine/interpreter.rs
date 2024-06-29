@@ -339,7 +339,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, span: _, id: _ } => self.look_up_variable(&name.name, e),
+            Expr::Variable {
+                name,
+                span: _,
+                id: _,
+            } => self.look_up_variable(&name.name, e),
             Expr::Assignment {
                 dst,
                 expr,
@@ -453,8 +457,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let cloned = map.clone();
                     let borrowed = cloned.read().unwrap();
                     let v = borrowed.get(&name.name.clone());
-                    if v.is_some() {
-                        return Ok(v.unwrap().clone());
+                    if let Some(v) = v {
+                        return Ok(v.clone());
                     }
                     Err(HaltReason::Error(InterpretError::PropertyNotFound {
                         span: *span,

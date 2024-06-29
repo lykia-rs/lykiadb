@@ -36,8 +36,8 @@ impl<'a> Resolver<'a> {
     ) -> Resolver<'a> {
         Resolver {
             scopes,
-            locals: if previous_locals.is_some() {
-                previous_locals.unwrap()
+            locals: if let Some(previous_locals) = previous_locals{
+                previous_locals
             } else {
                 FxHashMap::default()
             },

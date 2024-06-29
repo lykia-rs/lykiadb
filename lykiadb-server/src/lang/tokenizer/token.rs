@@ -305,14 +305,6 @@ impl Spanned for Span {
 }
 
 impl Span {
-    pub fn default() -> Span {
-        Span {
-            start: 0,
-            end: 0,
-            line: 0,
-            line_end: 0,
-        }
-    }
     pub fn merge(&self, other: &Span) -> Span {
         Span {
             start: self.start.min(other.start),

@@ -165,10 +165,7 @@ impl<'a> Scanner<'a> {
 
         let is_coerced_identifier = is_escaped_identifier || {
             if let Some(prev) = prev {
-                match prev.tok_type {
-                    TokenType::Symbol(Dot) => true,
-                    _ => false,
-                }
+                matches!(prev.tok_type, TokenType::Symbol(Dot))
             } else {
                 false
             }
