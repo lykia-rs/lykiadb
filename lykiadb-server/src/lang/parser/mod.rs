@@ -1218,15 +1218,11 @@ impl<'a> Parser<'a> {
                 let right = self.sql_expression()?;
                 Ok(Box::new(SqlExpr::NotLike { left, right }))
             }
-            (Some(SqlKeyword(Between)), None) => {
-                self.sql_expression_between_and(left, false)
-            }
+            (Some(SqlKeyword(Between)), None) => self.sql_expression_between_and(left, false),
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
                 self.sql_expression_between_and(left, true)
             }
-            _ => {
-                Ok(Box::new(SqlExpr::Default(expr)))
-            }
+            _ => Ok(Box::new(SqlExpr::Default(expr))),
         }
     }
 

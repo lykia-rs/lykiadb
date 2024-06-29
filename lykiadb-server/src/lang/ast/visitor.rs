@@ -29,7 +29,7 @@ pub trait SqlVisitorMut<T, Q> {
     fn visit_sql_select(&mut self, e: &SqlSelect) -> Result<T, Q>;
     fn visit_sql_select_core(&mut self, core: &SqlSelectCore) -> Result<T, Q>;
     fn visit_sql_subquery(&mut self, subquery: &SqlCollectionSubquery) -> Result<T, Q>;
-    fn visit_sql_expr(&mut self, sql_expr: &Box<SqlExpr>) -> Result<T, Q>;
+    fn visit_sql_expr(&mut self, sql_expr: &SqlExpr) -> Result<T, Q>;
     fn visit_sql_insert(&mut self, sql_insert: &SqlInsert) -> Result<T, Q>;
     fn visit_sql_update(&mut self, sql_update: &SqlUpdate) -> Result<T, Q>;
     fn visit_sql_delete(&mut self, sql_delete: &SqlDelete) -> Result<T, Q>;

@@ -71,9 +71,7 @@ impl Shell {
             Message::Response(Response::Program(value)) => {
                 println!("{}", serde_json::to_string_pretty(&value).unwrap())
             }
-            Message::Response(Response::Error(err)) => {
-                report_error(filename, content, err.clone())
-            }
+            Message::Response(Response::Error(err)) => report_error(filename, content, err.clone()),
             _ => panic!(""),
         }
     }

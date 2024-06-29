@@ -246,7 +246,7 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         closure: EnvId,
-        parameters: &Vec<String>,
+        parameters: &[String],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
         let fn_env = self.env_man.write().unwrap().push(Some(closure));
@@ -339,12 +339,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 span: _,
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, span: _, id } => self.look_up_variable(&name.name, e),
+            Expr::Variable { name, span: _, id: _ } => self.look_up_variable(&name.name, e),
             Expr::Assignment {
                 dst,
                 expr,
                 span: _,
-                id,
+                id: _,
             } => {
                 let distance = self.current_program.clone().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;

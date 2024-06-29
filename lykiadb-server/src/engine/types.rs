@@ -409,18 +409,14 @@ mod test {
         assert!((RV::Str(Arc::new("true".to_owned()))).as_bool());
         assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
         assert!((RV::Array(alloc_shared(vec![]))).as_bool());
-        assert!(
-            (RV::Object(alloc_shared(FxHashMap::default()))).as_bool()
-        );
-        assert!(
-            (RV::Callable(
-                Some(1),
-                Arc::new(Function::Lambda {
-                    function: |_, _| Ok(RV::Undefined)
-                })
-            ))
-            .as_bool()
-        );
+        assert!((RV::Object(alloc_shared(FxHashMap::default()))).as_bool());
+        assert!((RV::Callable(
+            Some(1),
+            Arc::new(Function::Lambda {
+                function: |_, _| Ok(RV::Undefined)
+            })
+        ))
+        .as_bool());
     }
 
     #[test]
