@@ -21,9 +21,12 @@ use crate::util::{alloc_shared, Shared};
 use std::sync::Arc;
 use std::vec;
 
+pub type Scopes = Vec<FxHashMap<String, bool>>;
+pub type Locals = FxHashMap<usize, usize>;
+
 pub struct SourceProcessor {
-    scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<usize, usize>,
+    scopes: Scopes,
+    locals: Locals,
 }
 
 impl Default for SourceProcessor {

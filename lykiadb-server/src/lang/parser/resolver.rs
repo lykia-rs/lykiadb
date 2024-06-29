@@ -1,3 +1,4 @@
+use crate::engine::interpreter::{Locals, Scopes};
 use crate::lang::ast::expr::Expr;
 use crate::lang::ast::stmt::Stmt;
 use crate::lang::ast::visitor::VisitorMut;
@@ -9,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use super::program::Program;
 
 pub struct Resolver<'a> {
-    scopes: Vec<FxHashMap<String, bool>>,
-    locals: FxHashMap<usize, usize>,
+    scopes: Scopes,
+    locals: Locals,
     program: &'a Program,
 }
 
@@ -22,7 +23,7 @@ pub enum ResolveError {
 impl<'a> Resolver<'a> {
     pub fn resolve(
         &mut self,
-    ) -> Result<(Vec<FxHashMap<String, bool>>, FxHashMap<usize, usize>), ResolveError> {
+    ) -> Result<(Scopes, Locals), ResolveError> {
         self.visit_stmt(&self.program.get_root())?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
@@ -30,9 +31,9 @@ impl<'a> Resolver<'a> {
     }
 
     pub fn new(
-        scopes: Vec<FxHashMap<String, bool>>,
+        scopes: Scopes,
         program: &'a Program,
-        previous_locals: Option<FxHashMap<usize, usize>>,
+        previous_locals: Option<Locals>,
     ) -> Resolver<'a> {
         Resolver {
             scopes,

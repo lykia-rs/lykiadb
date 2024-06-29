@@ -1,10 +1,9 @@
-use rustc_hash::FxHashMap;
 use serde_json::Value;
 
-use crate::lang::ast::{expr::Expr, stmt::Stmt};
+use crate::{engine::interpreter::Locals, lang::ast::{expr::Expr, stmt::Stmt}};
 pub struct Program {
     root: Box<Stmt>,
-    locals: Option<FxHashMap<usize, usize>>,
+    locals: Option<Locals>,
 }
 
 impl Program {
@@ -12,7 +11,7 @@ impl Program {
         Program { root, locals: None }
     }
 
-    pub fn set_locals(&mut self, locals: FxHashMap<usize, usize>) {
+    pub fn set_locals(&mut self, locals: Locals) {
         self.locals = Some(locals);
     }
 
