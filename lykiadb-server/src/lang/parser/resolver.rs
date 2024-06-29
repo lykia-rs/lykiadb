@@ -21,9 +21,7 @@ pub enum ResolveError {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn resolve(
-        &mut self,
-    ) -> Result<(Scopes, Locals), ResolveError> {
+    pub fn resolve(&mut self) -> Result<(Scopes, Locals), ResolveError> {
         self.visit_stmt(&self.program.get_root())?;
         let scopes = self.scopes.clone();
         let locals = self.locals.clone();
@@ -37,7 +35,7 @@ impl<'a> Resolver<'a> {
     ) -> Resolver<'a> {
         Resolver {
             scopes,
-            locals: if let Some(previous_locals) = previous_locals{
+            locals: if let Some(previous_locals) = previous_locals {
                 previous_locals
             } else {
                 FxHashMap::default()
