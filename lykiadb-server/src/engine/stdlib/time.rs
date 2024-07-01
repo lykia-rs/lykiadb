@@ -1,5 +1,5 @@
-use crate::runtime::interpreter::{HaltReason, Interpreter};
-use crate::runtime::types::RV;
+use crate::engine::interpreter::{HaltReason, Interpreter};
+use crate::engine::types::RV;
 use std::time;
 
 pub fn nt_clock(_interpreter: &mut Interpreter, _args: &[RV]) -> Result<RV, HaltReason> {

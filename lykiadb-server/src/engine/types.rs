@@ -1,8 +1,7 @@
 use super::environment::EnvId;
+use crate::engine::interpreter::{HaltReason, Interpreter};
 use crate::lang::ast::expr::Operation;
-use crate::lang::ast::stmt::StmtId;
-use crate::lang::parser::program::Program;
-use crate::runtime::interpreter::{HaltReason, Interpreter};
+use crate::lang::ast::stmt::Stmt;
 use crate::util::{alloc_shared, Shared};
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -37,10 +36,9 @@ pub enum Function {
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: String,
-        program: Arc<Program>,
         parameters: Vec<String>,
         closure: EnvId,
-        body: Arc<Vec<StmtId>>,
+        body: Arc<Vec<Stmt>>,
     },
 }
 
@@ -51,11 +49,10 @@ impl Function {
             Function::Lambda { function } => function(interpreter, arguments),
             Function::UserDefined {
                 name: _,
-                program,
                 parameters,
                 closure,
                 body,
-            } => interpreter.user_fn_call(program.clone(), body, *closure, parameters, arguments),
+            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
         }
     }
 
@@ -64,7 +61,6 @@ impl Function {
             Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
             Function::UserDefined {
                 name,
-                program: _,
                 parameters: _,
                 closure: _,
                 body: _,
@@ -101,7 +97,7 @@ impl Serialize for RV {
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 let arr = (arr.borrow() as &RwLock<Vec<RV>>).read().unwrap();
-                for item in (&arr).iter() {
+                for item in arr.iter() {
                     seq.serialize_element(&item)?;
                 }
                 seq.end()
@@ -111,7 +107,7 @@ impl Serialize for RV {
                 let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>)
                     .read()
                     .unwrap();
-                for (key, value) in (&arr).iter() {
+                for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
@@ -390,43 +386,37 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
+        engine::types::{eval_binary, Function, RV},
         lang::ast::expr::Operation,
-        runtime::types::{eval_binary, Function, RV},
         util::alloc_shared,
     };
 
     #[test]
     fn test_is_value_truthy() {
-        assert_eq!((RV::Null).as_bool(), false);
-        assert_eq!((RV::Undefined).as_bool(), false);
-        assert_eq!((RV::NaN).as_bool(), false);
-        assert_eq!((RV::Bool(false)).as_bool(), false);
-        assert_eq!((RV::Bool(true)).as_bool(), true);
-        assert_eq!((RV::Num(0.0)).as_bool(), false);
-        assert_eq!((RV::Num(0.1)).as_bool(), true);
-        assert_eq!((RV::Num(-0.1)).as_bool(), true);
-        assert_eq!((RV::Num(1.0)).as_bool(), true);
-        assert_eq!((RV::Num(-1.0)).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_bool(), false);
-        assert_eq!((RV::Str(Arc::new("0".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("false".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("true".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Str(Arc::new("foo".to_owned()))).as_bool(), true);
-        assert_eq!((RV::Array(alloc_shared(vec![]))).as_bool(), true);
-        assert_eq!(
-            (RV::Object(alloc_shared(FxHashMap::default()))).as_bool(),
-            true
-        );
-        assert_eq!(
-            (RV::Callable(
-                Some(1),
-                Arc::new(Function::Lambda {
-                    function: |_, _| Ok(RV::Undefined)
-                })
-            ))
-            .as_bool(),
-            true
-        );
+        assert!(!(RV::Null).as_bool());
+        assert!(!(RV::Undefined).as_bool());
+        assert!(!(RV::NaN).as_bool());
+        assert!(!(RV::Bool(false)).as_bool());
+        assert!((RV::Bool(true)).as_bool());
+        assert!(!(RV::Num(0.0)).as_bool());
+        assert!((RV::Num(0.1)).as_bool());
+        assert!((RV::Num(-0.1)).as_bool());
+        assert!((RV::Num(1.0)).as_bool());
+        assert!((RV::Num(-1.0)).as_bool());
+        assert!(!(RV::Str(Arc::new("".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("0".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("false".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("true".to_owned()))).as_bool());
+        assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
+        assert!((RV::Array(alloc_shared(vec![]))).as_bool());
+        assert!((RV::Object(alloc_shared(FxHashMap::default()))).as_bool());
+        assert!((RV::Callable(
+            Some(1),
+            Arc::new(Function::Lambda {
+                function: |_, _| Ok(RV::Undefined)
+            })
+        ))
+        .as_bool());
     }
 
     #[test]

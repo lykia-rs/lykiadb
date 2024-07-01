@@ -1,4 +1,4 @@
-use lykiadb_server::runtime::{
+use lykiadb_server::engine::{
     error::ExecutionError,
     interpreter::{
         test_helpers::{exec_assert, get_runtime},

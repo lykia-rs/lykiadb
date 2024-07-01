@@ -1,5 +1,4 @@
-use serde::ser::SerializeMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::lang::{
@@ -9,13 +8,12 @@ use crate::lang::{
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
-    stmt::StmtId,
-    AstRef,
+    stmt::Stmt,
 };
 
 use crate::lang::Literal;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "@type")]
 pub enum Operation {
     Add,
@@ -33,7 +31,7 @@ pub enum Operation {
     Not,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(tag = "@type")]
 pub enum Expr {
     #[serde(rename = "Expr::Select")]
@@ -65,10 +63,12 @@ pub enum Expr {
         name: Identifier,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Grouping")]
     Grouping {
-        expr: ExprId,
+        expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
@@ -83,59 +83,61 @@ pub enum Expr {
     Function {
         name: Option<Identifier>,
         parameters: Vec<Identifier>,
-        body: Arc<Vec<StmtId>>,
+        body: Arc<Vec<Stmt>>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Binary")]
     Binary {
-        left: ExprId,
+        left: Box<Expr>,
         operation: Operation,
-        right: ExprId,
+        right: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Unary")]
     Unary {
         operation: Operation,
-        expr: ExprId,
+        expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Assignment")]
     Assignment {
         dst: Identifier,
-        expr: ExprId,
+        expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Logical")]
     Logical {
-        left: ExprId,
+        left: Box<Expr>,
         operation: Operation,
-        right: ExprId,
+        right: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Call")]
     Call {
-        callee: ExprId,
-        args: Vec<ExprId>,
+        callee: Box<Expr>,
+        args: Vec<Expr>,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Get")]
     Get {
-        object: ExprId,
+        object: Box<Expr>,
         name: Identifier,
         #[serde(skip)]
         span: Span,
     },
     #[serde(rename = "Expr::Set")]
     Set {
-        object: ExprId,
+        object: Box<Expr>,
         name: Identifier,
-        value: ExprId,
+        value: Box<Expr>,
         #[serde(skip)]
         span: Span,
     },
@@ -148,7 +150,11 @@ impl Spanned for Expr {
             | Expr::Insert { command: _, span }
             | Expr::Delete { command: _, span }
             | Expr::Update { command: _, span }
-            | Expr::Variable { name: _, span }
+            | Expr::Variable {
+                name: _,
+                span,
+                id: _,
+            }
             | Expr::Grouping { expr: _, span }
             | Expr::Literal {
                 value: _,
@@ -176,6 +182,7 @@ impl Spanned for Expr {
                 dst: _,
                 expr: _,
                 span,
+                id: _,
             }
             | Expr::Logical {
                 left: _,
@@ -200,17 +207,5 @@ impl Spanned for Expr {
                 span,
             } => *span,
         }
-    }
-}
-
-pub type ExprId = AstRef<Expr>;
-
-pub const EXPR_ID_PLACEHOLDER: &'static str = "@ExprId";
-
-impl Serialize for AstRef<Expr> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(1))?;
-        map.serialize_entry(EXPR_ID_PLACEHOLDER, &self.0)?;
-        map.end()
     }
 }

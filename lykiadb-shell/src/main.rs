@@ -4,8 +4,8 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_connect::{get_session, Message, Protocol, report_error, Request, Response};
 use lykiadb_connect::session::ClientSession;
+use lykiadb_connect::{get_session, report_error, Message, Protocol, Request, Response};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -32,13 +32,21 @@ impl Shell {
                 break;
             }
 
-            let response = session.send_receive(Message::Request(Request::Run(line.to_string()))).await.unwrap();
+            let response = session
+                .send_receive(Message::Request(Request::Run(line.to_string())))
+                .await
+                .unwrap();
             self.handle_response("prompt", &line, response);
             line.clear();
         }
     }
 
-    async fn run_file(&mut self, session: &mut impl ClientSession, filename: &str, print_ast: bool) {
+    async fn run_file(
+        &mut self,
+        session: &mut impl ClientSession,
+        filename: &str,
+        print_ast: bool,
+    ) {
         let file = File::open(filename).expect("File couldn't be opened.");
 
         let mut content: String = String::new();
@@ -63,7 +71,7 @@ impl Shell {
             Message::Response(Response::Program(value)) => {
                 println!("{}", serde_json::to_string_pretty(&value).unwrap())
             }
-            Message::Response(Response::Error(err)) => report_error(filename, &content, err.clone()),
+            Message::Response(Response::Error(err)) => report_error(filename, content, err.clone()),
             _ => panic!(""),
         }
     }
@@ -75,7 +83,11 @@ async fn main() {
     let mut session = get_session("localhost:19191", Protocol::Tcp).await;
     let mut shell = Shell;
     match args.filename {
-        Some(filename) => shell.run_file(&mut session, &filename, args.print_ast).await,
+        Some(filename) => {
+            shell
+                .run_file(&mut session, &filename, args.print_ast)
+                .await
+        }
         None => shell.run_repl(&mut session).await,
     };
 }

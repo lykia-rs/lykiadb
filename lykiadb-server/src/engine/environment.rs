@@ -1,5 +1,5 @@
-use crate::runtime::interpreter::HaltReason;
-use crate::runtime::types::RV;
+use crate::engine::interpreter::HaltReason;
+use crate::engine::types::RV;
 use core::panic;
 use rustc_hash::FxHashMap;
 use std::borrow::{Borrow, BorrowMut};
@@ -21,11 +21,17 @@ pub struct Environment {
     envs: Vec<EnvironmentFrame>,
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Environment {
     pub fn new() -> Self {
-        let mut arena = Environment { envs: vec![] };
-        arena.push(None);
-        arena
+        let mut instance = Environment { envs: vec![] };
+        instance.push(None);
+        instance
     }
 
     pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
@@ -111,7 +117,13 @@ impl Environment {
             // TODO(vck): Remove clone
             return Ok(self.envs[unwrapped.0].map.get(name).unwrap().clone());
         }
-        return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
+        if let Some(val) = self.envs[env_id.0].map.get(name) {
+            return Ok(val.clone());
+        }
+
+        Err(HaltReason::Error(InterpretError::Other {
+            message: format!("Variable '{}' was not found", &name),
+        }))
     }
 
     pub fn ancestor(&self, env_id: EnvId, distance: usize) -> Option<EnvId> {
@@ -131,7 +143,7 @@ impl Environment {
 
 #[cfg(test)]
 mod test {
-    use crate::runtime::types::RV;
+    use crate::engine::types::RV;
 
     #[test]
     fn test_read_basic() {

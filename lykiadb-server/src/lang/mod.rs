@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
+use ast::expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-
-use self::ast::expr::ExprId;
 
 pub mod ast;
 pub mod parser;
@@ -15,8 +14,8 @@ pub enum Literal {
     Num(f64),
     Bool(bool),
     Undefined,
-    Object(FxHashMap<String, ExprId>),
-    Array(Vec<ExprId>),
+    Object(FxHashMap<String, Box<Expr>>),
+    Array(Vec<Expr>),
     NaN,
     Null,
 }
@@ -32,7 +31,7 @@ impl Literal {
 
 impl Eq for Literal {}
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "@type")]
 pub struct Identifier {
     pub name: String,

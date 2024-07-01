@@ -30,7 +30,7 @@ pub fn App() -> impl IntoView {
 #[server(ExecuteCode, "/api")]
 pub async fn execute_code(code: String) -> Result<String, ServerFnError> {
     use lykiadb_connect::session::ClientSession;
-    use lykiadb_connect::{Message, Response, connect};
+    use lykiadb_connect::{connect, Message, Response};
 
     let mut conn = connect("localhost:19191").await;
     let resp = conn.execute(&code).await;
@@ -50,9 +50,7 @@ fn HomePage() -> impl IntoView {
 
     let executor = create_action(|c: &String| {
         let q = c.to_owned();
-        async move {
-            execute_code(q).await
-        }
+        async move { execute_code(q).await }
     });
     let result = executor.value();
 

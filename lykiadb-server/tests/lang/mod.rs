@@ -5,7 +5,7 @@ use lykiadb_server::lang::tokenizer::{scanner::Scanner, token::Token};
 use serde_json::Value;
 
 pub fn get_tokens(source: &str) -> Vec<Token> {
-    return Scanner::scan(source).unwrap();
+    Scanner::scan(source).unwrap()
 }
 
 pub fn compare_parsed_to_expected(source: &str, expected: Value) {

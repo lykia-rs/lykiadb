@@ -4,40 +4,54 @@ use serde::{Deserialize, Serialize};
 use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
 use super::types::{eval_binary, Stateful};
-use crate::lang::ast::expr::{Expr, ExprId, Operation};
-use crate::lang::ast::stmt::{Stmt, StmtId};
+use crate::lang::ast::expr::{Expr, Operation};
+use crate::lang::ast::stmt::Stmt;
 use crate::lang::parser::program::Program;
 use crate::lang::parser::resolver::Resolver;
 use crate::lang::parser::Parser;
 use crate::lang::tokenizer::scanner::Scanner;
 use crate::lang::Literal;
 
+use crate::engine::types::RV::Callable;
+use crate::engine::types::{Function, RV};
 use crate::lang::ast::visitor::VisitorMut;
 use crate::lang::tokenizer::token::{Span, Spanned};
-use crate::runtime::types::RV::Callable;
-use crate::runtime::types::{Function, RV};
 use crate::util::{alloc_shared, Shared};
 
 use std::sync::Arc;
 use std::vec;
 
+pub type Scopes = Vec<FxHashMap<String, bool>>;
+pub type Locals = FxHashMap<usize, usize>;
+
 pub struct SourceProcessor {
-    scopes: Vec<FxHashMap<String, bool>>,
+    scopes: Scopes,
+    locals: Locals,
+}
+
+impl Default for SourceProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SourceProcessor {
     pub fn new() -> SourceProcessor {
-        SourceProcessor { scopes: vec![] }
+        SourceProcessor {
+            scopes: vec![],
+            locals: FxHashMap::default(),
+        }
     }
 
     pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
         let tokens = Scanner::scan(source)?;
         let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program);
+        let mut resolver = Resolver::new(self.scopes.clone(), &program, Some(self.locals.clone()));
         let (scopes, locals) = resolver.resolve().unwrap();
 
         self.scopes = scopes;
-        program.set_locals(locals);
+        self.locals.clone_from(&locals);
+        program.set_locals(self.locals.clone());
 
         Ok(program)
     }
@@ -162,6 +176,7 @@ pub struct Interpreter {
     loop_stack: LoopStack,
     env_man: Shared<Environment>,
     source_processor: SourceProcessor,
+    current_program: Option<Arc<Program>>,
 }
 
 impl Interpreter {
@@ -173,12 +188,14 @@ impl Interpreter {
             root_env: env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
+            current_program: None,
         }
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
-        let out = self.visit_stmt((program.clone(), program.get_root()));
+        self.current_program = Some(program.clone());
+        let out = self.visit_stmt(&program.get_root());
         if let Ok(val) = out {
             Ok(val)
         } else {
@@ -193,42 +210,31 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(
-        &mut self,
-        program: Arc<Program>,
-        operation: &Operation,
-        eidx: ExprId,
-    ) -> Result<RV, HaltReason> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr((program, eidx))?.as_number() {
+            if let Some(num) = self.visit_expr(expr)?.as_number() {
                 return Ok(RV::Num(-num));
             }
             Ok(RV::NaN)
         } else {
-            Ok(RV::Bool(!self.visit_expr((program, eidx))?.as_bool()))
+            Ok(RV::Bool(!self.visit_expr(expr)?.as_bool()))
         }
     }
 
     fn eval_binary(
         &mut self,
-        program: Arc<Program>,
-        lidx: ExprId,
-        ridx: ExprId,
+        lexpr: &Expr,
+        rexpr: &Expr,
         operation: Operation,
     ) -> Result<RV, HaltReason> {
-        let left_eval = self.visit_expr((program.clone(), lidx))?;
-        let right_eval = self.visit_expr((program, ridx))?;
+        let left_eval = self.visit_expr(lexpr)?;
+        let right_eval = self.visit_expr(rexpr)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(
-        &self,
-        program: Arc<Program>,
-        name: &str,
-        eid: ExprId,
-    ) -> Result<RV, HaltReason> {
-        let distance = program.clone().get_distance(eid);
+    fn look_up_variable(&self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+        let distance = self.current_program.clone().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
             self.env_man
                 .read()
@@ -241,10 +247,9 @@ impl Interpreter {
 
     pub fn user_fn_call(
         &mut self,
-        program: Arc<Program>,
-        statements: &Vec<StmtId>,
+        statements: &Vec<Stmt>,
         closure: EnvId,
-        parameters: &Vec<String>,
+        parameters: &[String],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
         let fn_env = self.env_man.write().unwrap().push(Some(closure));
@@ -258,13 +263,12 @@ impl Interpreter {
             );
         }
 
-        self.execute_block(program, statements, Some(fn_env))
+        self.execute_block(statements, Some(fn_env))
     }
 
     fn execute_block(
         &mut self,
-        program: Arc<Program>,
-        statements: &Vec<StmtId>,
+        statements: &Vec<Stmt>,
         env_opt: Option<EnvId>,
     ) -> Result<RV, HaltReason> {
         let mut env_tmp: Option<EnvId> = None;
@@ -278,7 +282,7 @@ impl Interpreter {
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
-            ret = self.visit_stmt((program.clone(), *statement));
+            ret = self.visit_stmt(statement);
             if ret.is_err() {
                 break;
             }
@@ -291,7 +295,7 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, program: Arc<Program>, literal: &Literal) -> RV {
+    fn literal_to_rv(&mut self, literal: &Literal) -> RV {
         match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
@@ -302,27 +306,20 @@ impl Interpreter {
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
-                    new_map.insert(k.clone(), self.visit_expr((program.clone(), *v)).unwrap());
+                    new_map.insert(k.clone(), self.visit_expr(v).unwrap());
                 }
                 RV::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
-                let collected = arr
-                    .iter()
-                    .map(|x| self.visit_expr((program.clone(), *x)).unwrap())
-                    .collect();
+                let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
                 RV::Array(alloc_shared(collected))
             }
         }
     }
 }
 
-impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
-    fn visit_expr(&mut self, (program, eidx): (Arc<Program>, ExprId)) -> Result<RV, HaltReason> {
-        // TODO: Remove clone here
-        let p = program.clone();
-        let e = p.get_expression(eidx);
-
+impl VisitorMut<RV, HaltReason> for Interpreter {
+    fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
             Expr::Select { query, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
             Expr::Insert { command, span: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
@@ -332,25 +329,32 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 value,
                 raw: _,
                 span: _,
-            } => Ok(self.literal_to_rv(program.clone(), &value)),
-            Expr::Grouping { expr, span: _ } => self.visit_expr((program.clone(), *expr)),
+            } => Ok(self.literal_to_rv(value)),
+            Expr::Grouping { expr, span: _ } => self.visit_expr(expr),
             Expr::Unary {
                 operation,
                 expr,
                 span: _,
-            } => self.eval_unary(program, operation, *expr),
+            } => self.eval_unary(operation, expr),
             Expr::Binary {
                 operation,
                 left,
                 right,
                 span: _,
-            } => self.eval_binary(program.clone(), *left, *right, *operation),
-            Expr::Variable { name, span: _ } => {
-                self.look_up_variable(program.clone(), &name.name, eidx)
-            }
-            Expr::Assignment { dst, expr, span: _ } => {
-                let distance = program.clone().get_distance(eidx);
-                let evaluated = self.visit_expr((program.clone(), *expr))?;
+            } => self.eval_binary(left, right, *operation),
+            Expr::Variable {
+                name,
+                span: _,
+                id: _,
+            } => self.look_up_variable(&name.name, e),
+            Expr::Assignment {
+                dst,
+                expr,
+                span: _,
+                id: _,
+            } => {
+                let distance = self.current_program.clone().unwrap().get_distance(e);
+                let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
                     self.env_man.write().unwrap().assign_at(
                         self.env,
@@ -376,7 +380,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 right,
                 span: _,
             } => {
-                let is_true = self.visit_expr((program.clone().clone(), *left))?.as_bool();
+                let is_true = self.visit_expr(left)?.as_bool();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -384,12 +388,10 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(
-                    self.visit_expr((program.clone(), *right))?.as_bool(),
-                ))
+                Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Call { callee, args, span } => {
-                let eval = self.visit_expr((program.clone(), *callee))?;
+                let eval = self.visit_expr(callee)?;
 
                 if let Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
@@ -403,7 +405,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                     let mut args_evaluated: Vec<RV> = vec![];
 
                     for arg in args.iter() {
-                        args_evaluated.push(self.visit_expr((program.clone(), *arg))?);
+                        args_evaluated.push(self.visit_expr(arg)?);
                     }
                     self.loop_stack.push_fn();
 
@@ -417,7 +419,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                     }
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: program.clone().get_expression(*callee).get_span(),
+                        span: callee.get_span(),
                     }))
                 }
             }
@@ -434,10 +436,9 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 };
                 let fun = Function::UserDefined {
                     name: fn_name.to_string(),
-                    program: program.clone(),
                     body: Arc::clone(body),
                     parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
-                    closure: self.env.clone(),
+                    closure: self.env,
                 };
 
                 let callable = Callable(Some(parameters.len()), fun.into());
@@ -454,13 +455,13 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 Ok(callable)
             }
             Expr::Get { object, name, span } => {
-                let object_eval = self.visit_expr((program.clone(), *object))?;
+                let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
                     let cloned = map.clone();
                     let borrowed = cloned.read().unwrap();
                     let v = borrowed.get(&name.name.clone());
-                    if v.is_some() {
-                        return Ok(v.unwrap().clone());
+                    if let Some(v) = v {
+                        return Ok(v.clone());
                     }
                     Err(HaltReason::Error(InterpretError::PropertyNotFound {
                         span: *span,
@@ -481,9 +482,9 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 value,
                 span: _,
             } => {
-                let object_eval = self.visit_expr((program.clone(), *object))?;
+                let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
-                    let evaluated = self.visit_expr((program.clone(), *value))?;
+                    let evaluated = self.visit_expr(value)?;
                     // TODO(vck): Set should really set the value
                     let mut borrowed = map.write().unwrap();
                     borrowed.insert(name.name.to_string(), evaluated.clone());
@@ -500,28 +501,25 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, (program, sidx): (Arc<Program>, StmtId)) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV, HaltReason> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
             return Ok(RV::Undefined);
         }
 
-        // TODO: Remove clone here
-        let p = program.clone();
-        let s = p.get_statement(sidx);
         match s {
             Stmt::Program {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(program.clone(), stmts, Some(self.env.clone()));
+                return self.execute_block(stmts, Some(self.env));
             }
             Stmt::Expression { expr, span: _ } => {
-                return self.visit_expr((program.clone(), *expr));
+                return self.visit_expr(expr);
             }
             Stmt::Declaration { dst, expr, span: _ } => {
-                let evaluated = self.visit_expr((program.clone(), *expr))?;
+                let evaluated = self.visit_expr(expr)?;
                 self.env_man.write().unwrap().declare(
                     self.env,
                     dst.name.to_string(),
@@ -532,7 +530,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 body: stmts,
                 span: _,
             } => {
-                return self.execute_block(program.clone(), stmts, None);
+                return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
@@ -540,10 +538,10 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 r#else_body: r#else,
                 span: _,
             } => {
-                if self.visit_expr((program.clone(), *condition))?.as_bool() {
-                    self.visit_stmt((program.clone(), *body))?;
+                if self.visit_expr(condition)?.as_bool() {
+                    self.visit_stmt(body)?;
                 } else if let Some(else_stmt) = r#else {
-                    self.visit_stmt((program.clone(), *else_stmt))?;
+                    self.visit_stmt(else_stmt)?;
                 }
             }
             Stmt::Loop {
@@ -555,15 +553,13 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
                     && (condition.is_none()
-                        || self
-                            .visit_expr((program.clone(), condition.unwrap()))?
-                            .as_bool())
+                        || self.visit_expr(condition.as_ref().unwrap())?.as_bool())
                 {
-                    self.visit_stmt((program.clone(), *body))?;
+                    self.visit_stmt(body)?;
                     self.loop_stack
                         .set_loop_state(LoopState::Go, Some(LoopState::Continue));
                     if let Some(post_id) = post {
-                        self.visit_stmt((program.clone(), *post_id))?;
+                        self.visit_stmt(post_id)?;
                     }
                 }
                 self.loop_stack.pop_loop();
@@ -584,7 +580,7 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
             }
             Stmt::Return { span: _, expr } => {
                 if expr.is_some() {
-                    let ret = self.visit_expr((program.clone(), expr.unwrap()))?;
+                    let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
@@ -597,6 +593,12 @@ impl VisitorMut<RV, HaltReason, Arc<Program>> for Interpreter {
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,
+}
+
+impl Default for Output {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Output {
@@ -623,8 +625,8 @@ impl Stateful for Output {
 }
 
 pub mod test_helpers {
-    use crate::runtime::types::RV;
-    use crate::runtime::{Runtime, RuntimeMode};
+    use crate::engine::types::RV;
+    use crate::engine::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
 
     use super::Output;
@@ -635,7 +637,7 @@ pub mod test_helpers {
         (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
     }
 
-    pub fn exec_assert(code: &str, output: Vec<RV>) -> () {
+    pub fn exec_assert(code: &str, output: Vec<RV>) {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
         out.write().unwrap().expect(output);
@@ -644,7 +646,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::runtime::types::RV;
+    use crate::engine::types::RV;
 
     use super::test_helpers::get_runtime;
 
@@ -658,7 +660,7 @@ mod test {
             TestUtils.out(!!!3);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(-2.0),
             RV::Num(2.0),
@@ -677,7 +679,7 @@ mod test {
             TestUtils.out(-5-2);
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Num(7.0),
             RV::Num(28.0),
@@ -699,7 +701,7 @@ mod test {
             TestUtils.out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
-        runtime.interpret(&code).unwrap();
+        runtime.interpret(code).unwrap();
         out.write().unwrap().expect(vec![
             RV::Bool(true),
             RV::Bool(true),
