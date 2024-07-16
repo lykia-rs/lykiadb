@@ -1,9 +1,9 @@
-use crate::engine::interpreter::{Locals, Scopes};
-use crate::lang::ast::expr::Expr;
-use crate::lang::ast::stmt::Stmt;
-use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokenizer::token::Span;
-use crate::lang::{Identifier, Literal};
+use crate::{Locals, Scopes};
+use crate::ast::expr::Expr;
+use crate::ast::stmt::Stmt;
+use crate::ast::visitor::VisitorMut;
+use crate::tokenizer::token::Span;
+use crate::{Identifier, Literal};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 

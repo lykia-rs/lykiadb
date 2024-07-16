@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lang::{
+use crate::{
     tokenizer::token::{Span, Spanned},
     Identifier,
 };

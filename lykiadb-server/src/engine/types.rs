@@ -1,8 +1,8 @@
 use super::environment::EnvId;
 use crate::engine::interpreter::{HaltReason, Interpreter};
-use crate::lang::ast::expr::Operation;
-use crate::lang::ast::stmt::Stmt;
 use crate::util::{alloc_shared, Shared};
+use lykiadb_lang::ast::expr::Operation;
+use lykiadb_lang::ast::stmt::Stmt;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
@@ -383,11 +383,11 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
 mod test {
     use std::{f64::INFINITY, sync::Arc};
 
+    use lykiadb_lang::ast::expr::Operation;
     use rustc_hash::FxHashMap;
 
     use crate::{
         engine::types::{eval_binary, Function, RV},
-        lang::ast::expr::Operation,
         util::alloc_shared,
     };
 

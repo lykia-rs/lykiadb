@@ -2,10 +2,10 @@ use self::program::Program;
 
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
-use crate::lang::tokenizer::token::{
+use crate::tokenizer::token::{
     Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
-use crate::lang::Literal;
+use crate::Literal;
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -739,7 +739,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-use crate::lang::ast::sql::{
+use crate::ast::sql::{
     SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
     SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,

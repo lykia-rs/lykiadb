@@ -1,28 +1,26 @@
+use lykiadb_lang::ast::expr::{Expr, Operation};
+use lykiadb_lang::ast::stmt::Stmt;
+use lykiadb_lang::ast::visitor::VisitorMut;
+use lykiadb_lang::parser::program::Program;
+use lykiadb_lang::parser::resolver::Resolver;
+use lykiadb_lang::parser::Parser;
+use lykiadb_lang::tokenizer::scanner::Scanner;
+use lykiadb_lang::tokenizer::token::Span;
+use lykiadb_lang::tokenizer::token::Spanned;
+use lykiadb_lang::{Literal, Locals, Scopes};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
 use super::types::{eval_binary, Stateful};
-use crate::lang::ast::expr::{Expr, Operation};
-use crate::lang::ast::stmt::Stmt;
-use crate::lang::parser::program::Program;
-use crate::lang::parser::resolver::Resolver;
-use crate::lang::parser::Parser;
-use crate::lang::tokenizer::scanner::Scanner;
-use crate::lang::Literal;
 
 use crate::engine::types::RV::Callable;
 use crate::engine::types::{Function, RV};
-use crate::lang::ast::visitor::VisitorMut;
-use crate::lang::tokenizer::token::{Span, Spanned};
 use crate::util::{alloc_shared, Shared};
 
 use std::sync::Arc;
 use std::vec;
-
-pub type Scopes = Vec<FxHashMap<String, bool>>;
-pub type Locals = FxHashMap<usize, usize>;
 
 pub struct SourceProcessor {
     scopes: Scopes,

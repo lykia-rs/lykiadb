@@ -1,4 +1,4 @@
-use crate::lang::Identifier;
+use crate::Identifier;
 use serde::{Deserialize, Serialize};
 
 use super::expr::Expr;

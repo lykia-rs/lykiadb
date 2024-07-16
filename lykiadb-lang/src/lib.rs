@@ -8,6 +8,9 @@ pub mod ast;
 pub mod parser;
 pub mod tokenizer;
 
+pub type Scopes = Vec<FxHashMap<String, bool>>;
+pub type Locals = FxHashMap<usize, usize>;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Literal {
     Str(Arc<String>),

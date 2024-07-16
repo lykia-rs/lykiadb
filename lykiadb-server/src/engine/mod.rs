@@ -4,9 +4,9 @@ use self::interpreter::Output;
 use self::stdlib::stdlib;
 use crate::engine::interpreter::Interpreter;
 use crate::engine::types::RV;
-use crate::lang::parser::Parser;
-use crate::lang::tokenizer::scanner::Scanner;
 use crate::util::{alloc_shared, Shared};
+use lykiadb_lang::parser::Parser;
+use lykiadb_lang::tokenizer::scanner::Scanner;
 use serde_json::Value;
 use tracing::info;
 

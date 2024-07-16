@@ -8,6 +8,7 @@ edition = "2021"
 bytes = "1.5.0"
 bson = { version = "2.9.0" }
 bumpalo = "3.12.2"
+lykiadb-lang = { path = "../lykiadb-lang" }
 phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }

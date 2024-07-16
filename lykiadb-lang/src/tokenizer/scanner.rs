@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lang::tokenizer::token::Symbol::*;
-use crate::lang::tokenizer::token::TokenType::{Eof, Identifier};
-use crate::lang::tokenizer::token::*;
-use crate::lang::Literal::*;
+use crate::tokenizer::token::Symbol::*;
+use crate::tokenizer::token::TokenType::{Eof, Identifier};
+use crate::tokenizer::token::*;
+use crate::Literal::*;
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
@@ -389,7 +389,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::lang::tokenizer::token::TokenType::Eof;
+    use crate::tokenizer::token::TokenType::Eof;
     use crate::{kw, lexm, skw};
 
     use super::*;
@@ -632,12 +632,12 @@ mod test {
     #[test]
     fn test_identifiers() {
         assert_tokens(
-            "$myPreciseVariable $my_precise_variable myPreciseFunction my_precise_function \\for \\$edge_case",
+            "$myCustomVariable $my_custom_variable myCustomFunction my_custom_function \\for \\$edge_case",
             vec![
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
-                    literal: Some(Str(Arc::new("$myPreciseVariable".to_string()))),
-                    lexeme: lexm!("$myPreciseVariable"),
+                    literal: Some(Str(Arc::new("$myCustomVariable".to_string()))),
+                    lexeme: lexm!("$myCustomVariable"),
                     span: Span {
                         line: 0,
                         start: 0,
@@ -647,8 +647,8 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: true },
-                    literal: Some(Str(Arc::new("$my_precise_variable".to_string()))),
-                    lexeme: lexm!("$my_precise_variable"),
+                    literal: Some(Str(Arc::new("$my_custom_variable".to_string()))),
+                    lexeme: lexm!("$my_custom_variable"),
                     span: Span {
                         line: 0,
                         start: 19,
@@ -658,8 +658,8 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Arc::new("myPreciseFunction".to_string()))),
-                    lexeme: lexm!("myPreciseFunction"),
+                    literal: Some(Str(Arc::new("myCustomFunction".to_string()))),
+                    lexeme: lexm!("myCustomFunction"),
                     span: Span {
                         line: 0,
                         start: 40,
@@ -669,8 +669,8 @@ mod test {
                 },
                 Token {
                     tok_type: TokenType::Identifier { dollar: false },
-                    literal: Some(Str(Arc::new("my_precise_function".to_string()))),
-                    lexeme: lexm!("my_precise_function"),
+                    literal: Some(Str(Arc::new("my_custom_function".to_string()))),
+                    lexeme: lexm!("my_custom_function"),
                     span: Span {
                         line: 0,
                         start: 58,

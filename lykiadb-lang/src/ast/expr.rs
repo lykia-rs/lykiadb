@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::lang::{
+use crate::{
     tokenizer::token::{Span, Spanned},
     Identifier,
 };
@@ -11,7 +11,7 @@ use super::{
     stmt::Stmt,
 };
 
-use crate::lang::Literal;
+use crate::Literal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "@type")]
