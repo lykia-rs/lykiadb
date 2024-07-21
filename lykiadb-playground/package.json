@@ -1,30 +1,26 @@
 {
-  "name": "create-wasm-app",
+  "name": "lykiadb-playground",
   "version": "0.1.0",
-  "description": "create an app to consume rust-generated wasm packages",
-  "main": "index.js",
-  "bin": {
-    "create-wasm-app": ".bin/create-wasm-app.js"
-  },
+  "private": true,
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
+    "dev": "next dev",
+    "build": "wasm-pack build && next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rustwasm/create-wasm-app.git"
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "next": "14.2.5"
   },
-  "keywords": [
-    "webassembly",
-    "wasm",
-    "rust",
-    "webpack"
-  ],
-  "license": "(MIT OR Apache-2.0)",
   "devDependencies": {
-    "webpack": " ^5.4.3",
-    "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5",
-    "copy-webpack-plugin": "^5.0.0"
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.5"
   }
 }
