@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+import WasmPackPlugin from "@wasm-tool/wasm-pack-plugin";
+import { fileURLToPath } from 'url';
+import { resolve, dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const nextConfig = {
     webpack: (config, { isServer }) => {
 		const experiments = config.experiments || {}
@@ -7,6 +14,9 @@ const nextConfig = {
 			test: /\.wasm$/,
 			type: "webassembly/async",
 		})
+        config.plugins.push(new WasmPackPlugin({
+            crateDirectory: resolve(__dirname, ".")
+        }))
 		return config
 	},
 	reactStrictMode: true,
