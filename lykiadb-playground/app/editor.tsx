@@ -1,24 +1,21 @@
 'use client';
-
-// import init, { parse } from "@/pkg/lykiadb_playground";
 import Editor from "react-simple-code-editor";
-import React, { useEffect } from "react";
+import React from "react";
 import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
-import 'prismjs/themes/prism.css'; //Example style, you can use another
+import 'prismjs/themes/prism.css';
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
     `SELECT * FROM foo;`
   );
-  // await init();
   return (
     <Editor
       value={code}
-      onValueChange={code => setCode(code)}
+      onValueChange={(code: string) => setCode(code)}
       highlight={
-        code => {
+        (code: string) => {
             return highlight(code, languages.js)
         }
       }

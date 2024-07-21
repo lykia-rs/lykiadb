@@ -9,13 +9,22 @@ const __dirname = dirname(__filename);
 const nextConfig = {
     webpack: (config, { isServer }) => {
 		const experiments = config.experiments || {}
-		config.experiments = { ...experiments, asyncWebAssembly: true, layers: true }
+		config.experiments = { 
+			...experiments,
+			asyncWebAssembly: true,
+			syncWebAssembly: true,
+			layers: true
+		}
 		config.module.rules.push({
 			test: /\.wasm$/,
 			type: "webassembly/async",
 		})
         config.plugins.push(new WasmPackPlugin({
-            crateDirectory: resolve(__dirname, ".")
+            crateDirectory: resolve(__dirname, "."),
+			watchDirectories: [
+				resolve(__dirname, "../lykiadb-lang/src")
+			],
+			extraArgs: "--target web"
         }))
 		return config
 	},
