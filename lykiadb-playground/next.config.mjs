@@ -15,16 +15,12 @@ const nextConfig = {
 			syncWebAssembly: true,
 			layers: true
 		}
-		config.module.rules.push({
-			test: /\.wasm$/,
-			type: "webassembly/async",
-		})
         config.plugins.push(new WasmPackPlugin({
             crateDirectory: resolve(__dirname, "."),
 			watchDirectories: [
 				resolve(__dirname, "../lykiadb-lang/src")
 			],
-			extraArgs: "--target web"
+			extraArgs: "--target web --mode normal"
         }))
 		return config
 	},

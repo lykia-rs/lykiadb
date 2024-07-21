@@ -5,6 +5,7 @@ import { highlight, languages } from 'prismjs/components/prism-core';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css';
+import init, { parse } from "../pkg/index";
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
@@ -16,6 +17,9 @@ const EditorView = () => {
       onValueChange={(code: string) => setCode(code)}
       highlight={
         (code: string) => {
+            /* init().then(() => {
+                console.log(parse(code));
+            }); */
             return highlight(code, languages.js)
         }
       }
