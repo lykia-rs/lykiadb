@@ -26,7 +26,7 @@ const EditorView = () => {
       padding={10}
       style={{
         fontFamily: '"Fira code", "Fira Mono", monospace',
-        fontSize: 12,
+        fontSize: 16,
       }}
     />
   );

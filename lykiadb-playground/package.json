@@ -13,6 +13,7 @@
     "prismjs": "^1.29.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-grid-layout": "^1.4.4",
     "react-simple-code-editor": "^0.14.1"
   },
   "devDependencies": {
