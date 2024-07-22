@@ -1,11 +1,8 @@
 'use client';
-import Editor from "react-simple-code-editor";
-import { JsonView, allExpanded, darkStyles } from 'react-json-view-lite';
+
 import React from "react";
-import { highlight, languages } from 'prismjs/components/prism-core';
-import 'prismjs/components/prism-clike';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/themes/prism.css';
+import CodeEditor from '@uiw/react-textarea-code-editor';
+import JsonView from '@uiw/react-json-view';
 import 'react-json-view-lite/dist/index.css';
 import { defaultFont } from '../styles/fonts'
 import SplitPane, { Pane } from 'split-pane-react';
@@ -35,26 +32,20 @@ const EditorView = () => {
 
   return (
     <SplitPane sizes={sizes} onChange={setSizes} className={defaultFont.className}>
-      <Pane minSize={300}>
-        <Editor
-          insertSpaces={true}
-          value={code}
-          onValueChange={(code: string) => updateCode(code)}
-          highlight={
-            (code: string) => {
-                return highlight(code, languages.js)
-            }
-          }
-          padding={10}
-          style={{
-            fontFamily: '',
-            fontSize: 16,
-          }}
-        />
+      <Pane minSize={300} className="h-screen">
+        <div className="h-full overflow-auto text-md">
+          <CodeEditor
+            value={code}
+            language="js"
+            placeholder="Please enter JS code."
+            onChange={(evn) => updateCode(evn.target.value)}
+            padding={15}
+          />
+        </div>
       </Pane>
       <Pane minSize={600} className="h-full">
         <div className="overflow-y-auto h-full">
-          <JsonView data={ast} shouldExpandNode={allExpanded} style={darkStyles} />
+          <JsonView value={ast} />
         </div>
       </Pane>
     </SplitPane>
