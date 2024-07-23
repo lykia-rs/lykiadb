@@ -1,9 +1,9 @@
 'use client';
 
 import React from "react";
-import CodeEditor from '@uiw/react-textarea-code-editor';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
 import JsonView from '@uiw/react-json-view';
-import 'react-json-view-lite/dist/index.css';
 import { defaultFont } from '../styles/fonts'
 import SplitPane, { Pane } from 'split-pane-react';
 import init, { parse } from "../pkg/index";
@@ -32,20 +32,22 @@ const EditorView = () => {
 
   return (
     <SplitPane sizes={sizes} onChange={setSizes} className={defaultFont.className}>
-      <Pane minSize={300} className="h-screen">
-        <div className="h-full overflow-auto text-md">
-          <CodeEditor
+      <Pane minSize={300} className="h-full p-1">
+        <div className="p-2 text-white bg-slate-700 rounded-t-md">Script</div>
+        <div>
+          <CodeMirror 
             value={code}
-            language="js"
-            placeholder="Please enter JS code."
-            onChange={(evn) => updateCode(evn.target.value)}
-            padding={15}
+            height="400px"
+            extensions={[javascript({ jsx: true })]} 
+            onChange={(value: string) => updateCode(value)} 
           />
         </div>
+        <div className="p-2 text-white bg-slate-700 rounded-b-md"></div>
       </Pane>
-      <Pane minSize={600} className="h-full">
+      <Pane minSize={600} className="h-full p-1">
+        <div className="p-2 text-white bg-slate-700 rounded-t-md">Syntax tree</div>
         <div className="overflow-y-auto h-full">
-          <JsonView value={ast} />
+          <div className="p-3 bg-white"><JsonView value={ast} /></div>
         </div>
       </Pane>
     </SplitPane>

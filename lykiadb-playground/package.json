@@ -9,8 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.2",
+    "@uiw/react-codemirror": "^4.23.0",
     "@uiw/react-json-view": "2.0.0-alpha.25",
-    "@uiw/react-textarea-code-editor": "^3.0.2",
     "next": "14.2.5",
     "prismjs": "^1.29.0",
     "react": "^18",
