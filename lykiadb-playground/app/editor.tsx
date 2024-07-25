@@ -21,7 +21,7 @@ const EditorView = () => {
     setCode(code)
     init().then(() => {
       try {
-        const parsed = parse(code).root;
+        const parsed = parse(code);
         setAst(parsed);
       }
       catch (e) {
@@ -36,6 +36,7 @@ const EditorView = () => {
         <div className="p-2 text-white bg-slate-700 rounded-t-md">Script</div>
         <div>
           <CodeMirror 
+            
             value={code}
             height="400px"
             extensions={[javascript({ jsx: true })]} 
