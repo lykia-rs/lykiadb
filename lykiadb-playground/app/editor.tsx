@@ -2,11 +2,11 @@
 
 import React from "react";
 import CodeMirror from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
 import JsonView from '@uiw/react-json-view';
 import { defaultFont } from '../styles/fonts'
 import SplitPane, { Pane } from 'split-pane-react';
 import init, { parse } from "../pkg/index";
+import { lyql } from "./parser";
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
@@ -21,7 +21,7 @@ const EditorView = () => {
     setCode(code)
     init().then(() => {
       try {
-        const parsed = parse(code);
+        const parsed = parse(code).root;
         setAst(parsed);
       }
       catch (e) {
@@ -36,10 +36,11 @@ const EditorView = () => {
         <div className="p-2 text-white bg-slate-700 rounded-t-md">Script</div>
         <div>
           <CodeMirror 
-            
             value={code}
             height="400px"
-            extensions={[javascript({ jsx: true })]} 
+            extensions={[
+              lyql(),
+            ]} 
             onChange={(value: string) => updateCode(value)} 
           />
         </div>

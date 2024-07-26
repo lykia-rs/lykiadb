@@ -12,4 +12,3 @@ lykiadb-lang = { path = "../lykiadb-lang" }
 wasm-bindgen="0.2.92"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde-wasm-bindgen = "0.6.5"
-serde_json = "1.0.105"

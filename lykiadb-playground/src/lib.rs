@@ -1,10 +1,9 @@
 extern crate wasm_bindgen;
 extern crate lykiadb_lang;
-extern crate serde_json;
 
-use serde_json::json;
 use lykiadb_lang::{parser::{resolver::Resolver, Parser}, tokenizer::scanner::Scanner, Scopes};
 use wasm_bindgen::prelude::*;
+
 #[wasm_bindgen]
 pub fn parse(source: &str) -> Result<JsValue, JsValue> {
 
@@ -15,17 +14,8 @@ pub fn parse(source: &str) -> Result<JsValue, JsValue> {
         let mut resolver = Resolver::new(Scopes::default(), &program, None);
         let (scopes, locals) = resolver.resolve().unwrap();
         program.set_locals(locals);
-
-        let result = json!({
-            "scopes": &scopes,
-            "program": &program,
-            "tokens": &tokens
-        }); 
-        return Ok(serde_wasm_bindgen::to_value(&result)?);
+        return Ok(serde_wasm_bindgen::to_value(&program)?);
     }
 
-    let result = json!({
-        "tokens": &tokens
-    });
-    Ok(serde_wasm_bindgen::to_value(&result)?)
+    Ok(serde_wasm_bindgen::to_value(&parse_result.err())?)
 }
