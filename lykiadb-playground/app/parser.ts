@@ -13,7 +13,7 @@ import {
     Number: t.number,
     Boolean: t.bool,
     identifier: t.variableName,
-    function: t.keyword
+    function: t.keyword,
   } as Record<string, any>
 
   export const jsHighlight = styleTags(tgs)
@@ -51,15 +51,26 @@ import {
           let parsed = null;
           try {
             parsed = this.parseFn(doc);
+            if (!parsed?.span) {
+              return Tree.empty;
+            }
+            const tr = new Tree(
+              NodeType.define({
+                id: 0,
+                name: "_root",
+                top: false,
+                props: [jsHighlight],
+              }),
+              [convertParsedToLezer(parsed)],
+              [parsed.span.start],
+              parsed.span.end
+            );
+            return tr
           }
           catch (e) {
             console.error(e);
             return Tree.empty;
           }
-
-          const tr = convertParsedToLezer(parsed);
-          console.log(tr)
-          return tr
         },
         parsedPos: input.length,
         stopAt: () => {

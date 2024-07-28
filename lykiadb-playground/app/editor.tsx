@@ -13,10 +13,25 @@ await init();
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
-`function sum($a, $b) { 
-  return $a + $b;
-};`
-  );
+`var $calc = {
+  add: function ($a, $b) {
+    return $a + $b;
+  },
+  sub: function ($a, $b) {
+    return $a - $b;
+  },
+  mul: function ($a, $b) {
+    return $a * $b;
+  },
+  div: function ($a, $b) {
+    return $a / $b;
+  },
+};
+print($calc.add(4, 5));
+print($calc.sub(4, 5));
+print($calc.mul(4, 5));
+print($calc.div(4, 5));
+`);
 
   const [ast, setAst] = React.useState({});
 
