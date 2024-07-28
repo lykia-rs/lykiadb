@@ -2,7 +2,6 @@ use self::program::Program;
 
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
-use crate::ast::AstNode;
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
@@ -44,8 +43,6 @@ macro_rules! binary {
                 id: $self.get_expr_id(),
             };
 
-            $self.register_expr_node(&expr, vec![token.clone()]);
-
             current_expr = Box::new(expr);
         }
         return Ok(current_expr);
@@ -60,12 +57,6 @@ macro_rules! match_next {
         }
     };
 }
-
-#[derive(Clone)]
-pub struct NodeMetadata {
-    pub tokens: Vec<Token>,
-}
-
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
@@ -73,7 +64,6 @@ pub struct Parser<'a> {
     in_select_depth: usize,
     in_array_depth: usize,
     in_object_depth: usize,
-    node_metadata: FxHashMap<usize, NodeMetadata>,
 }
 
 impl<'a> Parser<'a> {
@@ -85,7 +75,6 @@ impl<'a> Parser<'a> {
             in_array_depth: 0,
             in_object_depth: 0,
             expr_id: 0,
-            node_metadata: FxHashMap::default(),
         }
     }
 
@@ -100,25 +89,15 @@ impl<'a> Parser<'a> {
             in_array_depth: 0,
             in_object_depth: 0,
             expr_id: 0,
-            node_metadata: FxHashMap::default(),
         };
         let program = parser.program()?;
         Ok(Program::new(program))
-    }
-
-    fn register_expr_node(&mut self, node: &Expr, tokens: Vec<Token>) {
-        self.node_metadata
-            .insert(node.get_id(), NodeMetadata { tokens });
     }
 
     fn get_expr_id(&mut self) -> usize {
         let id = self.expr_id;
         self.expr_id += 1;
         id
-    }
-
-    pub fn get_metadata(&mut self) -> FxHashMap<usize, NodeMetadata> {
-        self.node_metadata.clone()
     }
 
     pub fn program(&mut self) -> ParseResult<Box<Stmt>> {
@@ -335,7 +314,6 @@ impl<'a> Parser<'a> {
                     span: var_tok.span,
                     id: self.get_expr_id(),
                 };
-                self.register_expr_node(&node, vec![var_tok.clone()]);
                 Box::new(node)
             }
         };
@@ -403,8 +381,6 @@ impl<'a> Parser<'a> {
             span: self.get_merged_span(&fun_tok.span, &stmt.get_span()),
             id: self.get_expr_id(),
         };
-
-        self.register_expr_node(&node, tokens);
 
         Ok(Box::new(node))
     }
