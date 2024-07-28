@@ -1,0 +1,18 @@
+.cm-number {
+    color:blue
+}
+
+.cm-string {
+    color:green
+}
+
+.cm-identifier {
+    color:purple;
+    text-decoration: underline
+}
+
+.cm-{
+    &function {
+        color: red
+    }
+}

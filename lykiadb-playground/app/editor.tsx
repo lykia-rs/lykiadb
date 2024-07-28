@@ -7,10 +7,15 @@ import { defaultFont } from '../styles/fonts'
 import SplitPane, { Pane } from 'split-pane-react';
 import init, { parse } from "../pkg/index";
 import { lyql } from "./parser";
+import "./lyqlSyntax.scss";
+
+await init();
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
-    `SELECT * FROM foo;`
+`function sum($a, $b) { 
+  return $a + $b;
+};`
   );
 
   const [ast, setAst] = React.useState({});
@@ -19,15 +24,13 @@ const EditorView = () => {
 
   function updateCode(code: string) {
     setCode(code)
-    init().then(() => {
-      try {
-        const parsed = parse(code).root;
-        setAst(parsed);
-      }
-      catch (e) {
-        console.error(e);
-      }
-    });
+    try {
+      const parsed = parse(code);
+      if (parsed) setAst(parsed);
+    }
+    catch (e) {
+      console.error(e);
+    }
   }
 
   return (
@@ -35,12 +38,11 @@ const EditorView = () => {
       <Pane minSize={300} className="h-full p-1">
         <div className="p-2 text-white bg-slate-700 rounded-t-md">Script</div>
         <div>
-          <CodeMirror 
+          <CodeMirror
             value={code}
             height="400px"
-            extensions={[
-              lyql(),
-            ]} 
+
+            extensions={[lyql(parse)]} 
             onChange={(value: string) => updateCode(value)} 
           />
         </div>
