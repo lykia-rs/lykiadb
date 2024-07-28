@@ -5,7 +5,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import JsonView from '@uiw/react-json-view';
 import { defaultFont } from '../styles/fonts'
 import SplitPane, { Pane } from 'split-pane-react';
-import init, { parse } from "../pkg/index";
+import init, { parse, tokenize } from "../pkg/index";
 import { lyql } from "./parser";
 import "./lyqlSyntax.scss";
 
@@ -57,7 +57,7 @@ print($calc.div(4, 5));
             value={code}
             height="400px"
 
-            extensions={[lyql(parse)]} 
+            extensions={[lyql(tokenize)]} 
             onChange={(value: string) => updateCode(value)} 
           />
         </div>

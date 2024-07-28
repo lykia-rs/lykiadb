@@ -11,9 +11,12 @@ import {
   const tgs = {
     String: t.string,
     Number: t.number,
+    Identifier: t.variableName,
     Boolean: t.bool,
-    identifier: t.variableName,
-    function: t.keyword,
+    Keyword: t.link,
+    SqlKeyword: t.keyword,
+    Symbol: t.operator,
+    "Null Undefined": t.null,
   } as Record<string, any>
 
   export const jsHighlight = styleTags(tgs)
@@ -51,10 +54,7 @@ import {
           let parsed = null;
           try {
             parsed = this.parseFn(doc);
-            if (!parsed?.span) {
-              return Tree.empty;
-            }
-            const tr = new Tree(
+            return new Tree(
               NodeType.define({
                 id: 0,
                 name: "_root",
@@ -65,7 +65,6 @@ import {
               [parsed.span.start],
               parsed.span.end
             );
-            return tr
           }
           catch (e) {
             console.error(e);
@@ -92,7 +91,7 @@ import {
       syntaxHighlighting(HighlightStyle.define([
         ...Object.entries(tgs).map(([key, tag]) => ({
           tag,
-          class: `cm-${(key.toLowerCase())}`,
+          class: `cm-${(key.toLowerCase().replace(' ', '-'))}`,
         })),
       ])),
     ]);

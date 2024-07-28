@@ -4,27 +4,46 @@ extern crate serde;
 extern crate wasm_bindgen;
 
 use lykiadb_lang::{
-    parser::{program::Program, resolver::Resolver, Parser},
+    parser::{resolver::Resolver, Parser},
     tokenizer::scanner::Scanner,
     Scopes,
 };
+use regularizer::{Tree, TreeBuilder};
 use wasm_bindgen::prelude::*;
 mod regularizer;
 
 #[wasm_bindgen]
 pub fn parse(source: &str) -> Result<JsValue, JsValue> {
     let tokens = Scanner::scan(source).unwrap();
-    let mut parser = Parser::create(&tokens);
-    let parse_result = parser.program();
+    let parse_result = Parser::parse(&tokens);
 
-    if let Ok(mut r) = parse_result {
-        let mut program = Program::new(r);
+    if let Ok(mut program) = parse_result {
         let mut resolver = Resolver::new(Scopes::default(), &program, None);
-        let (scopes, locals) = resolver.resolve().unwrap();
+        let (_, locals) = resolver.resolve().unwrap();
         program.set_locals(locals);
-        let tree = regularizer::TreeBuilder::new(parser.get_metadata()).build(&program.get_root());
-        return Ok(serde_wasm_bindgen::to_value(&tree)?);
+        return Ok(serde_wasm_bindgen::to_value(&program)?);
     }
 
     Ok(serde_wasm_bindgen::to_value(&parse_result.err())?)
+}
+
+
+#[wasm_bindgen]
+pub fn tokenize(source: &str) -> Result<JsValue, JsValue> {
+    let tokens = Scanner::scan(source).unwrap();
+
+    let mut last = tokens.last().unwrap().span;
+
+    last.start = 0;
+    last.line = 0;
+
+    let token_tree = Tree {
+        name: "Program".to_owned(),
+        children: Some(tokens.into_iter().map(|t| {
+            TreeBuilder::token_to_tree(t)
+        }).collect()),
+        span: last,
+    };
+
+    Ok(serde_wasm_bindgen::to_value(&token_tree)?)
 }

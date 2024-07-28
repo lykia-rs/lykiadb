@@ -1068,7 +1068,7 @@ impl<'a> Parser<'a> {
             SqlDistinct::ImplicitAll
         };
 
-        let projection = self.sql_select_projection();
+        let projection = self.sql_select_projection()?;
         let from = self.sql_select_from()?;
         let r#where = self.sql_select_where()?;
         let group_by = self.sql_select_group_by()?;
@@ -1112,7 +1112,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn sql_select_projection(&mut self) -> Vec<SqlProjection> {
+    fn sql_select_projection(&mut self) -> ParseResult<Vec<SqlProjection>> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if self.match_next(sym!(Star)) {
@@ -1123,7 +1123,7 @@ impl<'a> Parser<'a> {
                     collection: Some(self.peek_bw(3).extract_identifier().unwrap()),
                 });
             } else {
-                let expr = self.sql_expression().unwrap();
+                let expr = self.sql_expression()?;
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
@@ -1135,7 +1135,7 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        projections
+        Ok(projections)
     }
 
     fn sql_select_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {

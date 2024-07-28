@@ -2,6 +2,10 @@
     color:blue
 }
 
+.cm-boolean {
+    color:darkblue
+}
+
 .cm-string {
     color:green
 }
@@ -11,8 +15,19 @@
     text-decoration: underline
 }
 
-.cm-{
-    &function {
-        color: red
-    }
+.cm-keyword{
+    color: red
+}
+
+.cm-sqlkeyword{
+    color:fuchsia
+}
+
+.cm-symbol {
+    color: grey
+}
+
+.cm-null,
+.cm-undefined {
+    color: darkred
 }

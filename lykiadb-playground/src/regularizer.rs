@@ -1,16 +1,14 @@
 use lykiadb_lang::{
-    ast::{expr::Expr, stmt::Stmt, visitor::VisitorMut},
-    parser::NodeMetadata,
-    Literal, Span,
+    ast::{expr::Expr, stmt::Stmt, visitor::VisitorMut}, parser::NodeMetadata, tokenizer::token::{Token, TokenType}, Literal, Span
 };
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Tree {
-    name: String,
-    children: Option<Vec<Tree>>,
-    span: Span,
+    pub name: String,
+    pub children: Option<Vec<Tree>>,
+    pub span: Span,
 }
 
 pub struct TreeBuilder {
@@ -25,16 +23,67 @@ impl TreeBuilder {
         self.visit_stmt(stmt).unwrap()
     }
 
+    pub fn token_to_tree(token: Token) -> Tree {
+        match token.tok_type {
+            TokenType::Identifier { .. } => Tree {
+                name: "Identifier".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Keyword { .. } => Tree {
+                name: "Keyword".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::SqlKeyword { .. } => Tree {
+                name: "SqlKeyword".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Str { .. } => Tree {
+                name: "String".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Num { .. } => Tree {
+                name: "Number".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::True { .. } | TokenType::False { .. } => Tree {
+                name: "Boolean".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Null { .. } => Tree {
+                name: "Null".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Undefined { .. } => Tree {
+                name: "Undefined".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Symbol { .. } => Tree {
+                name: "Symbol".to_string(),
+                children: None,
+                span: token.span,
+            },
+            TokenType::Eof { .. } => Tree {
+                name: "Eof".to_string(),
+                children: None,
+                span: token.span,
+            }
+        }
+    }
+
     pub fn get_children(&self, id: usize) -> Option<Vec<Tree>> {
         if self.node_metadata.contains_key(&id) {
             let children: Vec<Tree> = self.node_metadata[&id]
                 .tokens
                 .iter()
-                .map(|t| Tree {
-                    name: t.lexeme.clone().unwrap_or("".to_owned()).to_string(),
-                    children: None,
-                    span: t.span,
-                })
+                .map(|t| Self::token_to_tree(t.clone()))
                 .collect();
             return Some(children);
         }
@@ -93,7 +142,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
             }
             Expr::Variable { name, span, id } => {
                 self.get_subtree("Variable", span, *id, vec![Tree {
-                    name: "identifier".to_string(),
+                    name: "Identifier".to_string(),
                     children: None,
                     span: name.span,
                 }])
@@ -105,7 +154,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 id,
             } => {
                 let children = vec![Tree {
-                    name: "identifier".to_string(),
+                    name: "Identifier".to_string(),
                     children: None,
                     span: dst.span,
                 }, self.visit_expr(expr)?];
@@ -143,7 +192,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 id,
             } => {
                 let children = vec![Tree {
-                    name: "identifier".to_string(),
+                    name: "Identifier".to_string(),
                     children: None,
                     span: name.span,
                 }, self.visit_expr(object)?];
@@ -157,7 +206,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 id,
             } => {
                 let children = vec![Tree {
-                    name: "identifier".to_string(),
+                    name: "Identifier".to_string(),
                     children: None,
                     span: name.span,
                 }, self.visit_expr(object)?, self.visit_expr(value)?];
@@ -178,7 +227,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
 
                 if let Some(n) = name {
                     children.push(Tree {
-                        name: "identifier".to_string(),
+                        name: "Identifier".to_string(),
                         children: None,
                         span: n.span,
                     });
@@ -186,7 +235,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
 
                 for param in parameters {
                     children.push(Tree {
-                        name: "identifier".to_string(),
+                        name: "Identifier".to_string(),
                         children: None,
                         span: param.span,
                     });
