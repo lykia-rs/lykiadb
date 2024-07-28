@@ -40,6 +40,18 @@ impl TreeBuilder {
         }
         return None;
     }
+
+    pub fn get_subtree(&self, name: &str, span: &Span, id: usize, mut children: Vec<Tree>) -> Tree {
+        let token_children = self.get_children(id);
+        if let Some(c) = token_children {
+            children.extend(c);
+        }
+        Tree {
+            name: name.to_owned(),
+            children: Some(children),
+            span: *span,
+        }
+    }
 }
 
 impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
@@ -80,20 +92,11 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 }
             }
             Expr::Variable { name, span, id } => {
-                let mut children = vec![Tree {
+                self.get_subtree("Variable", span, *id, vec![Tree {
                     name: "identifier".to_string(),
                     children: None,
                     span: name.span,
-                }];
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: "Variable".to_owned(),
-                    children: Some(children),
-                    span: *span,
-                }
+                }])
             }
             Expr::Assignment {
                 dst,
@@ -101,21 +104,12 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![Tree {
+                let children = vec![Tree {
                     name: "identifier".to_string(),
                     children: None,
                     span: dst.span,
-                }];
-                children.push(self.visit_expr(expr)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: "Assignment".to_string(),
-                    children: Some(children),
-                    span: *span,
-                }
+                }, self.visit_expr(expr)?];
+                self.get_subtree("Assignment", span, *id, children)
             }
             Expr::Logical {
                 left,
@@ -124,18 +118,11 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![];
-                children.push(self.visit_expr(left)?);
-                children.push(self.visit_expr(right)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: format!("{:?}", operation),
-                    children: Some(children),
-                    span: *span,
-                }
+                let children = vec![
+                    self.visit_expr(left)?,
+                    self.visit_expr(right)?
+                ];
+                self.get_subtree(&format!("Logical/{:?}", operation), span, *id, children)
             }
             Expr::Call {
                 callee,
@@ -143,20 +130,11 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![];
-                children.push(self.visit_expr(callee)?);
+                let mut children = vec![self.visit_expr(callee)?];
                 for arg in args {
                     children.push(self.visit_expr(arg)?);
                 }
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: "Call".to_string(),
-                    children: Some(children),
-                    span: *span,
-                }
+                self.get_subtree("Call", span, *id, children)
             }
             Expr::Get {
                 object,
@@ -164,21 +142,12 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![Tree {
+                let children = vec![Tree {
                     name: "identifier".to_string(),
                     children: None,
                     span: name.span,
-                }];
-                children.push(self.visit_expr(object)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: name.name.clone(),
-                    children: Some(children),
-                    span: *span,
-                }
+                }, self.visit_expr(object)?];
+                self.get_subtree("Get", span, *id, children)
             }
             Expr::Set {
                 object,
@@ -187,35 +156,16 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![Tree {
+                let children = vec![Tree {
                     name: "identifier".to_string(),
                     children: None,
                     span: name.span,
-                }];
-                children.push(self.visit_expr(object)?);
-                children.push(self.visit_expr(value)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: name.name.clone(),
-                    children: Some(children),
-                    span: *span,
-                }
+                }, self.visit_expr(object)?, self.visit_expr(value)?];
+                self.get_subtree("Set", span, *id, children)
             }
             Expr::Grouping { expr, span, id } => {
-                let mut children = vec![];
-                children.push(self.visit_expr(expr)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: "Grouping".to_string(),
-                    children: Some(children),
-                    span: *span,
-                }
+                let children = vec![self.visit_expr(expr)?];
+                self.get_subtree("Grouping", span, *id, children)
             }
             Expr::Function {
                 name,
@@ -241,15 +191,8 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                         span: param.span,
                     });
                 }
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: "Function".to_string(),
-                    children: Some(children),
-                    span: *span,
-                }
+
+                self.get_subtree("Function", span, *id, children)
             }
             Expr::Binary {
                 left,
@@ -258,18 +201,11 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![];
-                children.push(self.visit_expr(left)?);
-                children.push(self.visit_expr(right)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: format!("{:?}", operation),
-                    children: Some(children),
-                    span: *span,
-                }
+                let children = vec![
+                    self.visit_expr(left)?,
+                    self.visit_expr(right)?
+                ];
+                self.get_subtree(&format!("Binary/{:?}", operation), span, *id, children)
             }
             Expr::Unary {
                 operation,
@@ -277,17 +213,8 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![];
-                children.push(self.visit_expr(expr)?);
-                let token_children = self.get_children(*id);
-                if let Some(c) = token_children {
-                    children.extend(c);
-                }
-                Tree {
-                    name: format!("{:?}", operation),
-                    children: Some(children),
-                    span: *span,
-                }
+                let children = vec![self.visit_expr(expr)?];
+                self.get_subtree(&format!("Unary/{:?}", operation), span, *id, children)
             }
             Expr::Insert { command, span, id } => Tree {
                 name: format!("{:?}", command),
