@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::{
-    Identifier, Span, Spanned,
-};
+use crate::{Identifier, Span, Spanned};
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
-    stmt::Stmt, AstNode,
+    stmt::Stmt,
+    AstNode,
 };
 
 use crate::Literal;
@@ -171,21 +170,36 @@ pub enum Expr {
 impl Spanned for Expr {
     fn get_span(&self) -> Span {
         match self {
-            Expr::Select { query: _, span,
-                id: _, }
-            | Expr::Insert { command: _, span,
-                id: _, }
-            | Expr::Delete { command: _, span,
-                id: _, }
-            | Expr::Update { command: _, span,
-                id: _, }
+            Expr::Select {
+                query: _,
+                span,
+                id: _,
+            }
+            | Expr::Insert {
+                command: _,
+                span,
+                id: _,
+            }
+            | Expr::Delete {
+                command: _,
+                span,
+                id: _,
+            }
+            | Expr::Update {
+                command: _,
+                span,
+                id: _,
+            }
             | Expr::Variable {
                 name: _,
                 span,
                 id: _,
             }
-            | Expr::Grouping { expr: _, span,
-                id: _, }
+            | Expr::Grouping {
+                expr: _,
+                span,
+                id: _,
+            }
             | Expr::Literal {
                 value: _,
                 raw: _,
@@ -251,21 +265,36 @@ impl Spanned for Expr {
 impl AstNode for Expr {
     fn get_id(&self) -> usize {
         match self {
-            Expr::Select { query: _, span: _,
-                id, }
-            | Expr::Insert { command: _, span: _,
-                id, }
-            | Expr::Delete { command: _, span: _,
-                id, }
-            | Expr::Update { command: _, span: _,
-                id, }
+            Expr::Select {
+                query: _,
+                span: _,
+                id,
+            }
+            | Expr::Insert {
+                command: _,
+                span: _,
+                id,
+            }
+            | Expr::Delete {
+                command: _,
+                span: _,
+                id,
+            }
+            | Expr::Update {
+                command: _,
+                span: _,
+                id,
+            }
             | Expr::Variable {
                 name: _,
                 span: _,
                 id,
             }
-            | Expr::Grouping { expr: _, span: _,
-                id, }
+            | Expr::Grouping {
+                expr: _,
+                span: _,
+                id,
+            }
             | Expr::Literal {
                 value: _,
                 raw: _,

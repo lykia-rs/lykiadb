@@ -6,8 +6,8 @@ use crate::ast::AstNode;
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
-use crate::{Literal, Span, Spanned};
 use crate::{kw, skw, sym};
+use crate::{Literal, Span, Spanned};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -63,7 +63,7 @@ macro_rules! match_next {
 
 #[derive(Clone)]
 pub struct NodeMetadata {
-    pub tokens: Vec<Token>
+    pub tokens: Vec<Token>,
 }
 
 pub struct Parser<'a> {
@@ -77,7 +77,6 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-
     pub fn create(tokens: &Vec<Token>) -> Parser {
         Parser {
             tokens,
@@ -108,7 +107,8 @@ impl<'a> Parser<'a> {
     }
 
     fn register_expr_node(&mut self, node: &Expr, tokens: Vec<Token>) {
-        self.node_metadata.insert(node.get_id(), NodeMetadata { tokens });
+        self.node_metadata
+            .insert(node.get_id(), NodeMetadata { tokens });
     }
 
     fn get_expr_id(&mut self) -> usize {
@@ -337,7 +337,7 @@ impl<'a> Parser<'a> {
                 };
                 self.register_expr_node(&node, vec![var_tok.clone()]);
                 Box::new(node)
-            },
+            }
         };
         self.expected(sym!(Semicolon))?;
         Ok(Box::new(Stmt::Declaration {
@@ -428,7 +428,12 @@ impl<'a> Parser<'a> {
                         span: self.get_merged_span(span, &value.get_span()),
                     }));
                 }
-                Expr::Get { object, name, span, id: _ } => {
+                Expr::Get {
+                    object,
+                    name,
+                    span,
+                    id: _,
+                } => {
                     return Ok(Box::new(Expr::Set {
                         object: object.clone(),
                         name: name.clone(),

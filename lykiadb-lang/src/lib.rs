@@ -69,5 +69,5 @@ pub struct Identifier {
     pub name: String,
     pub dollar: bool,
     #[serde(skip)]
-    pub span: Span
+    pub span: Span,
 }

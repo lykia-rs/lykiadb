@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Identifier, Span, Spanned,
-};
+use crate::{Identifier, Span, Spanned};
 
 use super::expr::Expr;
 

@@ -319,29 +319,49 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select { query, span: _, id: _ } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
-            Expr::Insert { command, span: _, id: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Update { command, span: _, id: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Delete { command, span: _, id: _ } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Select {
+                query,
+                span: _,
+                id: _,
+            } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
+            Expr::Insert {
+                command,
+                span: _,
+                id: _,
+            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Update {
+                command,
+                span: _,
+                id: _,
+            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Delete {
+                command,
+                span: _,
+                id: _,
+            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
             Expr::Literal {
                 value,
                 raw: _,
                 span: _,
-                id: _
+                id: _,
             } => Ok(self.literal_to_rv(value)),
-            Expr::Grouping { expr, span: _, id: _ } => self.visit_expr(expr),
+            Expr::Grouping {
+                expr,
+                span: _,
+                id: _,
+            } => self.visit_expr(expr),
             Expr::Unary {
                 operation,
                 expr,
                 span: _,
-                id: _
+                id: _,
             } => self.eval_unary(operation, expr),
             Expr::Binary {
                 operation,
                 left,
                 right,
                 span: _,
-                id: _
+                id: _,
             } => self.eval_binary(left, right, *operation),
             Expr::Variable {
                 name,
@@ -380,7 +400,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 operation,
                 right,
                 span: _,
-                id: _
+                id: _,
             } => {
                 let is_true = self.visit_expr(left)?.as_bool();
 
@@ -392,7 +412,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
-            Expr::Call { callee, args, span, id: _ } => {
+            Expr::Call {
+                callee,
+                args,
+                span,
+                id: _,
+            } => {
                 let eval = self.visit_expr(callee)?;
 
                 if let Callable(arity, callable) = eval {
@@ -430,7 +455,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 parameters,
                 body,
                 span: _,
-                id: _
+                id: _,
             } => {
                 let fn_name = if name.is_some() {
                     &name.as_ref().unwrap().name
@@ -457,7 +482,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 Ok(callable)
             }
-            Expr::Get { object, name, span, id: _ } => {
+            Expr::Get {
+                object,
+                name,
+                span,
+                id: _,
+            } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
                     let cloned = map.clone();
@@ -484,7 +514,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 name,
                 value,
                 span: _,
-                id: _
+                id: _,
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {

@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    Locals,
     ast::{expr::Expr, stmt::Stmt},
+    Locals,
 };
 #[derive(Serialize, Deserialize)]
 pub struct Program {

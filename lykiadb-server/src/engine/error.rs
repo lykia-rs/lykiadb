@@ -1,5 +1,9 @@
 use super::interpreter::InterpretError;
-use lykiadb_lang::{parser::{resolver::ResolveError, ParseError}, tokenizer::scanner::ScanError, Span};
+use lykiadb_lang::{
+    parser::{resolver::ResolveError, ParseError},
+    tokenizer::scanner::ScanError,
+    Span,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

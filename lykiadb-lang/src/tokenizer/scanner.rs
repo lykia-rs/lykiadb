@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::sym;
 use crate::tokenizer::token::Symbol::*;
 use crate::tokenizer::token::TokenType::{Eof, Identifier};
 use crate::tokenizer::token::*;
 use crate::{Literal::*, Span};
-use crate::sym;
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 use std::sync::Arc;
