@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    tokenizer::token::{Span, Spanned},
-    Identifier,
+    Identifier, Span, Spanned,
 };
 
 use super::expr::Expr;

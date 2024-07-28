@@ -1,4 +1,4 @@
-use crate::tokenizer::token::Spanned;
+use crate::Spanned;
 
 pub mod expr;
 pub mod sql;

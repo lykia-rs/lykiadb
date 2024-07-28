@@ -1,4 +1,4 @@
-use lykiadb_lang::{ast::{expr::Expr, stmt::Stmt, visitor::VisitorMut}, parser::NodeMetadata, tokenizer::token::Span, Literal};
+use lykiadb_lang::{ast::{expr::Expr, stmt::Stmt, visitor::VisitorMut}, parser::NodeMetadata, Literal, Span};
 use serde::{Deserialize, Serialize};
 use rustc_hash::FxHashMap;
 

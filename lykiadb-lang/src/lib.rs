@@ -3,7 +3,6 @@ use std::sync::Arc;
 use ast::expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use tokenizer::token::Span;
 
 pub mod ast;
 pub mod parser;
@@ -11,6 +10,35 @@ pub mod tokenizer;
 
 pub type Scopes = Vec<FxHashMap<String, bool>>;
 pub type Locals = FxHashMap<usize, usize>;
+
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+    pub line: u32,
+    pub line_end: u32,
+}
+
+pub trait Spanned {
+    fn get_span(&self) -> Span;
+}
+
+impl Spanned for Span {
+    fn get_span(&self) -> Span {
+        *self
+    }
+}
+
+impl Span {
+    pub fn merge(&self, other: &Span) -> Span {
+        Span {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+            line: self.line.min(other.line),
+            line_end: self.line_end.min(other.line_end),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Literal {

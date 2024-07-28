@@ -2,8 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::{
-    tokenizer::token::{Span, Spanned},
-    Identifier,
+    Identifier, Span, Spanned,
 };
 
 use super::{
@@ -252,77 +251,77 @@ impl Spanned for Expr {
 impl AstNode for Expr {
     fn get_id(&self) -> usize {
         match self {
-            Expr::Select { query: _, span,
+            Expr::Select { query: _, span: _,
                 id, }
-            | Expr::Insert { command: _, span,
+            | Expr::Insert { command: _, span: _,
                 id, }
-            | Expr::Delete { command: _, span,
+            | Expr::Delete { command: _, span: _,
                 id, }
-            | Expr::Update { command: _, span,
+            | Expr::Update { command: _, span: _,
                 id, }
             | Expr::Variable {
                 name: _,
-                span,
+                span: _,
                 id,
             }
-            | Expr::Grouping { expr: _, span,
+            | Expr::Grouping { expr: _, span: _,
                 id, }
             | Expr::Literal {
                 value: _,
                 raw: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Function {
                 name: _,
                 parameters: _,
                 body: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Binary {
                 left: _,
                 operation: _,
                 right: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Unary {
                 operation: _,
                 expr: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Assignment {
                 dst: _,
                 expr: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Logical {
                 left: _,
                 operation: _,
                 right: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Call {
                 callee: _,
                 args: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Get {
                 object: _,
                 name: _,
-                span,
+                span: _,
                 id,
             }
             | Expr::Set {
                 object: _,
                 name: _,
                 value: _,
-                span,
+                span: _,
                 id,
             } => *id,
         }

@@ -4,9 +4,9 @@ use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
 use crate::ast::AstNode;
 use crate::tokenizer::token::{
-    Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
+    Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
-use crate::Literal;
+use crate::{Literal, Span, Spanned};
 use crate::{kw, skw, sym};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

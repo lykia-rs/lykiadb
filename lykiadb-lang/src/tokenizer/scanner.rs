@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::tokenizer::token::Symbol::*;
 use crate::tokenizer::token::TokenType::{Eof, Identifier};
 use crate::tokenizer::token::*;
-use crate::Literal::*;
+use crate::{Literal::*, Span};
 use crate::sym;
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
