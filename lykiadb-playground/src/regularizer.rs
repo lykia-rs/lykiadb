@@ -63,14 +63,14 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                                 children.push(self.visit_expr(expr)?);
                             }
                             "Array".to_string()
-                        },
+                        }
                         Literal::Object(exprs) => {
                             for (key, value) in exprs {
                                 // children.push(self.visit_expr(key)?);
                                 children.push(self.visit_expr(value)?);
                             }
                             "Object".to_string()
-                        },
+                        }
                         Literal::Null => "Null".to_string(),
                         Literal::Undefined => "Undefined".to_string(),
                         Literal::NaN => "NaN".to_string(),
@@ -78,15 +78,13 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                     children: Some(children),
                     span: *span,
                 }
-            },
+            }
             Expr::Variable { name, span, id } => {
-                let mut children = vec![
-                    Tree {
-                        name: "identifier".to_string(),
-                        children: None,
-                        span: name.span,
-                    },
-                ];
+                let mut children = vec![Tree {
+                    name: "identifier".to_string(),
+                    children: None,
+                    span: name.span,
+                }];
                 let token_children = self.get_children(*id);
                 if let Some(c) = token_children {
                     children.extend(c);
@@ -96,7 +94,7 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                     children: Some(children),
                     span: *span,
                 }
-            },
+            }
             Expr::Assignment {
                 dst,
                 expr,
@@ -166,11 +164,10 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![
-                    Tree {
-                        name: "identifier".to_string(),
-                        children: None,
-                        span: name.span,
+                let mut children = vec![Tree {
+                    name: "identifier".to_string(),
+                    children: None,
+                    span: name.span,
                 }];
                 children.push(self.visit_expr(object)?);
                 let token_children = self.get_children(*id);
@@ -190,11 +187,10 @@ impl<'a> VisitorMut<Tree, ()> for TreeBuilder {
                 span,
                 id,
             } => {
-                let mut children = vec![
-                    Tree {
-                        name: "identifier".to_string(),
-                        children: None,
-                        span: name.span,
+                let mut children = vec![Tree {
+                    name: "identifier".to_string(),
+                    children: None,
+                    span: name.span,
                 }];
                 children.push(self.visit_expr(object)?);
                 children.push(self.visit_expr(value)?);
