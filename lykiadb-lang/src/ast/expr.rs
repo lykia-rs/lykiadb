@@ -8,7 +8,7 @@ use crate::{
 
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
-    stmt::Stmt,
+    stmt::Stmt, AstNode,
 };
 
 use crate::Literal;
@@ -39,24 +39,32 @@ pub enum Expr {
         query: SqlSelect,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Insert")]
     Insert {
         command: SqlInsert,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Update")]
     Update {
         command: SqlUpdate,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Delete")]
     Delete {
         command: SqlDelete,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Variable")]
     Variable {
@@ -71,6 +79,8 @@ pub enum Expr {
         expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Literal")]
     Literal {
@@ -78,6 +88,8 @@ pub enum Expr {
         raw: String,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Function")]
     Function {
@@ -86,6 +98,8 @@ pub enum Expr {
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Binary")]
     Binary {
@@ -94,6 +108,8 @@ pub enum Expr {
         right: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Unary")]
     Unary {
@@ -101,6 +117,8 @@ pub enum Expr {
         expr: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Assignment")]
     Assignment {
@@ -118,6 +136,8 @@ pub enum Expr {
         right: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Call")]
     Call {
@@ -125,6 +145,8 @@ pub enum Expr {
         args: Vec<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Get")]
     Get {
@@ -132,6 +154,8 @@ pub enum Expr {
         name: Identifier,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
     #[serde(rename = "Expr::Set")]
     Set {
@@ -140,43 +164,54 @@ pub enum Expr {
         value: Box<Expr>,
         #[serde(skip)]
         span: Span,
+        #[serde(skip)]
+        id: usize,
     },
 }
 
 impl Spanned for Expr {
     fn get_span(&self) -> Span {
         match self {
-            Expr::Select { query: _, span }
-            | Expr::Insert { command: _, span }
-            | Expr::Delete { command: _, span }
-            | Expr::Update { command: _, span }
+            Expr::Select { query: _, span,
+                id: _, }
+            | Expr::Insert { command: _, span,
+                id: _, }
+            | Expr::Delete { command: _, span,
+                id: _, }
+            | Expr::Update { command: _, span,
+                id: _, }
             | Expr::Variable {
                 name: _,
                 span,
                 id: _,
             }
-            | Expr::Grouping { expr: _, span }
+            | Expr::Grouping { expr: _, span,
+                id: _, }
             | Expr::Literal {
                 value: _,
                 raw: _,
                 span,
+                id: _,
             }
             | Expr::Function {
                 name: _,
                 parameters: _,
                 body: _,
                 span,
+                id: _,
             }
             | Expr::Binary {
                 left: _,
                 operation: _,
                 right: _,
                 span,
+                id: _,
             }
             | Expr::Unary {
                 operation: _,
                 expr: _,
                 span,
+                id: _,
             }
             | Expr::Assignment {
                 dst: _,
@@ -189,23 +224,107 @@ impl Spanned for Expr {
                 operation: _,
                 right: _,
                 span,
+                id: _,
             }
             | Expr::Call {
                 callee: _,
                 args: _,
                 span,
+                id: _,
             }
             | Expr::Get {
                 object: _,
                 name: _,
                 span,
+                id: _,
             }
             | Expr::Set {
                 object: _,
                 name: _,
                 value: _,
                 span,
+                id: _,
             } => *span,
+        }
+    }
+}
+
+impl AstNode for Expr {
+    fn get_id(&self) -> usize {
+        match self {
+            Expr::Select { query: _, span,
+                id, }
+            | Expr::Insert { command: _, span,
+                id, }
+            | Expr::Delete { command: _, span,
+                id, }
+            | Expr::Update { command: _, span,
+                id, }
+            | Expr::Variable {
+                name: _,
+                span,
+                id,
+            }
+            | Expr::Grouping { expr: _, span,
+                id, }
+            | Expr::Literal {
+                value: _,
+                raw: _,
+                span,
+                id,
+            }
+            | Expr::Function {
+                name: _,
+                parameters: _,
+                body: _,
+                span,
+                id,
+            }
+            | Expr::Binary {
+                left: _,
+                operation: _,
+                right: _,
+                span,
+                id,
+            }
+            | Expr::Unary {
+                operation: _,
+                expr: _,
+                span,
+                id,
+            }
+            | Expr::Assignment {
+                dst: _,
+                expr: _,
+                span,
+                id,
+            }
+            | Expr::Logical {
+                left: _,
+                operation: _,
+                right: _,
+                span,
+                id,
+            }
+            | Expr::Call {
+                callee: _,
+                args: _,
+                span,
+                id,
+            }
+            | Expr::Get {
+                object: _,
+                name: _,
+                span,
+                id,
+            }
+            | Expr::Set {
+                object: _,
+                name: _,
+                value: _,
+                span,
+                id,
+            } => *id,
         }
     }
 }

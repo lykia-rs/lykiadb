@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ast::expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use tokenizer::token::Span;
 
 pub mod ast;
 pub mod parser;
@@ -39,4 +40,6 @@ impl Eq for Literal {}
 pub struct Identifier {
     pub name: String,
     pub dollar: bool,
+    #[serde(skip)]
+    pub span: Span
 }

@@ -2,6 +2,7 @@ use self::program::Program;
 
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
+use crate::ast::AstNode;
 use crate::tokenizer::token::{
     Keyword::*, Span, Spanned, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
@@ -32,15 +33,20 @@ macro_rules! binary {
             let left: Box<Expr> = current_expr;
             let right: Box<Expr> = $self.$builder()?;
 
-            current_expr = Box::new(Expr::Binary {
+            let expr = Expr::Binary {
                 left: left.clone(),
-                operation: $self.tok_type_to_op(token.tok_type),
+                operation: $self.tok_type_to_op(token.clone().tok_type),
                 right: right.clone(),
                 span: $self.get_merged_span(
                     &left.get_span(),
                     &right.get_span(),
                 ),
-            });
+                id: $self.get_expr_id(),
+            };
+
+            $self.register_expr_node(&expr, vec![token.clone()]);
+
+            current_expr = Box::new(expr);
         }
         return Ok(current_expr);
     }
@@ -55,6 +61,11 @@ macro_rules! match_next {
     };
 }
 
+#[derive(Clone)]
+pub struct NodeMetadata {
+    pub tokens: Vec<Token>
+}
+
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     current: usize,
@@ -62,9 +73,23 @@ pub struct Parser<'a> {
     in_select_depth: usize,
     in_array_depth: usize,
     in_object_depth: usize,
+    node_metadata: FxHashMap<usize, NodeMetadata>,
 }
 
 impl<'a> Parser<'a> {
+
+    pub fn create(tokens: &Vec<Token>) -> Parser {
+        Parser {
+            tokens,
+            current: 0,
+            in_select_depth: 0,
+            in_array_depth: 0,
+            in_object_depth: 0,
+            expr_id: 0,
+            node_metadata: FxHashMap::default(),
+        }
+    }
+
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
         if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
             return Err(ParseError::NoTokens);
@@ -76,9 +101,14 @@ impl<'a> Parser<'a> {
             in_array_depth: 0,
             in_object_depth: 0,
             expr_id: 0,
+            node_metadata: FxHashMap::default(),
         };
         let program = parser.program()?;
         Ok(Program::new(program))
+    }
+
+    fn register_expr_node(&mut self, node: &Expr, tokens: Vec<Token>) {
+        self.node_metadata.insert(node.get_id(), NodeMetadata { tokens });
     }
 
     fn get_expr_id(&mut self) -> usize {
@@ -87,7 +117,11 @@ impl<'a> Parser<'a> {
         id
     }
 
-    fn program(&mut self) -> ParseResult<Box<Stmt>> {
+    pub fn get_metadata(&mut self) -> FxHashMap<usize, NodeMetadata> {
+        self.node_metadata.clone()
+    }
+
+    pub fn program(&mut self) -> ParseResult<Box<Stmt>> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
             statements.push(*self.declaration()?);
@@ -294,11 +328,16 @@ impl<'a> Parser<'a> {
         let ident = self.expected(Identifier { dollar: true })?.clone();
         let expr = match self.match_next(sym!(Equal)) {
             true => self.expression()?,
-            false => Box::new(Expr::Literal {
-                value: Literal::Undefined,
-                raw: "undefined".to_string(),
-                span: self.get_merged_span(&var_tok.span, &ident.span),
-            }),
+            false => {
+                let node = Expr::Literal {
+                    value: Literal::Undefined,
+                    raw: "undefined".to_string(),
+                    span: var_tok.span,
+                    id: self.get_expr_id(),
+                };
+                self.register_expr_node(&node, vec![var_tok.clone()]);
+                Box::new(node)
+            },
         };
         self.expected(sym!(Semicolon))?;
         Ok(Box::new(Stmt::Declaration {
@@ -309,26 +348,39 @@ impl<'a> Parser<'a> {
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Box<Expr>> {
+        let mut tokens = vec![];
         let fun_tok = self.peek_bw(1);
-
+        tokens.push(fun_tok.clone());
         let token = if self.cmp_tok(&Identifier { dollar: false }) {
             Some(self.expected(Identifier { dollar: false })?.clone())
         } else {
             None
         };
 
-        self.expected(sym!(LeftParen))?;
+        if let Some(t) = token.clone() {
+            tokens.push(t.clone());
+        }
+
+        let left_paren = self.expected(sym!(LeftParen))?;
+
+        tokens.push(left_paren.clone());
+
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
             let p = self.expected(Identifier { dollar: true })?;
+            tokens.push(p.clone());
             parameters.push(p.clone());
             while self.match_next(sym!(Comma)) {
                 let q = self.expected(Identifier { dollar: true })?;
+                tokens.push(q.clone());
                 parameters.push(q.clone());
             }
         }
-        self.expected(sym!(RightParen))?;
+        let right_par = self.expected(sym!(RightParen))?;
+        tokens.push(right_par.clone());
+
         self.expected(sym!(LeftBrace))?;
+
         let stmt = self.block()?;
 
         let inner_stmt = &(stmt);
@@ -341,7 +393,7 @@ impl<'a> Parser<'a> {
             _ => vec![*stmt.clone()],
         };
 
-        Ok(Box::new(Expr::Function {
+        let node = Expr::Function {
             name: token.map(|t| t.extract_identifier().unwrap()),
             parameters: parameters
                 .iter()
@@ -349,7 +401,12 @@ impl<'a> Parser<'a> {
                 .collect(),
             body: Arc::new(body),
             span: self.get_merged_span(&fun_tok.span, &stmt.get_span()),
-        }))
+            id: self.get_expr_id(),
+        };
+
+        self.register_expr_node(&node, tokens);
+
+        Ok(Box::new(node))
     }
 
     fn expression(&mut self) -> ParseResult<Box<Expr>> {
@@ -371,12 +428,13 @@ impl<'a> Parser<'a> {
                         span: self.get_merged_span(span, &value.get_span()),
                     }));
                 }
-                Expr::Get { object, name, span } => {
+                Expr::Get { object, name, span, id: _ } => {
                     return Ok(Box::new(Expr::Set {
                         object: object.clone(),
                         name: name.clone(),
                         value: value.clone(),
                         span: self.get_merged_span(span, &value.get_span()),
+                        id: self.get_expr_id(),
                     }));
                 }
                 _ => {
@@ -404,6 +462,7 @@ impl<'a> Parser<'a> {
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right: right.clone(),
                 span: self.get_merged_span(&expr.get_span(), &right.get_span()),
+                id: self.get_expr_id(),
             }));
         }
         Ok(expr)
@@ -424,6 +483,7 @@ impl<'a> Parser<'a> {
                 operation: self.tok_type_to_op(op.tok_type.clone()),
                 right: right.clone(),
                 span: self.get_merged_span(&expr.get_span(), &right.get_span()),
+                id: self.get_expr_id(),
             }));
         }
         Ok(expr)
@@ -466,6 +526,7 @@ impl<'a> Parser<'a> {
                 operation: self.tok_type_to_op(token.tok_type),
                 expr: unary.clone(),
                 span: self.get_merged_span(&token.span, &(unary).get_span()),
+                id: self.get_expr_id(),
             }));
         }
         self.sql_insert()
@@ -483,6 +544,7 @@ impl<'a> Parser<'a> {
                     object: expr.clone(),
                     name: identifier.extract_identifier().unwrap(),
                     span: self.get_merged_span(&(expr).get_span(), &identifier.span),
+                    id: self.get_expr_id(),
                 })
             } else {
                 break;
@@ -508,6 +570,7 @@ impl<'a> Parser<'a> {
             callee: callee.clone(),
             span: self.get_merged_span(&(callee).get_span(), &paren.span),
             args: arguments,
+            id: self.get_expr_id(),
         }))
     }
 
@@ -554,6 +617,7 @@ impl<'a> Parser<'a> {
             value: Literal::Object(obj_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
+            id: self.get_expr_id(),
         }))
     }
 
@@ -573,6 +637,7 @@ impl<'a> Parser<'a> {
             value: Literal::Array(array_literal),
             raw: "".to_string(),
             span: self.get_merged_span(&tok.span, &self.peek_bw(0).span),
+            id: self.get_expr_id(),
         }))
     }
 
@@ -588,32 +653,38 @@ impl<'a> Parser<'a> {
                 Ok(Box::new(Expr::Grouping {
                     span: (expr).get_span(),
                     expr,
+                    id: self.get_expr_id(),
                 }))
             }
             True => Ok(Box::new(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
                 span: tok.span,
+                id: self.get_expr_id(),
             })),
             False => Ok(Box::new(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
                 span: tok.span,
+                id: self.get_expr_id(),
             })),
             TokenType::Null => Ok(Box::new(Expr::Literal {
                 value: Literal::Null,
                 raw: "null".to_string(),
                 span: tok.span,
+                id: self.get_expr_id(),
             })),
             TokenType::Undefined => Ok(Box::new(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
                 span: tok.span,
+                id: self.get_expr_id(),
             })),
             Str | Num => Ok(Box::new(Expr::Literal {
                 value: tok.literal.clone().unwrap(),
                 raw: tok.lexeme.clone().unwrap(),
                 span: tok.span,
+                id: self.get_expr_id(),
             })),
             Identifier { dollar: _ } => Ok(Box::new(Expr::Variable {
                 name: tok.extract_identifier().unwrap(),
@@ -795,6 +866,7 @@ impl<'a> Parser<'a> {
             Ok(Box::new(Expr::Insert {
                 command: SqlInsert { collection, values },
                 span: Span::default(),
+                id: self.get_expr_id(),
             }))
         } else {
             Err(ParseError::UnexpectedToken {
@@ -836,6 +908,7 @@ impl<'a> Parser<'a> {
                 r#where,
             },
             span: Span::default(),
+            id: self.get_expr_id(),
         }))
     }
 
@@ -859,6 +932,7 @@ impl<'a> Parser<'a> {
                     r#where,
                 },
                 span: Span::default(),
+                id: self.get_expr_id(),
             }))
         } else {
             Err(ParseError::UnexpectedToken {
@@ -912,6 +986,7 @@ impl<'a> Parser<'a> {
         Ok(Box::new(Expr::Select {
             span: Span::default(),
             query: query.unwrap(),
+            id: self.get_expr_id(),
         }))
     }
 

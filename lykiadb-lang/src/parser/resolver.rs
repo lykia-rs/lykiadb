@@ -99,6 +99,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 raw: _,
                 span: _,
                 value,
+                id: _
             } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
@@ -112,17 +113,19 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 _ => (),
             },
-            Expr::Grouping { expr, span: _ } => self.resolve_expr(expr),
+            Expr::Grouping { expr, span: _, id: _ } => self.resolve_expr(expr),
             Expr::Unary {
                 operation: _,
                 expr,
                 span: _,
+                id: _
             } => self.resolve_expr(expr),
             Expr::Binary {
                 operation: _,
                 left,
                 right,
                 span: _,
+                id: _
             } => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
@@ -155,6 +158,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 operation: _,
                 right,
                 span: _,
+                id: _
             } => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
@@ -163,6 +167,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 callee,
                 args,
                 span: _,
+                id: _
             } => {
                 self.resolve_expr(callee);
 
@@ -175,6 +180,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 parameters,
                 body,
                 span: _,
+                id: _
             } => {
                 if name.is_some() {
                     self.declare(&name.as_ref().unwrap().clone());
@@ -192,6 +198,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 object,
                 name: _,
                 span: _,
+                id: _
             } => {
                 self.resolve_expr(object);
             }
@@ -200,22 +207,26 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 name: _,
                 value,
                 span: _,
+                id: _
             } => {
                 self.resolve_expr(object);
                 self.resolve_expr(value);
             }
-            Expr::Select { query: _, span: _ }
+            Expr::Select { query: _, span: _, id: _ }
             | Expr::Insert {
                 command: _,
                 span: _,
+                id: _
             }
             | Expr::Update {
                 command: _,
                 span: _,
+                id: _
             }
             | Expr::Delete {
                 command: _,
                 span: _,
+                id: _
             } => (),
         };
         Ok(())

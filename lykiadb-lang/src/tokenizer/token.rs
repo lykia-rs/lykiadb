@@ -280,6 +280,7 @@ impl Token {
             TokenType::Identifier { dollar } => Some(Identifier {
                 name: self.lexeme.clone().unwrap(),
                 dollar: *dollar,
+                span: self.span
             }),
             _ => None,
         }
