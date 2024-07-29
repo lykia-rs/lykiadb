@@ -51,20 +51,19 @@ print($calc.div(4, 5));
   return (
     <SplitPane sizes={sizes} onChange={setSizes} className={defaultFont.className}>
       <Pane minSize={300} className="h-full p-1">
-        <div className="p-2 text-white bg-slate-700 rounded-t-md">Script</div>
+        <div className="p-2 text-white bg-slate-800 rounded-t-md">Script</div>
         <div>
           <CodeMirror
             value={code}
             height="400px"
-
             extensions={[lyql(tokenize)]} 
             onChange={(value: string) => updateCode(value)} 
           />
         </div>
-        <div className="p-2 text-white bg-slate-700 rounded-b-md"></div>
+        <div className="p-2 text-white bg-slate-800 rounded-b-md"></div>
       </Pane>
       <Pane minSize={600} className="h-full p-1">
-        <div className="p-2 text-white bg-slate-700 rounded-t-md">Syntax tree</div>
+        <div className="p-2 text-white bg-slate-800 rounded-t-md">Syntax tree</div>
         <div className="overflow-y-auto h-full">
           <div className="p-3 bg-white"><JsonView value={ast} /></div>
         </div>
