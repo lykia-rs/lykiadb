@@ -1,0 +1,43 @@
+.cm-{
+    $font-size: 14px;
+    $font-family: 'JetBrains Mono', monospace;
+    &gutters, &editor {
+        font-size: $font-size;
+        font-family: $font-family;
+        background-color: #222226!important;
+        border: none!important;
+    }
+
+    &line {
+        font-size: $font-size;
+        font-family: $font-family;
+        line-height: 1.5;
+        height: 100%;
+        width: 100%;
+    }
+
+    &string {
+        color:rgb(17, 198, 0)
+    }
+
+    &number,
+    &boolean,
+    &null-undefined {
+        color:rgb(94, 145, 255)
+    }
+    &identifier {
+        color:#FB773C;
+        text-decoration: underline
+    }
+    &keyword{
+        color: rgb(74, 216, 255);
+        font-weight: bold;
+    }
+    &sqlkeyword{
+        color: #EB3678;
+        font-weight: bold;
+    }
+    &symbol {
+        color: grey
+    }
+}
