@@ -31,15 +31,16 @@ Lykia is a toy multi-model database basically written for educational purposes.
 
 - [x] Core scripting language
 - [x] A minimal standard library
-- [x] Data manipulation language ("SELECT", "INSERT", "UPDATE", "DELETE")
+- [x] DML/DDL SQL
 - [x] Event loop, client-server communication
 - [x] Minimal playground app
-- [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
 - [ ] Query binding and planning (in progress)
-- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) (in progress)
+- [ ] Bitcask storage engine
 - [ ] MVCC for transaction management (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm))
-- [ ] B-Tree implementation for indexing
 - [ ] Plan optimization
+-----------------------------------------
+- [ ] B-Tree implementation for indexing
+- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) 
 - [ ] Basic replication with Raft
 
 ## Getting Started
