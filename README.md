@@ -31,14 +31,16 @@ Lykia is a toy multi-model database basically written for educational purposes.
 
 - [x] Core scripting language
 - [x] A minimal standard library
-- [x] Data manipulation language ("SELECT", "INSERT", "UPDATE", "DELETE")
+- [x] DML/DDL SQL
 - [x] Event loop, client-server communication
-- [ ] Data definition language ("CREATE COLLECTION", etc.) (in progress)
+- [x] Minimal playground app
 - [ ] Query binding and planning (in progress)
-- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) (in progress)
+- [ ] Bitcask storage engine
 - [ ] MVCC for transaction management (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm))
-- [ ] B-Tree implementation for indexing
 - [ ] Plan optimization
+-----------------------------------------
+- [ ] B-Tree implementation for indexing
+- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) 
 - [ ] Basic replication with Raft
 
 ## Getting Started
@@ -47,15 +49,19 @@ To use Lykia, you can download the latest release from the GitHub releases page.
 Run the server:
 
 ```shell
-$ cargo run --release --bin lykiadb-lykiadb-server
+$ cargo run --release --bin lykiadb-server
 ```
-Run the client:
+Run the shell:
 
 ```shell 
 $ cargo run --release --bin lykiadb-shell lykiadb-shell/examples/fib.ly
 ```
+Run the playground:
 
-Client transmits the fib.ly in an infinite loop.
+```shell 
+$ cd lykiadb-playground
+$ pnpm dev
+```
 
 ## License
 Lykia is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.

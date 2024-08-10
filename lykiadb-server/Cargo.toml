@@ -8,12 +8,12 @@ edition = "2021"
 bytes = "1.5.0"
 bson = { version = "2.9.0" }
 bumpalo = "3.12.2"
+lykiadb-lang = { path = "../lykiadb-lang" }
 phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
 ariadne = { version = "0.4.1", features = ["auto-color"] }
-assert-json-diff = "2.0.2"
 tokio = { version = "~1.35.1", features = [
     "macros",
     "rt",
