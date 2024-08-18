@@ -3,7 +3,7 @@ pub mod tcp;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::engine::{error::ExecutionError, types::RV};
+use crate::{engine::error::ExecutionError, value::types::RV};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {

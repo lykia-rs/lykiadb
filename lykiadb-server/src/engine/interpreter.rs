@@ -11,13 +11,12 @@ use lykiadb_lang::{Literal, Locals, Scopes};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
-use super::types::{eval_binary, Stateful};
 
-use crate::engine::types::RV::Callable;
-use crate::engine::types::{Function, RV};
+use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
+use crate::value::environment::{EnvId, Environment};
+use crate::value::types::{eval_binary, Function, Stateful, RV};
 
 use std::sync::Arc;
 use std::vec;
@@ -83,9 +82,15 @@ pub enum InterpretError {
     }, // TODO(vck): Refactor this
 }
 
+impl From<InterpretError> for ExecutionError {
+    fn from(err: InterpretError) -> Self {
+        ExecutionError::Interpret(err)
+    }
+}
+
 #[derive(Debug)]
 pub enum HaltReason {
-    Error(InterpretError),
+    Error(ExecutionError),
     Return(RV),
 }
 
@@ -175,6 +180,7 @@ pub struct Interpreter {
     env_man: Shared<Environment>,
     source_processor: SourceProcessor,
     current_program: Option<Arc<Program>>,
+    planner: Planner
 }
 
 impl Interpreter {
@@ -187,6 +193,7 @@ impl Interpreter {
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
+            planner: Planner::new()
         }
     }
 
@@ -201,8 +208,7 @@ impl Interpreter {
             match err {
                 HaltReason::Return(rv) => Ok(rv),
                 HaltReason::Error(interpret_err) => {
-                    let error = ExecutionError::Interpret(interpret_err);
-                    Err(error)
+                    Err(interpret_err)
                 }
             }
         }
@@ -319,26 +325,10 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select {
-                query,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
-            Expr::Insert {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Update {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Delete {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Select { .. } |
+            Expr::Insert { .. } |
+            Expr::Update { .. } | 
+            Expr::Delete { .. } => /*self.planner.build(&e)*/ Ok(RV::NaN),
             Expr::Literal {
                 value,
                 raw: _,
@@ -420,13 +410,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             } => {
                 let eval = self.visit_expr(callee)?;
 
-                if let Callable(arity, callable) = eval {
+                if let RV::Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
                         return Err(HaltReason::Error(InterpretError::ArityMismatch {
                             span: *span,
                             expected: arity.unwrap(),
                             found: args.len(),
-                        }));
+                        }.into()));
                     }
 
                     let mut args_evaluated: Vec<RV> = vec![];
@@ -447,7 +437,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 } else {
                     Err(HaltReason::Error(InterpretError::NotCallable {
                         span: callee.get_span(),
-                    }))
+                    }.into()))
                 }
             }
             Expr::Function {
@@ -469,7 +459,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = Callable(Some(parameters.len()), fun.into());
+                let callable = RV::Callable(Some(parameters.len()), fun.into());
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
@@ -499,14 +489,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     Err(HaltReason::Error(InterpretError::PropertyNotFound {
                         span: *span,
                         property: name.name.to_string(),
-                    }))
+                    }.into()))
                 } else {
                     Err(HaltReason::Error(InterpretError::Other {
                         message: format!(
                             "Only objects have properties. {:?} is not an object",
                             object_eval
                         ),
-                    }))
+                    }.into()))
                 }
             }
             Expr::Set {
@@ -529,7 +519,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                             "Only objects have properties. {:?} is not an object",
                             object_eval
                         ),
-                    }))
+                    }.into()))
                 }
             }
         }
@@ -602,14 +592,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if !self.loop_stack.set_loop_state(LoopState::Broken, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
-                    }));
+                    }.into()));
                 }
             }
             Stmt::Continue { span } => {
                 if !self.loop_stack.set_loop_state(LoopState::Continue, None) {
                     return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
                         span: *span,
-                    }));
+                    }.into()));
                 }
             }
             Stmt::Return { span: _, expr } => {
@@ -659,9 +649,9 @@ impl Stateful for Output {
 }
 
 pub mod test_helpers {
-    use crate::engine::types::RV;
     use crate::engine::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
+    use crate::value::types::RV;
 
     use super::Output;
 
@@ -680,7 +670,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::engine::types::RV;
+    use crate::value::types::RV;
 
     use super::test_helpers::get_runtime;
 

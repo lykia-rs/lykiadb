@@ -1,8 +1,6 @@
 use serde_json::json;
 use std::sync::Arc;
-
-use crate::engine::interpreter::{HaltReason, InterpretError, Interpreter};
-use crate::engine::types::RV;
+use crate::{engine::interpreter::{HaltReason, InterpretError, Interpreter}, value::types::RV};
 
 pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))
@@ -14,7 +12,7 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
         _ => {
             return Err(HaltReason::Error(InterpretError::Other {
                 message: format!("json_decode: Unexpected argument '{:?}'", args[0]),
-            }))
+            }.into()))
         }
     };
 
@@ -23,7 +21,7 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
         Err(e) => {
             return Err(HaltReason::Error(InterpretError::Other {
                 message: format!("json_decode: Unhandled error '{:?}'", e),
-            }))
+            }.into()))
         }
     };
 
