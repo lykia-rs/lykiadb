@@ -18,7 +18,6 @@ impl TcpConnection {
 
     pub async fn read(&mut self) -> Result<Option<Message>, CommunicationError> {
         loop {
-            // TODO(vck): Replace .to_vec call with something cheaper
             if let Ok(parsed) = bson::from_slice::<Message>(&self.read_buffer) {
                 self.read_buffer.clear();
                 return Ok(Some(parsed));

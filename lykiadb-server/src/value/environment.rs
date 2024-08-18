@@ -30,6 +30,12 @@ impl Default for Environment {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EnvironmentError {
+    /*AssignmentToUndefined {
+        token: Token,
+    },
+    VariableNotFound {
+        token: Token,
+    },*/
     Other {
         message: String,
     }

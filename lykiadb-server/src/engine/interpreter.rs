@@ -1,6 +1,6 @@
 use lykiadb_lang::ast::expr::{Expr, Operation};
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::ast::visitor::VisitorMut;
+use lykiadb_lang::ast::visitor::{ExprEvaluator, VisitorMut};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::parser::resolver::Resolver;
 use lykiadb_lang::parser::Parser;
@@ -71,12 +71,6 @@ pub enum InterpretError {
         span: Span,
         property: String,
     },
-    /*AssignmentToUndefined {
-        token: Token,
-    },
-    VariableNotFound {
-        token: Token,
-    },*/
     Other {
         message: String,
     }, // TODO(vck): Refactor this
@@ -180,7 +174,12 @@ pub struct Interpreter {
     env_man: Shared<Environment>,
     source_processor: SourceProcessor,
     current_program: Option<Arc<Program>>,
-    planner: Planner
+}
+
+impl ExprEvaluator<RV, HaltReason> for Interpreter {
+    fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+        self.visit_expr(e)
+    }
 }
 
 impl Interpreter {
@@ -193,7 +192,6 @@ impl Interpreter {
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
-            planner: Planner::new()
         }
     }
 
@@ -328,7 +326,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Select { .. } |
             Expr::Insert { .. } |
             Expr::Update { .. } | 
-            Expr::Delete { .. } => /*self.planner.build(&e)*/ Ok(RV::NaN),
+            Expr::Delete { .. } => {
+                let mut planner = Planner::new();
+                let plan = planner.build(e)?;
+                Ok(RV::Undefined)
+            },
             Expr::Literal {
                 value,
                 raw: _,
