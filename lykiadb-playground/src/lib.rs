@@ -27,7 +27,6 @@ pub fn parse(source: &str) -> Result<JsValue, JsValue> {
     Ok(serde_wasm_bindgen::to_value(&parse_result.err())?)
 }
 
-
 #[wasm_bindgen]
 pub fn tokenize(source: &str) -> Result<JsValue, JsValue> {
     let tokens = Scanner::scan(source).unwrap();
@@ -39,9 +38,12 @@ pub fn tokenize(source: &str) -> Result<JsValue, JsValue> {
 
     let token_tree = Tree {
         name: "Program".to_owned(),
-        children: Some(tokens.into_iter().map(|t| {
-            TreeBuilder::token_to_tree(t)
-        }).collect()),
+        children: Some(
+            tokens
+                .into_iter()
+                .map(|t| TreeBuilder::token_to_tree(t))
+                .collect(),
+        ),
         span: last,
     };
 

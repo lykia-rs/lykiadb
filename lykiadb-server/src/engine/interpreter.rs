@@ -205,9 +205,7 @@ impl Interpreter {
             let err = out.err().unwrap();
             match err {
                 HaltReason::Return(rv) => Ok(rv),
-                HaltReason::Error(interpret_err) => {
-                    Err(interpret_err)
-                }
+                HaltReason::Error(interpret_err) => Err(interpret_err),
             }
         }
     }
@@ -323,14 +321,14 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select { .. } |
-            Expr::Insert { .. } |
-            Expr::Update { .. } | 
-            Expr::Delete { .. } => {
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Update { .. }
+            | Expr::Delete { .. } => {
                 let mut planner = Planner::new();
                 let plan = planner.build(e)?;
                 Ok(RV::Undefined)
-            },
+            }
             Expr::Literal {
                 value,
                 raw: _,
@@ -414,11 +412,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if let RV::Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
-                        return Err(HaltReason::Error(InterpretError::ArityMismatch {
-                            span: *span,
-                            expected: arity.unwrap(),
-                            found: args.len(),
-                        }.into()));
+                        return Err(HaltReason::Error(
+                            InterpretError::ArityMismatch {
+                                span: *span,
+                                expected: arity.unwrap(),
+                                found: args.len(),
+                            }
+                            .into(),
+                        ));
                     }
 
                     let mut args_evaluated: Vec<RV> = vec![];
@@ -437,9 +438,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: callee.get_span(),
-                    }.into()))
+                    Err(HaltReason::Error(
+                        InterpretError::NotCallable {
+                            span: callee.get_span(),
+                        }
+                        .into(),
+                    ))
                 }
             }
             Expr::Function {
@@ -488,17 +492,23 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     if let Some(v) = v {
                         return Ok(v.clone());
                     }
-                    Err(HaltReason::Error(InterpretError::PropertyNotFound {
-                        span: *span,
-                        property: name.name.to_string(),
-                    }.into()))
+                    Err(HaltReason::Error(
+                        InterpretError::PropertyNotFound {
+                            span: *span,
+                            property: name.name.to_string(),
+                        }
+                        .into(),
+                    ))
                 } else {
-                    Err(HaltReason::Error(InterpretError::Other {
-                        message: format!(
-                            "Only objects have properties. {:?} is not an object",
-                            object_eval
-                        ),
-                    }.into()))
+                    Err(HaltReason::Error(
+                        InterpretError::Other {
+                            message: format!(
+                                "Only objects have properties. {:?} is not an object",
+                                object_eval
+                            ),
+                        }
+                        .into(),
+                    ))
                 }
             }
             Expr::Set {
@@ -516,12 +526,15 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     borrowed.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
-                    Err(HaltReason::Error(InterpretError::Other {
-                        message: format!(
-                            "Only objects have properties. {:?} is not an object",
-                            object_eval
-                        ),
-                    }.into()))
+                    Err(HaltReason::Error(
+                        InterpretError::Other {
+                            message: format!(
+                                "Only objects have properties. {:?} is not an object",
+                                object_eval
+                            ),
+                        }
+                        .into(),
+                    ))
                 }
             }
         }
@@ -592,16 +605,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Break { span } => {
                 if !self.loop_stack.set_loop_state(LoopState::Broken, None) {
-                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        span: *span,
-                    }.into()));
+                    return Err(HaltReason::Error(
+                        InterpretError::UnexpectedStatement { span: *span }.into(),
+                    ));
                 }
             }
             Stmt::Continue { span } => {
                 if !self.loop_stack.set_loop_state(LoopState::Continue, None) {
-                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        span: *span,
-                    }.into()));
+                    return Err(HaltReason::Error(
+                        InterpretError::UnexpectedStatement { span: *span }.into(),
+                    ));
                 }
             }
             Stmt::Return { span: _, expr } => {

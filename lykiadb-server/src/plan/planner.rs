@@ -12,13 +12,12 @@ impl Planner {
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
         match expr {
-            Expr::Select { 
+            Expr::Select {
                 query,
                 span: _,
-                id: _ } => {
-                self.build_select(query)
-            },
-            _ => panic!("Not implemented yet.")
+                id: _,
+            } => self.build_select(query),
+            _ => panic!("Not implemented yet."),
         }
     }
 

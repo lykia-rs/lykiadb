@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
-use crate::{util::{alloc_shared, Shared}, value::types::{Function, RV}};
+use crate::{
+    util::{alloc_shared, Shared},
+    value::types::{Function, RV},
+};
 
 use self::{
     fib::nt_fib,

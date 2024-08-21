@@ -1,4 +1,7 @@
-use lykiadb_lang::{tokenizer::token::{Token, TokenType}, Span};
+use lykiadb_lang::{
+    tokenizer::token::{Token, TokenType},
+    Span,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -62,7 +65,7 @@ impl TreeBuilder {
                 name: "Eof".to_string(),
                 children: None,
                 span: token.span,
-            }
+            },
         }
     }
 }

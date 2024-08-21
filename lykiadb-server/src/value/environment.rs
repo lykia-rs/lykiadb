@@ -27,7 +27,6 @@ impl Default for Environment {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EnvironmentError {
     /*AssignmentToUndefined {
@@ -36,9 +35,7 @@ pub enum EnvironmentError {
     VariableNotFound {
         token: Token,
     },*/
-    Other {
-        message: String,
-    }
+    Other { message: String },
 }
 
 impl From<EnvironmentError> for ExecutionError {
@@ -86,9 +83,12 @@ impl Environment {
         if env.parent.is_some() {
             return self.assign(env.parent.unwrap(), name, value);
         }
-        Err(HaltReason::Error(EnvironmentError::Other {
-            message: format!("Assignment to an undefined variable '{}'", &name),
-        }.into()))
+        Err(HaltReason::Error(
+            EnvironmentError::Other {
+                message: format!("Assignment to an undefined variable '{}'", &name),
+            }
+            .into(),
+        ))
     }
 
     pub fn assign_at(
@@ -125,9 +125,12 @@ impl Environment {
             return self.read(self.envs[env_id.0].parent.unwrap(), name);
         }
 
-        Err(HaltReason::Error(EnvironmentError::Other {
-            message: format!("Variable '{}' was not found", &name),
-        }.into()))
+        Err(HaltReason::Error(
+            EnvironmentError::Other {
+                message: format!("Variable '{}' was not found", &name),
+            }
+            .into(),
+        ))
     }
 
     pub fn read_at(&self, env_id: EnvId, distance: usize, name: &str) -> Result<RV, HaltReason> {
@@ -141,9 +144,12 @@ impl Environment {
             return Ok(val.clone());
         }
 
-        Err(HaltReason::Error(EnvironmentError::Other {
-            message: format!("Variable '{}' was not found", &name),
-        }.into()))
+        Err(HaltReason::Error(
+            EnvironmentError::Other {
+                message: format!("Variable '{}' was not found", &name),
+            }
+            .into(),
+        ))
     }
 
     pub fn ancestor(&self, env_id: EnvId, distance: usize) -> Option<EnvId> {
@@ -164,7 +170,6 @@ impl Environment {
 #[cfg(test)]
 mod test {
     use crate::value::types::RV;
-
 
     #[test]
     fn test_read_basic() {

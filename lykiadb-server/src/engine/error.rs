@@ -14,7 +14,7 @@ pub enum ExecutionError {
     Parse(ParseError),
     Resolve(ResolveError),
     Interpret(InterpretError),
-    Environment(EnvironmentError)
+    Environment(EnvironmentError),
 }
 
 impl From<ParseError> for ExecutionError {

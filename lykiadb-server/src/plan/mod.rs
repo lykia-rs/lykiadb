@@ -19,24 +19,50 @@ pub enum Direction {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Plan {
-    Select(Node)
+    Select(Node),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Node {
-    Aggregate { source: Box<Node>, group_by: Vec<SqlExpr>, aggregates: Vec<Aggregate> },
+    Aggregate {
+        source: Box<Node>,
+        group_by: Vec<SqlExpr>,
+        aggregates: Vec<Aggregate>,
+    },
 
-    Filter { source: Box<Node>, predicate: SqlExpr },
+    Filter {
+        source: Box<Node>,
+        predicate: SqlExpr,
+    },
 
-    Projection { source: Box<Node>, expressions: Vec<SqlExpr>, aliases: Vec<String> },
-    
-    Scan { collection: String, filter: Option<SqlExpr>, alias: Option<String> },
+    Projection {
+        source: Box<Node>,
+        expressions: Vec<SqlExpr>,
+        aliases: Vec<String>,
+    },
 
-    Limit { source: Box<Node>, limit: usize },
+    Scan {
+        collection: String,
+        filter: Option<SqlExpr>,
+        alias: Option<String>,
+    },
 
-    Offset { source: Box<Node>, offset: usize },
+    Limit {
+        source: Box<Node>,
+        limit: usize,
+    },
 
-    Order { source: Box<Node>, key: Vec<(SqlExpr, Direction)> },
+    Offset {
+        source: Box<Node>,
+        offset: usize,
+    },
 
-    Values { rows: Vec<Vec<SqlExpr>> },
+    Order {
+        source: Box<Node>,
+        key: Vec<(SqlExpr, Direction)>,
+    },
+
+    Values {
+        rows: Vec<Vec<SqlExpr>>,
+    },
 }
