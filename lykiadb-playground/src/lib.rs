@@ -41,7 +41,7 @@ pub fn tokenize(source: &str) -> Result<JsValue, JsValue> {
         children: Some(
             tokens
                 .into_iter()
-                .map(|t| TreeBuilder::token_to_tree(t))
+                .map(TreeBuilder::token_to_tree)
                 .collect(),
         ),
         span: last,

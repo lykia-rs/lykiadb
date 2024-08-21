@@ -1,9 +1,15 @@
-use lykiadb_lang::ast::{expr::Expr, sql::SqlSelect, visitor::ExprEvaluator};
+use lykiadb_lang::ast::{expr::Expr, sql::SqlSelect};
 
-use crate::{engine::interpreter::HaltReason, value::types::RV};
+use crate::{engine::interpreter::HaltReason};
 
 use super::{Node, Plan};
 pub struct Planner;
+
+impl Default for Planner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Planner {
     pub fn new() -> Planner {
