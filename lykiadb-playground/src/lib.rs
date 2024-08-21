@@ -38,12 +38,7 @@ pub fn tokenize(source: &str) -> Result<JsValue, JsValue> {
 
     let token_tree = Tree {
         name: "Program".to_owned(),
-        children: Some(
-            tokens
-                .into_iter()
-                .map(TreeBuilder::token_to_tree)
-                .collect(),
-        ),
+        children: Some(tokens.into_iter().map(TreeBuilder::token_to_tree).collect()),
         span: last,
     };
 

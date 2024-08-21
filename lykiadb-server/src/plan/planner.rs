@@ -1,6 +1,6 @@
 use lykiadb_lang::ast::{expr::Expr, sql::SqlSelect};
 
-use crate::{engine::interpreter::HaltReason};
+use crate::engine::interpreter::HaltReason;
 
 use super::{Node, Plan};
 pub struct Planner;
