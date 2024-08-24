@@ -1116,19 +1116,19 @@ impl<'a> Parser<'a> {
 
     fn sql_select_from(&mut self) -> ParseResult<Option<SqlFrom>> {
         if self.match_next(skw!(From)) {
-            return Ok(Some(self.sql_select_subquery_join()?));
+            return Ok(Some(self.sql_select_from_join()?));
         }
         Ok(None)
     }
 
-    fn sql_select_subquery_join(&mut self) -> ParseResult<SqlFrom> {
-        let mut subquery_group: Vec<SqlFrom> = vec![];
+    fn sql_select_from_join(&mut self) -> ParseResult<SqlFrom> {
+        let mut from_group: Vec<SqlFrom> = vec![];
 
         loop {
-            let left = self.sql_select_subquery_collection()?;
-            subquery_group.push(left);
+            let left = self.sql_select_from_collection()?;
+            from_group.push(left);
             while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
-                // If the next token is a join keyword, then it must be a join subquery
+                // If the next token is a join keyword, then it must be a join from
                 let peek = self.peek_bw(1);
                 let join_type = if peek.tok_type == skw!(Inner) {
                     self.expected(skw!(Join))?;
@@ -1146,16 +1146,16 @@ impl<'a> Parser<'a> {
                         token: peek.clone(),
                     });
                 };
-                let right = self.sql_select_subquery_collection()?;
+                let right = self.sql_select_from_collection()?;
                 let join_constraint: Option<Box<SqlExpr>> = if self.match_next(skw!(On)) {
                     Some(self.sql_expression()?)
                 } else {
                     None
                 };
 
-                let left_popped = subquery_group.pop().unwrap();
+                let left_popped = from_group.pop().unwrap();
 
-                subquery_group.push(SqlFrom::Join {
+                from_group.push(SqlFrom::Join {
                     left: Box::new(left_popped),
                     right: Box::new(right),
                     join_type,
@@ -1168,7 +1168,7 @@ impl<'a> Parser<'a> {
         }
 
         Ok(SqlFrom::Group {
-            values: subquery_group,
+            values: from_group,
         })
     }
 
@@ -1197,7 +1197,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlFrom> {
+    fn sql_select_from_collection(&mut self) -> ParseResult<SqlFrom> {
         if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
                 let expr = self.sql_select()?;
@@ -1209,8 +1209,8 @@ impl<'a> Parser<'a> {
                     alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
-            // If the next token is a left paren, then it must be either a select statement or a recursive subquery
-            let parsed = self.sql_select_subquery_join()?; // TODO(vck): Check if using _collection variant makes sense.
+            // If the next token is a left paren, then it must be either a select statement or a recursive from
+            let parsed = self.sql_select_from_join()?; // TODO(vck): Check if using _collection variant makes sense.
             self.expected(sym!(RightParen))?; // closing paren
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
