@@ -1127,24 +1127,21 @@ impl<'a> Parser<'a> {
         loop {
             let left = self.sql_select_from_collection()?;
             from_group.push(left);
-            while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Join)]) {
+            while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Cross), skw!(Join)]) {
                 // If the next token is a join keyword, then it must be a join from
                 let peek = self.peek_bw(1);
-                let join_type = if peek.tok_type == skw!(Inner) {
+                if peek.tok_type != SqlKeyword(Join) {
                     self.expected(skw!(Join))?;
-                    SqlJoinType::Inner
-                } else if peek.tok_type == skw!(Left) {
-                    optional_with_expected!(self, skw!(Outer), skw!(Join));
-                    SqlJoinType::Left
-                } else if peek.tok_type == skw!(Right) {
-                    optional_with_expected!(self, skw!(Outer), skw!(Join));
-                    SqlJoinType::Right
-                } else if peek.tok_type == skw!(Join) {
-                    SqlJoinType::Inner
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        token: peek.clone(),
-                    });
+                }
+                let join_type = match peek.tok_type {
+                    SqlKeyword(Inner) => SqlJoinType::Inner,
+                    SqlKeyword(Left) => SqlJoinType::Left,
+                    SqlKeyword(Right) => SqlJoinType::Right,
+                    SqlKeyword(Cross) => SqlJoinType::Cross,
+                    SqlKeyword(Join) => SqlJoinType::Inner,
+                    _ => {
+                        return Err(ParseError::UnexpectedToken { token: peek.clone() });
+                    }
                 };
                 let right = self.sql_select_from_collection()?;
                 let join_constraint: Option<Box<SqlExpr>> = if self.match_next(skw!(On)) {

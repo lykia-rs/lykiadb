@@ -36,7 +36,11 @@ impl Planner {
     }
 
     fn build_from(&mut self, from: &SqlFrom) -> Result<Node, HaltReason> {
-        match &from {
+        match from {
+            SqlFrom::Collection(ident) => Ok(Node::Scan { 
+                source: ident.clone(),
+                filter: None,
+            }),
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
@@ -44,10 +48,6 @@ impl Planner {
                 };
                 Ok(node)
             }
-            SqlFrom::Collection(ident) => Ok(Node::Scan { 
-                source: ident.clone(),
-                filter: None,
-            }),
             SqlFrom::Group { values } => {
                 let mut froms = values.into_iter();
                 let mut node = self.build_from(froms.next().unwrap())?;
