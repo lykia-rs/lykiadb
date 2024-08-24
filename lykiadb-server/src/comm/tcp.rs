@@ -1,7 +1,8 @@
-use crate::net::{CommunicationError, Message};
 use bytes::BytesMut;
 use tokio::io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter};
 use tokio::net::TcpStream;
+
+use super::{CommunicationError, Message};
 
 pub struct TcpConnection {
     pub stream: BufWriter<TcpStream>,

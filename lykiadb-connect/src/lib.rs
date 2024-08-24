@@ -6,7 +6,7 @@ pub mod session;
 mod tcp;
 
 pub use lykiadb_server::engine::error::report_error;
-pub use lykiadb_server::net::{Message, Request, Response};
+pub use lykiadb_server::comm::{Message, Request, Response};
 
 pub enum Protocol {
     Tcp,
