@@ -20,10 +20,10 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Join",
+                          "@type": "SqlFrom::Join",
                           "constraint": null,
                           "join_type": {
                             "@type": "SqlJoinType::Inner"
@@ -86,10 +86,10 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Join",
+                          "@type": "SqlFrom::Join",
                           "constraint": {
                             "@type": "Expr::Binary",
                             "left": {
@@ -132,7 +132,7 @@ assert_parsing! {
                             "@type": "SqlJoinType::Inner"
                           },
                           "left": {
-                            "@type": "SqlCollectionSubquery::Join",
+                            "@type": "SqlFrom::Join",
                             "constraint": {
                               "@type": "Expr::Binary",
                               "left": {
@@ -243,10 +243,10 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Join",
+                          "@type": "SqlFrom::Join",
                           "constraint": {
                             "@type": "Expr::Logical",
                             "left": {
@@ -381,10 +381,10 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Join",
+                          "@type": "SqlFrom::Join",
                           "constraint": {
                             "@type": "Expr::Logical",
                             "left": {
@@ -478,13 +478,13 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Group",
+                          "@type": "SqlFrom::Group",
                           "values": [
                             {
-                              "@type": "SqlCollectionSubquery::Join",
+                              "@type": "SqlFrom::Join",
                               "constraint": {
                                 "@type": "Expr::Binary",
                                 "left": {
@@ -527,7 +527,7 @@ assert_parsing! {
                                 "@type": "SqlJoinType::Inner"
                               },
                               "left": {
-                                "@type": "SqlCollectionSubquery::Select",
+                                "@type": "SqlFrom::Select",
                                 "alias": {
                                   "@type": "Identifier",
                                   "dollar": false,
@@ -544,10 +544,10 @@ assert_parsing! {
                                         "@type": "SqlDistinct::ImplicitAll"
                                       },
                                       "from": {
-                                        "@type": "SqlCollectionSubquery::Group",
+                                        "@type": "SqlFrom::Group",
                                         "values": [
                                           {
-                                            "@type": "SqlCollectionSubquery::Join",
+                                            "@type": "SqlFrom::Join",
                                             "constraint": {
                                               "@type": "Expr::Binary",
                                               "left": {
@@ -689,10 +689,10 @@ assert_parsing! {
                       "@type": "SqlDistinct::ImplicitAll"
                     },
                     "from": {
-                      "@type": "SqlCollectionSubquery::Group",
+                      "@type": "SqlFrom::Group",
                       "values": [
                         {
-                          "@type": "SqlCollectionSubquery::Join",
+                          "@type": "SqlFrom::Join",
                           "constraint": {
                             "@type": "Expr::Binary",
                             "left": {
@@ -735,7 +735,7 @@ assert_parsing! {
                             "@type": "SqlJoinType::Inner"
                           },
                           "left": {
-                            "@type": "SqlCollectionSubquery::Join",
+                            "@type": "SqlFrom::Join",
                             "constraint": {
                               "@type": "Expr::Binary",
                               "left": {

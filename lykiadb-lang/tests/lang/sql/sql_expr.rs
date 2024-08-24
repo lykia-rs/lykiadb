@@ -25,7 +25,7 @@ assert_parsing! {
                     }
                   ],
                   "from": {
-                    "@type": "SqlCollectionSubquery::Group",
+                    "@type": "SqlFrom::Group",
                     "values": [
                       {
                         "@type": "SqlCollectionIdentifier",
@@ -75,7 +75,7 @@ assert_parsing! {
                               }
                             ],
                             "from": {
-                              "@type": "SqlCollectionSubquery::Group",
+                              "@type": "SqlFrom::Group",
                               "values": [
                                 {
                                   "@type": "SqlCollectionIdentifier",
@@ -134,7 +134,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -184,7 +184,7 @@ assert_parsing! {
                             }
                           ],
                           "from": {
-                            "@type": "SqlCollectionSubquery::Group",
+                            "@type": "SqlFrom::Group",
                             "values": [
                               {
                                 "@type": "SqlCollectionIdentifier",
@@ -243,7 +243,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -317,7 +317,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -390,7 +390,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -456,7 +456,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -522,7 +522,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",
@@ -588,7 +588,7 @@ assert_parsing! {
                   }
                 ],
                 "from": {
-                  "@type": "SqlCollectionSubquery::Group",
+                  "@type": "SqlFrom::Group",
                   "values": [
                     {
                       "@type": "SqlCollectionIdentifier",

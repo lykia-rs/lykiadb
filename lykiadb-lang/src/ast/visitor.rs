@@ -1,7 +1,7 @@
 use super::{
     expr::Expr,
     sql::{
-        SqlCollectionSubquery, SqlDelete, SqlExpr, SqlInsert, SqlSelect, SqlSelectCore, SqlUpdate,
+        SqlFrom, SqlDelete, SqlExpr, SqlInsert, SqlSelect, SqlSelectCore, SqlUpdate,
     },
     stmt::Stmt,
 };
@@ -26,7 +26,7 @@ pub trait SqlVisitor<T, Q> {
     fn visit_sql_delete(&self, sql_delete: &SqlDelete) -> Result<T, Q>;
     //
     fn visit_sql_select_core(&self, core: &SqlSelectCore) -> Result<T, Q>;
-    fn visit_sql_subquery(&self, subquery: &SqlCollectionSubquery) -> Result<T, Q>;
+    fn visit_sql_subquery(&self, subquery: &SqlFrom) -> Result<T, Q>;
     fn visit_sql_expr(&self, sql_expr: &SqlExpr) -> Result<T, Q>;
 }
 
@@ -37,6 +37,6 @@ pub trait SqlVisitorMut<T, Q> {
     fn visit_sql_delete(&mut self, sql_delete: &SqlDelete) -> Result<T, Q>;
     //
     fn visit_sql_select_core(&mut self, core: &SqlSelectCore) -> Result<T, Q>;
-    fn visit_sql_subquery(&mut self, subquery: &SqlCollectionSubquery) -> Result<T, Q>;
+    fn visit_sql_subquery(&mut self, subquery: &SqlFrom) -> Result<T, Q>;
     fn visit_sql_expr(&mut self, sql_expr: &SqlExpr) -> Result<T, Q>;
 }

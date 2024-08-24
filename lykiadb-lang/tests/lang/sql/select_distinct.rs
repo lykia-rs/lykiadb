@@ -20,7 +20,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::ImplicitAll"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",
@@ -77,7 +77,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::All"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",
@@ -134,7 +134,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::Distinct"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",

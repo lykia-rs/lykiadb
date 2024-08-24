@@ -792,7 +792,7 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCollectionSubquery, SqlCompoundOperator, SqlDelete, SqlDistinct,
+    SqlCollectionIdentifier, SqlFrom, SqlCompoundOperator, SqlDelete, SqlDistinct,
     SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
@@ -1114,15 +1114,15 @@ impl<'a> Parser<'a> {
         Ok(projections)
     }
 
-    fn sql_select_from(&mut self) -> ParseResult<Option<SqlCollectionSubquery>> {
+    fn sql_select_from(&mut self) -> ParseResult<Option<SqlFrom>> {
         if self.match_next(skw!(From)) {
             return Ok(Some(self.sql_select_subquery_join()?));
         }
         Ok(None)
     }
 
-    fn sql_select_subquery_join(&mut self) -> ParseResult<SqlCollectionSubquery> {
-        let mut subquery_group: Vec<SqlCollectionSubquery> = vec![];
+    fn sql_select_subquery_join(&mut self) -> ParseResult<SqlFrom> {
+        let mut subquery_group: Vec<SqlFrom> = vec![];
 
         loop {
             let left = self.sql_select_subquery_collection()?;
@@ -1155,7 +1155,7 @@ impl<'a> Parser<'a> {
 
                 let left_popped = subquery_group.pop().unwrap();
 
-                subquery_group.push(SqlCollectionSubquery::Join {
+                subquery_group.push(SqlFrom::Join {
                     left: Box::new(left_popped),
                     right: Box::new(right),
                     join_type,
@@ -1167,7 +1167,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(SqlCollectionSubquery::Group {
+        Ok(SqlFrom::Group {
             values: subquery_group,
         })
     }
@@ -1197,14 +1197,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlCollectionSubquery> {
+    fn sql_select_subquery_collection(&mut self) -> ParseResult<SqlFrom> {
         if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
                 let expr = self.sql_select()?;
                 self.expected(sym!(RightParen))?; // closing paren
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
-                return Ok(SqlCollectionSubquery::Select {
+                return Ok(SqlFrom::Select {
                     expr,
                     alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
@@ -1214,7 +1214,7 @@ impl<'a> Parser<'a> {
             self.expected(sym!(RightParen))?; // closing paren
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
-            return Ok(SqlCollectionSubquery::Collection(collection));
+            return Ok(SqlFrom::Collection(collection));
         } else {
             Err(ParseError::UnexpectedToken {
                 token: self.peek_bw(0).clone(),
