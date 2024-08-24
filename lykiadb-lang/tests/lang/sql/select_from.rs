@@ -204,9 +204,7 @@ assert_parsing! {
                               "dollar": false,
                               "name": "u"
                             },
-                            "expr": {
-                              "@type": "Expr::Select",
-                              "query": {
+                            "subquery": {
                                 "@type": "SqlSelect",
                                 "core": {
                                   "@type": "SqlSelectCore",
@@ -242,7 +240,6 @@ assert_parsing! {
                                 "limit": null,
                                 "order_by": null
                               }
-                            }
                           }
                         ]
                       },

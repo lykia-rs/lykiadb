@@ -1,5 +1,6 @@
-use lykiadb_lang::ast::sql::SqlExpr;
+use lykiadb_lang::{ast::sql::{SqlCollectionIdentifier, SqlExpr, SqlJoinType, SqlOrdering}, Identifier};
 use serde::{Deserialize, Serialize};
+
 pub mod planner;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -11,11 +12,6 @@ pub enum Aggregate {
     Sum(SqlExpr),
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Direction {
-    Ascending,
-    Descending,
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Plan {
@@ -41,12 +37,6 @@ pub enum Node {
         aliases: Vec<String>,
     },
 
-    Scan {
-        collection: String,
-        filter: Option<SqlExpr>,
-        alias: Option<String>,
-    },
-
     Limit {
         source: Box<Node>,
         limit: usize,
@@ -59,10 +49,33 @@ pub enum Node {
 
     Order {
         source: Box<Node>,
-        key: Vec<(SqlExpr, Direction)>,
+        key: Vec<(SqlExpr, SqlOrdering)>,
     },
 
     Values {
         rows: Vec<Vec<SqlExpr>>,
     },
+
+    ValuesHandle {
+        identifier: Identifier
+    },
+
+    Scan {
+        source: SqlCollectionIdentifier,
+        filter: Option<SqlExpr>,
+    },
+
+    Join {
+        left: Box<Node>,
+        join_type: SqlJoinType,
+        right: Box<Node>,
+        constraint: Option<SqlExpr>,
+    },
+
+    Subquery {
+        source: Box<Node>,
+        alias: Identifier,
+    },
+
+    Nothing
 }

@@ -533,9 +533,7 @@ assert_parsing! {
                                   "dollar": false,
                                   "name": "c"
                                 },
-                                "expr": {
-                                  "@type": "Expr::Select",
-                                  "query": {
+                                "subquery": {
                                     "@type": "SqlSelect",
                                     "core": {
                                       "@type": "SqlSelectCore",
@@ -632,7 +630,6 @@ assert_parsing! {
                                     },
                                     "limit": null,
                                     "order_by": null
-                                  }
                                 }
                               },
                               "right": {

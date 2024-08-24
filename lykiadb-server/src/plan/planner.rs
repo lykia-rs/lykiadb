@@ -1,6 +1,6 @@
-use lykiadb_lang::ast::{expr::Expr, sql::{SqlFrom, SqlSelect}};
+use lykiadb_lang::{ast::{expr::Expr, sql::{SqlFrom, SqlJoinType, SqlSelect}}, Identifier};
 
-use crate::{engine::interpreter::HaltReason, value::types::RV};
+use crate::engine::interpreter::HaltReason;
 
 use super::{Node, Plan};
 pub struct Planner;
@@ -22,20 +22,51 @@ impl Planner {
                 query,
                 span: _,
                 id: _,
-            } => self.build_select(query),
+            } => Ok(Plan::Select(self.build_select(query)?)),
             _ => panic!("Not implemented yet."),
         }
     }
 
-    fn build_select(&mut self, query: &SqlSelect) -> Result<Plan, HaltReason> {
-        let mut node: Option<Node> = None;
+    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+        let mut node: Node = Node::Nothing;
         if let Some(from) = &query.core.from {
-            node = Some(self.build_from(from)?);
+            node = self.build_from(from)?;
         }
-        Ok(Plan::Select(Node::Values { rows: vec![vec![]] }))
+        Ok(node)
     }
 
     fn build_from(&mut self, from: &SqlFrom) -> Result<Node, HaltReason> {
-        Err(HaltReason::Return(RV::Undefined))
+        match &from {
+            SqlFrom::Select { subquery, alias } => {
+                let node = Node::Subquery {
+                    source: Box::new(self.build_select(subquery)?),
+                    alias: alias.clone().unwrap()
+                };
+                Ok(node)
+            }
+            SqlFrom::Collection(ident) => Ok(Node::Scan { 
+                source: ident.clone(),
+                filter: None,
+            }),
+            SqlFrom::Group { values } => {
+                let mut froms = values.into_iter();
+                let mut node = self.build_from(froms.next().unwrap())?;
+                for right in froms {
+                    node = Node::Join {
+                        left: Box::new(node),
+                        join_type: SqlJoinType::Cross,
+                        right: Box::new(self.build_from(right)?),
+                        constraint: None,
+                    }
+                }
+                Ok(node)
+            },
+            SqlFrom::Join { left , join_type, right, constraint } => Ok(Node::Join {
+                left: Box::new(self.build_from(left)?),
+                join_type: join_type.clone(),
+                right: Box::new(self.build_from(right)?),
+                constraint: constraint.clone().map(|x| *x.clone())
+            })
+        }
     }
 }

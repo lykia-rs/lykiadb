@@ -21,12 +21,12 @@ pub enum SqlDistinct {
 pub enum SqlJoinType {
     #[serde(rename = "SqlJoinType::Left")]
     Left,
-    #[serde(rename = "SqlJoinType::LeftOuter")]
-    LeftOuter,
     #[serde(rename = "SqlJoinType::Right")]
     Right,
     #[serde(rename = "SqlJoinType::Inner")]
     Inner,
+    #[serde(rename = "SqlJoinType::Cross")]
+    Cross,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -151,7 +151,7 @@ pub enum SqlFrom {
     Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlFrom::Select")]
     Select {
-        expr: Box<Expr>,
+        subquery: Box<SqlSelect>,
         alias: Option<Identifier>,
     },
     #[serde(rename = "SqlFrom::Join")]

@@ -1200,18 +1200,18 @@ impl<'a> Parser<'a> {
     fn sql_select_from_collection(&mut self) -> ParseResult<SqlFrom> {
         if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
-                let expr = self.sql_select()?;
-                self.expected(sym!(RightParen))?; // closing paren
+                let subquery = Box::new(self.sql_select_inner()?);
+                self.expected(sym!(RightParen))?;
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 return Ok(SqlFrom::Select {
-                    expr,
+                    subquery,
                     alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
-            // If the next token is a left paren, then it must be either a select statement or a recursive from
-            let parsed = self.sql_select_from_join()?; // TODO(vck): Check if using _collection variant makes sense.
-            self.expected(sym!(RightParen))?; // closing paren
+            // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause
+            let parsed = self.sql_select_from_join()?;
+            self.expected(sym!(RightParen))?;
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
             return Ok(SqlFrom::Collection(collection));
