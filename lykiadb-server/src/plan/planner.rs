@@ -1,4 +1,10 @@
-use lykiadb_lang::{ast::{expr::Expr, sql::{SqlFrom, SqlJoinType, SqlSelect}}, Identifier};
+use lykiadb_lang::{
+    ast::{
+        expr::Expr,
+        sql::{SqlFrom, SqlJoinType, SqlSelect},
+    },
+    Identifier,
+};
 use serde_json::Value;
 
 use crate::engine::interpreter::HaltReason;
@@ -27,7 +33,7 @@ impl Planner {
                 let plan = Plan::Select(self.build_select(query)?);
                 println!("{}", serde_json::to_value(&plan).unwrap());
                 Ok(plan)
-            },
+            }
             _ => panic!("Not implemented yet."),
         }
     }
@@ -42,14 +48,14 @@ impl Planner {
 
     fn build_from(&mut self, from: &SqlFrom) -> Result<Node, HaltReason> {
         match from {
-            SqlFrom::Collection(ident) => Ok(Node::Scan { 
+            SqlFrom::Collection(ident) => Ok(Node::Scan {
                 source: ident.clone(),
                 filter: None,
             }),
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
-                    alias: alias.clone().unwrap()
+                    alias: alias.clone().unwrap(),
                 };
                 Ok(node)
             }
@@ -65,13 +71,18 @@ impl Planner {
                     }
                 }
                 Ok(node)
-            },
-            SqlFrom::Join { left , join_type, right, constraint } => Ok(Node::Join {
+            }
+            SqlFrom::Join {
+                left,
+                join_type,
+                right,
+                constraint,
+            } => Ok(Node::Join {
                 left: Box::new(self.build_from(left)?),
                 join_type: join_type.clone(),
                 right: Box::new(self.build_from(right)?),
-                constraint: constraint.clone().map(|x| *x.clone())
-            })
+                constraint: constraint.clone().map(|x| *x.clone()),
+            }),
         }
     }
 }

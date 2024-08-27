@@ -1,4 +1,7 @@
-use lykiadb_lang::{ast::sql::{SqlCollectionIdentifier, SqlExpr, SqlJoinType, SqlOrdering}, Identifier};
+use lykiadb_lang::{
+    ast::sql::{SqlCollectionIdentifier, SqlExpr, SqlJoinType, SqlOrdering},
+    Identifier,
+};
 use serde::{Deserialize, Serialize};
 
 pub mod planner;
@@ -11,7 +14,6 @@ pub enum Aggregate {
     Min(SqlExpr),
     Sum(SqlExpr),
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Plan {
@@ -57,7 +59,7 @@ pub enum Node {
     },
 
     ValuesHandle {
-        identifier: Identifier
+        identifier: Identifier,
     },
 
     Scan {
@@ -77,5 +79,5 @@ pub enum Node {
         alias: Identifier,
     },
 
-    Nothing
+    Nothing,
 }

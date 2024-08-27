@@ -1,7 +1,4 @@
-use super::{
-    expr::Expr,
-    stmt::Stmt,
-};
+use super::{expr::Expr, stmt::Stmt};
 
 pub trait ExprEvaluator<O, E> {
     fn eval(&mut self, e: &Expr) -> Result<O, E>;

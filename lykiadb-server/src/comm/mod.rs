@@ -50,7 +50,6 @@ impl From<bson::ser::Error> for CommunicationError {
     }
 }
 
-
 pub struct ServerSession {
     conn: TcpConnection,
     runtime: Runtime,

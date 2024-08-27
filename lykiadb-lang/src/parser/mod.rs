@@ -792,8 +792,8 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlFrom, SqlCompoundOperator, SqlDelete, SqlDistinct,
-    SqlExpr, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpr, SqlFrom,
+    SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 
@@ -1127,7 +1127,13 @@ impl<'a> Parser<'a> {
         loop {
             let left = self.sql_select_from_collection()?;
             from_group.push(left);
-            while self.match_next_one_of(&[skw!(Left), skw!(Right), skw!(Inner), skw!(Cross), skw!(Join)]) {
+            while self.match_next_one_of(&[
+                skw!(Left),
+                skw!(Right),
+                skw!(Inner),
+                skw!(Cross),
+                skw!(Join),
+            ]) {
                 // If the next token is a join keyword, then it must be a join from
                 let peek = self.peek_bw(1);
                 if peek.tok_type != SqlKeyword(Join) {
@@ -1140,7 +1146,9 @@ impl<'a> Parser<'a> {
                     SqlKeyword(Cross) => SqlJoinType::Cross,
                     SqlKeyword(Join) => SqlJoinType::Inner,
                     _ => {
-                        return Err(ParseError::UnexpectedToken { token: peek.clone() });
+                        return Err(ParseError::UnexpectedToken {
+                            token: peek.clone(),
+                        });
                     }
                 };
                 let right = self.sql_select_from_collection()?;
@@ -1164,9 +1172,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(SqlFrom::Group {
-            values: from_group,
-        })
+        Ok(SqlFrom::Group { values: from_group })
     }
 
     fn sql_select_where(&mut self) -> ParseResult<Option<Box<SqlExpr>>> {
