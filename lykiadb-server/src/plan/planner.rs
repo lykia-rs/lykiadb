@@ -1,4 +1,5 @@
 use lykiadb_lang::{ast::{expr::Expr, sql::{SqlFrom, SqlJoinType, SqlSelect}}, Identifier};
+use serde_json::Value;
 
 use crate::engine::interpreter::HaltReason;
 
@@ -22,7 +23,11 @@ impl Planner {
                 query,
                 span: _,
                 id: _,
-            } => Ok(Plan::Select(self.build_select(query)?)),
+            } => {
+                let plan = Plan::Select(self.build_select(query)?);
+                println!("{}", serde_json::to_value(&plan).unwrap());
+                Ok(plan)
+            },
             _ => panic!("Not implemented yet."),
         }
     }

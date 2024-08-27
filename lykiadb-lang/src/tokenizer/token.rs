@@ -107,7 +107,6 @@ pub enum SqlKeyword {
     //
     Join,
     Inner,
-    Outer,
     Right,
     Left,
     On,
@@ -235,7 +234,6 @@ pub static SQL_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "LIMIT" => skw!(SqlKeyword::Limit),
     "JOIN" => skw!(SqlKeyword::Join),
     "INNER" => skw!(SqlKeyword::Inner),
-    "OUTER" => skw!(SqlKeyword::Outer),
     "RIGHT" => skw!(SqlKeyword::Right),
     "LEFT" => skw!(SqlKeyword::Left),
     "ON" => skw!(SqlKeyword::On),
