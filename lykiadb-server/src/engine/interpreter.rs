@@ -1,6 +1,6 @@
 use lykiadb_lang::ast::expr::{Expr, Operation};
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::ast::visitor::VisitorMut;
+use lykiadb_lang::ast::visitor::{ExprEvaluator, VisitorMut};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::parser::resolver::Resolver;
 use lykiadb_lang::parser::Parser;
@@ -11,13 +11,12 @@ use lykiadb_lang::{Literal, Locals, Scopes};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use super::environment::{EnvId, Environment};
 use super::error::ExecutionError;
-use super::types::{eval_binary, Stateful};
 
-use crate::engine::types::RV::Callable;
-use crate::engine::types::{Function, RV};
+use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
+use crate::value::environment::{EnvId, Environment};
+use crate::value::types::{eval_binary, Function, Stateful, RV};
 
 use std::sync::Arc;
 use std::vec;
@@ -72,20 +71,20 @@ pub enum InterpretError {
         span: Span,
         property: String,
     },
-    /*AssignmentToUndefined {
-        token: Token,
-    },
-    VariableNotFound {
-        token: Token,
-    },*/
     Other {
         message: String,
     }, // TODO(vck): Refactor this
 }
 
+impl From<InterpretError> for ExecutionError {
+    fn from(err: InterpretError) -> Self {
+        ExecutionError::Interpret(err)
+    }
+}
+
 #[derive(Debug)]
 pub enum HaltReason {
-    Error(InterpretError),
+    Error(ExecutionError),
     Return(RV),
 }
 
@@ -177,6 +176,12 @@ pub struct Interpreter {
     current_program: Option<Arc<Program>>,
 }
 
+impl ExprEvaluator<RV, HaltReason> for Interpreter {
+    fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+        self.visit_expr(e)
+    }
+}
+
 impl Interpreter {
     pub fn new(env_man: Shared<Environment>) -> Interpreter {
         let env = EnvId(0);
@@ -200,10 +205,7 @@ impl Interpreter {
             let err = out.err().unwrap();
             match err {
                 HaltReason::Return(rv) => Ok(rv),
-                HaltReason::Error(interpret_err) => {
-                    let error = ExecutionError::Interpret(interpret_err);
-                    Err(error)
-                }
+                HaltReason::Error(interpret_err) => Err(interpret_err),
             }
         }
     }
@@ -319,26 +321,14 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select {
-                query,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", query)))),
-            Expr::Insert {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Update {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
-            Expr::Delete {
-                command,
-                span: _,
-                id: _,
-            } => Ok(RV::Str(Arc::new(format!("{:?}", command)))),
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Update { .. }
+            | Expr::Delete { .. } => {
+                let mut planner = Planner::new();
+                let plan = planner.build(e)?;
+                Ok(RV::Undefined)
+            }
             Expr::Literal {
                 value,
                 raw: _,
@@ -420,13 +410,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             } => {
                 let eval = self.visit_expr(callee)?;
 
-                if let Callable(arity, callable) = eval {
+                if let RV::Callable(arity, callable) = eval {
                     if arity.is_some() && arity.unwrap() != args.len() {
-                        return Err(HaltReason::Error(InterpretError::ArityMismatch {
-                            span: *span,
-                            expected: arity.unwrap(),
-                            found: args.len(),
-                        }));
+                        return Err(HaltReason::Error(
+                            InterpretError::ArityMismatch {
+                                span: *span,
+                                expected: arity.unwrap(),
+                                found: args.len(),
+                            }
+                            .into(),
+                        ));
                     }
 
                     let mut args_evaluated: Vec<RV> = vec![];
@@ -445,9 +438,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         other_err @ Err(_) => other_err,
                     }
                 } else {
-                    Err(HaltReason::Error(InterpretError::NotCallable {
-                        span: callee.get_span(),
-                    }))
+                    Err(HaltReason::Error(
+                        InterpretError::NotCallable {
+                            span: callee.get_span(),
+                        }
+                        .into(),
+                    ))
                 }
             }
             Expr::Function {
@@ -469,7 +465,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = Callable(Some(parameters.len()), fun.into());
+                let callable = RV::Callable(Some(parameters.len()), fun.into());
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
@@ -496,17 +492,23 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     if let Some(v) = v {
                         return Ok(v.clone());
                     }
-                    Err(HaltReason::Error(InterpretError::PropertyNotFound {
-                        span: *span,
-                        property: name.name.to_string(),
-                    }))
+                    Err(HaltReason::Error(
+                        InterpretError::PropertyNotFound {
+                            span: *span,
+                            property: name.name.to_string(),
+                        }
+                        .into(),
+                    ))
                 } else {
-                    Err(HaltReason::Error(InterpretError::Other {
-                        message: format!(
-                            "Only objects have properties. {:?} is not an object",
-                            object_eval
-                        ),
-                    }))
+                    Err(HaltReason::Error(
+                        InterpretError::Other {
+                            message: format!(
+                                "Only objects have properties. {:?} is not an object",
+                                object_eval
+                            ),
+                        }
+                        .into(),
+                    ))
                 }
             }
             Expr::Set {
@@ -524,12 +526,15 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     borrowed.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
-                    Err(HaltReason::Error(InterpretError::Other {
-                        message: format!(
-                            "Only objects have properties. {:?} is not an object",
-                            object_eval
-                        ),
-                    }))
+                    Err(HaltReason::Error(
+                        InterpretError::Other {
+                            message: format!(
+                                "Only objects have properties. {:?} is not an object",
+                                object_eval
+                            ),
+                        }
+                        .into(),
+                    ))
                 }
             }
         }
@@ -600,16 +605,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Break { span } => {
                 if !self.loop_stack.set_loop_state(LoopState::Broken, None) {
-                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        span: *span,
-                    }));
+                    return Err(HaltReason::Error(
+                        InterpretError::UnexpectedStatement { span: *span }.into(),
+                    ));
                 }
             }
             Stmt::Continue { span } => {
                 if !self.loop_stack.set_loop_state(LoopState::Continue, None) {
-                    return Err(HaltReason::Error(InterpretError::UnexpectedStatement {
-                        span: *span,
-                    }));
+                    return Err(HaltReason::Error(
+                        InterpretError::UnexpectedStatement { span: *span }.into(),
+                    ));
                 }
             }
             Stmt::Return { span: _, expr } => {
@@ -659,9 +664,9 @@ impl Stateful for Output {
 }
 
 pub mod test_helpers {
-    use crate::engine::types::RV;
     use crate::engine::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
+    use crate::value::types::RV;
 
     use super::Output;
 
@@ -680,7 +685,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::engine::types::RV;
+    use crate::value::types::RV;
 
     use super::test_helpers::get_runtime;
 

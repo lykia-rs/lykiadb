@@ -1,4 +1,4 @@
-use lykiadb_server::session::ServerSession;
+use lykiadb_server::comm::ServerSession;
 use std::io::Error;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;

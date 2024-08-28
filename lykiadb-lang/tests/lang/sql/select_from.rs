@@ -20,7 +20,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::ImplicitAll"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",
@@ -69,7 +69,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::ImplicitAll"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",
@@ -128,7 +128,7 @@ assert_parsing! {
                         "@type": "SqlDistinct::ImplicitAll"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
                             "@type": "SqlCollectionIdentifier",
@@ -195,18 +195,16 @@ assert_parsing! {
                         "@type": "SqlDistinct::ImplicitAll"
                       },
                       "from": {
-                        "@type": "SqlCollectionSubquery::Group",
+                        "@type": "SqlFrom::Group",
                         "values": [
                           {
-                            "@type": "SqlCollectionSubquery::Select",
+                            "@type": "SqlFrom::Select",
                             "alias": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "u"
                             },
-                            "expr": {
-                              "@type": "Expr::Select",
-                              "query": {
+                            "subquery": {
                                 "@type": "SqlSelect",
                                 "core": {
                                   "@type": "SqlSelectCore",
@@ -215,7 +213,7 @@ assert_parsing! {
                                     "@type": "SqlDistinct::ImplicitAll"
                                   },
                                   "from": {
-                                    "@type": "SqlCollectionSubquery::Group",
+                                    "@type": "SqlFrom::Group",
                                     "values": [
                                       {
                                         "@type": "SqlCollectionIdentifier",
@@ -242,7 +240,6 @@ assert_parsing! {
                                 "limit": null,
                                 "order_by": null
                               }
-                            }
                           }
                         ]
                       },

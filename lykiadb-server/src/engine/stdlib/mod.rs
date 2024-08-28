@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use rustc_hash::FxHashMap;
 
-use crate::util::{alloc_shared, Shared};
+use crate::{
+    util::{alloc_shared, Shared},
+    value::types::{Function, RV},
+};
 
 use self::{
     fib::nt_fib,
@@ -11,10 +14,7 @@ use self::{
     time::nt_clock,
 };
 
-use super::{
-    interpreter::Output,
-    types::{Function, RV},
-};
+use super::interpreter::Output;
 
 pub mod fib;
 pub mod json;

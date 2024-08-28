@@ -387,8 +387,8 @@ mod test {
     use rustc_hash::FxHashMap;
 
     use crate::{
-        engine::types::{eval_binary, Function, RV},
         util::alloc_shared,
+        value::types::{eval_binary, Function, RV},
     };
 
     #[test]

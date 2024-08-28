@@ -1,3 +1,5 @@
+use crate::value::environment::EnvironmentError;
+
 use super::interpreter::InterpretError;
 use lykiadb_lang::{
     parser::{resolver::ResolveError, ParseError},
@@ -12,6 +14,7 @@ pub enum ExecutionError {
     Parse(ParseError),
     Resolve(ResolveError),
     Interpret(InterpretError),
+    Environment(EnvironmentError),
 }
 
 impl From<ParseError> for ExecutionError {

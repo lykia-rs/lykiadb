@@ -21,12 +21,12 @@ pub enum SqlDistinct {
 pub enum SqlJoinType {
     #[serde(rename = "SqlJoinType::Left")]
     Left,
-    #[serde(rename = "SqlJoinType::LeftOuter")]
-    LeftOuter,
     #[serde(rename = "SqlJoinType::Right")]
     Right,
     #[serde(rename = "SqlJoinType::Inner")]
     Inner,
+    #[serde(rename = "SqlJoinType::Cross")]
+    Cross,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -144,21 +144,21 @@ pub struct SqlSelectCompound {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(tag = "@type")]
-pub enum SqlCollectionSubquery {
-    #[serde(rename = "SqlCollectionSubquery::Group")]
-    Group { values: Vec<SqlCollectionSubquery> },
-    #[serde(rename = "SqlCollectionSubquery::Collection")]
+pub enum SqlFrom {
+    #[serde(rename = "SqlFrom::Group")]
+    Group { values: Vec<SqlFrom> },
+    #[serde(rename = "SqlFrom::Collection")]
     Collection(SqlCollectionIdentifier),
-    #[serde(rename = "SqlCollectionSubquery::Select")]
+    #[serde(rename = "SqlFrom::Select")]
     Select {
-        expr: Box<Expr>,
+        subquery: Box<SqlSelect>,
         alias: Option<Identifier>,
     },
-    #[serde(rename = "SqlCollectionSubquery::Join")]
+    #[serde(rename = "SqlFrom::Join")]
     Join {
-        left: Box<SqlCollectionSubquery>,
+        left: Box<SqlFrom>,
         join_type: SqlJoinType,
-        right: Box<SqlCollectionSubquery>,
+        right: Box<SqlFrom>,
         constraint: Option<Box<SqlExpr>>,
     },
 }
@@ -168,7 +168,7 @@ pub enum SqlCollectionSubquery {
 pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
     pub projection: Vec<SqlProjection>,
-    pub from: Option<SqlCollectionSubquery>,
+    pub from: Option<SqlFrom>,
     pub r#where: Option<Box<SqlExpr>>,
     pub group_by: Option<Vec<SqlExpr>>,
     pub having: Option<Box<SqlExpr>>,
