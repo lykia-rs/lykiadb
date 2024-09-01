@@ -2,6 +2,7 @@ use self::program::Program;
 
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
+use crate::ast::expr::RangeKind;
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
@@ -792,7 +793,7 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpr, SqlFrom,
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlFrom,
     SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
     SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
@@ -830,7 +831,7 @@ impl<'a> Parser<'a> {
                 SqlValues::Select(select_inner.unwrap())
             } else if self.match_next(skw!(Values)) {
                 self.expected(sym!(LeftParen))?;
-                let mut values: Vec<SqlExpr> = vec![];
+                let mut values: Vec<Expr> = vec![];
                 loop {
                     values.push(*self.sql_expression()?);
                     if !self.match_next(sym!(Comma)) {
@@ -865,7 +866,7 @@ impl<'a> Parser<'a> {
 
         self.expected(skw!(Set))?;
 
-        let mut assignments: Vec<SqlExpr> = vec![];
+        let mut assignments: Vec<Expr> = vec![];
 
         loop {
             self.expected(Identifier { dollar: false })?;
@@ -1152,7 +1153,7 @@ impl<'a> Parser<'a> {
                     }
                 };
                 let right = self.sql_select_from_collection()?;
-                let join_constraint: Option<Box<SqlExpr>> = if self.match_next(skw!(On)) {
+                let join_constraint: Option<Box<Expr>> = if self.match_next(skw!(On)) {
                     Some(self.sql_expression()?)
                 } else {
                     None
@@ -1175,17 +1176,17 @@ impl<'a> Parser<'a> {
         Ok(SqlFrom::Group { values: from_group })
     }
 
-    fn sql_select_where(&mut self) -> ParseResult<Option<Box<SqlExpr>>> {
+    fn sql_select_where(&mut self) -> ParseResult<Option<Box<Expr>>> {
         if self.match_next(skw!(Where)) {
             return Ok(Some(self.sql_expression()?));
         }
         Ok(None)
     }
 
-    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<SqlExpr>>> {
+    fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<Expr>>> {
         if self.match_next(skw!(Group)) {
             self.expected(skw!(By))?;
-            let mut groups: Vec<SqlExpr> = vec![];
+            let mut groups: Vec<Expr> = vec![];
 
             loop {
                 let sql_expr = self.sql_expression()?;
@@ -1225,7 +1226,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_expression(&mut self) -> ParseResult<Box<SqlExpr>> {
+    fn sql_expression(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.expression()?;
         let expr_conj_fst = if self.match_next_one_of(&[
             skw!(Is),
@@ -1246,69 +1247,70 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let left = Box::new(SqlExpr::Default(expr.clone()));
+        let left = expr.clone();
 
         if expr_conj_fst.is_none() && expr_conj_sec.is_none() {
             return Ok(left);
         }
 
-        match (expr_conj_fst, expr_conj_sec) {
-            (Some(SqlKeyword(Is)), None) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::Is { left, right }))
-            }
-            (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::IsNot { left, right }))
-            }
-            (Some(SqlKeyword(In)), None) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::In { left, right }))
-            }
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::NotIn { left, right }))
-            }
-            (Some(SqlKeyword(Like)), None) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::Like { left, right }))
-            }
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => {
-                let right = self.sql_expression()?;
-                Ok(Box::new(SqlExpr::NotLike { left, right }))
-            }
+        let operation = match (&expr_conj_fst, &expr_conj_sec) {
+            (Some(SqlKeyword(Is)), None) => Some(Operation::Is),
+            (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => Some(Operation::IsNot),
+            (Some(SqlKeyword(In)), None) => Some(Operation::In),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => Some(Operation::NotIn),
+            (Some(SqlKeyword(Like)), None) => Some(Operation::Like),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => Some(Operation::NotLike),
+            _ => None,
+        };
+
+        if let Some(operation) = operation {
+            let right = self.sql_expression()?;
+            return Ok(Box::new(Expr::Binary { 
+                left: left.clone(), 
+                operation, 
+                right: right.clone(), 
+                span: left.get_span().merge(&right.get_span()), 
+                id: self.get_expr_id() 
+            }));
+        }
+
+        match (&expr_conj_fst, &expr_conj_sec) {
             (Some(SqlKeyword(Between)), None) => self.sql_expression_between_and(left, false),
             (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
                 self.sql_expression_between_and(left, true)
             }
-            _ => Ok(Box::new(SqlExpr::Default(expr))),
+            _ => Ok(expr),
         }
     }
 
     fn sql_expression_between_and(
         &mut self,
-        left: Box<SqlExpr>,
+        subject: Box<Expr>,
         not: bool,
-    ) -> ParseResult<Box<SqlExpr>> {
-        let l = self.equality()?;
-        let lower = Box::new(SqlExpr::Default(l));
+    ) -> ParseResult<Box<Expr>> {
+        let lower = self.equality()?;
 
         self.expected(skw!(And))?;
-        let u = self.equality()?;
-        let upper = Box::new(SqlExpr::Default(u));
+        let upper = self.equality()?;
 
         if not {
-            return Ok(Box::new(SqlExpr::NotBetween {
-                expr: left,
+            return Ok(Box::new(Expr::Range {
+                subject: subject.clone(),
                 lower,
-                upper,
+                upper: upper.clone(),
+                kind: RangeKind::NotBetween,
+                span: subject.get_span().merge(&upper.get_span()),
+                id: self.get_expr_id()
             }));
         }
 
-        Ok(Box::new(SqlExpr::Between {
-            expr: left,
+        Ok(Box::new(Expr::Range {
+            subject: subject.clone(),
             lower,
-            upper,
+            upper: upper.clone(),
+            kind: RangeKind::Between,
+            span: subject.get_span().merge(&upper.get_span()),
+            id: self.get_expr_id()
         }))
     }
 }

@@ -197,6 +197,18 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             }
+            Expr::Range {
+                lower,
+                upper,
+                subject,
+                kind: _,
+                span: _,
+                id: _,
+            } => {
+                self.resolve_expr(lower);
+                self.resolve_expr(upper);
+                self.resolve_expr(subject);
+            }
             Expr::Get {
                 object,
                 name: _,

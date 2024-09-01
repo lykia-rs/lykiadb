@@ -27,6 +27,19 @@ pub enum Operation {
     And,
     Or,
     Not,
+    Is,
+    IsNot,
+    In,
+    NotIn,
+    Like,
+    NotLike,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "@type")]
+pub enum RangeKind {
+    Between,
+    NotBetween,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -94,6 +107,17 @@ pub enum Expr {
         name: Option<Identifier>,
         parameters: Vec<Identifier>,
         body: Arc<Vec<Stmt>>,
+        #[serde(skip)]
+        span: Span,
+        #[serde(skip)]
+        id: usize,
+    },
+    #[serde(rename = "Expr::Range")]
+    Range {
+        lower: Box<Expr>,
+        upper: Box<Expr>,
+        subject: Box<Expr>,
+        kind: RangeKind,
         #[serde(skip)]
         span: Span,
         #[serde(skip)]
@@ -213,6 +237,14 @@ impl Spanned for Expr {
                 span,
                 id: _,
             }
+            | Expr::Range {
+                lower: _,
+                upper: _,
+                subject: _,
+                kind: _,
+                span,
+                id: _,
+            }
             | Expr::Binary {
                 left: _,
                 operation: _,
@@ -305,6 +337,14 @@ impl AstNode for Expr {
                 name: _,
                 parameters: _,
                 body: _,
+                span: _,
+                id,
+            }
+            | Expr::Range {
+                lower: _,
+                upper: _,
+                subject: _,
+                kind: _,
                 span: _,
                 id,
             }
