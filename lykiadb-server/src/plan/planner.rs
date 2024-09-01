@@ -1,12 +1,8 @@
-use lykiadb_lang::{
+use lykiadb_lang::
     ast::{
         expr::Expr,
         sql::{SqlFrom, SqlJoinType, SqlSelect},
-    },
-    Identifier,
-};
-use serde_json::Value;
-
+    };
 use crate::engine::interpreter::HaltReason;
 
 use super::{Node, Plan};
@@ -40,9 +36,24 @@ impl Planner {
 
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
+        // FROM/JOIN
         if let Some(from) = &query.core.from {
             node = self.build_from(from)?;
         }
+        // WHERE
+        if let Some(where_clause) = &query.core.r#where {
+            // TODO: Traverse expression
+            node = Node::Filter {
+                source: Box::new(node),
+                predicate: *where_clause.clone(),
+            }
+            
+        }
+        // GROUP BY
+        // HAVING
+        // SELECT
+        // ORDER BY
+        // LIMIT/OFFSET
         Ok(node)
     }
 

@@ -1,4 +1,4 @@
-use lykiadb_lang::ast::expr::{Expr, Operation};
+use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::{ExprEvaluator, VisitorMut};
 use lykiadb_lang::parser::program::Program;
@@ -477,6 +477,35 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
 
                 Ok(callable)
+            }
+            Expr::Range { lower, upper, subject, kind, span, id } => {
+                let lower_eval = self.visit_expr(lower)?;
+                let upper_eval = self.visit_expr(upper)?;
+                let subject_eval = self.visit_expr(subject)?;
+
+                if let (RV::Num(lower_num), RV::Num(upper_num), RV::Num(subject_num)) =
+                    (&lower_eval, &upper_eval, &subject_eval)
+                {
+                    match kind {
+                        RangeKind::Between => {
+                            Ok(RV::Bool(lower_num <= subject_num && subject_num <= upper_num))
+                        }
+                        RangeKind::NotBetween => {
+                            Ok(RV::Bool(lower_num > subject_num || subject_num > upper_num))
+                        }
+                    }
+                } else {
+                    Err(HaltReason::Error(
+                        InterpretError::Other {
+                            message: format!(
+                                //TODO: Maybe with dates and strings too?
+                                "Range can only be created with numbers. {:?} {:?} {:?}",
+                                lower_eval, upper_eval, subject_eval
+                            ),
+                        }
+                        .into(),
+                    ))
+                }
             }
             Expr::Get {
                 object,

@@ -365,8 +365,8 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
             - Add support for function operations
     */
     match operation {
-        Operation::IsEqual => RV::Bool(left_eval == right_eval),
-        Operation::IsNotEqual => RV::Bool(left_eval != right_eval),
+        Operation::Is | Operation::IsEqual => RV::Bool(left_eval == right_eval),
+        Operation::IsNot | Operation::IsNotEqual => RV::Bool(left_eval != right_eval),
         Operation::Less => RV::Bool(left_eval < right_eval),
         Operation::LessEqual => RV::Bool(left_eval <= right_eval),
         Operation::Greater => RV::Bool(left_eval > right_eval),
@@ -375,6 +375,13 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::Subtract => left_eval - right_eval,
         Operation::Multiply => left_eval * right_eval,
         Operation::Divide => left_eval / right_eval,
+        // TODO: Implement operations:
+        /*
+            Operation::Like
+            Operation::NotLike
+            Operation::In
+            Operation::NotIn
+         */
         _ => RV::Undefined,
     }
 }
