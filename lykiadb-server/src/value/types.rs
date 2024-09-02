@@ -191,6 +191,25 @@ impl RV {
         }
         self.as_bool().partial_cmp(&other)
     }
+
+    pub fn is_in(&self, other: &RV) -> RV {
+        match (self, other) {
+            (RV::Str(lhs), RV::Str(rhs)) => {
+                RV::Bool(rhs.contains(lhs.as_str()))
+            }
+            (lhs, RV::Array(rhs)) => {
+                RV::Bool(rhs.read().unwrap().contains(&lhs))
+            }
+            (RV::Str(key), RV::Object(map)) => {
+                RV::Bool(map.read().unwrap().contains_key(key.as_str()))
+            },
+            _ => RV::Bool(false),
+        }
+    }
+
+    pub fn not(&self) -> RV {
+        RV::Bool(!self.as_bool())
+    }
 }
 
 impl PartialEq for RV {
@@ -375,12 +394,12 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::Subtract => left_eval - right_eval,
         Operation::Multiply => left_eval * right_eval,
         Operation::Divide => left_eval / right_eval,
+        Operation::In => left_eval.is_in(&right_eval),
+        Operation::NotIn => left_eval.is_in(&right_eval).not(),
         // TODO: Implement operations:
         /*
            Operation::Like
            Operation::NotLike
-           Operation::In
-           Operation::NotIn
         */
         _ => RV::Undefined,
     }
