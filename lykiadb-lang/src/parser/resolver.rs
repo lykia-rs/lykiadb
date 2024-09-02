@@ -197,7 +197,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             }
-            Expr::Range {
+            Expr::Between {
                 lower,
                 upper,
                 subject,

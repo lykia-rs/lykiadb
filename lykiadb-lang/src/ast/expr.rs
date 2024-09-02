@@ -112,8 +112,8 @@ pub enum Expr {
         #[serde(skip)]
         id: usize,
     },
-    #[serde(rename = "Expr::Range")]
-    Range {
+    #[serde(rename = "Expr::Between")]
+    Between {
         lower: Box<Expr>,
         upper: Box<Expr>,
         subject: Box<Expr>,
@@ -237,7 +237,7 @@ impl Spanned for Expr {
                 span,
                 id: _,
             }
-            | Expr::Range {
+            | Expr::Between {
                 lower: _,
                 upper: _,
                 subject: _,
@@ -340,7 +340,7 @@ impl AstNode for Expr {
                 span: _,
                 id,
             }
-            | Expr::Range {
+            | Expr::Between {
                 lower: _,
                 upper: _,
                 subject: _,

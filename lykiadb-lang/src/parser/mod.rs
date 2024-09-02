@@ -473,13 +473,13 @@ impl<'a> Parser<'a> {
 
     fn equality(&mut self) -> ParseResult<Box<Expr>> {
         if self.in_select_depth > 0 {
-            binary!(self, [sym!(BangEqual), sym!(Equal)], comparison);
+            binary!(self, [sym!(BangEqual), sym!(Equal)], cmp_basic);
         } else {
-            binary!(self, [sym!(BangEqual), sym!(EqualEqual)], comparison);
+            binary!(self, [sym!(BangEqual), sym!(EqualEqual)], cmp_basic);
         }
     }
 
-    fn comparison(&mut self) -> ParseResult<Box<Expr>> {
+    fn cmp_basic(&mut self) -> ParseResult<Box<Expr>> {
         binary!(
             self,
             [
@@ -488,8 +488,96 @@ impl<'a> Parser<'a> {
                 sym!(Less),
                 sym!(LessEqual)
             ],
-            term
+            cmp_advanced
         );
+    }
+
+    fn cmp_advanced(&mut self) -> ParseResult<Box<Expr>> {
+        let expr = self.term()?;
+        let expr_conj_fst = if self.match_next_one_of(&[
+            skw!(Is),
+            skw!(Not),
+            skw!(In),
+            skw!(Between),
+            skw!(Like),
+        ]) {
+            Some((*self.peek_bw(1)).clone().tok_type)
+        } else {
+            None
+        };
+        let expr_conj_sec = if expr_conj_fst.is_some()
+            && self.match_next_one_of(&[skw!(Is), skw!(Not), skw!(In), skw!(Between), skw!(Like)])
+        {
+            Some((*self.peek_bw(1)).clone().tok_type)
+        } else {
+            None
+        };
+
+        let left = expr.clone();
+
+        if expr_conj_fst.is_none() && expr_conj_sec.is_none() {
+            return Ok(left);
+        }
+
+        let operation = match (&expr_conj_fst, &expr_conj_sec) {
+            (Some(SqlKeyword(Is)), None) => Some(Operation::Is),
+            (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => Some(Operation::IsNot),
+            (Some(SqlKeyword(In)), None) => Some(Operation::In),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => Some(Operation::NotIn),
+            (Some(SqlKeyword(Like)), None) => Some(Operation::Like),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => Some(Operation::NotLike),
+            _ => None,
+        };
+
+        if let Some(operation) = operation {
+            let right = self.term()?;
+            return Ok(Box::new(Expr::Binary {
+                left: left.clone(),
+                operation,
+                right: right.clone(),
+                span: left.get_span().merge(&right.get_span()),
+                id: self.get_expr_id(),
+            }));
+        }
+
+        match (&expr_conj_fst, &expr_conj_sec) {
+            (Some(SqlKeyword(Between)), None) => self.cmp_between(left, false),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
+                self.cmp_between(left, true)
+            }
+            _ => Ok(expr),
+        }
+    }
+
+    fn cmp_between(
+        &mut self,
+        subject: Box<Expr>,
+        not: bool,
+    ) -> ParseResult<Box<Expr>> {
+        let lower = self.term()?;
+
+        self.expected(skw!(And))?;
+        let upper = self.term()?;
+
+        if not {
+            return Ok(Box::new(Expr::Between {
+                subject: subject.clone(),
+                lower,
+                upper: upper.clone(),
+                kind: RangeKind::NotBetween,
+                span: subject.get_span().merge(&upper.get_span()),
+                id: self.get_expr_id(),
+            }));
+        }
+
+        Ok(Box::new(Expr::Between {
+            subject: subject.clone(),
+            lower,
+            upper: upper.clone(),
+            kind: RangeKind::Between,
+            span: subject.get_span().merge(&upper.get_span()),
+            id: self.get_expr_id(),
+        }))
     }
 
     fn term(&mut self) -> ParseResult<Box<Expr>> {
@@ -833,7 +921,7 @@ impl<'a> Parser<'a> {
                 self.expected(sym!(LeftParen))?;
                 let mut values: Vec<Expr> = vec![];
                 loop {
-                    values.push(*self.sql_expression()?);
+                    values.push(*self.expression()?);
                     if !self.match_next(sym!(Comma)) {
                         break;
                     }
@@ -871,14 +959,14 @@ impl<'a> Parser<'a> {
         loop {
             self.expected(Identifier { dollar: false })?;
             self.expected(sym!(Equal))?;
-            assignments.push(*self.sql_expression()?);
+            assignments.push(*self.expression()?);
             if !self.match_next(sym!(Comma)) {
                 break;
             }
         }
 
         let r#where = if self.match_next(skw!(Where)) {
-            Some(self.sql_expression()?)
+            Some(self.expression()?)
         } else {
             None
         };
@@ -903,7 +991,7 @@ impl<'a> Parser<'a> {
 
         if let Some(collection) = self.sql_collection_identifier()? {
             let r#where = if self.match_next(skw!(Where)) {
-                Some(self.sql_expression()?)
+                Some(self.expression()?)
             } else {
                 None
             };
@@ -980,7 +1068,7 @@ impl<'a> Parser<'a> {
             let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
-                let order_expr = self.sql_expression()?;
+                let order_expr = self.expression()?;
                 let order = if self.match_next(skw!(Desc)) {
                     Some(SqlOrdering::Desc)
                 } else {
@@ -1002,11 +1090,11 @@ impl<'a> Parser<'a> {
         };
 
         let limit = if self.match_next(skw!(Limit)) {
-            let first_expr = self.sql_expression()?;
+            let first_expr = self.expression()?;
             let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
-                (Some(self.sql_expression()?), false)
+                (Some(self.expression()?), false)
             } else if self.match_next(sym!(Comma)) {
-                (Some(self.sql_expression()?), true)
+                (Some(self.expression()?), true)
             } else {
                 (None, false)
             };
@@ -1050,7 +1138,7 @@ impl<'a> Parser<'a> {
         let r#where = self.sql_select_where()?;
         let group_by = self.sql_select_group_by()?;
         let having = if group_by.is_some() && self.match_next(skw!(Having)) {
-            Some(self.sql_expression()?)
+            Some(self.expression()?)
         } else {
             None
         };
@@ -1100,7 +1188,7 @@ impl<'a> Parser<'a> {
                     collection: Some(self.peek_bw(3).extract_identifier().unwrap()),
                 });
             } else {
-                let expr = self.sql_expression()?;
+                let expr = self.expression()?;
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
@@ -1154,7 +1242,7 @@ impl<'a> Parser<'a> {
                 };
                 let right = self.sql_select_from_collection()?;
                 let join_constraint: Option<Box<Expr>> = if self.match_next(skw!(On)) {
-                    Some(self.sql_expression()?)
+                    Some(self.expression()?)
                 } else {
                     None
                 };
@@ -1178,7 +1266,7 @@ impl<'a> Parser<'a> {
 
     fn sql_select_where(&mut self) -> ParseResult<Option<Box<Expr>>> {
         if self.match_next(skw!(Where)) {
-            return Ok(Some(self.sql_expression()?));
+            return Ok(Some(self.expression()?));
         }
         Ok(None)
     }
@@ -1189,7 +1277,7 @@ impl<'a> Parser<'a> {
             let mut groups: Vec<Expr> = vec![];
 
             loop {
-                let sql_expr = self.sql_expression()?;
+                let sql_expr = self.expression()?;
                 groups.push(*sql_expr);
                 if !self.match_next(sym!(Comma)) {
                     break;
@@ -1224,93 +1312,5 @@ impl<'a> Parser<'a> {
                 token: self.peek_bw(0).clone(),
             })
         }
-    }
-
-    fn sql_expression(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.expression()?;
-        let expr_conj_fst = if self.match_next_one_of(&[
-            skw!(Is),
-            skw!(Not),
-            skw!(In),
-            skw!(Between),
-            skw!(Like),
-        ]) {
-            Some((*self.peek_bw(1)).clone().tok_type)
-        } else {
-            None
-        };
-        let expr_conj_sec = if expr_conj_fst.is_some()
-            && self.match_next_one_of(&[skw!(Is), skw!(Not), skw!(In), skw!(Between), skw!(Like)])
-        {
-            Some((*self.peek_bw(1)).clone().tok_type)
-        } else {
-            None
-        };
-
-        let left = expr.clone();
-
-        if expr_conj_fst.is_none() && expr_conj_sec.is_none() {
-            return Ok(left);
-        }
-
-        let operation = match (&expr_conj_fst, &expr_conj_sec) {
-            (Some(SqlKeyword(Is)), None) => Some(Operation::Is),
-            (Some(SqlKeyword(Is)), Some(SqlKeyword(Not))) => Some(Operation::IsNot),
-            (Some(SqlKeyword(In)), None) => Some(Operation::In),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(In))) => Some(Operation::NotIn),
-            (Some(SqlKeyword(Like)), None) => Some(Operation::Like),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Like))) => Some(Operation::NotLike),
-            _ => None,
-        };
-
-        if let Some(operation) = operation {
-            let right = self.sql_expression()?;
-            return Ok(Box::new(Expr::Binary {
-                left: left.clone(),
-                operation,
-                right: right.clone(),
-                span: left.get_span().merge(&right.get_span()),
-                id: self.get_expr_id(),
-            }));
-        }
-
-        match (&expr_conj_fst, &expr_conj_sec) {
-            (Some(SqlKeyword(Between)), None) => self.sql_expression_between_and(left, false),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
-                self.sql_expression_between_and(left, true)
-            }
-            _ => Ok(expr),
-        }
-    }
-
-    fn sql_expression_between_and(
-        &mut self,
-        subject: Box<Expr>,
-        not: bool,
-    ) -> ParseResult<Box<Expr>> {
-        let lower = self.equality()?;
-
-        self.expected(skw!(And))?;
-        let upper = self.equality()?;
-
-        if not {
-            return Ok(Box::new(Expr::Range {
-                subject: subject.clone(),
-                lower,
-                upper: upper.clone(),
-                kind: RangeKind::NotBetween,
-                span: subject.get_span().merge(&upper.get_span()),
-                id: self.get_expr_id(),
-            }));
-        }
-
-        Ok(Box::new(Expr::Range {
-            subject: subject.clone(),
-            lower,
-            upper: upper.clone(),
-            kind: RangeKind::Between,
-            span: subject.get_span().merge(&upper.get_span()),
-            id: self.get_expr_id(),
-        }))
     }
 }

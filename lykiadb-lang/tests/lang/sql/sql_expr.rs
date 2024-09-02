@@ -264,7 +264,7 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "Expr::Range",
+                  "@type": "Expr::Between",
                   "kind": {
                     "@type": "Between"
                   },
@@ -341,7 +341,7 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "Expr::Range",
+                  "@type": "Expr::Between",
                   "kind": {
                     "@type": "NotBetween"
                   },

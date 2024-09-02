@@ -69,7 +69,7 @@ impl Planner {
                 Ok(node)
             }
             SqlFrom::Group { values } => {
-                let mut froms = values.into_iter();
+                let mut froms = values.iter();
                 let mut node = self.build_from(froms.next().unwrap())?;
                 for right in froms {
                     node = Node::Join {

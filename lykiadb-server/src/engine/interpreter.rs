@@ -478,27 +478,30 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 Ok(callable)
             }
-            Expr::Range {
+            Expr::Between {
                 lower,
                 upper,
                 subject,
                 kind,
-                span,
-                id,
+                span:_ ,
+                id: _,
             } => {
                 let lower_eval = self.visit_expr(lower)?;
                 let upper_eval = self.visit_expr(upper)?;
                 let subject_eval = self.visit_expr(subject)?;
 
                 if let (RV::Num(lower_num), RV::Num(upper_num), RV::Num(subject_num)) =
-                    (&lower_eval, &upper_eval, &subject_eval)
+                    (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
                 {
+                    let min_num = lower_num.min(upper_num);
+                    let max_num = lower_num.max(upper_num);
+
                     match kind {
                         RangeKind::Between => Ok(RV::Bool(
-                            lower_num <= subject_num && subject_num <= upper_num,
+                            min_num <= subject_num && subject_num <= max_num,
                         )),
                         RangeKind::NotBetween => {
-                            Ok(RV::Bool(lower_num > subject_num || subject_num > upper_num))
+                            Ok(RV::Bool(min_num > subject_num || subject_num > max_num))
                         }
                     }
                 } else {
