@@ -552,29 +552,18 @@ impl<'a> Parser<'a> {
     fn cmp_between(
         &mut self,
         subject: Box<Expr>,
-        not: bool,
+        falsy: bool,
     ) -> ParseResult<Box<Expr>> {
         let lower = self.term()?;
 
         self.expected(skw!(And))?;
         let upper = self.term()?;
 
-        if not {
-            return Ok(Box::new(Expr::Between {
-                subject: subject.clone(),
-                lower,
-                upper: upper.clone(),
-                kind: RangeKind::NotBetween,
-                span: subject.get_span().merge(&upper.get_span()),
-                id: self.get_expr_id(),
-            }));
-        }
-
         Ok(Box::new(Expr::Between {
             subject: subject.clone(),
             lower,
             upper: upper.clone(),
-            kind: RangeKind::Between,
+            kind: if falsy { RangeKind::NotBetween } else { RangeKind::Between },
             span: subject.get_span().merge(&upper.get_span()),
             id: self.get_expr_id(),
         }))
