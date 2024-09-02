@@ -151,7 +151,7 @@ assert_parsing! {
                     }
                   ]
                 },
-                "where": {                
+                "where": {
                   "@type": "Expr::Binary",
                   "operation": {
                     "@type": "NotIn"

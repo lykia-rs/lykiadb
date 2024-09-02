@@ -1,9 +1,8 @@
-use lykiadb_lang::
-    ast::{
-        expr::Expr,
-        sql::{SqlFrom, SqlJoinType, SqlSelect},
-    };
 use crate::engine::interpreter::HaltReason;
+use lykiadb_lang::ast::{
+    expr::Expr,
+    sql::{SqlFrom, SqlJoinType, SqlSelect},
+};
 
 use super::{Node, Plan};
 pub struct Planner;
@@ -47,7 +46,6 @@ impl Planner {
                 source: Box::new(node),
                 predicate: *where_clause.clone(),
             }
-            
         }
         // GROUP BY
         // HAVING

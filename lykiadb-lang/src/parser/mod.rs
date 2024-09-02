@@ -793,9 +793,9 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlFrom,
-    SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
-    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlFrom, SqlInsert,
+    SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect,
+    SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
 };
 
 macro_rules! optional_with_expected {
@@ -1265,12 +1265,12 @@ impl<'a> Parser<'a> {
 
         if let Some(operation) = operation {
             let right = self.sql_expression()?;
-            return Ok(Box::new(Expr::Binary { 
-                left: left.clone(), 
-                operation, 
-                right: right.clone(), 
-                span: left.get_span().merge(&right.get_span()), 
-                id: self.get_expr_id() 
+            return Ok(Box::new(Expr::Binary {
+                left: left.clone(),
+                operation,
+                right: right.clone(),
+                span: left.get_span().merge(&right.get_span()),
+                id: self.get_expr_id(),
             }));
         }
 
@@ -1300,7 +1300,7 @@ impl<'a> Parser<'a> {
                 upper: upper.clone(),
                 kind: RangeKind::NotBetween,
                 span: subject.get_span().merge(&upper.get_span()),
-                id: self.get_expr_id()
+                id: self.get_expr_id(),
             }));
         }
 
@@ -1310,7 +1310,7 @@ impl<'a> Parser<'a> {
             upper: upper.clone(),
             kind: RangeKind::Between,
             span: subject.get_span().merge(&upper.get_span()),
-            id: self.get_expr_id()
+            id: self.get_expr_id(),
         }))
     }
 }

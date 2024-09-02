@@ -377,11 +377,11 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::Divide => left_eval / right_eval,
         // TODO: Implement operations:
         /*
-            Operation::Like
-            Operation::NotLike
-            Operation::In
-            Operation::NotIn
-         */
+           Operation::Like
+           Operation::NotLike
+           Operation::In
+           Operation::NotIn
+        */
         _ => RV::Undefined,
     }
 }
