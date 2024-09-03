@@ -39,7 +39,6 @@ Lykia is a toy multi-model database basically written for educational purposes.
 - [ ] MVCC for transaction management (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm))
 - [ ] Plan optimization
 -----------------------------------------
-- [ ] B-Tree implementation for indexing
 - [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) 
 - [ ] Basic replication with Raft
 

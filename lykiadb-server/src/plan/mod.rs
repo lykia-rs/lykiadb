@@ -1,5 +1,8 @@
 use lykiadb_lang::{
-    ast::sql::{SqlCollectionIdentifier, SqlExpr, SqlJoinType, SqlOrdering},
+    ast::{
+        expr::Expr,
+        sql::{SqlCollectionIdentifier, SqlJoinType, SqlOrdering},
+    },
     Identifier,
 };
 use serde::{Deserialize, Serialize};
@@ -8,11 +11,11 @@ pub mod planner;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Aggregate {
-    Average(SqlExpr),
-    Count(SqlExpr),
-    Max(SqlExpr),
-    Min(SqlExpr),
-    Sum(SqlExpr),
+    Average(Expr),
+    Count(Expr),
+    Max(Expr),
+    Min(Expr),
+    Sum(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -24,18 +27,18 @@ pub enum Plan {
 pub enum Node {
     Aggregate {
         source: Box<Node>,
-        group_by: Vec<SqlExpr>,
+        group_by: Vec<Expr>,
         aggregates: Vec<Aggregate>,
     },
 
     Filter {
         source: Box<Node>,
-        predicate: SqlExpr,
+        predicate: Expr,
     },
 
     Projection {
         source: Box<Node>,
-        expressions: Vec<SqlExpr>,
+        expressions: Vec<Expr>,
         aliases: Vec<String>,
     },
 
@@ -51,11 +54,11 @@ pub enum Node {
 
     Order {
         source: Box<Node>,
-        key: Vec<(SqlExpr, SqlOrdering)>,
+        key: Vec<(Expr, SqlOrdering)>,
     },
 
     Values {
-        rows: Vec<Vec<SqlExpr>>,
+        rows: Vec<Vec<Expr>>,
     },
 
     ValuesHandle {
@@ -64,14 +67,14 @@ pub enum Node {
 
     Scan {
         source: SqlCollectionIdentifier,
-        filter: Option<SqlExpr>,
+        filter: Option<Expr>,
     },
 
     Join {
         left: Box<Node>,
         join_type: SqlJoinType,
         right: Box<Node>,
-        constraint: Option<SqlExpr>,
+        constraint: Option<Expr>,
     },
 
     Subquery {

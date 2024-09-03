@@ -40,7 +40,10 @@ assert_parsing! {
                     ]
                   },
                   "where": {
-                    "@type": "SqlExpr::In",
+                    "@type": "Expr::Binary",
+                    "operation": {
+                      "@type": "In"
+                    },
                     "left": {
                       "@type": "Expr::Variable",
                       "name": {
@@ -149,7 +152,10 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::NotIn",
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "NotIn"
+                  },
                   "left": {
                     "@type": "Expr::Variable",
                     "name": {
@@ -258,8 +264,11 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::Between",
-                  "expr": {
+                  "@type": "Expr::Between",
+                  "kind": {
+                    "@type": "Between"
+                  },
+                  "subject": {
                     "@type": "Expr::Variable",
                     "name": {
                       "@type": "Identifier",
@@ -332,8 +341,11 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::NotBetween",
-                  "expr": {
+                  "@type": "Expr::Between",
+                  "kind": {
+                    "@type": "NotBetween"
+                  },
+                  "subject": {
                     "@type": "Expr::Variable",
                     "name": {
                       "@type": "Identifier",
@@ -405,7 +417,10 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::Like",
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "Like"
+                  },
                   "left": {
                     "@type": "Expr::Variable",
                     "name": {
@@ -471,7 +486,10 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::NotLike",
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "NotLike"
+                  },
                   "left": {
                     "@type": "Expr::Variable",
                     "name": {
@@ -537,7 +555,10 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::Is",
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "Is"
+                  },
                   "left": {
                     "@type": "Expr::Variable",
                     "name": {
@@ -603,7 +624,10 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "SqlExpr::IsNot",
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "IsNot"
+                  },
                   "left": {
                     "@type": "Expr::Variable",
                     "name": {
