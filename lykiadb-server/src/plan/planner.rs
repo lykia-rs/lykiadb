@@ -26,7 +26,6 @@ impl Planner {
                 id: _,
             } => {
                 let plan = Plan::Select(self.build_select(query)?);
-                println!("{}", serde_json::to_value(&plan).unwrap());
                 Ok(plan)
             }
             _ => panic!("Not implemented yet."),
@@ -40,11 +39,11 @@ impl Planner {
             node = self.build_from(from)?;
         }
         // WHERE
-        if let Some(where_clause) = &query.core.r#where {
+        if let Some(predicate) = &query.core.r#where {
             // TODO: Traverse expression
             node = Node::Filter {
                 source: Box::new(node),
-                predicate: *where_clause.clone(),
+                predicate: *predicate.clone(),
             }
         }
         // GROUP BY
@@ -92,6 +91,29 @@ impl Planner {
                 right: Box::new(self.build_from(right)?),
                 constraint: constraint.clone().map(|x| *x.clone()),
             }),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
+
+    use super::*;
+
+    #[test]
+    fn test_build_select() {
+        let mut planner = Planner::new();
+        let query = "SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id where p.name = 'Springer';".parse::<Program>().unwrap();
+        match *query.get_root() {
+            Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
+                if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
+                    let plan = planner.build(&expr).unwrap();
+                    println!("\n{}\n", "SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id where p.name = 'Springer';");
+                    println!("{}", &plan);
+                }
+            }
+            _ => panic!("Expected expression statement."),
         }
     }
 }

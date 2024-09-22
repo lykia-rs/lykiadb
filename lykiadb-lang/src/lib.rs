@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::{Display, Formatter, Result}, sync::Arc};
 
 use ast::expr::Expr;
 use rustc_hash::FxHashMap;
@@ -70,4 +70,10 @@ pub struct Identifier {
     pub dollar: bool,
     #[serde(skip)]
     pub span: Span,
+}
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{}", self.name)
+    }
 }
