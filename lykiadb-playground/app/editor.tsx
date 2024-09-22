@@ -13,29 +13,12 @@ await init();
 
 const EditorView = () => {
   const [code, setCode] = React.useState(
-`var $calc = {
-  add: function ($a, $b) {
-    return $a + $b;
-  },
-  sub: function ($a, $b) {
-    return $a - $b;
-  },
-  mul: function ($a, $b) {
-    return $a * $b;
-  },
-  div: function ($a, $b) {
-    return $a / $b;
-  },
-};
-print($calc.add(4, 5));
-print($calc.sub(4, 5));
-print($calc.mul(4, 5));
-print($calc.div(4, 5));
+`SELECT { 'name': user.name } from users;
 `);
 
   const [ast, setAst] = React.useState({});
 
-  const [sizes, setSizes] = React.useState([100, '30%', 'auto']);
+  const [sizes, setSizes] = React.useState(['50%', '50%']);
 
   function updateCode(code: string) {
     setCode(code)
@@ -49,25 +32,25 @@ print($calc.div(4, 5));
   }
 
   return (
-    <SplitPane sizes={sizes} onChange={setSizes} className={defaultFont.className}>
-      <Pane minSize={300} className="h-full p-1">
-        <div className="p-2 text-xs text-white bg-zinc-900 rounded-t-md">Script</div>
+    <SplitPane sizes={sizes} onChange={setSizes} className="border-y border-l border-zinc-500">
+      <Pane minSize={600} className="h-full">
+        <div className="p-4 text-md text-white bg-zinc-800 border-y border-l border-zinc-500"></div>
         <div>
           <CodeMirror
+            className={defaultFont.className}
             value={code}
-            height="400px"
             extensions={[lyql(tokenize)]} 
             onChange={(value: string) => updateCode(value)} 
           />
         </div>
-        <div className="p-2 text-white bg-zinc-900 rounded-b-md"></div>
+        <div className="p-2 text-white bg-zinc-800"></div>
       </Pane>
-      <Pane minSize={600} className="h-full p-1">
-        <div className="p-2 text-xs text-white bg-zinc-900 rounded-t-md">Syntax tree</div>
-        <div className="overflow-y-auto h-full">
+      <Pane minSize={600} className="h-full border-l border-zinc-500">
+        <div className="p-2 text-md text-white bg-zinc-800 border-y border-r border-zinc-500">AST</div>
+        <div className="overflow-y-auto">
           <div className="p-3 bg-white"><JsonView value={ast} /></div>
         </div>
-        <div className="p-2 text-white bg-zinc-900 rounded-b-md"></div>
+        <div className="p-2 text-white bg-zinc-800"></div>
       </Pane>
     </SplitPane>
   );
