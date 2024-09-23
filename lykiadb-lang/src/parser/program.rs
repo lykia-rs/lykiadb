@@ -1,10 +1,13 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    ast::{expr::Expr, stmt::Stmt},
-    Locals,
+    ast::{expr::Expr, stmt::Stmt}, tokenizer::scanner::Scanner, Locals, Scopes
 };
+
+use super::{resolver::Resolver, ParseError, ParseResult, Parser};
 #[derive(Serialize, Deserialize)]
 pub struct Program {
     root: Box<Stmt>,
@@ -45,5 +48,22 @@ impl Program {
 
     pub fn to_json(&self) -> Value {
         serde_json::to_value(self.root.clone()).unwrap()
+    }
+}
+
+impl FromStr for Program {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> ParseResult<Program> {
+        let tokens = Scanner::scan(s).unwrap();
+        let parse_result = Parser::parse(&tokens);
+
+        if let Ok(mut program) = parse_result {
+            let mut resolver = Resolver::new(Scopes::default(), &program, None);
+            let (_, locals) = resolver.resolve().unwrap();
+            program.set_locals(locals);
+            return Ok(program);
+        }
+        panic!("Failed to parse program.");
     }
 }

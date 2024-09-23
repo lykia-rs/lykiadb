@@ -26,7 +26,6 @@ impl Planner {
                 id: _,
             } => {
                 let plan = Plan::Select(self.build_select(query)?);
-                println!("{}", serde_json::to_value(&plan).unwrap());
                 Ok(plan)
             }
             _ => panic!("Not implemented yet."),
@@ -40,11 +39,11 @@ impl Planner {
             node = self.build_from(from)?;
         }
         // WHERE
-        if let Some(where_clause) = &query.core.r#where {
+        if let Some(predicate) = &query.core.r#where {
             // TODO: Traverse expression
             node = Node::Filter {
                 source: Box::new(node),
-                predicate: *where_clause.clone(),
+                predicate: *predicate.clone(),
             }
         }
         // GROUP BY
@@ -92,6 +91,27 @@ impl Planner {
                 right: Box::new(self.build_from(right)?),
                 constraint: constraint.clone().map(|x| *x.clone()),
             }),
+        }
+    }
+}
+
+
+pub mod test_helpers {
+    use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
+
+    use super::Planner;
+
+    pub fn expect_plan(query: &str, expected_plan: &str) {
+        let mut planner = Planner::new();
+        let program = query.parse::<Program>().unwrap();
+        match *program.get_root() {
+            Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
+                if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
+                    let generated_plan = planner.build(&expr).unwrap();
+                    assert_eq!(expected_plan, generated_plan.to_string());
+                }
+            }
+            _ => panic!("Expected expression statement."),
         }
     }
 }

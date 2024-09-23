@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use crate::{Identifier, Span, Spanned};
 
@@ -393,6 +393,54 @@ impl AstNode for Expr {
                 span: _,
                 id,
             } => *id,
+        }
+    }
+}
+
+impl Display for Expr {
+    // A basic display function for Expr
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Select { .. } => write!(f, "<SqlSelect>"),
+            Expr::Insert { .. } => write!(f, "<SqlInsert>"),
+            Expr::Update { .. } => write!(f, "<SqlUpdate>"),
+            Expr::Delete { .. } => write!(f, "<SqlDelete>"),
+            Expr::Variable { name, .. } => write!(f, "{}", name),
+            Expr::Grouping { expr, .. } => write!(f, "({})", expr),
+            Expr::Literal { value, .. } => write!(f, "{:?}", value),
+            Expr::Function { name, parameters, .. } => {
+                write!(f, "fn {}({})", name.as_ref().unwrap(), parameters.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+            }
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                kind,
+                ..
+            } => write!(
+                f,
+                "{} {} {} AND {}",
+                subject,
+                match kind {
+                    RangeKind::Between => "BETWEEN",
+                    RangeKind::NotBetween => "NOT BETWEEN",
+                },
+                lower,
+                upper
+            ),
+            Expr::Binary { left, operation, right, .. } => {
+                write!(f, "({} {:?} {})", left, operation, right)
+            }
+            Expr::Unary { operation, expr, .. } => write!(f, "{:?}{}", operation, expr),
+            Expr::Assignment { dst, expr, .. } => write!(f, "{} = {}", dst, expr),
+            Expr::Logical { left, operation, right, .. } => {
+                write!(f, "{} {:?} {}", left, operation, right)
+            }
+            Expr::Call { callee, args, .. } => {
+                write!(f, "{}({})", callee, args.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+            }
+            Expr::Get { object, name, .. } => write!(f, "{}.{}", object, name),
+            Expr::Set { object, name, value, .. } => write!(f, "{}.{} = {}", object, name, value),
         }
     }
 }

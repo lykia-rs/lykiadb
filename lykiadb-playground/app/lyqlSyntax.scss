@@ -1,10 +1,10 @@
 .cm-{
-    $font-size: 14px;
+    $font-size: 16px;
     $font-family: 'JetBrains Mono', monospace;
     &gutters, &editor {
         font-size: $font-size;
         font-family: $font-family;
-        background-color: #222226!important;
+        background-color: #1c2130!important;
         border: none!important;
     }
 
@@ -26,15 +26,15 @@
         color:rgb(94, 145, 255)
     }
     &identifier {
-        color:#FB773C;
+        color:#bbdf06;
         text-decoration: underline
     }
     &keyword{
-        color: rgb(74, 216, 255);
+        color: rgb(122, 255, 228);
         font-weight: bold;
     }
     &sqlkeyword{
-        color: #EB3678;
+        color: #027e44;
         font-weight: bold;
     }
     &symbol {

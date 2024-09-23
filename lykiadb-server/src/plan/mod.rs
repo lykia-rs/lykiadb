@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use lykiadb_lang::{
     ast::{
         expr::Expr,
@@ -83,4 +85,47 @@ pub enum Node {
     },
 
     Nothing,
+}
+
+impl Display for Plan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Plan::Select(node) => write!(f, "{}", node),
+        }
+    }
+}
+
+impl Node {
+    const TAB: &'static str = "  ";
+    const NEWLINE: &'static str = "\n";
+
+    fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
+        let indent_str = Self::TAB.repeat(indent);
+        match self {
+            Node::Filter { source, predicate } => {
+                write!(f, "{}- filter {}:{}", indent_str, predicate, Self::NEWLINE)?;
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Scan { source, filter } => {
+                write!(f, "{}- scan [{} as {}]{}", indent_str, source.name, source.alias.as_ref().unwrap_or(&source.name), Self::NEWLINE)
+            }
+            Node::Join {
+                left,
+                join_type,
+                right,
+                constraint,
+            } => {
+                write!(f, "{}- join [{:?}, {}]:{}", indent_str, join_type, constraint.as_ref().unwrap(), Self::NEWLINE)?;
+                left._fmt_recursive(f, indent + 1)?;
+                right._fmt_recursive(f, indent + 1)
+            }
+            _ => "<NotImplementedYet>".fmt(f),
+        }
+    }
+}
+
+impl Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+       self._fmt_recursive(f, 0)
+    }  
 }
