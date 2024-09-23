@@ -95,22 +95,20 @@ impl Planner {
     }
 }
 
-#[cfg(test)]
-mod tests {
+
+pub mod test_helpers {
     use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
 
-    use super::*;
+    use super::Planner;
 
-    #[test]
-    fn test_build_select() {
+    pub fn expect_plan(query: &str, expected_plan: &str) {
         let mut planner = Planner::new();
-        let query = "SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id where p.name = 'Springer';".parse::<Program>().unwrap();
-        match *query.get_root() {
+        let program = query.parse::<Program>().unwrap();
+        match *program.get_root() {
             Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
                 if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
-                    let plan = planner.build(&expr).unwrap();
-                    println!("\n{}\n", "SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id where p.name = 'Springer';");
-                    println!("{}", &plan);
+                    let generated_plan = planner.build(&expr).unwrap();
+                    assert_eq!(expected_plan, generated_plan.to_string());
                 }
             }
             _ => panic!("Expected expression statement."),
