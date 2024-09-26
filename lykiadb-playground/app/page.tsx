@@ -9,7 +9,7 @@ const MainView = dynamic(() => import('./main'), {
 export default function Home() {
   return (
     <main className="min-h-screen">
-      <div className="h-screen p-6">
+      <div className="h-screen">
       <MainView
           defaultLayout={undefined}
           defaultCollapsed={undefined}
