@@ -13,7 +13,7 @@
 </div>
 
 <p align="center">
-    <img alt="LykiaDB logo" height="200" src="https://vcankeklik.com/assets/img/logo.svg?v=051223">
+    <img alt="LykiaDB logo" height="200" src="https://github.com/lykia-rs/lykiadb/tree/main/assets/logo.svg">
 </p>
 
 
