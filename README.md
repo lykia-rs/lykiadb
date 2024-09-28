@@ -13,7 +13,7 @@
 </div>
 
 <p align="center">
-    <img alt="LykiaDB logo" height="200" src="https://github.com/lykia-rs/lykiadb/tree/main/assets/logo.svg">
+    <img alt="LykiaDB logo" height="200" src="https://raw.githubusercontent.com/lykia-rs/lykiadb/refs/heads/main/assets/logo.svg">
 </p>
 
 
