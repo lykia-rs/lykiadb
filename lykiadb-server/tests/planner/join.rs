@@ -2,6 +2,17 @@ use lykiadb_server::{assert_plan, plan::planner::test_helpers::expect_plan};
 
 
 assert_plan! {
+  two_way_simple: {
+    "SELECT * FROM books b
+        INNER JOIN categories c ON b.category_id = c.id
+        WHERE c.name = 'Science';" => 
+
+"- filter (c.name IsEqual Str(\"Science\")):
+  - join [Inner, (b.category_id IsEqual c.id)]:
+    - scan [books as b]
+    - scan [categories as c]
+"
+},
     three_way_simple: {
         "SELECT * FROM books b
             INNER JOIN categories c ON b.category_id = c.id
