@@ -6,23 +6,23 @@ use super::environment::EnvId;
 use super::types::RV;
 
 #[derive(Debug, Clone)]
-pub enum CallableType {
-    Any,
+pub enum CallableKind {
+    Generic,
     Aggregator,
 }
 
 #[derive(Clone, Debug)]
 pub struct Callable {
     pub arity: Option<usize>,
-    pub call_type: CallableType,
+    pub kind: CallableKind,
     pub function: Arc<Function>,
 }
 
 impl Callable {
-    pub fn new(arity: Option<usize>, call_type: CallableType, function: Function) -> Self {
+    pub fn new(arity: Option<usize>, call_type: CallableKind, function: Function) -> Self {
         Callable {
             arity,
-            call_type,
+            kind: call_type,
             function: Arc::new(function),
         }
     }

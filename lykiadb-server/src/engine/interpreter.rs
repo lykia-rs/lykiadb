@@ -15,7 +15,7 @@ use super::error::ExecutionError;
 
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
-use crate::value::callable::{Callable, CallableType, Function, Stateful};
+use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
 use crate::value::types::{eval_binary, RV};
 
@@ -466,7 +466,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = RV::Callable(Callable::new(Some(parameters.len()), CallableType::Any, fun.into()));
+                let callable = RV::Callable(Callable::new(Some(parameters.len()), CallableKind::Generic, fun.into()));
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
