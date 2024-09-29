@@ -1,15 +1,14 @@
-use super::environment::EnvId;
-use crate::engine::interpreter::{HaltReason, Interpreter};
-use crate::util::{alloc_shared, Shared};
 use lykiadb_lang::ast::expr::Operation;
-use lykiadb_lang::ast::stmt::Stmt;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
-use std::borrow::Borrow;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::Debug;
 use std::ops;
 use std::sync::{Arc, RwLock};
+
+use crate::util::{alloc_shared, Shared};
+
+use super::callable::Callable;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -18,67 +17,10 @@ pub enum RV {
     Bool(bool),
     Object(Shared<FxHashMap<String, RV>>),
     Array(Shared<Vec<RV>>),
-    Callable(Option<usize>, Arc<Function>),
+    Callable(Callable),
     Undefined,
     NaN,
     Null,
-}
-
-pub trait Stateful {
-    fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
-}
-
-#[derive(Clone)]
-pub enum Function {
-    Lambda {
-        function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
-    },
-    Stateful(Shared<dyn Stateful + Send + Sync>),
-    UserDefined {
-        name: String,
-        parameters: Vec<String>,
-        closure: EnvId,
-        body: Arc<Vec<Stmt>>,
-    },
-}
-
-impl Function {
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
-        match self {
-            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Lambda { function } => function(interpreter, arguments),
-            Function::UserDefined {
-                name: _,
-                parameters,
-                closure,
-                body,
-            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
-        }
-    }
-
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
-            Function::UserDefined {
-                name,
-                parameters: _,
-                closure: _,
-                body: _,
-            } => write!(f, "{}", name),
-        }
-    }
-}
-
-impl Debug for Function {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.fmt(f)
-    }
-}
-
-impl Display for Function {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.fmt(f)
-    }
 }
 
 impl Serialize for RV {
@@ -93,10 +35,9 @@ impl Serialize for RV {
             RV::Undefined => serializer.serialize_none(),
             RV::NaN => serializer.serialize_none(),
             RV::Null => serializer.serialize_none(),
-            RV::Callable(_, _) => serializer.serialize_none(),
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
-                let arr = (arr.borrow() as &RwLock<Vec<RV>>).read().unwrap();
+                let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
                 for item in arr.iter() {
                     seq.serialize_element(&item)?;
                 }
@@ -104,14 +45,15 @@ impl Serialize for RV {
             }
             RV::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj.borrow() as &RwLock<FxHashMap<String, RV>>)
+                let arr = (obj as &RwLock<FxHashMap<String, RV>>)
                     .read()
                     .unwrap();
                 for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
-            }
+            },
+            _ => serializer.serialize_none(),
         }
     }
 }
@@ -216,9 +158,6 @@ impl PartialEq for RV {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
-            //
-            (RV::Callable(_, _), RV::Callable(_, _)) => false,
-            //
             (RV::Null, RV::Null) => true,
             (RV::Undefined, RV::Undefined) => true,
             (RV::NaN, RV::NaN) => true,
@@ -251,9 +190,6 @@ impl PartialOrd for RV {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
-            //
-            (RV::Callable(_, _), RV::Callable(_, _)) => None,
-            //
             (RV::Null, RV::Null) => Some(std::cmp::Ordering::Equal),
             (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
             (RV::NaN, RV::NaN) => Some(std::cmp::Ordering::Equal),
@@ -414,7 +350,7 @@ mod test {
 
     use crate::{
         util::alloc_shared,
-        value::types::{eval_binary, Function, RV},
+        value::types::{eval_binary, RV},
     };
 
     #[test]
@@ -436,13 +372,6 @@ mod test {
         assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
         assert!((RV::Array(alloc_shared(vec![]))).as_bool());
         assert!((RV::Object(alloc_shared(FxHashMap::default()))).as_bool());
-        assert!((RV::Callable(
-            Some(1),
-            Arc::new(Function::Lambda {
-                function: |_, _| Ok(RV::Undefined)
-            })
-        ))
-        .as_bool());
     }
 
     #[test]
