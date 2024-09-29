@@ -17,11 +17,11 @@
 </p>
 
 
-Lykia is a toy multi-model database basically written for educational purposes.
+Lykia is a document database management system built for educational purposes. The famous book, Crafting Interpreters, was the main source of inspiration for the project. It turned into a database, though.
 
 ## Overview
-- Written in Rust
-- A weird scripting and query language, combination of JavaScript and SQL. Built based on the language "Lox" which is explained in the famous book, Crafting Interpreters.
+- 100% safe Rust, #BlazinglyFast
+- A weird scripting and query language, combination of JavaScript and SQL. The language is a separate module thus can be used without the database.
 - A subset of JSON data types in both scripting language itself and storage
 - In-disk and in-memory storage
 - ACID compliance
@@ -29,18 +29,19 @@ Lykia is a toy multi-model database basically written for educational purposes.
 
 ## Roadmap
 
-- [x] Core scripting language
+- [x] Core scripting language + DML/DDL SQL
 - [x] A minimal standard library
-- [x] DML/DDL SQL
-- [x] Event loop, client-server communication
-- [x] Minimal playground app
+- [x] Runtime 
+- [x] Playground app
 - [ ] Query binding and planning (in progress)
-- [ ] Bitcask storage engine
+- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) 
 - [ ] MVCC for transaction management (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm))
 - [ ] Plan optimization
------------------------------------------
-- [ ] LSM storage engine (based on [mini-lsm](https://github.com/lykia-rs/mini-lsm)) 
+
+## More ambitious roadmap: 
+
 - [ ] Basic replication with Raft
+
 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
@@ -55,12 +56,8 @@ Run the shell:
 ```shell 
 $ cargo run --release --bin lykiadb-shell lykiadb-shell/examples/fib.ly
 ```
-Run the playground:
 
-```shell 
-$ cd lykiadb-playground
-$ pnpm dev
-```
+For playground, please visit [lykia-rs/playground](https://github.com/lykia-rs/playground)
 
 ## License
 Lykia is licensed under the Apache License, Version 2.0. See LICENSE for the full license text.
