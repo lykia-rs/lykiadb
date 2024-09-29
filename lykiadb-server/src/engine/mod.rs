@@ -4,7 +4,7 @@ use self::stdlib::stdlib;
 use crate::engine::interpreter::Interpreter;
 use crate::util::{alloc_shared, Shared};
 use crate::value::environment::Environment;
-use crate::value::types::RV;
+use crate::value::RV;
 use lykiadb_lang::parser::Parser;
 use lykiadb_lang::tokenizer::scanner::Scanner;
 use serde_json::Value;

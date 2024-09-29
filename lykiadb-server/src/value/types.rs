@@ -2,26 +2,10 @@ use lykiadb_lang::ast::expr::Operation;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 use std::ops;
 use std::sync::{Arc, RwLock};
-
-use crate::util::{alloc_shared, Shared};
-
-use super::callable::Callable;
-
-#[derive(Debug, Clone)]
-pub enum RV {
-    Str(Arc<String>),
-    Num(f64),
-    Bool(bool),
-    Object(Shared<FxHashMap<String, RV>>),
-    Array(Shared<Vec<RV>>),
-    Callable(Callable),
-    Undefined,
-    NaN,
-    Null,
-}
+use crate::util::alloc_shared;
+use super::RV;
 
 impl Serialize for RV {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

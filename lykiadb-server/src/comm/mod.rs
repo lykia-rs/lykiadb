@@ -1,5 +1,5 @@
 use crate::engine::{Runtime, RuntimeMode};
-use crate::value::types::RV;
+use crate::value::RV;
 use ::std::time::Instant;
 use tcp::TcpConnection;
 use tokio::net::TcpStream;

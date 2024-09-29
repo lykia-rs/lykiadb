@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::borrow::{Borrow, BorrowMut};
 
-use super::types::RV;
+use super::RV;
 
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -169,7 +169,7 @@ impl Environment {
 
 #[cfg(test)]
 mod test {
-    use crate::value::types::RV;
+    use crate::value::RV;
 
     #[test]
     fn test_read_basic() {
