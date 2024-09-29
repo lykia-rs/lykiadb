@@ -15,8 +15,9 @@ use super::error::ExecutionError;
 
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
+use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
-use crate::value::types::{eval_binary, Function, Stateful, RV};
+use crate::value::types::{eval_binary, RV};
 
 use std::sync::Arc;
 use std::vec;
@@ -410,12 +411,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             } => {
                 let eval = self.visit_expr(callee)?;
 
-                if let RV::Callable(arity, callable) = eval {
-                    if arity.is_some() && arity.unwrap() != args.len() {
+                if let RV::Callable(callable) = eval {
+                    if callable.arity.is_some() && callable.arity.unwrap() != args.len() {
                         return Err(HaltReason::Error(
                             InterpretError::ArityMismatch {
                                 span: *span,
-                                expected: arity.unwrap(),
+                                expected: callable.arity.unwrap(),
                                 found: args.len(),
                             }
                             .into(),
@@ -465,7 +466,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = RV::Callable(Some(parameters.len()), fun.into());
+                let callable = RV::Callable(Callable::new(Some(parameters.len()), CallableKind::Generic, fun.into()));
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
