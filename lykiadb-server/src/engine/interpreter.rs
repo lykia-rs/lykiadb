@@ -17,7 +17,7 @@ use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
-use crate::value::{RV, types::eval_binary};
+use crate::value::{RV, eval::eval_binary};
 
 use std::sync::Arc;
 use std::vec;
