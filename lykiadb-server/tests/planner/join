@@ -32,15 +32,21 @@ SELECT * FROM books b
 #[name=three_way_reordered, run=plan]>
 
 SELECT * FROM books b
-    INNER JOIN 
-    (categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id)
+    INNER JOIN
+    (
+      categories c
+      INNER JOIN
+      publishers AS p
+      ON b.category_id = c.id
+    )
+    ON b.publisher_id = p.id
     WHERE p.name = 'Springer';
 
 ---
 
 - filter (p.name IsEqual Str("Springer")):
   - join [Inner, (b.publisher_id IsEqual p.id)]:
+    - scan [books as b]
     - join [Inner, (b.category_id IsEqual c.id)]:
       - scan [categories as c]
       - scan [publishers as p]
-    - scan [books as b]

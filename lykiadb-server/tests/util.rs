@@ -1,5 +1,6 @@
 use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
 use lykiadb_server::plan::planner::Planner;
+use pretty_assertions::assert_eq;
 
 fn expect_plan(query: &str, expected_plan: &str) {
     let mut planner = Planner::new();
