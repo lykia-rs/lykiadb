@@ -1,8 +1,11 @@
 #[name=two_way_simple, run=plan]>
+
 SELECT * FROM books b
     INNER JOIN categories c ON b.category_id = c.id
     WHERE c.name = 'Science';
+
 ---
+
 - filter (c.name IsEqual Str("Science")):
   - join [Inner, (b.category_id IsEqual c.id)]:
     - scan [books as b]
@@ -24,3 +27,20 @@ SELECT * FROM books b
       - scan [books as b]
       - scan [categories as c]
     - scan [publishers as p]
+
+
+#[name=three_way_reordered, run=plan]>
+
+SELECT * FROM books b
+    INNER JOIN 
+    (categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id)
+    WHERE p.name = 'Springer';
+
+---
+
+- filter (p.name IsEqual Str("Springer")):
+  - join [Inner, (b.publisher_id IsEqual p.id)]:
+    - join [Inner, (b.category_id IsEqual c.id)]:
+      - scan [categories as c]
+      - scan [publishers as p]
+    - scan [books as b]
