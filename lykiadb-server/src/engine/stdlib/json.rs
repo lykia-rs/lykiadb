@@ -1,6 +1,6 @@
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    value::types::RV,
+    value::RV,
 };
 use serde_json::json;
 use std::sync::Arc;

@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter};
 use lykiadb_lang::ast::stmt::Stmt;
 use crate::{engine::interpreter::{HaltReason, Interpreter}, util::Shared};
 use super::environment::EnvId;
-use super::types::RV;
+use super::RV;
 
 #[derive(Debug, Clone)]
 pub enum CallableKind {

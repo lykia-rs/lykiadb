@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     util::{alloc_shared, Shared},
-    value::{callable::{Callable, CallableKind, Function}, types::RV},
+    value::{callable::{Callable, CallableKind, Function}, RV},
 };
 
 use self::{

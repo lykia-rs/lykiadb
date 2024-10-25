@@ -17,7 +17,7 @@ use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
-use crate::value::types::{eval_binary, RV};
+use crate::value::{RV, eval::eval_binary};
 
 use std::sync::Arc;
 use std::vec;
@@ -706,7 +706,7 @@ impl Stateful for Output {
 pub mod test_helpers {
     use crate::engine::{Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
-    use crate::value::types::RV;
+    use crate::value::RV;
 
     use super::Output;
 
@@ -725,7 +725,7 @@ pub mod test_helpers {
 
 #[cfg(test)]
 mod test {
-    use crate::value::types::RV;
+    use crate::value::RV;
 
     use super::test_helpers::get_runtime;
 

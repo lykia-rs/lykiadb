@@ -1,6 +1,6 @@
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
-    value::types::RV,
+    value::RV,
 };
 
 pub fn nt_print(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {

@@ -27,9 +27,11 @@ tokio = { version = "~1.35.1", features = [
 tokio-stream = { version = "~0.1.6", features = ["net"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+pretty_assertions = "1.4.1"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
+test_each_file = "0.3.4"
 
 [[bench]]
 name = "interpreter"

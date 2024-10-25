@@ -6,7 +6,7 @@ use lykiadb_server::{
             InterpretError,
         },
     },
-    value::types::RV,
+    value::RV,
 };
 use std::sync::Arc;
 
