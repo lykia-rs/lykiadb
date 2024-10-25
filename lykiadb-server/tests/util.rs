@@ -1,5 +1,5 @@
 use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-use lykiadb_server::plan::planner::Planner;
+use lykiadb_server::{assert_plan, plan::planner::Planner};
 use pretty_assertions::assert_eq;
 
 fn expect_plan(query: &str, expected_plan: &str) {
@@ -24,6 +24,6 @@ pub fn run_test(input: &str) {
         let directives_end = directives_and_input.find('>').unwrap_or(directives_and_input.len());
         let rest = directives_and_input[directives_end+1..].trim().to_string();
         let io_parts: Vec<&str> = rest.split("---").collect();
-        expect_plan(&io_parts[0].trim(),&io_parts[1].trim());   
+        expect_plan(&io_parts[0].trim(),&io_parts[1].trim());
     }
 }
