@@ -1,6 +1,6 @@
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::ast::visitor::{ExprEvaluator, VisitorMut};
+use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::parser::resolver::Resolver;
 use lykiadb_lang::parser::Parser;
@@ -12,6 +12,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use super::error::ExecutionError;
+use super::stdlib::stdlib;
 
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
@@ -177,9 +178,26 @@ pub struct Interpreter {
     current_program: Option<Arc<Program>>,
 }
 
-impl ExprEvaluator<RV, HaltReason> for Interpreter {
-    fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
-        self.visit_expr(e)
+pub struct ExecutionContext {
+    interpreter: Shared<Interpreter>
+}
+
+impl ExecutionContext {
+    pub fn new(out: Option<Shared<Output>>) -> ExecutionContext {
+        let mut env_man = Environment::new();
+        let native_fns = stdlib(out.clone());
+        let env = env_man.top();
+
+        for (name, value) in native_fns {
+            env_man.declare(env, name.to_string(), value);
+        }
+        ExecutionContext {
+            interpreter: alloc_shared(Interpreter::new(alloc_shared(env_man))),
+        }
+    }
+
+    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+        self.interpreter.write().unwrap().visit_expr(e)
     }
 }
 
@@ -326,7 +344,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let mut planner = Planner::new();
+                let mut planner = Planner::new(ExecutionContext::new(None));
                 let plan = planner.build(e)?;
                 Ok(RV::Undefined)
             }

@@ -120,6 +120,14 @@ impl Node {
                 source._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
+            Node::Limit { source, limit } => {
+                write!(f, "{}- limit {}{}", indent_str, limit, Self::NEWLINE)?;
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Offset { source, offset } => {
+                write!(f, "{}- offset {}{}", indent_str, offset, Self::NEWLINE)?;
+                source._fmt_recursive(f, indent + 1)
+            }
             Node::Join {
                 left,
                 join_type,
