@@ -3,7 +3,7 @@ use std::fmt::Display;
 use lykiadb_lang::{
     ast::{
         expr::Expr,
-        sql::{SqlCollectionIdentifier, SqlJoinType, SqlOrdering},
+        sql::{SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering},
     },
     Identifier,
 };
@@ -27,6 +27,12 @@ pub enum Plan {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Node {
+    Compound {
+        source: Box<Node>,
+        operator: SqlCompoundOperator,
+        right: Box<Node>,
+    },
+
     Aggregate {
         source: Box<Node>,
         group_by: Vec<Expr>,
@@ -108,6 +114,11 @@ impl Node {
             }
             Node::Scan { source, filter } => {
                 write!(f, "{}- scan [{} as {}]{}", indent_str, source.name, source.alias.as_ref().unwrap_or(&source.name), Self::NEWLINE)
+            }
+            Node::Compound { source, operator, right } => {
+                write!(f, "{}- compound [{:?}]{}", indent_str, operator, Self::NEWLINE)?;
+                source._fmt_recursive(f, indent + 1)?;
+                right._fmt_recursive(f, indent + 1)
             }
             Node::Join {
                 left,

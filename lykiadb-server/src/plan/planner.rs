@@ -1,7 +1,7 @@
 use crate::engine::interpreter::HaltReason;
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect},
+    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore},
 };
 
 use super::{Node, Plan};
@@ -32,23 +32,38 @@ impl Planner {
         }
     }
 
-    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
         // FROM/JOIN
-        if let Some(from) = &query.core.from {
+        if let Some(from) = &core.from {
             node = self.build_from(from)?;
         }
         // WHERE
-        if let Some(predicate) = &query.core.r#where {
+        if let Some(predicate) = &core.r#where {
             // TODO: Traverse expression
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: *predicate.clone(),
             }
         }
+        if let Some(compound) = &core.compound {
+            node = Node::Compound { 
+                source: Box::new(node),
+                operator: compound.operator.clone(),
+                right: Box::new(self.build_select_core(&compound.core)?)
+            }
+        }
         // GROUP BY
         // HAVING
         // SELECT
+        Ok(node)
+    }
+
+    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+        let mut node: Node = self.build_select_core(&query.core)?;
+
+        
+        
         // ORDER BY
         // LIMIT/OFFSET
         Ok(node)
