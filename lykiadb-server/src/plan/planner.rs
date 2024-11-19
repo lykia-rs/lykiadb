@@ -1,21 +1,19 @@
-use crate::engine::interpreter::HaltReason;
+use crate::engine::interpreter::{ExecutionContext, HaltReason};
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect},
+    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore}
 };
 
 use super::{Node, Plan};
-pub struct Planner;
-
-impl Default for Planner {
-    fn default() -> Self {
-        Self::new()
-    }
+pub struct Planner {
+    context: ExecutionContext
 }
 
 impl Planner {
-    pub fn new() -> Planner {
-        Planner {}
+    pub fn new(ctx: ExecutionContext) -> Planner {
+        Planner {
+            context: ctx
+        }
     }
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
@@ -32,25 +30,46 @@ impl Planner {
         }
     }
 
-    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
         // FROM/JOIN
-        if let Some(from) = &query.core.from {
+        if let Some(from) = &core.from {
             node = self.build_from(from)?;
         }
         // WHERE
-        if let Some(predicate) = &query.core.r#where {
+        if let Some(predicate) = &core.r#where {
             // TODO: Traverse expression
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: *predicate.clone(),
             }
         }
+        if let Some(compound) = &core.compound {
+            node = Node::Compound { 
+                source: Box::new(node),
+                operator: compound.operator.clone(),
+                right: Box::new(self.build_select_core(&compound.core)?)
+            }
+        }
         // GROUP BY
         // HAVING
         // SELECT
+        Ok(node)
+    }
+
+    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+        let mut node: Node = self.build_select_core(&query.core)?;
+
         // ORDER BY
-        // LIMIT/OFFSET
+
+        if let Some(limit) = &query.limit {
+            if let Some(offset) = &limit.offset {
+                node = Node::Offset { source: Box::new(node), offset: self.context.eval(&offset)?.as_number().expect("Offset is not correct").floor() as usize }
+            }
+
+            node = Node::Limit { source: Box::new(node), limit: self.context.eval(&limit.count)?.as_number().expect("Limit is not correct").floor() as usize }
+        }
+
         Ok(node)
     }
 
@@ -99,10 +118,13 @@ impl Planner {
 pub mod test_helpers {
     use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
 
+    use crate::engine::interpreter::ExecutionContext;
+
     use super::Planner;
 
     pub fn expect_plan(query: &str, expected_plan: &str) {
-        let mut planner = Planner::new();
+        let ctx = ExecutionContext::new(None);
+        let mut planner = Planner::new(ctx);
         let program = query.parse::<Program>().unwrap();
         match *program.get_root() {
             Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {

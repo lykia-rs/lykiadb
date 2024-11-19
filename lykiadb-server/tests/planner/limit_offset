@@ -1,0 +1,16 @@
+#[name=limit, run=plan]>
+
+SELECT * FROM books limit 4 + 4;
+
+---
+- limit 8
+  - scan [books as books]
+
+#[name=limit, run=plan]>
+
+SELECT * FROM books limit 5 + 5 offset 5 + 15;
+
+---
+- limit 10
+  - offset 20
+    - scan [books as books]
