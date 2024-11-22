@@ -1,9 +1,12 @@
-use std::sync::Arc;
-use std::fmt::{Debug, Display, Formatter};
-use lykiadb_lang::ast::stmt::Stmt;
-use crate::{engine::interpreter::{HaltReason, Interpreter}, util::Shared};
 use super::environment::EnvId;
 use super::RV;
+use crate::{
+    engine::interpreter::{HaltReason, Interpreter},
+    util::Shared,
+};
+use lykiadb_lang::ast::stmt::Stmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum CallableKind {

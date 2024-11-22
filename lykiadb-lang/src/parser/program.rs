@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    ast::{expr::Expr, stmt::Stmt}, tokenizer::scanner::Scanner, Locals, Scopes
+    ast::{expr::Expr, stmt::Stmt},
+    tokenizer::scanner::Scanner,
+    Locals, Scopes,
 };
 
 use super::{resolver::Resolver, ParseError, ParseResult, Parser};

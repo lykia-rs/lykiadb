@@ -1,4 +1,7 @@
-use std::{fmt::{Display, Formatter, Result}, sync::Arc};
+use std::{
+    fmt::{Display, Formatter, Result},
+    sync::Arc,
+};
 
 use ast::expr::Expr;
 use rustc_hash::FxHashMap;

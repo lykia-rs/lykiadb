@@ -1,7 +1,11 @@
-use crate::{engine::interpreter::{Interpreter, HaltReason}, util::Shared};
+use crate::{
+    engine::interpreter::{HaltReason, Interpreter},
+    util::Shared,
+};
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore}, visitor::VisitorMut
+    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore},
+    visitor::VisitorMut,
 };
 
 use super::{Node, Plan};
@@ -11,9 +15,7 @@ pub struct Planner<'a> {
 
 impl<'a> Planner<'a> {
     pub fn new(interpreter: &'a mut Interpreter) -> Planner {
-        Planner {
-            interpreter
-        }
+        Planner { interpreter }
     }
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
@@ -45,10 +47,10 @@ impl<'a> Planner<'a> {
             }
         }
         if let Some(compound) = &core.compound {
-            node = Node::Compound { 
+            node = Node::Compound {
                 source: Box::new(node),
                 operator: compound.operator.clone(),
-                right: Box::new(self.build_select_core(&compound.core)?)
+                right: Box::new(self.build_select_core(&compound.core)?),
             }
         }
         // GROUP BY
@@ -61,12 +63,28 @@ impl<'a> Planner<'a> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
         // TODO(vck): ORDER BY
-        
+
         if let Some(limit) = &query.limit {
             if let Some(offset) = &limit.offset {
-                node = Node::Offset { source: Box::new(node), offset: self.interpreter.visit_expr(&offset)?.as_number().expect("Offset is not correct").floor() as usize }
+                node = Node::Offset {
+                    source: Box::new(node),
+                    offset: self
+                        .interpreter
+                        .visit_expr(&offset)?
+                        .as_number()
+                        .expect("Offset is not correct")
+                        .floor() as usize,
+                }
             }
-            node = Node::Limit { source: Box::new(node), limit: self.interpreter.visit_expr(&limit.count)?.as_number().expect("Limit is not correct").floor() as usize }
+            node = Node::Limit {
+                source: Box::new(node),
+                limit: self
+                    .interpreter
+                    .visit_expr(&limit.count)?
+                    .as_number()
+                    .expect("Limit is not correct")
+                    .floor() as usize,
+            }
         }
 
         Ok(node)
@@ -113,10 +131,8 @@ impl<'a> Planner<'a> {
     }
 }
 
-
 pub mod test_helpers {
     use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-
 
     use crate::engine::interpreter::Interpreter;
 

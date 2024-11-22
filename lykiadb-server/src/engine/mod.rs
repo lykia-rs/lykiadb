@@ -23,10 +23,7 @@ pub enum RuntimeMode {
 
 impl Runtime {
     pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
-        Runtime {
-            mode,
-            interpreter,
-        }
+        Runtime { mode, interpreter }
     }
 
     pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {

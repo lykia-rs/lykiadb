@@ -2,7 +2,10 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     util::{alloc_shared, Shared},
-    value::{callable::{Callable, CallableKind, Function}, RV},
+    value::{
+        callable::{Callable, CallableKind, Function},
+        RV,
+    },
 };
 
 use self::{
@@ -28,20 +31,22 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     benchmark_namespace.insert(
         "fib".to_owned(),
-        RV::Callable(Callable::new(Some(1), CallableKind::Generic, Function::Lambda { function: nt_fib })),
+        RV::Callable(Callable::new(
+            Some(1),
+            CallableKind::Generic,
+            Function::Lambda { function: nt_fib },
+        )),
     );
 
     json_namespace.insert(
         "stringify".to_owned(),
-        RV::Callable(
-            Callable::new(
-                Some(1),
-                CallableKind::Generic,
-                Function::Lambda {
-                    function: nt_json_encode,
-                }
-            )
-        ),
+        RV::Callable(Callable::new(
+            Some(1),
+            CallableKind::Generic,
+            Function::Lambda {
+                function: nt_json_encode,
+            },
+        )),
     );
 
     json_namespace.insert(
@@ -51,16 +56,16 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             CallableKind::Generic,
             Function::Lambda {
                 function: nt_json_decode,
-            }),
-        ),
+            },
+        )),
     );
 
     time_namespace.insert(
         "clock".to_owned(),
         RV::Callable(Callable::new(
-            Some(0), 
+            Some(0),
             CallableKind::Generic,
-            Function::Lambda { function: nt_clock }
+            Function::Lambda { function: nt_clock },
         )),
     );
 
@@ -69,7 +74,11 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
         test_namespace.insert(
             "out".to_owned(),
-            RV::Callable(Callable::new(None, CallableKind::Generic, Function::Stateful(out.unwrap().clone()))),
+            RV::Callable(Callable::new(
+                None,
+                CallableKind::Generic,
+                Function::Stateful(out.unwrap().clone()),
+            )),
         );
 
         std.insert(
@@ -86,7 +95,11 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert("Time".to_owned(), RV::Object(alloc_shared(time_namespace)));
     std.insert(
         "print".to_owned(),
-        RV::Callable(Callable::new(None, CallableKind::Generic, Function::Lambda { function: nt_print })),
+        RV::Callable(Callable::new(
+            None,
+            CallableKind::Generic,
+            Function::Lambda { function: nt_print },
+        )),
     );
 
     std

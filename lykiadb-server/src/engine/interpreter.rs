@@ -18,7 +18,7 @@ use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
-use crate::value::{RV, eval::eval_binary};
+use crate::value::{eval::eval_binary, RV};
 
 use std::sync::Arc;
 use std::vec;
@@ -182,7 +182,7 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
         let mut env_man = Environment::new();
-        if with_stdlib {   
+        if with_stdlib {
             let native_fns = stdlib(out.clone());
             let env = env_man.top();
 
@@ -475,7 +475,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = RV::Callable(Callable::new(Some(parameters.len()), CallableKind::Generic, fun.into()));
+                let callable = RV::Callable(Callable::new(
+                    Some(parameters.len()),
+                    CallableKind::Generic,
+                    fun.into(),
+                ));
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
@@ -493,7 +497,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 upper,
                 subject,
                 kind,
-                span:_ ,
+                span: _,
                 id: _,
             } => {
                 let lower_eval = self.visit_expr(lower)?;
@@ -507,9 +511,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let max_num = lower_num.max(upper_num);
 
                     match kind {
-                        RangeKind::Between => Ok(RV::Bool(
-                            min_num <= subject_num && subject_num <= max_num,
-                        )),
+                        RangeKind::Between => {
+                            Ok(RV::Bool(min_num <= subject_num && subject_num <= max_num))
+                        }
                         RangeKind::NotBetween => {
                             Ok(RV::Bool(min_num > subject_num || subject_num > max_num))
                         }
@@ -722,7 +726,10 @@ pub mod test_helpers {
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
         let out = alloc_shared(Output::new());
 
-        (out.clone(), Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)))
+        (
+            out.clone(),
+            Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)),
+        )
     }
 
     pub fn exec_assert(code: &str, output: Vec<RV>) {

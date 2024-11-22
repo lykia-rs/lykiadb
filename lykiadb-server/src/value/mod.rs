@@ -1,15 +1,15 @@
-use std::sync::{Arc, RwLock};
+use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
-use rustc_hash::FxHashMap;
+use std::sync::{Arc, RwLock};
 
 use crate::util::alloc_shared;
 use crate::util::Shared;
 use callable::Callable;
 
+pub mod callable;
 pub mod environment;
 pub mod eval;
-pub mod callable;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -73,15 +73,11 @@ impl RV {
 
     pub fn is_in(&self, other: &RV) -> RV {
         match (self, other) {
-            (RV::Str(lhs), RV::Str(rhs)) => {
-                RV::Bool(rhs.contains(lhs.as_str()))
-            }
-            (lhs, RV::Array(rhs)) => {
-                RV::Bool(rhs.read().unwrap().contains(&lhs))
-            }
+            (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
+            (lhs, RV::Array(rhs)) => RV::Bool(rhs.read().unwrap().contains(&lhs)),
             (RV::Str(key), RV::Object(map)) => {
                 RV::Bool(map.read().unwrap().contains_key(key.as_str()))
-            },
+            }
             _ => RV::Bool(false),
         }
     }
@@ -90,7 +86,6 @@ impl RV {
         RV::Bool(!self.as_bool())
     }
 }
-
 
 impl Serialize for RV {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -114,14 +109,12 @@ impl Serialize for RV {
             }
             RV::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj as &RwLock<FxHashMap<String, RV>>)
-                    .read()
-                    .unwrap();
+                let arr = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
                 for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
-            },
+            }
             _ => serializer.serialize_none(),
         }
     }
@@ -155,4 +148,3 @@ impl<'de> Deserialize<'de> for RV {
         }
     }
 }
-

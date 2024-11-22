@@ -22,9 +22,13 @@ pub fn run_test(input: &str) {
 
     for part in parts[1..].iter() {
         let directives_and_input = part.trim();
-        let directives_end = directives_and_input.find('>').unwrap_or(directives_and_input.len());
-        let rest = directives_and_input[directives_end+1..].trim().to_string();
+        let directives_end = directives_and_input
+            .find('>')
+            .unwrap_or(directives_and_input.len());
+        let rest = directives_and_input[directives_end + 1..]
+            .trim()
+            .to_string();
         let io_parts: Vec<&str> = rest.split("---").collect();
-        expect_plan(&io_parts[0].trim(),&io_parts[1].trim());
+        expect_plan(&io_parts[0].trim(), &io_parts[1].trim());
     }
 }

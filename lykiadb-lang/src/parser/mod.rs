@@ -542,18 +542,12 @@ impl<'a> Parser<'a> {
 
         match (&expr_conj_fst, &expr_conj_sec) {
             (Some(SqlKeyword(Between)), None) => self.cmp_between(left, false),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
-                self.cmp_between(left, true)
-            }
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => self.cmp_between(left, true),
             _ => Ok(expr),
         }
     }
 
-    fn cmp_between(
-        &mut self,
-        subject: Box<Expr>,
-        falsy: bool,
-    ) -> ParseResult<Box<Expr>> {
+    fn cmp_between(&mut self, subject: Box<Expr>, falsy: bool) -> ParseResult<Box<Expr>> {
         let lower = self.term()?;
 
         self.expected(skw!(And))?;
@@ -563,7 +557,11 @@ impl<'a> Parser<'a> {
             subject: subject.clone(),
             lower,
             upper: upper.clone(),
-            kind: if falsy { RangeKind::NotBetween } else { RangeKind::Between },
+            kind: if falsy {
+                RangeKind::NotBetween
+            } else {
+                RangeKind::Between
+            },
             span: subject.get_span().merge(&upper.get_span()),
             id: self.get_expr_id(),
         }))

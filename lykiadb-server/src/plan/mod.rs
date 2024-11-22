@@ -113,10 +113,27 @@ impl Node {
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Scan { source, filter } => {
-                write!(f, "{}- scan [{} as {}]{}", indent_str, source.name, source.alias.as_ref().unwrap_or(&source.name), Self::NEWLINE)
+                write!(
+                    f,
+                    "{}- scan [{} as {}]{}",
+                    indent_str,
+                    source.name,
+                    source.alias.as_ref().unwrap_or(&source.name),
+                    Self::NEWLINE
+                )
             }
-            Node::Compound { source, operator, right } => {
-                write!(f, "{}- compound [{:?}]{}", indent_str, operator, Self::NEWLINE)?;
+            Node::Compound {
+                source,
+                operator,
+                right,
+            } => {
+                write!(
+                    f,
+                    "{}- compound [{:?}]{}",
+                    indent_str,
+                    operator,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
@@ -134,7 +151,14 @@ impl Node {
                 right,
                 constraint,
             } => {
-                write!(f, "{}- join [{:?}, {}]:{}", indent_str, join_type, constraint.as_ref().unwrap(), Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- join [{:?}, {}]:{}",
+                    indent_str,
+                    join_type,
+                    constraint.as_ref().unwrap(),
+                    Self::NEWLINE
+                )?;
                 left._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
@@ -145,6 +169,6 @@ impl Node {
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-       self._fmt_recursive(f, 0)
-    }  
+        self._fmt_recursive(f, 0)
+    }
 }
