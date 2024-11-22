@@ -4,7 +4,7 @@ use std::{
 };
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lykiadb_server::engine::{Runtime, RuntimeMode};
+use lykiadb_server::{engine::{interpreter::ExecutionContext, Runtime, RuntimeMode}, util::alloc_shared};
 
 fn runtime(filename: &str) {
     let file = File::open(filename).unwrap();
@@ -12,7 +12,7 @@ fn runtime(filename: &str) {
     BufReader::new(file)
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
-    let mut runtime = Runtime::new(RuntimeMode::File, None);
+    let mut runtime = Runtime::new(RuntimeMode::File, alloc_shared(ExecutionContext::new(None)));
     runtime.interpret(&content).unwrap();
 }
 

@@ -1,10 +1,7 @@
 use self::error::ExecutionError;
-use self::interpreter::Output;
-use self::stdlib::stdlib;
-use crate::engine::interpreter::Interpreter;
-use crate::util::{alloc_shared, Shared};
-use crate::value::environment::Environment;
+use crate::util::Shared;
 use crate::value::RV;
+use interpreter::ExecutionContext;
 use lykiadb_lang::parser::Parser;
 use lykiadb_lang::tokenizer::scanner::Scanner;
 use serde_json::Value;
@@ -16,7 +13,7 @@ mod stdlib;
 
 pub struct Runtime {
     mode: RuntimeMode,
-    interpreter: Interpreter,
+    context: Shared<ExecutionContext>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -26,17 +23,10 @@ pub enum RuntimeMode {
 }
 
 impl Runtime {
-    pub fn new(mode: RuntimeMode, out: Option<Shared<Output>>) -> Runtime {
-        let mut env_man = Environment::new();
-        let native_fns = stdlib(out.clone());
-        let env = env_man.top();
-
-        for (name, value) in native_fns {
-            env_man.declare(env, name.to_string(), value);
-        }
+    pub fn new(mode: RuntimeMode, context: Shared<ExecutionContext>) -> Runtime {
         Runtime {
             mode,
-            interpreter: Interpreter::new(alloc_shared(env_man)),
+            context,
         }
     }
 
@@ -48,7 +38,7 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let out = self.interpreter.interpret(source);
+        let out = self.context.write().unwrap().interpret(source);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);

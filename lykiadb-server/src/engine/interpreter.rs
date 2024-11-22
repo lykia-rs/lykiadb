@@ -199,10 +199,14 @@ impl ExecutionContext {
     pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         self.interpreter.write().unwrap().visit_expr(e)
     }
+
+    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+        self.interpreter.write().unwrap().interpret(source)
+    }
 }
 
 impl Interpreter {
-    pub fn new(env_man: Shared<Environment>) -> Interpreter {
+    fn new(env_man: Shared<Environment>) -> Interpreter {
         let env = EnvId(0);
         Interpreter {
             env_man,
@@ -214,7 +218,7 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+    fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
         self.current_program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -344,7 +348,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let mut planner = Planner::new(ExecutionContext::new(None));
+                let mut planner = Planner::new(alloc_shared(ExecutionContext::new(None))); // TODO(vck): Use the existing context
                 let plan = planner.build(e)?;
                 Ok(RV::Undefined)
             }
@@ -731,7 +735,7 @@ pub mod test_helpers {
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
         let out = alloc_shared(Output::new());
 
-        (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
+        (out.clone(), Runtime::new(RuntimeMode::File, alloc_shared(super::ExecutionContext::new(Some(out)))))
     }
 
     pub fn exec_assert(code: &str, output: Vec<RV>) {
