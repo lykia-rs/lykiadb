@@ -172,44 +172,27 @@ impl LoopStack {
 pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
-    loop_stack: LoopStack,
     env_man: Shared<Environment>,
-    source_processor: SourceProcessor,
     current_program: Option<Arc<Program>>,
-}
-
-pub struct ExecutionContext {
-    interpreter: Shared<Interpreter>
-}
-
-impl ExecutionContext {
-    pub fn new(out: Option<Shared<Output>>) -> ExecutionContext {
-        let mut env_man = Environment::new();
-        let native_fns = stdlib(out.clone());
-        let env = env_man.top();
-
-        for (name, value) in native_fns {
-            env_man.declare(env, name.to_string(), value);
-        }
-        ExecutionContext {
-            interpreter: alloc_shared(Interpreter::new(alloc_shared(env_man))),
-        }
-    }
-
-    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
-        self.interpreter.write().unwrap().visit_expr(e)
-    }
-
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        self.interpreter.write().unwrap().interpret(source)
-    }
+    //
+    loop_stack: LoopStack,
+    source_processor: SourceProcessor,
 }
 
 impl Interpreter {
-    fn new(env_man: Shared<Environment>) -> Interpreter {
+    pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
+        let mut env_man = Environment::new();
+        if with_stdlib {   
+            let native_fns = stdlib(out.clone());
+            let env = env_man.top();
+
+            for (name, value) in native_fns {
+                env_man.declare(env, name.to_string(), value);
+            }
+        }
         let env = EnvId(0);
         Interpreter {
-            env_man,
+            env_man: alloc_shared(env_man),
             env,
             root_env: env,
             loop_stack: LoopStack::new(),
@@ -218,7 +201,11 @@ impl Interpreter {
         }
     }
 
-    fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+        self.visit_expr(e)
+    }
+
+    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
         self.current_program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -348,7 +335,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let mut planner = Planner::new(alloc_shared(ExecutionContext::new(None))); // TODO(vck): Use the existing context
+                let mut planner = Planner::new(self); // TODO(vck): Use the existing context
                 let plan = planner.build(e)?;
                 Ok(RV::Undefined)
             }
@@ -730,12 +717,12 @@ pub mod test_helpers {
     use crate::util::{alloc_shared, Shared};
     use crate::value::RV;
 
-    use super::Output;
+    use super::{Interpreter, Output};
 
     pub fn get_runtime() -> (Shared<Output>, Runtime) {
         let out = alloc_shared(Output::new());
 
-        (out.clone(), Runtime::new(RuntimeMode::File, alloc_shared(super::ExecutionContext::new(Some(out)))))
+        (out.clone(), Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)))
     }
 
     pub fn exec_assert(code: &str, output: Vec<RV>) {

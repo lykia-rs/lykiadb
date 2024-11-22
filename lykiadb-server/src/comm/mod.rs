@@ -1,6 +1,5 @@
-use crate::engine::interpreter::ExecutionContext;
+use crate::engine::interpreter::Interpreter;
 use crate::engine::{Runtime, RuntimeMode};
-use crate::util::alloc_shared;
 use crate::value::RV;
 use ::std::time::Instant;
 use tcp::TcpConnection;
@@ -61,7 +60,7 @@ impl ServerSession {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
             conn: TcpConnection::new(stream),
-            runtime: Runtime::new(RuntimeMode::File, alloc_shared(ExecutionContext::new(None))),
+            runtime: Runtime::new(RuntimeMode::File, Interpreter::new(None, true)),
         }
     }
 

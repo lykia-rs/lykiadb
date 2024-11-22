@@ -1,7 +1,6 @@
 use self::error::ExecutionError;
-use crate::util::Shared;
 use crate::value::RV;
-use interpreter::ExecutionContext;
+use interpreter::Interpreter;
 use lykiadb_lang::parser::Parser;
 use lykiadb_lang::tokenizer::scanner::Scanner;
 use serde_json::Value;
@@ -13,7 +12,7 @@ mod stdlib;
 
 pub struct Runtime {
     mode: RuntimeMode,
-    context: Shared<ExecutionContext>,
+    interpreter: Interpreter,
 }
 
 #[derive(Eq, PartialEq)]
@@ -23,10 +22,10 @@ pub enum RuntimeMode {
 }
 
 impl Runtime {
-    pub fn new(mode: RuntimeMode, context: Shared<ExecutionContext>) -> Runtime {
+    pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
         Runtime {
             mode,
-            context,
+            interpreter,
         }
     }
 
@@ -38,7 +37,7 @@ impl Runtime {
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let out = self.context.write().unwrap().interpret(source);
+        let out = self.interpreter.interpret(source);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);

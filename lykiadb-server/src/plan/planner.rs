@@ -1,18 +1,18 @@
-use crate::{engine::interpreter::{ExecutionContext, HaltReason}, util::Shared};
+use crate::{engine::interpreter::{Interpreter, HaltReason}, util::Shared};
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore}
+    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore}, visitor::VisitorMut
 };
 
 use super::{Node, Plan};
-pub struct Planner {
-    context: Shared<ExecutionContext>
+pub struct Planner<'a> {
+    interpreter: &'a mut Interpreter,
 }
 
-impl Planner {
-    pub fn new(ctx: Shared<ExecutionContext>) -> Planner {
+impl<'a> Planner<'a> {
+    pub fn new(interpreter: &'a mut Interpreter) -> Planner {
         Planner {
-            context: ctx
+            interpreter
         }
     }
 
@@ -64,9 +64,9 @@ impl Planner {
         
         if let Some(limit) = &query.limit {
             if let Some(offset) = &limit.offset {
-                node = Node::Offset { source: Box::new(node), offset: self.context.write().unwrap().eval(&offset)?.as_number().expect("Offset is not correct").floor() as usize }
+                node = Node::Offset { source: Box::new(node), offset: self.interpreter.visit_expr(&offset)?.as_number().expect("Offset is not correct").floor() as usize }
             }
-            node = Node::Limit { source: Box::new(node), limit: self.context.write().unwrap().eval(&limit.count)?.as_number().expect("Limit is not correct").floor() as usize }
+            node = Node::Limit { source: Box::new(node), limit: self.interpreter.visit_expr(&limit.count)?.as_number().expect("Limit is not correct").floor() as usize }
         }
 
         Ok(node)
@@ -117,13 +117,14 @@ impl Planner {
 pub mod test_helpers {
     use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
 
-    use crate::{engine::interpreter::ExecutionContext, util::alloc_shared};
+
+    use crate::engine::interpreter::Interpreter;
 
     use super::Planner;
 
     pub fn expect_plan(query: &str, expected_plan: &str) {
-        let ctx = ExecutionContext::new(None);
-        let mut planner = Planner::new(alloc_shared(ctx));
+        let mut interpreter: Interpreter = Interpreter::new(None, true);
+        let mut planner = Planner::new(&mut interpreter);
         let program = query.parse::<Program>().unwrap();
         match *program.get_root() {
             Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {

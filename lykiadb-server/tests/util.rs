@@ -1,10 +1,10 @@
 use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-use lykiadb_server::{engine::interpreter::ExecutionContext, plan::planner::Planner, util::alloc_shared};
+use lykiadb_server::{engine::interpreter::Interpreter, plan::planner::Planner};
 use pretty_assertions::assert_eq;
 
 fn expect_plan(query: &str, expected_plan: &str) {
-    let ctx = ExecutionContext::new(None);
-    let mut planner = Planner::new(alloc_shared(ctx));
+    let mut interpreter = Interpreter::new(None, true);
+    let mut planner: Planner<'_> = Planner::new(&mut interpreter);
     let program = query.parse::<Program>().unwrap();
     match *program.get_root() {
         Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
