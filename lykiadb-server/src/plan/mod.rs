@@ -3,7 +3,7 @@ use std::fmt::Display;
 use lykiadb_lang::{
     ast::{
         expr::Expr,
-        sql::{SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering},
+        sql::{SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering, SqlProjection},
     },
     Identifier,
 };
@@ -46,8 +46,7 @@ pub enum Node {
 
     Projection {
         source: Box<Node>,
-        expressions: Vec<Expr>,
-        aliases: Vec<String>,
+        fields: Vec<SqlProjection>
     },
 
     Limit {
@@ -108,6 +107,31 @@ impl Node {
     fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
         let indent_str = Self::TAB.repeat(indent);
         match self {
+            Node::Projection { source, fields } => {
+                let fields_description = fields
+                    .iter()
+                    .map(|field|
+                        match field {
+                            SqlProjection::All { collection } => {
+                                if let Some(c) = collection.as_ref() {
+                                    return format!("* in {}", c.name);
+                                }
+                                return format!("*");
+                            },
+                            SqlProjection::Expr { expr, alias } => {
+                                if let Some(alias) = alias {
+                                    return format!("{} as {}", expr, alias.name);
+                                }
+                                return format!("{} as {}", expr, expr);
+                            }
+                        }
+                    )
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{}- project [{}]:{}", indent_str, fields_description, Self::NEWLINE)?;
+                
+                source._fmt_recursive(f, indent + 1)
+            }
             Node::Filter { source, predicate } => {
                 write!(f, "{}- filter {}:{}", indent_str, predicate, Self::NEWLINE)?;
                 source._fmt_recursive(f, indent + 1)

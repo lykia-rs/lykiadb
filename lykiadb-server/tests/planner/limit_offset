@@ -14,3 +14,32 @@ SELECT * FROM books limit 5 + 5 offset 5 + 15;
 - limit 10
   - offset 20
     - scan [books as books]
+
+#[name=limit_with_joins, run=plan]>
+
+SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100;
+
+---
+
+- limit 100
+  - join [Inner, (books.author_id IsEqual authors.id)]:
+    - scan [books as books]
+    - scan [authors as authors]
+
+
+#[name=limit_compound_and_joins, run=plan]>
+
+SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id
+UNION
+SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id LIMIT 100;
+
+---
+
+- limit 100
+  - compound [Union]
+    - join [Inner, (books.author_id IsEqual authors.id)]:
+      - scan [books as books]
+      - scan [authors as authors]
+    - join [Inner, (books.author_id IsEqual authors.id)]:
+      - scan [books as books]
+      - scan [authors as authors]

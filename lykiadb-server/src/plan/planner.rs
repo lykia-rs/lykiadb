@@ -1,10 +1,8 @@
-use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
-    util::Shared,
-};
+use crate::engine::interpreter::{HaltReason, Interpreter};
+
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore},
+    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore},
     visitor::VisitorMut,
 };
 
@@ -34,6 +32,7 @@ impl<'a> Planner<'a> {
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
+
         // FROM/JOIN
         if let Some(from) = &core.from {
             node = self.build_from(from)?;
@@ -55,7 +54,23 @@ impl<'a> Planner<'a> {
         }
         // GROUP BY
         // HAVING
-        // SELECT
+        // PROJECTION
+        match (&core.projection.len(), &core.projection[0]) {
+            (1, SqlProjection::All { collection }) => {
+                if let Some(_) = collection {
+                    node = Node::Projection {
+                        source: Box::new(node),
+                        fields: core.projection.clone()
+                    }
+                }
+            },
+            _ => {
+                node = Node::Projection {
+                    source: Box::new(node),
+                    fields: core.projection.clone()
+                };
+            }
+        }
         Ok(node)
     }
 
