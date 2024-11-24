@@ -1,0 +1,18 @@
+#[name=simple, run=plan]>
+
+SELECT * FROM books b order by title;
+
+---
+
+- order [title (Asc)]:
+  - scan [books as b]
+
+
+#[name=simple, run=plan]>
+
+SELECT * FROM books b order by title, id desc;
+
+---
+
+- order [title (Asc), id (Desc)]:
+  - scan [books as b]

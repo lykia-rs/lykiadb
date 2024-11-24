@@ -37,6 +37,7 @@ impl<'a> Planner<'a> {
         if let Some(from) = &core.from {
             node = self.build_from(from)?;
         }
+
         // WHERE
         if let Some(predicate) = &core.r#where {
             // TODO: Traverse expression
@@ -45,15 +46,10 @@ impl<'a> Planner<'a> {
                 predicate: *predicate.clone(),
             }
         }
-        if let Some(compound) = &core.compound {
-            node = Node::Compound {
-                source: Box::new(node),
-                operator: compound.operator.clone(),
-                right: Box::new(self.build_select_core(&compound.core)?),
-            }
-        }
+
         // GROUP BY
         // HAVING
+
         // PROJECTION
         match (&core.projection.len(), &core.projection[0]) {
             (1, SqlProjection::All { collection }) => {
@@ -71,6 +67,15 @@ impl<'a> Planner<'a> {
                 };
             }
         }
+
+        // COMPOUND
+        if let Some(compound) = &core.compound {
+            node = Node::Compound {
+                source: Box::new(node),
+                operator: compound.operator.clone(),
+                right: Box::new(self.build_select_core(&compound.core)?),
+            }
+        }
         Ok(node)
     }
 
@@ -78,6 +83,14 @@ impl<'a> Planner<'a> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
         // TODO(vck): ORDER BY
+        if let Some(order_by) = &query.order_by {
+            node = Node::Order { 
+                source: Box::new(node),
+                key: order_by.iter().map(|x| {
+                    (*x.expr.clone(), x.ordering.clone())
+                }).collect()
+            };
+        }
 
         if let Some(limit) = &query.limit {
             if let Some(offset) = &limit.offset {

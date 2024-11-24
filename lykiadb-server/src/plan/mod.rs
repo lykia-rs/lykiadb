@@ -107,6 +107,15 @@ impl Node {
     fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
         let indent_str = Self::TAB.repeat(indent);
         match self {
+            Node::Order { source, key } => {
+                let key_description = key
+                    .iter()
+                    .map(|(expr, ordering)| format!("{} ({:?})", expr, ordering))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{}- order [{}]:{}", indent_str, key_description, Self::NEWLINE)?;
+                source._fmt_recursive(f, indent + 1)
+            }
             Node::Projection { source, fields } => {
                 let fields_description = fields
                     .iter()

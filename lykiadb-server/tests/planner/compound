@@ -56,3 +56,17 @@ SELECT * FROM books;
     - compound [Except]
       - scan [books as books]
       - scan [books as books]
+
+#[name=with_projection, run=plan]>
+
+SELECT id FROM books where id > 5
+UNION
+SELECT title FROM books;
+
+---
+- compound [Union]
+  - project [id as id]:
+    - filter (id Greater Num(5.0)):
+      - scan [books as books]
+  - project [title as title]:
+    - scan [books as books]
