@@ -110,10 +110,10 @@ impl Node {
             Node::Order { source, key } => {
                 let key_description = key
                     .iter()
-                    .map(|(expr, ordering)| format!("{} ({:?})", expr, ordering))
+                    .map(|(expr, ordering)| format!("({}, {:?})", expr, ordering))
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "{}- order [{}]:{}", indent_str, key_description, Self::NEWLINE)?;
+                write!(f, "{}- order [{}]{}", indent_str, key_description, Self::NEWLINE)?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Projection { source, fields } => {
@@ -137,12 +137,12 @@ impl Node {
                     )
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "{}- project [{}]:{}", indent_str, fields_description, Self::NEWLINE)?;
+                write!(f, "{}- project [{}]{}", indent_str, fields_description, Self::NEWLINE)?;
                 
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Filter { source, predicate } => {
-                write!(f, "{}- filter {}:{}", indent_str, predicate, Self::NEWLINE)?;
+                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Scan { source, filter } => {
@@ -162,7 +162,7 @@ impl Node {
             } => {
                 write!(
                     f,
-                    "{}- compound [{:?}]{}",
+                    "{}- compound [type={:?}]{}",
                     indent_str,
                     operator,
                     Self::NEWLINE
@@ -171,11 +171,11 @@ impl Node {
                 right._fmt_recursive(f, indent + 1)
             }
             Node::Limit { source, limit } => {
-                write!(f, "{}- limit {}{}", indent_str, limit, Self::NEWLINE)?;
+                write!(f, "{}- limit [count={}]{}", indent_str, limit, Self::NEWLINE)?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Offset { source, offset } => {
-                write!(f, "{}- offset {}{}", indent_str, offset, Self::NEWLINE)?;
+                write!(f, "{}- offset [count={}]{}", indent_str, offset, Self::NEWLINE)?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Join {
@@ -186,7 +186,7 @@ impl Node {
             } => {
                 write!(
                     f,
-                    "{}- join [{:?}, {}]:{}",
+                    "{}- join [type={:?}, {}]{}",
                     indent_str,
                     join_type,
                     constraint.as_ref().unwrap(),

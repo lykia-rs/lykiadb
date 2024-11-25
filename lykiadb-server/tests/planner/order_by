@@ -4,15 +4,26 @@ SELECT * FROM books b order by title;
 
 ---
 
-- order [title (Asc)]:
+- order [(title, Asc)]
   - scan [books as b]
 
 
-#[name=simple, run=plan]>
+#[name=multiple, run=plan]>
 
 SELECT * FROM books b order by title, id desc;
 
 ---
 
-- order [title (Asc), id (Desc)]:
+- order [(title, Asc), (id, Desc)]
   - scan [books as b]
+
+#[name=compound, run=plan]>
+
+SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
+
+---
+
+- order [(title, Asc), (id, Desc)]
+  - compound [type=Union]
+    - scan [books as books]
+    - scan [books as books]

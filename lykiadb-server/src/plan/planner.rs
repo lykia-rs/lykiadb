@@ -47,26 +47,19 @@ impl<'a> Planner<'a> {
             }
         }
 
+        // AGGREGATES
+        
         // GROUP BY
-        // HAVING
 
         // PROJECTION
-        match (&core.projection.len(), &core.projection[0]) {
-            (1, SqlProjection::All { collection }) => {
-                if let Some(_) = collection {
-                    node = Node::Projection {
-                        source: Box::new(node),
-                        fields: core.projection.clone()
-                    }
-                }
-            },
-            _ => {
-                node = Node::Projection {
-                    source: Box::new(node),
-                    fields: core.projection.clone()
-                };
-            }
+        if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
+            node = Node::Projection {
+                source: Box::new(node),
+                fields: core.projection.clone()
+            };
         }
+
+        // HAVING
 
         // COMPOUND
         if let Some(compound) = &core.compound {
@@ -82,7 +75,6 @@ impl<'a> Planner<'a> {
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
-        // TODO(vck): ORDER BY
         if let Some(order_by) = &query.order_by {
             node = Node::Order { 
                 source: Box::new(node),

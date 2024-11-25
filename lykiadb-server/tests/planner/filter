@@ -4,5 +4,5 @@ SELECT * FROM books b where title like '%hello%';
 
 ---
 
-- filter (title Like Str("%hello%")):
+- filter [(title Like Str("%hello%"))]
   - scan [books as b]

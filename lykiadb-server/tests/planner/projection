@@ -13,7 +13,7 @@ SELECT books.* FROM books;
 
 ---
 
-- project [* in books]:
+- project [* in books]
   - scan [books as books]
 
 
@@ -23,7 +23,7 @@ SELECT id, title FROM books;
 
 ---
 
-- project [id as id, title as title]:
+- project [id as id, title as title]
   - scan [books as books]
 
 
@@ -33,5 +33,5 @@ SELECT 5 + 5 as ten FROM books;
 
 ---
 
-- project [(Num(5.0) Add Num(5.0)) as ten]:
+- project [(Num(5.0) Add Num(5.0)) as ten]
   - scan [books as books]
