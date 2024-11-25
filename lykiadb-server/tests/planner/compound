@@ -10,6 +10,7 @@ SELECT * FROM books;
   - scan [books as books]
   - scan [books as books]
 
+
 #[name=simple_intersect, run=plan]>
 
 SELECT * FROM books
@@ -57,6 +58,7 @@ SELECT * FROM books;
       - scan [books as books]
       - scan [books as books]
 
+
 #[name=with_projection, run=plan]>
 
 SELECT id FROM books where id > 5
@@ -64,6 +66,7 @@ UNION
 SELECT title FROM books;
 
 ---
+
 - compound [type=Union]
   - project [id as id]
     - filter [(id Greater Num(5.0))]

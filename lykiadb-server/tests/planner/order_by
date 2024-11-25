@@ -17,6 +17,7 @@ SELECT * FROM books b order by title, id desc;
 - order [(title, Asc), (id, Desc)]
   - scan [books as b]
 
+
 #[name=compound, run=plan]>
 
 SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
