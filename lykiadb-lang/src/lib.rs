@@ -1,7 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result},
+    hash::Hash,
     sync::Arc,
-    hash::Hash
 };
 
 use ast::expr::Expr;

@@ -1,6 +1,5 @@
 pub mod array_literal;
 pub mod binary;
-pub mod expr;
 pub mod function_call;
 pub mod grouping;
 pub mod loops;
