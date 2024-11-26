@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
+
 use std::{fmt::Display, sync::Arc};
 
 use crate::{Identifier, Span, Spanned};
@@ -42,55 +44,80 @@ pub enum RangeKind {
     NotBetween,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
 #[serde(tag = "@type")]
+#[derivative(Eq, PartialEq)]
 pub enum Expr {
     #[serde(rename = "Expr::Select")]
     Select {
         query: SqlSelect,
         #[serde(skip)]
+        #[derivative(PartialEq="ignore")]
+        
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Insert")]
     Insert {
         command: SqlInsert,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Update")]
     Update {
         command: SqlUpdate,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Delete")]
     Delete {
         command: SqlDelete,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Variable")]
     Variable {
         name: Identifier,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Grouping")]
     Grouping {
         expr: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Literal")]
@@ -98,8 +125,12 @@ pub enum Expr {
         value: Literal,
         raw: String,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Function")]
@@ -108,8 +139,12 @@ pub enum Expr {
         parameters: Vec<Identifier>,
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Between")]
@@ -119,8 +154,12 @@ pub enum Expr {
         subject: Box<Expr>,
         kind: RangeKind,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Binary")]
@@ -129,8 +168,12 @@ pub enum Expr {
         operation: Operation,
         right: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Unary")]
@@ -138,8 +181,12 @@ pub enum Expr {
         operation: Operation,
         expr: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Assignment")]
@@ -147,8 +194,12 @@ pub enum Expr {
         dst: Identifier,
         expr: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Logical")]
@@ -157,8 +208,12 @@ pub enum Expr {
         operation: Operation,
         right: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Call")]
@@ -166,8 +221,12 @@ pub enum Expr {
         callee: Box<Expr>,
         args: Vec<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Get")]
@@ -175,8 +234,12 @@ pub enum Expr {
         object: Box<Expr>,
         name: Identifier,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
     #[serde(rename = "Expr::Set")]
@@ -185,8 +248,12 @@ pub enum Expr {
         name: Identifier,
         value: Box<Expr>,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         span: Span,
         #[serde(skip)]
+#[derivative(PartialEq="ignore")]
+
         id: usize,
     },
 }
@@ -408,8 +475,19 @@ impl Display for Expr {
             Expr::Variable { name, .. } => write!(f, "{}", name),
             Expr::Grouping { expr, .. } => write!(f, "({})", expr),
             Expr::Literal { value, .. } => write!(f, "{:?}", value),
-            Expr::Function { name, parameters, .. } => {
-                write!(f, "fn {}({})", name.as_ref().unwrap(), parameters.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+            Expr::Function {
+                name, parameters, ..
+            } => {
+                write!(
+                    f,
+                    "fn {}({})",
+                    name.as_ref().unwrap(),
+                    parameters
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
             }
             Expr::Between {
                 lower,
@@ -428,19 +506,79 @@ impl Display for Expr {
                 lower,
                 upper
             ),
-            Expr::Binary { left, operation, right, .. } => {
+            Expr::Binary {
+                left,
+                operation,
+                right,
+                ..
+            } => {
                 write!(f, "({} {:?} {})", left, operation, right)
             }
-            Expr::Unary { operation, expr, .. } => write!(f, "{:?}{}", operation, expr),
+            Expr::Unary {
+                operation, expr, ..
+            } => write!(f, "{:?}{}", operation, expr),
             Expr::Assignment { dst, expr, .. } => write!(f, "{} = {}", dst, expr),
-            Expr::Logical { left, operation, right, .. } => {
+            Expr::Logical {
+                left,
+                operation,
+                right,
+                ..
+            } => {
                 write!(f, "{} {:?} {}", left, operation, right)
             }
             Expr::Call { callee, args, .. } => {
-                write!(f, "{}({})", callee, args.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+                write!(
+                    f,
+                    "{}({})",
+                    callee,
+                    args.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
             }
             Expr::Get { object, name, .. } => write!(f, "{}.{}", object, name),
-            Expr::Set { object, name, value, .. } => write!(f, "{}.{} = {}", object, name, value),
+            Expr::Set {
+                object,
+                name,
+                value,
+                ..
+            } => write!(f, "{}.{} = {}", object, name, value),
+        }
+    }
+}
+
+impl Expr {
+    pub fn collect(&self, predicate: &impl Fn(&Expr) -> bool, collected: &mut Vec<Expr>) {
+        if predicate(self) {
+            collected.push(self.clone());
+            return;
+        }
+        match &self {
+            Expr::Grouping { expr, .. } => expr.collect(predicate, collected),
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                ..
+            } => {
+                lower.collect(predicate, collected);
+                upper.collect(predicate, collected);
+                subject.collect(predicate, collected);
+            }
+            Expr::Binary { left, right, .. } => {
+                left.collect(predicate, collected);
+                right.collect(predicate, collected);
+            }
+            Expr::Unary { expr, .. } => expr.collect(predicate, collected),
+            Expr::Logical { left, right, .. } => {
+                left.collect(predicate, collected);
+                right.collect(predicate, collected);
+            }
+            Expr::Call { args, .. } => {
+                args.iter().for_each(|x| x.collect(predicate, collected));
+            }
+            _ => (),
         }
     }
 }

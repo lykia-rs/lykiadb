@@ -6,6 +6,7 @@ use std::{
 use ast::expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
 
 pub mod ast;
 pub mod parser;
@@ -66,12 +67,14 @@ impl Literal {
 
 impl Eq for Literal {}
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[serde(tag = "@type")]
+#[derivative(Eq, PartialEq)]
 pub struct Identifier {
     pub name: String,
     pub dollar: bool,
     #[serde(skip)]
+    #[derivative(PartialEq="ignore")]
     pub span: Span,
 }
 

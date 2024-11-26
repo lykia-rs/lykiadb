@@ -8,3 +8,4 @@ pub mod object_literal;
 pub mod other_literals;
 pub mod unary;
 pub mod variable;
+pub mod expr;
