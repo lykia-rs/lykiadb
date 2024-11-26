@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use derivative::Derivative;
+use serde::{Deserialize, Serialize};
 
 use std::{fmt::Display, sync::Arc};
 
@@ -52,72 +52,60 @@ pub enum Expr {
     Select {
         query: SqlSelect,
         #[serde(skip)]
-        #[derivative(PartialEq="ignore")]
-        
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Insert")]
     Insert {
         command: SqlInsert,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Update")]
     Update {
         command: SqlUpdate,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Delete")]
     Delete {
         command: SqlDelete,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Variable")]
     Variable {
         name: Identifier,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Grouping")]
     Grouping {
         expr: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Literal")]
@@ -125,12 +113,10 @@ pub enum Expr {
         value: Literal,
         raw: String,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Function")]
@@ -139,12 +125,10 @@ pub enum Expr {
         parameters: Vec<Identifier>,
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Between")]
@@ -154,12 +138,10 @@ pub enum Expr {
         subject: Box<Expr>,
         kind: RangeKind,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Binary")]
@@ -168,12 +150,10 @@ pub enum Expr {
         operation: Operation,
         right: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Unary")]
@@ -181,12 +161,10 @@ pub enum Expr {
         operation: Operation,
         expr: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Assignment")]
@@ -194,12 +172,10 @@ pub enum Expr {
         dst: Identifier,
         expr: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Logical")]
@@ -208,12 +184,10 @@ pub enum Expr {
         operation: Operation,
         right: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Call")]
@@ -221,12 +195,10 @@ pub enum Expr {
         callee: Box<Expr>,
         args: Vec<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Get")]
@@ -234,12 +206,10 @@ pub enum Expr {
         object: Box<Expr>,
         name: Identifier,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Set")]
@@ -248,12 +218,10 @@ pub enum Expr {
         name: Identifier,
         value: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         id: usize,
     },
 }

@@ -4,9 +4,9 @@ use std::{
 };
 
 use ast::expr::Expr;
+use derivative::Derivative;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use derivative::Derivative;
 
 pub mod ast;
 pub mod parser;
@@ -74,7 +74,7 @@ pub struct Identifier {
     pub name: String,
     pub dollar: bool,
     #[serde(skip)]
-    #[derivative(PartialEq="ignore")]
+    #[derivative(PartialEq = "ignore")]
     pub span: Span,
 }
 

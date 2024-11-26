@@ -3,7 +3,9 @@ use std::fmt::Display;
 use lykiadb_lang::{
     ast::{
         expr::Expr,
-        sql::{SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering, SqlProjection},
+        sql::{
+            SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering, SqlProjection,
+        },
     },
     Identifier,
 };
@@ -46,7 +48,7 @@ pub enum Node {
 
     Projection {
         source: Box<Node>,
-        fields: Vec<SqlProjection>
+        fields: Vec<SqlProjection>,
     },
 
     Limit {
@@ -113,32 +115,42 @@ impl Node {
                     .map(|(expr, ordering)| format!("({}, {:?})", expr, ordering))
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "{}- order [{}]{}", indent_str, key_description, Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- order [{}]{}",
+                    indent_str,
+                    key_description,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Projection { source, fields } => {
                 let fields_description = fields
                     .iter()
-                    .map(|field|
-                        match field {
-                            SqlProjection::All { collection } => {
-                                if let Some(c) = collection.as_ref() {
-                                    return format!("* in {}", c.name);
-                                }
-                                return format!("*");
-                            },
-                            SqlProjection::Expr { expr, alias } => {
-                                if let Some(alias) = alias {
-                                    return format!("{} as {}", expr, alias.name);
-                                }
-                                return format!("{} as {}", expr, expr);
+                    .map(|field| match field {
+                        SqlProjection::All { collection } => {
+                            if let Some(c) = collection.as_ref() {
+                                return format!("* in {}", c.name);
                             }
+                            return format!("*");
                         }
-                    )
+                        SqlProjection::Expr { expr, alias } => {
+                            if let Some(alias) = alias {
+                                return format!("{} as {}", expr, alias.name);
+                            }
+                            return format!("{} as {}", expr, expr);
+                        }
+                    })
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "{}- project [{}]{}", indent_str, fields_description, Self::NEWLINE)?;
-                
+                write!(
+                    f,
+                    "{}- project [{}]{}",
+                    indent_str,
+                    fields_description,
+                    Self::NEWLINE
+                )?;
+
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Filter { source, predicate } => {
@@ -171,11 +183,23 @@ impl Node {
                 right._fmt_recursive(f, indent + 1)
             }
             Node::Limit { source, limit } => {
-                write!(f, "{}- limit [count={}]{}", indent_str, limit, Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- limit [count={}]{}",
+                    indent_str,
+                    limit,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Offset { source, offset } => {
-                write!(f, "{}- offset [count={}]{}", indent_str, offset, Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- offset [count={}]{}",
+                    indent_str,
+                    offset,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Join {

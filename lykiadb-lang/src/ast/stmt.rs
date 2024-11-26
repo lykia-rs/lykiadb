@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use derivative::Derivative;
+use serde::{Deserialize, Serialize};
 
 use crate::{Identifier, Span, Spanned};
 
@@ -13,38 +13,33 @@ pub enum Stmt {
     Program {
         body: Vec<Stmt>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Expression")]
     Expression {
         expr: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Break")]
     Break {
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Continue")]
     Continue {
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Block")]
     Block {
         body: Vec<Stmt>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Declaration")]
@@ -52,8 +47,7 @@ pub enum Stmt {
         dst: Identifier,
         expr: Box<Expr>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::If")]
@@ -62,8 +56,7 @@ pub enum Stmt {
         body: Box<Stmt>,
         r#else_body: Option<Box<Stmt>>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Loop")]
@@ -72,16 +65,14 @@ pub enum Stmt {
         body: Box<Stmt>,
         post: Option<Box<Stmt>>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Return")]
     Return {
         expr: Option<Box<Expr>>,
         #[serde(skip)]
-#[derivative(PartialEq="ignore")]
-
+        #[derivative(PartialEq = "ignore")]
         span: Span,
     },
 }

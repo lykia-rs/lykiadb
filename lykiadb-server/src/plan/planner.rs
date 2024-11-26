@@ -48,14 +48,14 @@ impl<'a> Planner<'a> {
         }
 
         // AGGREGATES
-        
+
         // GROUP BY
 
         // PROJECTION
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             node = Node::Projection {
                 source: Box::new(node),
-                fields: core.projection.clone()
+                fields: core.projection.clone(),
             };
         }
 
@@ -76,11 +76,12 @@ impl<'a> Planner<'a> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
         if let Some(order_by) = &query.order_by {
-            node = Node::Order { 
+            node = Node::Order {
                 source: Box::new(node),
-                key: order_by.iter().map(|x| {
-                    (*x.expr.clone(), x.ordering.clone())
-                }).collect()
+                key: order_by
+                    .iter()
+                    .map(|x| (*x.expr.clone(), x.ordering.clone()))
+                    .collect(),
             };
         }
 
