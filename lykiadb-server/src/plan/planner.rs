@@ -91,7 +91,7 @@ impl<'a> Planner<'a> {
                     source: Box::new(node),
                     offset: self
                         .interpreter
-                        .visit_expr(&offset)?
+                        .visit_expr(offset)?
                         .as_number()
                         .expect("Offset is not correct")
                         .floor() as usize,
@@ -164,9 +164,9 @@ pub mod test_helpers {
         let mut planner = Planner::new(&mut interpreter);
         let program = query.parse::<Program>().unwrap();
         match *program.get_root() {
-            Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
-                if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
-                    let generated_plan = planner.build(&expr).unwrap();
+            Stmt::Program { body, .. } if matches!(body.first(), Some(Stmt::Expression { .. })) => {
+                if let Some(Stmt::Expression { expr, .. }) = body.first() {
+                    let generated_plan = planner.build(expr).unwrap();
                     assert_eq!(expected_plan, generated_plan.to_string());
                 }
             }

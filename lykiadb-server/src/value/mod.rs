@@ -74,7 +74,7 @@ impl RV {
     pub fn is_in(&self, other: &RV) -> RV {
         match (self, other) {
             (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
-            (lhs, RV::Array(rhs)) => RV::Bool(rhs.read().unwrap().contains(&lhs)),
+            (lhs, RV::Array(rhs)) => RV::Bool(rhs.read().unwrap().contains(lhs)),
             (RV::Str(key), RV::Object(map)) => {
                 RV::Bool(map.read().unwrap().contains_key(key.as_str()))
             }

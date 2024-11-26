@@ -132,13 +132,13 @@ impl Node {
                             if let Some(c) = collection.as_ref() {
                                 return format!("* in {}", c.name);
                             }
-                            return format!("*");
+                            "*".to_string()
                         }
                         SqlProjection::Expr { expr, alias } => {
                             if let Some(alias) = alias {
                                 return format!("{} as {}", expr, alias.name);
                             }
-                            return format!("{} as {}", expr, expr);
+                            format!("{} as {}", expr, expr)
                         }
                     })
                     .collect::<Vec<String>>()

@@ -7,9 +7,9 @@ fn expect_plan(query: &str, expected_plan: &str) {
     let mut planner: Planner<'_> = Planner::new(&mut interpreter);
     let program = query.parse::<Program>().unwrap();
     match *program.get_root() {
-        Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
-            if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
-                let generated_plan = planner.build(&expr).unwrap();
+        Stmt::Program { body, .. } if matches!(body.first(), Some(Stmt::Expression { .. })) => {
+            if let Some(Stmt::Expression { expr, .. }) = body.first() {
+                let generated_plan = planner.build(expr).unwrap();
                 assert_eq!(expected_plan, generated_plan.to_string().trim());
             }
         }
@@ -29,6 +29,6 @@ pub fn run_test(input: &str) {
             .trim()
             .to_string();
         let io_parts: Vec<&str> = rest.split("---").collect();
-        expect_plan(&io_parts[0].trim(), &io_parts[1].trim());
+        expect_plan(io_parts[0].trim(), io_parts[1].trim());
     }
 }

@@ -478,7 +478,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let callable = RV::Callable(Callable::new(
                     Some(parameters.len()),
                     CallableKind::Generic,
-                    fun.into(),
+                    fun,
                 ));
 
                 if name.is_some() {
