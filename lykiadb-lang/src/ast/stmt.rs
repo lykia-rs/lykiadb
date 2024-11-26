@@ -101,3 +101,91 @@ impl Spanned for Stmt {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashSet;
+
+    use crate::{ast::{expr::{test::create_simple_add_expr, Expr}, stmt::Stmt}, Span};
+
+    pub fn create_simple_block_stmt(a: Expr, b: Expr) -> Stmt {
+        Stmt::Block { 
+            body: vec![
+                Stmt::Expression { 
+                    expr: Box::new(a), span: Span::default()
+                },
+                Stmt::Expression { 
+                    expr: Box::new(b), span: Span::default()
+                }
+            ], 
+            span: Span::default()
+        }
+    }
+
+    #[test]
+    fn identical_stmts_should_be_equal() {
+
+        let s0 = create_simple_block_stmt(
+            create_simple_add_expr(0, 1.0, 2.0),
+            create_simple_add_expr(1, 1.0, 2.0)
+        );
+
+        let s1 = create_simple_block_stmt(
+            create_simple_add_expr(0, 1.0, 2.0),
+            create_simple_add_expr(1, 1.0, 2.0)
+        );
+
+        assert_eq!(s0, s1);
+
+        let mut set: HashSet<Stmt> = HashSet::new();
+
+        set.insert(s0);
+
+        assert!(set.contains(&s1));
+    }
+
+    #[test]
+    fn different_stmts_should_not_be_equal_0() {
+
+        let s0 = create_simple_block_stmt(
+            create_simple_add_expr(0, 1.0, 2.0),
+            create_simple_add_expr(1, 1.0, 2.0)
+        );
+
+        let s1 = create_simple_block_stmt(
+            create_simple_add_expr(0, 2.0, 1.0),
+            create_simple_add_expr(1, 1.0, 2.0)
+        );
+
+        assert_ne!(s0, s1);
+
+        let mut set: HashSet<Stmt> = HashSet::new();
+
+        set.insert(s0);
+
+        assert!(!set.contains(&s1));
+    }
+
+    #[test]
+    fn different_stmts_should_not_be_equa_1() {
+
+        let s0 = create_simple_block_stmt(
+            create_simple_add_expr(0, 1.0, 2.0),
+            create_simple_add_expr(0, 10.0, 20.0)
+        );
+
+        let s1 = create_simple_block_stmt(
+            create_simple_add_expr(0, 10.0, 20.0),
+            create_simple_add_expr(0, 1.0, 2.0),
+        );
+
+        assert_ne!(s0, s1);
+
+        let mut set: HashSet<Stmt> = HashSet::new();
+
+        set.insert(s0);
+
+        assert!(!set.contains(&s1));
+    }
+
+}

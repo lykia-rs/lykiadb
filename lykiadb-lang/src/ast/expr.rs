@@ -584,12 +584,12 @@ impl Expr {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use std::collections::HashSet;
 
     use crate::{ast::expr::Expr, Literal, Span};
 
-    fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
+    pub fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
         Expr::Binary {
             left: Box::new(Expr::Literal {
                 value: Literal::Num(left),
@@ -608,6 +608,7 @@ mod test {
             id,
         }
     }
+
     #[test]
     fn identical_exprs_should_be_equal_when_ids_are_different() {
         let e0 = create_simple_add_expr(0, 1.0, 2.0);
