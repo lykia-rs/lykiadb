@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use lykiadb_lang::{ast::expr::Expr, Literal, Span};
 
 fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
@@ -27,6 +29,13 @@ fn identical_exprs_should_be_equal_when_ids_are_different() {
     let e1 = create_simple_add_expr(1, 1.0, 2.0);
 
     assert_eq!(e0, e1);
+
+    let mut set: HashSet<Expr> = HashSet::new();
+
+    set.insert(e0);
+
+    assert!(set.contains(&e1));
+
 }
 
 

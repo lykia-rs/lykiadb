@@ -1,6 +1,7 @@
 use std::{
     fmt::{Display, Formatter, Result},
     sync::Arc,
+    hash::Hash
 };
 
 use ast::expr::Expr;
@@ -15,7 +16,7 @@ pub mod tokenizer;
 pub type Scopes = Vec<FxHashMap<String, bool>>;
 pub type Locals = FxHashMap<usize, usize>;
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct Span {
     pub start: usize,
     pub end: usize,
@@ -65,16 +66,33 @@ impl Literal {
     }
 }
 
+impl Hash for Literal {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Literal::Str(s) => s.hash(state),
+            Literal::Num(n) => n.to_bits().hash(state),
+            Literal::Bool(b) => b.hash(state),
+            Literal::Object(o) => (o as *const _ as usize).hash(state),
+            Literal::Array(a) => a.hash(state),
+            //
+            Literal::Undefined => "undefined".hash(state),
+            Literal::NaN => "NaN".hash(state),
+            Literal::Null => "null".hash(state),
+        }
+    }
+}
+
 impl Eq for Literal {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[serde(tag = "@type")]
-#[derivative(Eq, PartialEq)]
+#[derivative(Eq, PartialEq, Hash)]
 pub struct Identifier {
     pub name: String,
     pub dollar: bool,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
     pub span: Span,
 }
 

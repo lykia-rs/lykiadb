@@ -13,7 +13,7 @@ use super::{
 
 use crate::Literal;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
 pub enum Operation {
     Add,
@@ -37,7 +37,7 @@ pub enum Operation {
     NotLike,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
 pub enum RangeKind {
     Between,
@@ -46,16 +46,18 @@ pub enum RangeKind {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
 #[serde(tag = "@type")]
-#[derivative(Eq, PartialEq)]
+#[derivative(Eq, PartialEq, Hash)]
 pub enum Expr {
     #[serde(rename = "Expr::Select")]
     Select {
         query: SqlSelect,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Insert")]
@@ -63,9 +65,11 @@ pub enum Expr {
         command: SqlInsert,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Update")]
@@ -73,9 +77,11 @@ pub enum Expr {
         command: SqlUpdate,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Delete")]
@@ -83,9 +89,11 @@ pub enum Expr {
         command: SqlDelete,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Variable")]
@@ -93,9 +101,11 @@ pub enum Expr {
         name: Identifier,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Grouping")]
@@ -103,9 +113,11 @@ pub enum Expr {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Literal")]
@@ -114,9 +126,11 @@ pub enum Expr {
         raw: String,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Function")]
@@ -126,9 +140,11 @@ pub enum Expr {
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Between")]
@@ -139,9 +155,11 @@ pub enum Expr {
         kind: RangeKind,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Binary")]
@@ -151,9 +169,11 @@ pub enum Expr {
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Unary")]
@@ -162,9 +182,11 @@ pub enum Expr {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Assignment")]
@@ -173,9 +195,11 @@ pub enum Expr {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Logical")]
@@ -185,9 +209,11 @@ pub enum Expr {
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Call")]
@@ -196,9 +222,11 @@ pub enum Expr {
         args: Vec<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Get")]
@@ -207,9 +235,11 @@ pub enum Expr {
         name: Identifier,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
     #[serde(rename = "Expr::Set")]
@@ -219,9 +249,11 @@ pub enum Expr {
         value: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         id: usize,
     },
 }

@@ -7,13 +7,14 @@ use super::expr::Expr;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
 #[serde(tag = "@type")]
-#[derivative(Eq, PartialEq)]
+#[derivative(Eq, PartialEq, Hash)]
 pub enum Stmt {
     #[serde(rename = "Stmt::Program")]
     Program {
         body: Vec<Stmt>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Expression")]
@@ -21,18 +22,21 @@ pub enum Stmt {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Break")]
     Break {
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Continue")]
     Continue {
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Block")]
@@ -40,6 +44,7 @@ pub enum Stmt {
         body: Vec<Stmt>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Declaration")]
@@ -48,6 +53,7 @@ pub enum Stmt {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::If")]
@@ -57,6 +63,7 @@ pub enum Stmt {
         r#else_body: Option<Box<Stmt>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Loop")]
@@ -66,6 +73,7 @@ pub enum Stmt {
         post: Option<Box<Stmt>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
     #[serde(rename = "Stmt::Return")]
@@ -73,6 +81,7 @@ pub enum Stmt {
         expr: Option<Box<Expr>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
         span: Span,
     },
 }
