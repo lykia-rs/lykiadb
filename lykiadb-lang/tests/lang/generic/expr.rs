@@ -47,6 +47,12 @@ fn different_exprs_with_same_ids_should_not_be_equal() {
     let e1 = create_simple_add_expr(1, 1.0, 2.0);
 
     assert_ne!(e0, e1);
+
+    let mut set: HashSet<Expr> = HashSet::new();
+
+    set.insert(e0);
+
+    assert!(!set.contains(&e1));
 }
 
 
@@ -58,4 +64,10 @@ fn mirrored_exprs_should_not_be_equal() {
     let e1 = create_simple_add_expr(1, 1.0, 2.0);
 
     assert_ne!(e0, e1);
+    
+    let mut set: HashSet<Expr> = HashSet::new();
+
+    set.insert(e0);
+
+    assert!(!set.contains(&e1));
 }
