@@ -95,11 +95,25 @@ pub struct SqlSelectCompound {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]
 #[serde(tag = "@type")]
+pub struct SqlExpressionSource {
+    pub expr: Box<Expr>,
+    pub alias: Identifier,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]
+#[serde(tag = "@type")]
+pub enum SqlSource {
+    Collection(SqlCollectionIdentifier),
+    Expr(SqlExpressionSource),
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]
+#[serde(tag = "@type")]
 pub enum SqlFrom {
+    #[serde(rename = "SqlFrom::Source")]
+    Source(SqlSource),
     #[serde(rename = "SqlFrom::Group")]
     Group { values: Vec<SqlFrom> },
-    #[serde(rename = "SqlFrom::Collection")]
-    Collection(SqlCollectionIdentifier),
     #[serde(rename = "SqlFrom::Select")]
     Select {
         subquery: Box<SqlSelect>,

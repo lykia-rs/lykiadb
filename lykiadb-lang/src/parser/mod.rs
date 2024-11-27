@@ -868,9 +868,7 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlFrom, SqlInsert,
-    SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect,
-    SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource, SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate, SqlValues
 };
 
 macro_rules! optional_with_expected {
@@ -1201,7 +1199,7 @@ impl<'a> Parser<'a> {
         let mut from_group: Vec<SqlFrom> = vec![];
 
         loop {
-            let left = self.sql_select_from_collection()?;
+            let left = self.sql_select_from_source()?;
             from_group.push(left);
             while self.match_next_one_of(&[
                 skw!(Left),
@@ -1227,7 +1225,7 @@ impl<'a> Parser<'a> {
                         });
                     }
                 };
-                let right = self.sql_select_from_collection()?;
+                let right = self.sql_select_from_source()?;
                 let join_constraint: Option<Box<Expr>> = if self.match_next(skw!(On)) {
                     Some(self.expression()?)
                 } else {
@@ -1276,7 +1274,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select_from_collection(&mut self) -> ParseResult<SqlFrom> {
+    fn sql_select_from_source(&mut self) -> ParseResult<SqlFrom> {
         if self.match_next(sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
                 let subquery = Box::new(self.sql_select_inner()?);
@@ -1293,11 +1291,15 @@ impl<'a> Parser<'a> {
             self.expected(sym!(RightParen))?;
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
-            return Ok(SqlFrom::Collection(collection));
+            return Ok(SqlFrom::Source(SqlSource::Collection(collection)));
         } else {
-            Err(ParseError::UnexpectedToken {
-                token: self.peek_bw(0).clone(),
-            })
+            let expr = self.expression()?;
+            self.expected(skw!(As))?;
+            let identifier = self.expected(Identifier { dollar: false })?.clone();
+            return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource{
+                expr,
+                alias: identifier.extract_identifier().unwrap()
+            })));
         }
     }
 }
