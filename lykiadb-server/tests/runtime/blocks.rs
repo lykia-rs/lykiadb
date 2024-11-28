@@ -1,12 +1,9 @@
 use lykiadb_server::{
     engine::{
         error::ExecutionError,
-        interpreter::{
-            test_helpers::{exec_assert, get_runtime},
-            InterpretError,
-        },
+        interpreter::test_helpers::{exec_assert, get_runtime},
     },
-    value::RV,
+    value::{environment::EnvironmentError, RV},
 };
 use std::sync::Arc;
 
@@ -68,8 +65,11 @@ fn test_blocks_1() {
     //
     let err_0 = runtime.interpret(prog_0).unwrap_err();
 
-    if let ExecutionError::Interpret(InterpretError::Other { message }) = err_0 {
+    if let ExecutionError::Environment(EnvironmentError::Other { message }) = err_0 {
         assert_eq!(message, expected_err_message);
+    }
+    else {
+        panic!("Expected error message: '{}', got: '{:?}'", expected_err_message, err_0);
     }
 
     out.write().unwrap().expect(vec![
@@ -79,8 +79,11 @@ fn test_blocks_1() {
     //
     let err_1 = runtime.interpret(prog_1).unwrap_err();
 
-    if let ExecutionError::Interpret(InterpretError::Other { message }) = err_1 {
+    if let ExecutionError::Environment(EnvironmentError::Other { message }) = err_1 {
         assert_eq!(message, expected_err_message);
+    }
+    else {
+        panic!("Expected error message: '{}', got: '{:?}'", expected_err_message, err_1);
     }
 
     out.write().unwrap().expect(vec![

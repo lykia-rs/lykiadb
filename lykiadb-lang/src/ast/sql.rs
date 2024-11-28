@@ -107,6 +107,15 @@ pub enum SqlSource {
     Expr(SqlExpressionSource),
 }
 
+impl SqlSource {
+    pub fn alias(&self) -> &Identifier {
+        match self {
+            SqlSource::Collection(collection) => collection.alias.as_ref().unwrap_or(&collection.name),
+            SqlSource::Expr(expr) => &expr.alias,
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]
 #[serde(tag = "@type")]
 pub enum SqlFrom {

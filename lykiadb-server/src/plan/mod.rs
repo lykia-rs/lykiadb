@@ -4,7 +4,7 @@ use lykiadb_lang::{
     ast::{
         expr::Expr,
         sql::{
-            SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering, SqlProjection,
+            SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType, SqlOrdering, SqlProjection
         },
     },
     Identifier,
@@ -12,6 +12,16 @@ use lykiadb_lang::{
 use serde::{Deserialize, Serialize};
 
 pub mod planner;
+mod scope;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PlannerError {
+    ObjectNotFoundInScope(Identifier),
+    DuplicateObjectInScope {
+        previous: Identifier,
+        ident: Identifier
+    },
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Aggregate {
@@ -70,12 +80,13 @@ pub enum Node {
         rows: Vec<Vec<Expr>>,
     },
 
-    ValuesHandle {
-        identifier: Identifier,
-    },
-
     Scan {
         source: SqlCollectionIdentifier,
+        filter: Option<Expr>,
+    },
+
+    EvalScan {
+        source: SqlExpressionSource,
         filter: Option<Expr>,
     },
 
@@ -109,6 +120,7 @@ impl Node {
     fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
         let indent_str = Self::TAB.repeat(indent);
         match self {
+            Node::Nothing => write!(f, "{}- nothing{}", indent_str, Self::NEWLINE),
             Node::Order { source, key } => {
                 let key_description = key
                     .iter()

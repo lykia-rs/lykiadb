@@ -1,4 +1,4 @@
-use crate::value::environment::EnvironmentError;
+use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
 use lykiadb_lang::{
@@ -15,6 +15,7 @@ pub enum ExecutionError {
     Resolve(ResolveError),
     Interpret(InterpretError),
     Environment(EnvironmentError),
+    Plan(PlannerError)
 }
 
 impl From<ParseError> for ExecutionError {
@@ -136,24 +137,18 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 span,
             );
         }
-        /*ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
+        ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, ident }) => {
             print(
-                "Assignment to an undefined variable",
+                "Duplicate object in scope",
                 &format!(
-                    "{} is undefined, so no value can be assigned to it.",
-                    token.span.lexeme,
+                    "Object {} is already defined in the scope.",
+                    previous.name
                 ),
-                token.span,
+                previous.span,
             );
         }
-        ExecutionError::Interpret(InterpretError::VariableNotFound { token }) => {
-            print(
-                "Variable not found",
-                &format!("{} is not defined, cannot be evaluated.", token.span.lexeme,),
-                token.span,
-            );
-        }*/
-        ExecutionError::Interpret(InterpretError::Other { message }) => {
+        ExecutionError::Environment(EnvironmentError::Other { message }) 
+        | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());
         }
         _ => {}
