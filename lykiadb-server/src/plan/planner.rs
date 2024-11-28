@@ -1,12 +1,12 @@
-use crate::engine::interpreter::{HaltReason, Interpreter};
+use crate::engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}};
 
 use lykiadb_lang::ast::{
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore},
+    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
     visitor::VisitorMut,
 };
 
-use super::{Node, Plan};
+use super::{scope::Scope, Node, Plan};
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
 }
@@ -33,9 +33,11 @@ impl<'a> Planner<'a> {
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
 
+        let mut parent_scope = Scope::new();
+
         // FROM/JOIN
         if let Some(from) = &core.from {
-            node = self.build_from(from)?;
+            node = self.build_from(from, &mut parent_scope)?;
         }
 
         // WHERE
@@ -48,6 +50,7 @@ impl<'a> Planner<'a> {
         }
 
         // AGGREGATES
+
 
         // GROUP BY
 
@@ -111,12 +114,33 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
-    fn build_from(&mut self, from: &SqlFrom) -> Result<Node, HaltReason> {
-        match from {
-            SqlFrom::Collection(ident) => Ok(Node::Scan {
-                source: ident.clone(),
-                filter: None,
-            }),
+    fn build_from(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
+
+        let mut scope = Scope::new();
+
+        let node = match from {
+            SqlFrom::Source(source) => {
+                let wrapped = match source {
+                    SqlSource::Collection(ident) => {
+                        Node::Scan {
+                            source: ident.clone(),
+                            filter: None,
+                        }
+                    }
+                    SqlSource::Expr(expr) => {
+                        Node::EvalScan {
+                            source: expr.clone(),
+                            filter: None,
+                        }
+                    }
+                };
+
+                if let Err(err) = scope.add_source(source.clone()) {
+                    return Err(HaltReason::Error(ExecutionError::Plan(err)));
+                }
+
+                Ok(wrapped)
+            },
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
@@ -126,12 +150,12 @@ impl<'a> Planner<'a> {
             }
             SqlFrom::Group { values } => {
                 let mut froms = values.iter();
-                let mut node = self.build_from(froms.next().unwrap())?;
+                let mut node = self.build_from(froms.next().unwrap(), &mut scope)?;
                 for right in froms {
                     node = Node::Join {
                         left: Box::new(node),
                         join_type: SqlJoinType::Cross,
-                        right: Box::new(self.build_from(right)?),
+                        right: Box::new(self.build_from(right, &mut scope)?),
                         constraint: None,
                     }
                 }
@@ -143,34 +167,17 @@ impl<'a> Planner<'a> {
                 right,
                 constraint,
             } => Ok(Node::Join {
-                left: Box::new(self.build_from(left)?),
+                left: Box::new(self.build_from(left, &mut scope)?),
                 join_type: join_type.clone(),
-                right: Box::new(self.build_from(right)?),
+                right: Box::new(self.build_from(right, &mut scope)?),
                 constraint: constraint.clone().map(|x| *x.clone()),
             }),
+        };
+        
+        if let Err(err) = parent_scope.merge(scope){
+            return Err(HaltReason::Error(ExecutionError::Plan(err)));
         }
-    }
-}
 
-pub mod test_helpers {
-    use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-
-    use crate::engine::interpreter::Interpreter;
-
-    use super::Planner;
-
-    pub fn expect_plan(query: &str, expected_plan: &str) {
-        let mut interpreter: Interpreter = Interpreter::new(None, true);
-        let mut planner = Planner::new(&mut interpreter);
-        let program = query.parse::<Program>().unwrap();
-        match *program.get_root() {
-            Stmt::Program { body, .. } if matches!(body.first(), Some(Stmt::Expression { .. })) => {
-                if let Some(Stmt::Expression { expr, .. }) = body.first() {
-                    let generated_plan = planner.build(expr).unwrap();
-                    assert_eq!(expected_plan, generated_plan.to_string());
-                }
-            }
-            _ => panic!("Expected expression statement."),
-        }
+        node
     }
 }
