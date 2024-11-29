@@ -653,5 +653,4 @@ pub mod test {
 
         assert!(!set.contains(&e1));
     }
-
 }

@@ -1,4 +1,10 @@
-use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, value::RV};
+use crate::{
+    engine::{
+        error::ExecutionError,
+        interpreter::{HaltReason, Interpreter},
+    },
+    value::RV,
+};
 
 use lykiadb_lang::ast::{
     expr::Expr,
@@ -51,7 +57,6 @@ impl<'a> Planner<'a> {
 
         // AGGREGATES
 
-
         // GROUP BY
 
         // PROJECTION
@@ -96,7 +101,8 @@ impl<'a> Planner<'a> {
             if let Some(offset) = &limit.offset {
                 node = Node::Offset {
                     source: Box::new(node),
-                    offset: self.eval_constant(offset)?
+                    offset: self
+                        .eval_constant(offset)?
                         .as_number()
                         .expect("Offset is not correct")
                         .floor() as usize,
@@ -104,7 +110,8 @@ impl<'a> Planner<'a> {
             }
             node = Node::Limit {
                 source: Box::new(node),
-                limit: self.eval_constant(&limit.count)?
+                limit: self
+                    .eval_constant(&limit.count)?
                     .as_number()
                     .expect("Limit is not correct")
                     .floor() as usize,
@@ -115,24 +122,19 @@ impl<'a> Planner<'a> {
     }
 
     fn build_from(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
-
         let mut scope = Scope::new();
 
         let node = match from {
             SqlFrom::Source(source) => {
                 let wrapped = match source {
-                    SqlSource::Collection(ident) => {
-                        Node::Scan {
-                            source: ident.clone(),
-                            filter: None,
-                        }
-                    }
-                    SqlSource::Expr(expr) => {
-                        Node::EvalScan {
-                            source: expr.clone(),
-                            filter: None,
-                        }
-                    }
+                    SqlSource::Collection(ident) => Node::Scan {
+                        source: ident.clone(),
+                        filter: None,
+                    },
+                    SqlSource::Expr(expr) => Node::EvalScan {
+                        source: expr.clone(),
+                        filter: None,
+                    },
                 };
 
                 if let Err(err) = scope.add_source(source.clone()) {
@@ -140,7 +142,7 @@ impl<'a> Planner<'a> {
                 }
 
                 Ok(wrapped)
-            },
+            }
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
@@ -173,8 +175,8 @@ impl<'a> Planner<'a> {
                 constraint: constraint.clone().map(|x| *x.clone()),
             }),
         };
-        
-        if let Err(err) = parent_scope.merge(scope){
+
+        if let Err(err) = parent_scope.merge(scope) {
             return Err(HaltReason::Error(ExecutionError::Plan(err)));
         }
 

@@ -868,7 +868,9 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource, SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate, SqlValues
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource,
+    SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
+    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate, SqlValues,
 };
 
 macro_rules! optional_with_expected {
@@ -1296,9 +1298,9 @@ impl<'a> Parser<'a> {
             let expr = self.expression()?;
             self.expected(skw!(As))?;
             let identifier = self.expected(Identifier { dollar: false })?.clone();
-            return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource{
+            return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
                 expr,
-                alias: identifier.extract_identifier().unwrap()
+                alias: identifier.extract_identifier().unwrap(),
             })));
         }
     }

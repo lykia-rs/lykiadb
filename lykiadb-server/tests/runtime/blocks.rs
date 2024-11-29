@@ -67,9 +67,11 @@ fn test_blocks_1() {
 
     if let ExecutionError::Environment(EnvironmentError::Other { message }) = err_0 {
         assert_eq!(message, expected_err_message);
-    }
-    else {
-        panic!("Expected error message: '{}', got: '{:?}'", expected_err_message, err_0);
+    } else {
+        panic!(
+            "Expected error message: '{}', got: '{:?}'",
+            expected_err_message, err_0
+        );
     }
 
     out.write().unwrap().expect(vec![
@@ -81,9 +83,11 @@ fn test_blocks_1() {
 
     if let ExecutionError::Environment(EnvironmentError::Other { message }) = err_1 {
         assert_eq!(message, expected_err_message);
-    }
-    else {
-        panic!("Expected error message: '{}', got: '{:?}'", expected_err_message, err_1);
+    } else {
+        panic!(
+            "Expected error message: '{}', got: '{:?}'",
+            expected_err_message, err_1
+        );
     }
 
     out.write().unwrap().expect(vec![

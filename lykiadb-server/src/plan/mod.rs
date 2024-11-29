@@ -4,7 +4,8 @@ use lykiadb_lang::{
     ast::{
         expr::Expr,
         sql::{
-            SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType, SqlOrdering, SqlProjection
+            SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
+            SqlOrdering, SqlProjection,
         },
     },
     Identifier,
@@ -19,7 +20,7 @@ pub enum PlannerError {
     ObjectNotFoundInScope(Identifier),
     DuplicateObjectInScope {
         previous: Identifier,
-        ident: Identifier
+        ident: Identifier,
     },
 }
 

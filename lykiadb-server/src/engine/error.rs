@@ -15,7 +15,7 @@ pub enum ExecutionError {
     Resolve(ResolveError),
     Interpret(InterpretError),
     Environment(EnvironmentError),
-    Plan(PlannerError)
+    Plan(PlannerError),
 }
 
 impl From<ParseError> for ExecutionError {
@@ -140,14 +140,11 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
         ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, ident }) => {
             print(
                 "Duplicate object in scope",
-                &format!(
-                    "Object {} is already defined in the scope.",
-                    previous.name
-                ),
+                &format!("Object {} is already defined in the scope.", previous.name),
                 previous.span,
             );
         }
-        ExecutionError::Environment(EnvironmentError::Other { message }) 
+        ExecutionError::Environment(EnvironmentError::Other { message })
         | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());
         }

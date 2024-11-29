@@ -11,8 +11,7 @@ fn expect_plan(query: &str, expected_plan: &str) {
             if let Some(Stmt::Expression { expr, .. }) = body.first() {
                 let generated_plan = planner.build(expr).unwrap();
                 assert_eq!(expected_plan, generated_plan.to_string().trim());
-            }
-            else {
+            } else {
                 panic!("Expected expression statement.");
             }
         }
