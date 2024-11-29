@@ -1,4 +1,4 @@
-use crate::engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}};
+use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, value::RV};
 
 use lykiadb_lang::ast::{
     expr::Expr,
@@ -75,6 +75,10 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
+    fn eval_constant(&mut self, expr: &Expr) -> Result<RV, HaltReason> {
+        self.interpreter.visit_expr(expr)
+    }
+
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
@@ -92,9 +96,7 @@ impl<'a> Planner<'a> {
             if let Some(offset) = &limit.offset {
                 node = Node::Offset {
                     source: Box::new(node),
-                    offset: self
-                        .interpreter
-                        .visit_expr(offset)?
+                    offset: self.eval_constant(offset)?
                         .as_number()
                         .expect("Offset is not correct")
                         .floor() as usize,
@@ -102,9 +104,7 @@ impl<'a> Planner<'a> {
             }
             node = Node::Limit {
                 source: Box::new(node),
-                limit: self
-                    .interpreter
-                    .visit_expr(&limit.count)?
+                limit: self.eval_constant(&limit.count)?
                     .as_number()
                     .expect("Limit is not correct")
                     .floor() as usize,
