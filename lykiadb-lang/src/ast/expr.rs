@@ -474,17 +474,22 @@ impl Display for Expr {
             Expr::Delete { .. } => write!(f, "<SqlDelete>"),
             Expr::Variable { name, .. } => write!(f, "{}", name),
             Expr::Grouping { expr, .. } => write!(f, "({})", expr),
-            Expr::Literal { value, .. } => {
-                match value {
-                    Literal::Str(s) => write!(f, "Str(\"{}\")", s),
-                    Literal::Num(n) => write!(f, "Num({:?})", n),
-                    Literal::Bool(b) => write!(f, "{}", b),
-                    Literal::Undefined => write!(f,  "undefined"),
-                    Literal::Object(o) => write!(f, "{:?}", o),
-                    Literal::Array(a) => write!(f, "Array({})", a.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
-                    Literal::NaN => write!(f, "NaN"),
-                    Literal::Null => write!(f, "null"),
-                }
+            Expr::Literal { value, .. } => match value {
+                Literal::Str(s) => write!(f, "Str(\"{}\")", s),
+                Literal::Num(n) => write!(f, "Num({:?})", n),
+                Literal::Bool(b) => write!(f, "{}", b),
+                Literal::Undefined => write!(f, "undefined"),
+                Literal::Object(o) => write!(f, "{:?}", o),
+                Literal::Array(a) => write!(
+                    f,
+                    "Array({})",
+                    a.iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                Literal::NaN => write!(f, "NaN"),
+                Literal::Null => write!(f, "null"),
             },
             Expr::Function {
                 name, parameters, ..
@@ -565,7 +570,7 @@ impl Expr {
             return false;
         }
         match self {
-            Expr::Select { .. } 
+            Expr::Select { .. }
             | Expr::Insert { .. }
             | Expr::Delete { .. }
             | Expr::Update { .. }
@@ -573,13 +578,12 @@ impl Expr {
             | Expr::Literal { .. }
             | Expr::Function { .. } => false,
             //
-            Expr::Binary { left, right, .. }
-            | Expr::Logical { left, right, .. } => { 
+            Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
                 let rleft = left.walk(visitor);
                 let rright = right.walk(visitor);
 
                 rleft || rright
-            },
+            }
             //
             Expr::Grouping { expr, .. }
             | Expr::Unary { expr, .. }
@@ -590,7 +594,7 @@ impl Expr {
                 let rargs = args.iter().map(|x| x.walk(visitor)).all(|x| x);
 
                 rcallee || rargs
-            },
+            }
             Expr::Between {
                 lower,
                 upper,
@@ -602,14 +606,14 @@ impl Expr {
                 let rsubject = subject.walk(visitor);
 
                 rlower || rupper || rsubject
-            },
+            }
             Expr::Get { object, .. } => object.walk(visitor),
             Expr::Set { object, value, .. } => {
                 let robject = object.walk(visitor);
                 let rvalue = value.walk(visitor);
 
                 robject || rvalue
-            },
+            }
         }
     }
 

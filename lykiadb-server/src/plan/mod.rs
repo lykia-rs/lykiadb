@@ -39,7 +39,7 @@ pub enum Aggregate {
 pub enum ExprOverride {
     Subquery(usize),
     Aggregate,
-    Field
+    Field,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ pub enum IntermediateExpr {
     Constant(RV),
     Expr {
         expr: Expr,
-        overrides: HashMap<usize, ExprOverride>
+        overrides: HashMap<usize, ExprOverride>,
     },
 }
 
@@ -84,7 +84,7 @@ pub enum Node {
     Filter {
         source: Box<Node>,
         predicate: IntermediateExpr,
-        subqueries: Vec<Node>
+        subqueries: Vec<Node>,
     },
 
     Projection {
@@ -196,19 +196,17 @@ impl Node {
 
                 source._fmt_recursive(f, indent + 1)
             }
-            Node::Filter { source, predicate, subqueries } => {
-                write!(
-                    f,
-                    "{}- filter [{}]{}",
-                    indent_str,
-                    predicate,
-                    Self::NEWLINE
-                )?;
+            Node::Filter {
+                source,
+                predicate,
+                subqueries,
+            } => {
+                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
                 if !subqueries.is_empty() {
                     write!(f, "{}  > subqueries{}", indent_str, Self::NEWLINE)?;
-                    subqueries.iter().try_for_each(|subquery| {
-                        subquery._fmt_recursive(f, indent + 2)
-                    })?;
+                    subqueries
+                        .iter()
+                        .try_for_each(|subquery| subquery._fmt_recursive(f, indent + 2))?;
                 }
                 source._fmt_recursive(f, indent + 1)
             }
@@ -217,7 +215,10 @@ impl Node {
                     f,
                     "{}- subquery [{}]{}",
                     indent_str,
-                    alias.as_ref().map(|x| x.name.clone()).unwrap_or("unnamed".to_string()),
+                    alias
+                        .as_ref()
+                        .map(|x| x.name.clone())
+                        .unwrap_or("unnamed".to_string()),
                     Self::NEWLINE
                 )?;
                 source._fmt_recursive(f, indent + 1)
@@ -278,7 +279,10 @@ impl Node {
                     "{}- join [type={:?}, {}]{}",
                     indent_str,
                     join_type,
-                    constraint.as_ref().map(|x| x.to_string()).unwrap_or("None".to_string()),
+                    constraint
+                        .as_ref()
+                        .map(|x| x.to_string())
+                        .unwrap_or("None".to_string()),
                     Self::NEWLINE
                 )?;
                 left._fmt_recursive(f, indent + 1)?;
@@ -292,7 +296,7 @@ impl Node {
                     source.expr,
                     Self::NEWLINE
                 )
-            }            
+            }
             _ => "<NotImplementedYet>".fmt(f),
         }
     }

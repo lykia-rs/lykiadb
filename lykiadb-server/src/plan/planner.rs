@@ -51,11 +51,12 @@ impl<'a> Planner<'a> {
 
         // WHERE
         if let Some(predicate) = &core.r#where {
-            let (expr, subqueries): (IntermediateExpr, Vec<Node>) = self.build_expr(predicate.as_ref(), true, false)?;
+            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
+                self.build_expr(predicate.as_ref(), true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
-                subqueries
+                subqueries,
             }
         }
 
@@ -88,23 +89,26 @@ impl<'a> Planner<'a> {
         self.interpreter.visit_expr(expr)
     }
 
-    fn build_expr(&mut self, expr: &Expr, allow_subqueries: bool, allow_aggregates: bool) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+    fn build_expr(
+        &mut self,
+        expr: &Expr,
+        allow_subqueries: bool,
+        allow_aggregates: bool,
+    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
         // TODO(vck): Implement this
 
-        let mut subqueries:Vec<Node> = vec![];
+        let mut subqueries: Vec<Node> = vec![];
         let mut overrides = HashMap::new();
 
         expr.walk(&mut |expr: &Expr| {
             match expr {
-                Expr::Get { id, object, name, .. } => {
-                    false
-                } 
-                Expr::Variable { name, id, .. } => {
-                    false
-                }
-                Expr::Call { callee, args, id, .. } => {
-                    false
-                },
+                Expr::Get {
+                    id, object, name, ..
+                } => false,
+                Expr::Variable { name, id, .. } => false,
+                Expr::Call {
+                    callee, args, id, ..
+                } => false,
                 Expr::Select { query, .. } => {
                     if !allow_subqueries {
                         return false; // Err(HaltReason::Error(ExecutionError::Plan("Subqueries are not allowed here".to_string())));
@@ -112,20 +116,23 @@ impl<'a> Planner<'a> {
                     let subquery = self.build_select(query);
                     subqueries.push(subquery.unwrap());
                     false
-                },
-                _ => {
-                    true
                 }
+                _ => true,
             }
         });
-        Ok((IntermediateExpr::Expr { expr: expr.clone(), overrides }, subqueries))
+        Ok((
+            IntermediateExpr::Expr {
+                expr: expr.clone(),
+                overrides,
+            },
+            subqueries,
+        ))
     }
 
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
         if let Some(order_by) = &query.order_by {
-
             let mut order_key = vec![];
 
             for key in order_by {
@@ -135,7 +142,7 @@ impl<'a> Planner<'a> {
 
             node = Node::Order {
                 source: Box::new(node),
-                key: order_key
+                key: order_key,
             };
         }
 
@@ -188,7 +195,7 @@ impl<'a> Planner<'a> {
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
-                    alias: alias.clone()
+                    alias: alias.clone(),
                 };
                 Ok(node)
             }
@@ -211,7 +218,10 @@ impl<'a> Planner<'a> {
                 right,
                 constraint,
             } => {
-                let constraint = constraint.as_ref().map(|x| self.build_expr(x, false, false)).transpose()?;
+                let constraint = constraint
+                    .as_ref()
+                    .map(|x| self.build_expr(x, false, false))
+                    .transpose()?;
 
                 Ok(Node::Join {
                     left: Box::new(self.build_from(left, &mut scope)?),
@@ -219,7 +229,7 @@ impl<'a> Planner<'a> {
                     right: Box::new(self.build_from(right, &mut scope)?),
                     constraint: constraint.map(|x| x.0),
                 })
-            },
+            }
         };
 
         if let Err(err) = parent_scope.merge(scope) {
