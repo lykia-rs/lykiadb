@@ -6,3 +6,22 @@ SELECT * FROM books b where title like '%hello%';
 
 - filter [(title Like Str("%hello%"))]
   - scan [books as b]
+
+
+#[name=with_subquery, run=plan]>
+
+SELECT * FROM books b 
+  where author_id in (SELECT id FROM authors where name = 'John')
+  or publisher_id in (SELECT id FROM publishers where name = 'Elsevier');
+
+---
+
+- filter [(author_id In (<SqlSelect>)) Or (publisher_id In (<SqlSelect>))]
+  > subqueries
+    - project [id as id]
+      - filter [(name IsEqual Str("John"))]
+        - scan [authors as authors]
+    - project [id as id]
+      - filter [(name IsEqual Str("Elsevier"))]
+        - scan [publishers as publishers]
+  - scan [books as b]

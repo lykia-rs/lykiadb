@@ -17,20 +17,6 @@ use crate::value::RV;
 pub mod planner;
 mod scope;
 
-enum ExprOverride {
-    Subquery(usize),
-    Aggregate,
-    Field
-}
-
-enum IntermediateExpr {
-    Expr {
-        root: Expr,
-        overrides: HashMap<usize, ExprOverride>
-    },
-    Precalculated(RV)
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
     ObjectNotFoundInScope(Identifier),
@@ -50,6 +36,33 @@ pub enum Aggregate {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ExprOverride {
+    Subquery(usize),
+    Aggregate,
+    Field
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum IntermediateExpr {
+    Constant(RV),
+    Expr {
+        expr: Expr,
+        overrides: HashMap<usize, ExprOverride>
+    },
+}
+
+impl Display for IntermediateExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IntermediateExpr::Constant(rv) => write!(f, "{:?}", rv),
+            IntermediateExpr::Expr { expr, .. } => {
+                write!(f, "{}", expr)
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Plan {
     Select(Node),
 }
@@ -64,13 +77,13 @@ pub enum Node {
 
     Aggregate {
         source: Box<Node>,
-        group_by: Vec<Expr>,
+        group_by: Vec<IntermediateExpr>,
         aggregates: Vec<Aggregate>,
     },
 
     Filter {
         source: Box<Node>,
-        predicate: Expr,
+        predicate: IntermediateExpr,
         subqueries: Vec<Node>
     },
 
@@ -91,28 +104,28 @@ pub enum Node {
 
     Order {
         source: Box<Node>,
-        key: Vec<(Expr, SqlOrdering)>,
+        key: Vec<(IntermediateExpr, SqlOrdering)>,
     },
 
     Values {
-        rows: Vec<Vec<Expr>>,
+        rows: Vec<Vec<IntermediateExpr>>,
     },
 
     Scan {
         source: SqlCollectionIdentifier,
-        filter: Option<Expr>,
+        filter: Option<IntermediateExpr>,
     },
 
     EvalScan {
         source: SqlExpressionSource,
-        filter: Option<Expr>,
+        filter: Option<IntermediateExpr>,
     },
 
     Join {
         left: Box<Node>,
         join_type: SqlJoinType,
         right: Box<Node>,
-        constraint: Option<Expr>,
+        constraint: Option<IntermediateExpr>,
     },
 
     Subquery {
@@ -191,9 +204,12 @@ impl Node {
                     predicate,
                     Self::NEWLINE
                 )?;
-                subqueries.iter().try_for_each(|subquery| {
-                    subquery._fmt_recursive(f, indent + 1)
-                })?;
+                if !subqueries.is_empty() {
+                    write!(f, "{}  > subqueries{}", indent_str, Self::NEWLINE)?;
+                    subqueries.iter().try_for_each(|subquery| {
+                        subquery._fmt_recursive(f, indent + 2)
+                    })?;
+                }
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Subquery { source, alias } => {

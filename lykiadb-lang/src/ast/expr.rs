@@ -560,6 +560,59 @@ impl Display for Expr {
 }
 
 impl Expr {
+    pub fn walk(&self, visitor: &mut impl FnMut(&Expr) -> bool) -> bool {
+        if !visitor(self) {
+            return false;
+        }
+        match self {
+            Expr::Select { .. } 
+            | Expr::Insert { .. }
+            | Expr::Delete { .. }
+            | Expr::Update { .. }
+            | Expr::Variable { .. }
+            | Expr::Literal { .. }
+            | Expr::Function { .. } => false,
+            //
+            Expr::Binary { left, right, .. }
+            | Expr::Logical { left, right, .. } => { 
+                let rleft = left.walk(visitor);
+                let rright = right.walk(visitor);
+
+                rleft || rright
+            },
+            //
+            Expr::Grouping { expr, .. }
+            | Expr::Unary { expr, .. }
+            | Expr::Assignment { expr, .. } => expr.walk(visitor),
+            //
+            Expr::Call { callee, args, .. } => {
+                let rcallee = callee.walk(visitor);
+                let rargs = args.iter().map(|x| x.walk(visitor)).all(|x| x);
+
+                rcallee || rargs
+            },
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                ..
+            } => {
+                let rlower = lower.walk(visitor);
+                let rupper = upper.walk(visitor);
+                let rsubject = subject.walk(visitor);
+
+                rlower || rupper || rsubject
+            },
+            Expr::Get { object, .. } => object.walk(visitor),
+            Expr::Set { object, value, .. } => {
+                let robject = object.walk(visitor);
+                let rvalue = value.walk(visitor);
+
+                robject || rvalue
+            },
+        }
+    }
+
     pub fn collect(&self, predicate: &impl Fn(&Expr) -> bool, collected: &mut Vec<Expr>) {
         if predicate(self) {
             collected.push(self.clone());
