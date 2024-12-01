@@ -474,7 +474,18 @@ impl Display for Expr {
             Expr::Delete { .. } => write!(f, "<SqlDelete>"),
             Expr::Variable { name, .. } => write!(f, "{}", name),
             Expr::Grouping { expr, .. } => write!(f, "({})", expr),
-            Expr::Literal { value, .. } => write!(f, "{:?}", value),
+            Expr::Literal { value, .. } => {
+                match value {
+                    Literal::Str(s) => write!(f, "Str(\"{}\")", s),
+                    Literal::Num(n) => write!(f, "Num({:?})", n),
+                    Literal::Bool(b) => write!(f, "{}", b),
+                    Literal::Undefined => write!(f,  "undefined"),
+                    Literal::Object(o) => write!(f, "{:?}", o),
+                    Literal::Array(a) => write!(f, "Array({})", a.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
+                    Literal::NaN => write!(f, "NaN"),
+                    Literal::Null => write!(f, "null"),
+                }
+            },
             Expr::Function {
                 name, parameters, ..
             } => {

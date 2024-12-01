@@ -52,6 +52,7 @@ impl<'a> Planner<'a> {
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: *predicate.clone(),
+                subqueries: vec![]
             }
         }
 
@@ -146,7 +147,7 @@ impl<'a> Planner<'a> {
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
-                    alias: alias.clone().unwrap(),
+                    alias: alias.clone()
                 };
                 Ok(node)
             }
