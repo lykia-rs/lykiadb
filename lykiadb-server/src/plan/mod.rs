@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use lykiadb_lang::{
     ast::{
@@ -12,8 +12,24 @@ use lykiadb_lang::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::value::RV;
+
 pub mod planner;
 mod scope;
+
+enum ExprOverride {
+    Subquery(usize),
+    Aggregate,
+    Field
+}
+
+enum IntermediateExpr {
+    Expr {
+        root: Expr,
+        overrides: HashMap<usize, ExprOverride>
+    },
+    Precalculated(RV)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
@@ -55,6 +71,7 @@ pub enum Node {
     Filter {
         source: Box<Node>,
         predicate: Expr,
+        subqueries: Vec<Node>
     },
 
     Projection {
@@ -100,7 +117,7 @@ pub enum Node {
 
     Subquery {
         source: Box<Node>,
-        alias: Identifier,
+        alias: Option<Identifier>,
     },
 
     Nothing,
@@ -166,8 +183,27 @@ impl Node {
 
                 source._fmt_recursive(f, indent + 1)
             }
-            Node::Filter { source, predicate } => {
-                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
+            Node::Filter { source, predicate, subqueries } => {
+                write!(
+                    f,
+                    "{}- filter [{}]{}",
+                    indent_str,
+                    predicate,
+                    Self::NEWLINE
+                )?;
+                subqueries.iter().try_for_each(|subquery| {
+                    subquery._fmt_recursive(f, indent + 1)
+                })?;
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Subquery { source, alias } => {
+                write!(
+                    f,
+                    "{}- subquery [{}]{}",
+                    indent_str,
+                    alias.as_ref().map(|x| x.name.clone()).unwrap_or("unnamed".to_string()),
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Scan { source, filter } => {
@@ -226,12 +262,21 @@ impl Node {
                     "{}- join [type={:?}, {}]{}",
                     indent_str,
                     join_type,
-                    constraint.as_ref().unwrap(),
+                    constraint.as_ref().map(|x| x.to_string()).unwrap_or("None".to_string()),
                     Self::NEWLINE
                 )?;
                 left._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
+            Node::EvalScan { source, filter } => {
+                write!(
+                    f,
+                    "{}- eval_scan [{}]{}",
+                    indent_str,
+                    source.expr,
+                    Self::NEWLINE
+                )
+            }            
             _ => "<NotImplementedYet>".fmt(f),
         }
     }
