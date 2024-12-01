@@ -25,3 +25,28 @@ SELECT * FROM books b
       - filter [(name IsEqual Str("Elsevier"))]
         - scan [publishers as publishers]
   - scan [books as b]
+
+
+#[name=in_array, run=plan]>
+
+SELECT * FROM books b 
+  where id in [1, 2, 3];
+
+---
+
+- filter [(id In Array(Num(1.0), Num(2.0), Num(3.0)))]
+  - scan [books as b]
+
+
+#[name=in_array_via_select, run=plan]>
+
+SELECT * FROM books b 
+  where id in (select n from [1, 2, 3] as ids);
+
+---
+
+- filter [(id In (<SqlSelect>))]
+  > subqueries
+    - project [n as n]
+      - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+  - scan [books as b]
