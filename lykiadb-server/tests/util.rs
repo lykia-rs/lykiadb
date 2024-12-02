@@ -24,9 +24,9 @@ pub fn run_test(input: &str) {
 
         let flags = directives_and_input[..directives_end - 1]
             .trim()
-            .split(",")
+            .split(',')
             .map(|flag| {
-                let kv: Vec<&str> = flag.split("=").collect();
+                let kv: Vec<&str> = flag.split('=').collect();
                 return (kv[0].trim(), kv[1].trim());
             })
             .fold(std::collections::HashMap::new(), |mut acc, (k, v)| {

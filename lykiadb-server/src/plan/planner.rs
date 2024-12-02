@@ -101,21 +101,21 @@ impl<'a> Planner<'a> {
         // TODO(vck): Implement this
 
         let mut subqueries: Vec<Node> = vec![];
-        let mut overrides = HashMap::new();
+        let overrides = HashMap::new();
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
             Expr::Get {
-                id, object, name, ..
+                 object, name, ..
             } => {
                 println!("Get {}.({})", object, name);
                 None
             }
-            Expr::Variable { name, id, .. } => {
+            Expr::Variable { name,  .. } => {
                 println!("Variable {}", name);
                 None
             }
             Expr::Call {
-                callee, args, id, ..
+                callee, args,  ..
             } => {
                 println!("Call {}({:?})", callee, args);
                 None

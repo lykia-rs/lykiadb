@@ -570,9 +570,7 @@ impl Expr {
         visitor: &mut impl FnMut(&Expr) -> Option<Result<V, E>>,
     ) -> Option<Result<V, E>> {
         let result = visitor(self);
-        if result.is_none() {
-            return None;
-        }
+        result.as_ref()?;
         if let Some(Err(_)) = result {
             return result;
         }
