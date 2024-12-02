@@ -8,9 +8,9 @@ use lykiadb_lang::tokenizer::scanner::Scanner;
 use lykiadb_lang::Span;
 use lykiadb_lang::Spanned;
 use lykiadb_lang::{Literal, Locals, Scopes};
+use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use pretty_assertions::assert_eq;
 
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
@@ -341,7 +341,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let mut planner = Planner::new(self); // TODO(vck): Use the existing context
                 let plan = planner.build(e)?;
                 if let Some(out) = &self.output {
-                    out.write().unwrap().push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                    out.write()
+                        .unwrap()
+                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
                 Ok(RV::Undefined)
             }
@@ -700,7 +702,6 @@ impl Default for Output {
 }
 
 impl Output {
-
     pub fn new() -> Output {
         Output { out: Vec::new() }
     }
@@ -712,7 +713,10 @@ impl Output {
     pub fn expect(&mut self, rv: Vec<RV>) {
         if rv.len() == 1 {
             if let Some(first) = rv.first() {
-                assert_eq!(self.out.first().unwrap_or(&RV::Undefined).to_string(), first.to_string());
+                assert_eq!(
+                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
+                    first.to_string()
+                );
             }
         }
         assert_eq!(self.out, rv)

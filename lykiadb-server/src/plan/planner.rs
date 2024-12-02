@@ -8,11 +8,14 @@ use crate::{
     value::RV,
 };
 
-use lykiadb_lang::{ast::{
-    expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
-    visitor::VisitorMut,
-}, Spanned};
+use lykiadb_lang::{
+    ast::{
+        expr::Expr,
+        sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
+        visitor::VisitorMut,
+    },
+    Spanned,
+};
 
 use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 
@@ -100,35 +103,34 @@ impl<'a> Planner<'a> {
         let mut subqueries: Vec<Node> = vec![];
         let mut overrides = HashMap::new();
 
-        let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| {
-            match e {
-                Expr::Get {
-                    id, object, name, ..
-                } => {
-                    println!("Get {}.({})", object, name);
-                    None
-                },
-                Expr::Variable { name, id, .. } => 
-                {
-                    println!("Variable {}", name);
-                    None
-                },
-                Expr::Call {
-                    callee, args, id, ..
-                } => {
-                    println!("Call {}({:?})", callee, args);
-                    None
-                },
-                Expr::Select { query, .. } => {
-                    if !allow_subqueries {
-                        return Some(Err(HaltReason::Error(ExecutionError::Plan(PlannerError::SubqueryNotAllowed(expr.get_span())))));
-                    }
-                    let subquery = self.build_select(query);
-                    subqueries.push(subquery.unwrap());
-                    None
-                }
-                _ => Some(Ok(())),
+        let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
+            Expr::Get {
+                id, object, name, ..
+            } => {
+                println!("Get {}.({})", object, name);
+                None
             }
+            Expr::Variable { name, id, .. } => {
+                println!("Variable {}", name);
+                None
+            }
+            Expr::Call {
+                callee, args, id, ..
+            } => {
+                println!("Call {}({:?})", callee, args);
+                None
+            }
+            Expr::Select { query, .. } => {
+                if !allow_subqueries {
+                    return Some(Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::SubqueryNotAllowed(expr.get_span()),
+                    ))));
+                }
+                let subquery = self.build_select(query);
+                subqueries.push(subquery.unwrap());
+                None
+            }
+            _ => Some(Ok(())),
         });
 
         if let Some(Err(err)) = result {

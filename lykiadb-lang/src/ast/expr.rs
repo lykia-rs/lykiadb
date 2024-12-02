@@ -565,7 +565,10 @@ impl Display for Expr {
 }
 
 impl Expr {
-    pub fn walk<V, E>(&self, visitor: &mut impl FnMut(&Expr) -> Option<Result<V,E>>) -> Option<Result<V,E>> {
+    pub fn walk<V, E>(
+        &self,
+        visitor: &mut impl FnMut(&Expr) -> Option<Result<V, E>>,
+    ) -> Option<Result<V, E>> {
         let result = visitor(self);
         if result.is_none() {
             return None;
@@ -595,7 +598,10 @@ impl Expr {
             //
             Expr::Call { callee, args, .. } => {
                 let rcallee = callee.walk(visitor);
-                let rargs = args.iter().map(|x| x.walk(visitor)).fold(None, |acc, x| acc.or(x));
+                let rargs = args
+                    .iter()
+                    .map(|x| x.walk(visitor))
+                    .fold(None, |acc, x| acc.or(x));
 
                 rcallee.or(rargs)
             }

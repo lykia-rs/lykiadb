@@ -107,7 +107,7 @@ impl Display for RV {
                     write!(f, "{}", item)?;
                 }
                 write!(f, "]")
-            },
+            }
             RV::Object(obj) => {
                 let obj = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
                 write!(f, "{{")?;
@@ -118,7 +118,7 @@ impl Display for RV {
                     write!(f, "{}: {}", key, value)?;
                 }
                 write!(f, "}}")
-            },
+            }
             RV::Callable(_) => write!(f, "<Callable>"),
         }
     }
