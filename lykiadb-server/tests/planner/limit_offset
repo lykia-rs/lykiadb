@@ -10,7 +10,10 @@ SELECT * FROM books limit 4 + 4;
 
 #[name=limit, run=plan]>
 
-SELECT * FROM books limit 5 + 5 offset 5 + 15;
+var $limit = 5 + 5;
+var $offset = 5 + 15;
+
+SELECT * FROM books limit $limit offset $offset;
 
 ---
 

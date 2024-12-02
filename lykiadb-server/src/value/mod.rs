@@ -1,6 +1,7 @@
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::sync::{Arc, RwLock};
 
 use crate::util::alloc_shared;
@@ -84,6 +85,42 @@ impl RV {
 
     pub fn not(&self) -> RV {
         RV::Bool(!self.as_bool())
+    }
+}
+
+impl Display for RV {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RV::Str(s) => write!(f, "{}", s),
+            RV::Num(n) => write!(f, "{}", n),
+            RV::Bool(b) => write!(f, "{}", b),
+            RV::Undefined => write!(f, "undefined"),
+            RV::NaN => write!(f, "NaN"),
+            RV::Null => write!(f, "null"),
+            RV::Array(arr) => {
+                let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
+                write!(f, "[")?;
+                for (i, item) in arr.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "]")
+            },
+            RV::Object(obj) => {
+                let obj = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+                write!(f, "{{")?;
+                for (i, (key, value)) in obj.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", key, value)?;
+                }
+                write!(f, "}}")
+            },
+            RV::Callable(_) => write!(f, "<Callable>"),
+        }
     }
 }
 

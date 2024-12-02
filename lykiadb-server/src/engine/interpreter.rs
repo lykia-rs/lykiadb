@@ -10,6 +10,7 @@ use lykiadb_lang::Spanned;
 use lykiadb_lang::{Literal, Locals, Scopes};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use pretty_assertions::assert_eq;
 
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
@@ -56,7 +57,7 @@ impl SourceProcessor {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
     NotCallable {
         span: Span,
@@ -177,6 +178,7 @@ pub struct Interpreter {
     //
     loop_stack: LoopStack,
     source_processor: SourceProcessor,
+    output: Option<Shared<Output>>,
 }
 
 impl Interpreter {
@@ -198,6 +200,7 @@ impl Interpreter {
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
+            output: out,
         }
     }
 
@@ -337,6 +340,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Delete { .. } => {
                 let mut planner = Planner::new(self); // TODO(vck): Use the existing context
                 let plan = planner.build(e)?;
+                if let Some(out) = &self.output {
+                    out.write().unwrap().push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                }
                 Ok(RV::Undefined)
             }
             Expr::Literal {
@@ -694,6 +700,7 @@ impl Default for Output {
 }
 
 impl Output {
+
     pub fn new() -> Output {
         Output { out: Vec::new() }
     }
@@ -703,7 +710,12 @@ impl Output {
     }
 
     pub fn expect(&mut self, rv: Vec<RV>) {
-        assert_eq!(self.out, rv);
+        if rv.len() == 1 {
+            if let Some(first) = rv.first() {
+                assert_eq!(self.out.first().unwrap_or(&RV::Undefined).to_string(), first.to_string());
+            }
+        }
+        assert_eq!(self.out, rv)
     }
 }
 
@@ -732,10 +744,17 @@ pub mod test_helpers {
         )
     }
 
-    pub fn exec_assert(code: &str, output: Vec<RV>) {
+    pub fn assert_out(code: &str, output: Vec<RV>) {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
         out.write().unwrap().expect(output);
+    }
+
+    pub fn assert_err(code: &str, error: &str) {
+        let (_, mut runtime) = get_runtime();
+        let result = runtime.interpret(code);
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), error);
     }
 }
 

@@ -15,7 +15,7 @@ use std::sync::Arc;
 pub mod program;
 pub mod resolver;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ParseError {
     UnexpectedToken { token: Token },
     MissingToken { token: Token, expected: TokenType },

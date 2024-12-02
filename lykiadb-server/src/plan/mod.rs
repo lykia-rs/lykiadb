@@ -17,7 +17,7 @@ use crate::value::RV;
 pub mod planner;
 mod scope;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
     SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),

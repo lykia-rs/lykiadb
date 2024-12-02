@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter, Result};
+
 use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
@@ -8,7 +10,7 @@ use lykiadb_lang::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionError {
     Scan(ScanError),
     Parse(ParseError),
@@ -16,6 +18,12 @@ pub enum ExecutionError {
     Interpret(InterpretError),
     Environment(EnvironmentError),
     Plan(PlannerError),
+}
+
+impl Display for ExecutionError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl From<ParseError> for ExecutionError {

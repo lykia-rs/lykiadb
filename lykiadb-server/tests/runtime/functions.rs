@@ -1,12 +1,12 @@
 use lykiadb_server::{
-    engine::interpreter::test_helpers::{exec_assert, get_runtime},
+    engine::interpreter::test_helpers::{assert_out, get_runtime},
     value::RV,
 };
 use std::sync::Arc;
 
 #[test]
 fn test_higher_order_0() {
-    exec_assert(
+    assert_out(
         "function f($x, $q) {
         $x($q);
     };
@@ -35,7 +35,7 @@ fn test_higher_order_0() {
 
 #[test]
 fn test_high_order_1() {
-    exec_assert(
+    assert_out(
         "function makeCounter() {
         var $i = 0;
         function count() {
@@ -54,7 +54,7 @@ fn test_high_order_1() {
 
 #[test]
 fn test_resolving_read_0() {
-    exec_assert(
+    assert_out(
         "var $a = \"global\";
     {
         function showA() {
@@ -74,7 +74,7 @@ fn test_resolving_read_0() {
 
 #[test]
 fn test_resolving_read_1() {
-    exec_assert(
+    assert_out(
         "var $a = \"global\";
     {
         function showA() {
@@ -99,7 +99,7 @@ fn test_resolving_read_1() {
 
 #[test]
 fn test_resolving_read_2() {
-    exec_assert(
+    assert_out(
         "{
         var $a = \"global\";
         {
@@ -121,7 +121,7 @@ fn test_resolving_read_2() {
 
 #[test]
 fn test_resolving_write_0() {
-    exec_assert(
+    assert_out(
         "var $a = \"global\";
     {
         function showA() {
@@ -154,7 +154,7 @@ fn test_resolving_write_0() {
 
 #[test]
 fn test_anonymous_fn_0() {
-    exec_assert(
+    assert_out(
         "var $pr = function a() {
                 TestUtils.out(\"hello\");
             };
@@ -171,7 +171,7 @@ fn test_anonymous_fn_0() {
 
 #[test]
 fn test_anonymous_fn_1() {
-    exec_assert(
+    assert_out(
         "(function a() {
                 TestUtils.out(\"hello\");
                 })();
@@ -187,7 +187,7 @@ fn test_anonymous_fn_1() {
 
 #[test]
 fn test_anonymous_fn_2() {
-    exec_assert(
+    assert_out(
         "var $pr = function() {
                 TestUtils.out(\"hello\");
             };
@@ -200,7 +200,7 @@ fn test_anonymous_fn_2() {
 
 #[test]
 fn test_anonymous_fn_3() {
-    exec_assert(
+    assert_out(
         "(function() {
                 TestUtils.out(\"hello\");
                 })();
@@ -211,7 +211,7 @@ fn test_anonymous_fn_3() {
 
 #[test]
 fn test_resolving_write_1() {
-    exec_assert(
+    assert_out(
         "var $a = \"global\";
     {
         var $showA = function() {
@@ -244,7 +244,7 @@ fn test_resolving_write_1() {
 
 #[test]
 fn test_resolve_object() {
-    exec_assert(
+    assert_out(
         "
         
         var $text = 'outer $text';
@@ -275,7 +275,7 @@ fn test_resolve_object() {
 
 #[test]
 fn test_resolve_deeper_object() {
-    exec_assert(
+    assert_out(
         "
         var $text = 'outer $text';
         

@@ -14,7 +14,7 @@ pub struct Resolver<'a> {
     program: &'a Program,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ResolveError {
     GenericError { span: Span, message: String },
 }

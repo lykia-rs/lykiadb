@@ -1,9 +1,9 @@
-use lykiadb_server::{engine::interpreter::test_helpers::exec_assert, value::RV};
+use lykiadb_server::{engine::interpreter::test_helpers::assert_out, value::RV};
 use std::sync::Arc;
 
 #[test]
 fn test_if() {
-    exec_assert(
+    assert_out(
         "var $a = 30;
 
     if ($a > 50) {

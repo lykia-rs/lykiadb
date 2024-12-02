@@ -1,7 +1,7 @@
 use lykiadb_server::{
     engine::{
         error::ExecutionError,
-        interpreter::test_helpers::{exec_assert, get_runtime},
+        interpreter::test_helpers::{assert_out, get_runtime},
     },
     value::{environment::EnvironmentError, RV},
 };
@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 #[test]
 fn test_blocks_0() {
-    exec_assert(
+    assert_out(
         "var $a = \"global a\";
     var $b = \"global b\";
     var $c = \"global c\";

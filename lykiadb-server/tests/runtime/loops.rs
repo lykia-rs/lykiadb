@@ -1,10 +1,10 @@
-use lykiadb_server::{engine::interpreter::test_helpers::exec_assert, value::RV};
+use lykiadb_server::{engine::interpreter::test_helpers::assert_out, value::RV};
 
 use std::sync::Arc;
 
 #[test]
 fn test_loop_statements_0() {
-    exec_assert(
+    assert_out(
         "for (var $i = 0; $i < 10; $i = $i + 1) {
         {
             {
@@ -28,7 +28,7 @@ fn test_loop_statements_0() {
 
 #[test]
 fn test_loop_statements_1() {
-    exec_assert(
+    assert_out(
         "for (var $i = 0; $i < 10000000; $i = $i+1) {
         if ($i > 17) break;
         if ($i < 15) continue;
@@ -56,7 +56,7 @@ fn test_loop_statements_1() {
 
 #[test]
 fn test_loop_statements_2() {
-    exec_assert(
+    assert_out(
         "var $q = 0;
 
     for (var $i = 0; $i < 10000000; $i = $i+1) {

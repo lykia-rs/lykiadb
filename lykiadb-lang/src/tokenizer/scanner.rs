@@ -14,7 +14,7 @@ pub struct Scanner<'a> {
     line: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ScanError {
     UnexpectedCharacter { span: Span },
     UnterminatedString { span: Span },

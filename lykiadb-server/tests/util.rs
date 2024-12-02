@@ -1,22 +1,12 @@
-use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-use lykiadb_server::{engine::interpreter::Interpreter, plan::planner::Planner};
-use pretty_assertions::assert_eq;
+use std::sync::Arc;
+use lykiadb_server::{engine::interpreter::test_helpers::{assert_err, assert_out}, value::RV};
 
 fn expect_plan(query: &str, expected_plan: &str) {
-    let mut interpreter = Interpreter::new(None, true);
-    let mut planner: Planner<'_> = Planner::new(&mut interpreter);
-    let program = query.parse::<Program>().unwrap();
-    match *program.get_root() {
-        Stmt::Program { body, .. } if matches!(body.first(), Some(Stmt::Expression { .. })) => {
-            if let Some(Stmt::Expression { expr, .. }) = body.first() {
-                let generated_plan = planner.build(expr).unwrap();
-                assert_eq!(expected_plan, generated_plan.to_string().trim());
-            } else {
-                panic!("Expected expression statement.");
-            }
-        }
-        _ => panic!("Expected expression statement."),
-    }
+    assert_out(query,
+        vec![
+            RV::Str(Arc::new(expected_plan.to_string())),
+        ],
+    );
 }
 
 pub fn run_test(input: &str) {
@@ -24,13 +14,32 @@ pub fn run_test(input: &str) {
 
     for part in parts[1..].iter() {
         let directives_and_input = part.trim();
+
         let directives_end = directives_and_input
             .find('>')
             .unwrap_or(directives_and_input.len());
+
         let rest = directives_and_input[directives_end + 1..]
             .trim()
             .to_string();
+
+        let flags = directives_and_input[..directives_end - 1].trim().split(",").map(|flag| {
+            let kv: Vec<&str> = flag.split("=").collect();
+            return (kv[0].trim(), kv[1].trim());
+        }).fold(std::collections::HashMap::new(), |mut acc, (k, v)| {
+            acc.insert(k, v);
+            acc
+        });
+
         let io_parts: Vec<&str> = rest.split("---").collect();
+        
+        if flags.get("expect") == Some(&"error") {
+            assert_err(io_parts[0].trim(),
+            io_parts[1].trim()
+            );
+            continue;
+        }
+        
         expect_plan(io_parts[0].trim(), io_parts[1].trim());
     }
 }

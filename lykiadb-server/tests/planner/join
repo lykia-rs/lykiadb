@@ -50,3 +50,12 @@ SELECT * FROM books b
     - join [type=Inner, (b.category_id IsEqual c.id)]
       - scan [categories as c]
       - scan [publishers as p]
+
+
+#[name=illegal_subquery_in_condition, run=plan, expect=error]>
+
+select * from books inner join categories ON (select * from books);
+
+---
+
+Plan(SubqueryNotAllowed(Span { start: 0, end: 0, line: 0, line_end: 0 }))
