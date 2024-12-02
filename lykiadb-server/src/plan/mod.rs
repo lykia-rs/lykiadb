@@ -8,7 +8,7 @@ use lykiadb_lang::{
             SqlOrdering, SqlProjection,
         },
     },
-    Identifier,
+    Identifier, Span,
 };
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +19,7 @@ mod scope;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
+    SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),
     DuplicateObjectInScope {
         previous: Identifier,

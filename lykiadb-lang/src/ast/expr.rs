@@ -565,9 +565,13 @@ impl Display for Expr {
 }
 
 impl Expr {
-    pub fn walk(&self, visitor: &mut impl FnMut(&Expr) -> bool) -> bool {
-        if !visitor(self) {
-            return false;
+    pub fn walk<V, E>(&self, visitor: &mut impl FnMut(&Expr) -> Option<Result<V,E>>) -> Option<Result<V,E>> {
+        let result = visitor(self);
+        if result.is_none() {
+            return None;
+        }
+        if let Some(Err(_)) = result {
+            return result;
         }
         match self {
             Expr::Select { .. }
@@ -576,13 +580,13 @@ impl Expr {
             | Expr::Update { .. }
             | Expr::Variable { .. }
             | Expr::Literal { .. }
-            | Expr::Function { .. } => false,
+            | Expr::Function { .. } => None,
             //
             Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
                 let rleft = left.walk(visitor);
                 let rright = right.walk(visitor);
 
-                rleft || rright
+                rleft.or(rright)
             }
             //
             Expr::Grouping { expr, .. }
@@ -591,9 +595,9 @@ impl Expr {
             //
             Expr::Call { callee, args, .. } => {
                 let rcallee = callee.walk(visitor);
-                let rargs = args.iter().map(|x| x.walk(visitor)).all(|x| x);
+                let rargs = args.iter().map(|x| x.walk(visitor)).fold(None, |acc, x| acc.or(x));
 
-                rcallee || rargs
+                rcallee.or(rargs)
             }
             Expr::Between {
                 lower,
@@ -605,14 +609,14 @@ impl Expr {
                 let rupper = upper.walk(visitor);
                 let rsubject = subject.walk(visitor);
 
-                rlower || rupper || rsubject
+                rlower.or(rupper).or(rsubject)
             }
             Expr::Get { object, .. } => object.walk(visitor),
             Expr::Set { object, value, .. } => {
                 let robject = object.walk(visitor);
                 let rvalue = value.walk(visitor);
 
-                robject || rvalue
+                robject.or(rvalue)
             }
         }
     }

@@ -144,6 +144,14 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 previous.span,
             );
         }
+        ExecutionError::Plan(PlannerError::SubqueryNotAllowed(span)) => {
+            println!("{:?}", span);
+            print(
+                "Subquery not allowed",
+                "Subqueries are not allowed in this context.",
+                span,
+            );
+        }
         ExecutionError::Environment(EnvironmentError::Other { message })
         | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());

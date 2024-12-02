@@ -8,13 +8,13 @@ use crate::{
     value::RV,
 };
 
-use lykiadb_lang::ast::{
+use lykiadb_lang::{ast::{
     expr::Expr,
     sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
     visitor::VisitorMut,
-};
+}, Spanned};
 
-use super::{scope::Scope, IntermediateExpr, Node, Plan};
+use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -100,26 +100,41 @@ impl<'a> Planner<'a> {
         let mut subqueries: Vec<Node> = vec![];
         let mut overrides = HashMap::new();
 
-        expr.walk(&mut |expr: &Expr| {
-            match expr {
+        let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| {
+            match e {
                 Expr::Get {
                     id, object, name, ..
-                } => false,
-                Expr::Variable { name, id, .. } => false,
+                } => {
+                    println!("Get {}.({})", object, name);
+                    None
+                },
+                Expr::Variable { name, id, .. } => 
+                {
+                    println!("Variable {}", name);
+                    None
+                },
                 Expr::Call {
                     callee, args, id, ..
-                } => false,
+                } => {
+                    println!("Call {}({:?})", callee, args);
+                    None
+                },
                 Expr::Select { query, .. } => {
                     if !allow_subqueries {
-                        return false; // Err(HaltReason::Error(ExecutionError::Plan("Subqueries are not allowed here".to_string())));
+                        return Some(Err(HaltReason::Error(ExecutionError::Plan(PlannerError::SubqueryNotAllowed(expr.get_span())))));
                     }
                     let subquery = self.build_select(query);
                     subqueries.push(subquery.unwrap());
-                    false
+                    None
                 }
-                _ => true,
+                _ => Some(Ok(())),
             }
         });
+
+        if let Some(Err(err)) = result {
+            return Err(err);
+        }
+
         Ok((
             IntermediateExpr::Expr {
                 expr: expr.clone(),
