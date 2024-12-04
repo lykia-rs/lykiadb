@@ -50,3 +50,13 @@ SELECT * FROM books b
     - project [n as n]
       - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
   - scan [books as b]
+
+#[name=between, run=plan]>
+
+SELECT * FROM books b 
+  where id between 1 and 10;
+
+---
+
+- filter [(id Between Num(1.0) And Num(10.0))]
+  - scan [books as b]

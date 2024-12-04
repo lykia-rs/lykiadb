@@ -513,11 +513,11 @@ impl Display for Expr {
                 ..
             } => write!(
                 f,
-                "{} {} {} AND {}",
+                "({} {} {} And {})",
                 subject,
                 match kind {
-                    RangeKind::Between => "BETWEEN",
-                    RangeKind::NotBetween => "NOT BETWEEN",
+                    RangeKind::Between => "Between",
+                    RangeKind::NotBetween => "NotBetween",
                 },
                 lower,
                 upper
