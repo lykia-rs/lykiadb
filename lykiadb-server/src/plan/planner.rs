@@ -100,19 +100,15 @@ impl<'a> Planner<'a> {
         let overrides = HashMap::new();
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
-            Expr::Get {
-                 object, name, ..
-            } => {
+            Expr::Get { object, name, .. } => {
                 println!("Get {}.({})", object, name);
                 None
             }
-            Expr::Variable { name,  .. } => {
+            Expr::Variable { name, .. } => {
                 println!("Variable {}", name);
                 None
             }
-            Expr::Call {
-                callee, args,  ..
-            } => {
+            Expr::Call { callee, args, .. } => {
                 println!("Call {}({:?})", callee, args);
                 None
             }

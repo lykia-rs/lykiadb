@@ -419,7 +419,7 @@ impl Display for Expr {
                         .collect::<Vec<_>>()
                         .join("")
                 )
-            },
+            }
             Expr::Set {
                 object,
                 name,

@@ -349,9 +349,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
             Expr::Grouping { expr, .. } => self.visit_expr(expr),
-            Expr::Unary { operation, expr, .. } => self.eval_unary(operation, expr),
-            Expr::Binary { operation, left, right, .. } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, ..} => self.look_up_variable(&name.name, e),
+            Expr::Unary {
+                operation, expr, ..
+            } => self.eval_unary(operation, expr),
+            Expr::Binary {
+                operation,
+                left,
+                right,
+                ..
+            } => self.eval_binary(left, right, *operation),
+            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
             Expr::Assignment { dst, expr, .. } => {
                 let distance = self.current_program.clone().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
@@ -391,10 +398,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Call {
-                callee,
-                args,
-                span,
-                ..
+                callee, args, span, ..
             } => {
                 let eval = self.visit_expr(callee)?;
 
@@ -507,21 +511,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
-            Expr::FieldPath { .. } => {
-                Err(HaltReason::Error(
-                    InterpretError::Other {
-                        message: format!(
-                            "Unexpected field path expression",
-                        ),
-                    }
-                    .into(),
-                ))
-            }
+            Expr::FieldPath { .. } => Err(HaltReason::Error(
+                InterpretError::Other {
+                    message: "Unexpected field path expression".to_string(),
+                }
+                .into(),
+            )),
             Expr::Get {
-                object,
-                name,
-                span,
-                ..
+                object, name, span, ..
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
@@ -586,10 +583,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         }
 
         match s {
-            Stmt::Program {
-                body: stmts,
-                ..
-            } => {
+            Stmt::Program { body: stmts, .. } => {
                 return self.execute_block(stmts, Some(self.env));
             }
             Stmt::Expression { expr, .. } => {
@@ -603,10 +597,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     evaluated.clone(),
                 );
             }
-            Stmt::Block {
-                body: stmts,
-                ..
-            } => {
+            Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(stmts, None);
             }
             Stmt::If {

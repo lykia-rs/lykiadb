@@ -27,8 +27,7 @@ impl Program {
 
     pub fn get_distance(&self, expr: &Expr) -> Option<usize> {
         let expr_id: usize = match expr {
-            Expr::Variable { id, .. }
-            | Expr::Assignment { id, .. } => *id,
+            Expr::Variable { id, .. } | Expr::Assignment { id, .. } => *id,
             _ => panic!("Expected variable or assignment expression."),
         };
 

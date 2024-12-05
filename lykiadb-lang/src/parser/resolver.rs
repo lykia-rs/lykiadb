@@ -94,7 +94,7 @@ impl<'a> Resolver<'a> {
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
-            Expr::Literal {value, .. } => match value {
+            Expr::Literal { value, .. } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
                         self.visit_expr(map.get(item).unwrap())?;
@@ -107,11 +107,10 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 _ => (),
             },
-            
-            Expr::Grouping { expr, .. }
-            | Expr::Unary { expr, .. } => self.resolve_expr(expr),
-            
-            Expr::Binary { left, right, ..} => {
+
+            Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } => self.resolve_expr(expr),
+
+            Expr::Binary { left, right, .. } => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             }
@@ -144,7 +143,12 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                     self.resolve_expr(argument);
                 }
             }
-            Expr::Function { name, parameters, body, .. } => {
+            Expr::Function {
+                name,
+                parameters,
+                body,
+                ..
+            } => {
                 if name.is_some() {
                     self.declare(&name.as_ref().unwrap().clone());
                     self.define(&name.as_ref().unwrap().clone());
@@ -157,7 +161,12 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             }
-            Expr::Between { lower, upper, subject, .. } => {
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                ..
+            } => {
                 self.resolve_expr(lower);
                 self.resolve_expr(upper);
                 self.resolve_expr(subject);
@@ -172,7 +181,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
             Expr::Select { .. }
             | Expr::Insert { .. }
             | Expr::Update { .. }
-            | Expr::Delete { .. } 
+            | Expr::Delete { .. }
             | Expr::FieldPath { .. } => (),
         };
         Ok(())
@@ -183,10 +192,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
             Stmt::Program { body: stmts, .. } => {
                 self.resolve_stmts(stmts);
             }
-            Stmt::Block {
-                body: stmts,
-                ..
-            } => {
+            Stmt::Block { body: stmts, .. } => {
                 self.begin_scope();
                 self.resolve_stmts(stmts);
                 self.end_scope();

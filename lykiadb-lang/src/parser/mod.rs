@@ -403,10 +403,7 @@ impl<'a> Parser<'a> {
                     }));
                 }
                 Expr::Get {
-                    object,
-                    name,
-                    span,
-                    ..
+                    object, name, span, ..
                 } => {
                     return Ok(Box::new(Expr::Set {
                         object: object.clone(),
@@ -590,7 +587,10 @@ impl<'a> Parser<'a> {
         let mut expr = self.primary()?;
 
         if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if !name.dollar && self.peek_bw(0).tok_type != sym!(LeftParen) && self.in_select_depth > 0 {
+            if !name.dollar
+                && self.peek_bw(0).tok_type != sym!(LeftParen)
+                && self.in_select_depth > 0
+            {
                 let head = name.clone();
                 let mut tail: Vec<crate::Identifier> = vec![];
                 while self.match_next(sym!(Dot)) {
