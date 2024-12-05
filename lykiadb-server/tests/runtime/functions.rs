@@ -12,7 +12,7 @@ fn test_higher_order_0() {
     };
     
     function g($q) {
-        TestUtils::out($q);
+        test_utils::out($q);
     };
     
     for (var $i=0; $i<10; $i = $i + 1) {
@@ -40,7 +40,7 @@ fn test_high_order_1() {
         var $i = 0;
         function count() {
             $i = $i + 1;
-            TestUtils::out($i);
+            test_utils::out($i);
         };
     
         return count;
@@ -58,7 +58,7 @@ fn test_resolving_read_0() {
         "var $a = \"global\";
     {
         function showA() {
-        TestUtils::out($a);
+        test_utils::out($a);
         };
     
         showA();
@@ -78,14 +78,14 @@ fn test_resolving_read_1() {
         "var $a = \"global\";
     {
         function showA() {
-            TestUtils::out($a);
+            test_utils::out($a);
         };
 
         showA();
         var $a = \"block\";
         showA();
         function showB() {
-            TestUtils::out($a);
+            test_utils::out($a);
         };
         showB();
     }",
@@ -104,7 +104,7 @@ fn test_resolving_read_2() {
         var $a = \"global\";
         {
             function showA() {
-            TestUtils::out($a);
+                test_utils::out($a);
             };
         
             showA();
@@ -125,13 +125,13 @@ fn test_resolving_write_0() {
         "var $a = \"global\";
     {
         function showA() {
-        TestUtils::out($a);
+            test_utils::out($a);
         };
     
         var $a = \"block\";
         
         function showB() {
-        TestUtils::out($a);
+            test_utils::out($a);
         };
     
         //
@@ -156,7 +156,7 @@ fn test_resolving_write_0() {
 fn test_anonymous_fn_0() {
     assert_out(
         "var $pr = function a() {
-                TestUtils::out(\"hello\");
+                test_utils::out(\"hello\");
             };
 
             $pr();
@@ -173,7 +173,7 @@ fn test_anonymous_fn_0() {
 fn test_anonymous_fn_1() {
     assert_out(
         "(function a() {
-                TestUtils::out(\"hello\");
+                test_utils::out(\"hello\");
                 })();
 
                 a();
@@ -189,7 +189,7 @@ fn test_anonymous_fn_1() {
 fn test_anonymous_fn_2() {
     assert_out(
         "var $pr = function() {
-                TestUtils::out(\"hello\");
+                test_utils::out(\"hello\");
             };
 
             $pr();
@@ -202,7 +202,7 @@ fn test_anonymous_fn_2() {
 fn test_anonymous_fn_3() {
     assert_out(
         "(function() {
-                TestUtils::out(\"hello\");
+                test_utils::out(\"hello\");
                 })();
         ",
         vec![RV::Str(Arc::new("hello".to_string()))],
@@ -215,13 +215,13 @@ fn test_resolving_write_1() {
         "var $a = \"global\";
     {
         var $showA = function() {
-        TestUtils::out($a);
+        test_utils::out($a);
         };
     
         var $a = \"block\";
         
         var $showB = function() {
-        TestUtils::out($a);
+        test_utils::out($a);
         };
     
         //
@@ -252,14 +252,14 @@ fn test_resolve_object() {
         var $a = {
             myFun: function() {
                 function pre_define() {
-                    TestUtils::out($text);
+                    test_utils::out($text);
                 };
                 pre_define();
                 //
                 var $text = 'inner $text';
                 //
                 function post_define() {
-                    TestUtils::out($text);
+                    test_utils::out($text);
                 };
                 post_define();
             }
@@ -284,14 +284,14 @@ fn test_resolve_deeper_object() {
                 c0: {
                     myFun: function() {
                         function pre_define() {
-                            TestUtils::out($text);
+                            test_utils::out($text);
                         };
                         pre_define();
                         //
                         var $text = 'c0 inner $text';
                         //
                         function post_define() {
-                            TestUtils::out($text);
+                            test_utils::out($text);
                         };
                         post_define();
                     }
@@ -299,14 +299,14 @@ fn test_resolve_deeper_object() {
                 c1: {
                     myFun: function() {
                         function pre_define() {
-                            TestUtils::out($text);
+                            test_utils::out($text);
                         };
                         pre_define();
                         //
                         var $text = 'c1 inner $text';
                         //
                         function post_define() {
-                            TestUtils::out($text);
+                            test_utils::out($text);
                         };
                         post_define();
                     }
@@ -334,7 +334,7 @@ fn test_resolve_multiple_programs() {
             var $a = \"global\";
             {
                 function showA() {
-                    TestUtils::out($a);
+                    test_utils::out($a);
                 };
             
                 showA();

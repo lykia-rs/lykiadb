@@ -739,11 +739,11 @@ mod test {
     #[test]
     fn test_unary_evaluation() {
         let code = "
-            TestUtils::out(-2);
-            TestUtils::out(-(-2));
-            TestUtils::out(!3);
-            TestUtils::out(!!3);
-            TestUtils::out(!!!3);
+            test_utils::out(-2);
+            test_utils::out(-(-2));
+            test_utils::out(!3);
+            test_utils::out(!!3);
+            test_utils::out(!!!3);
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
@@ -758,11 +758,11 @@ mod test {
     #[test]
     fn test_binary_evaluation() {
         let code = "
-            TestUtils::out(5-(-2));
-            TestUtils::out((5 + 2) * 4);
-            TestUtils::out(5 + 2 * 4);
-            TestUtils::out((13 + 4) * (7 + 3));
-            TestUtils::out(-5-2);
+            test_utils::out(5-(-2));
+            test_utils::out((5 + 2) * 4);
+            test_utils::out(5 + 2 * 4);
+            test_utils::out((13 + 4) * (7 + 3));
+            test_utils::out(-5-2);
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
@@ -778,13 +778,13 @@ mod test {
     #[test]
     fn test_logical_evaluation() {
         let code = "
-            TestUtils::out(5 && 1);
-            TestUtils::out(5 || 1);
-            TestUtils::out(5 && 0);
-            TestUtils::out(5 || 0);
-            TestUtils::out(!(5 || 0));
-            TestUtils::out(!(5 || 0) || 1);
-            TestUtils::out(!(5 || 0) || (1 && 0));
+            test_utils::out(5 && 1);
+            test_utils::out(5 || 1);
+            test_utils::out(5 && 0);
+            test_utils::out(5 || 0);
+            test_utils::out(!(5 || 0));
+            test_utils::out(!(5 || 0) || 1);
+            test_utils::out(!(5 || 0) || (1 && 0));
         ";
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();

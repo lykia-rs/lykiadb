@@ -2,10 +2,18 @@ use lykiadb_server::{
     engine::interpreter::test_helpers::{assert_err, assert_out},
     value::RV,
 };
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 fn expect_plan(query: &str, expected_plan: &str) {
     assert_out(query, vec![RV::Str(Arc::new(expected_plan.to_string()))]);
+}
+
+fn run_plan(input: &str, output: &str, flags: HashMap<&str, &str>) {
+    if flags.get("expect") == Some(&"error") {
+        assert_err(input, output);
+    } else {
+        expect_plan(input, output);
+    }
 }
 
 pub fn run_test(input: &str) {
@@ -36,11 +44,9 @@ pub fn run_test(input: &str) {
 
         let io_parts: Vec<&str> = rest.split("---").collect();
 
-        if flags.get("expect") == Some(&"error") {
-            assert_err(io_parts[0].trim(), io_parts[1].trim());
+        if flags.get("run") == Some(&"plan") {
+            run_plan(io_parts[0].trim(), io_parts[1].trim(), flags.clone());
             continue;
         }
-
-        expect_plan(io_parts[0].trim(), io_parts[1].trim());
     }
 }

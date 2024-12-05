@@ -28,6 +28,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut benchmark_namespace = FxHashMap::default();
     let mut json_namespace = FxHashMap::default();
     let mut time_namespace = FxHashMap::default();
+    let mut io_namespace = FxHashMap::default();
 
     benchmark_namespace.insert(
         "fib".to_owned(),
@@ -69,6 +70,15 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         )),
     );
 
+    io_namespace.insert(
+        "print".to_owned(),
+        RV::Callable(Callable::new(
+            None,
+            CallableKind::Generic,
+            Function::Lambda { function: nt_print },
+        )),
+    );
+
     if out.is_some() {
         let mut test_namespace = FxHashMap::default();
 
@@ -82,7 +92,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         );
 
         std.insert(
-            "TestUtils".to_owned(),
+            "test_utils".to_owned(),
             RV::Object(alloc_shared(test_namespace)),
         );
     }
@@ -91,16 +101,9 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "Benchmark".to_owned(),
         RV::Object(alloc_shared(benchmark_namespace)),
     );
-    std.insert("JSON".to_owned(), RV::Object(alloc_shared(json_namespace)));
-    std.insert("Time".to_owned(), RV::Object(alloc_shared(time_namespace)));
-    std.insert(
-        "print".to_owned(),
-        RV::Callable(Callable::new(
-            None,
-            CallableKind::Generic,
-            Function::Lambda { function: nt_print },
-        )),
-    );
+    std.insert("json".to_owned(), RV::Object(alloc_shared(json_namespace)));
+    std.insert("time".to_owned(), RV::Object(alloc_shared(time_namespace)));
+    std.insert("io".to_owned(), RV::Object(alloc_shared(io_namespace)));
 
     std
 }
