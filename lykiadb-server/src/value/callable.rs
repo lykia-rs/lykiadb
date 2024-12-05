@@ -34,12 +34,7 @@ impl Callable {
         match self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
-            Function::UserDefined {
-                name: _,
-                parameters,
-                closure,
-                body,
-            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
+            Function::UserDefined { parameters, closure, body, .. } => interpreter.user_fn_call(body, *closure, parameters, arguments),
         }
     }
 }
@@ -65,12 +60,9 @@ pub enum Function {
 impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Function::Stateful(_) | Function::Lambda { function: _ } => write!(f, "<native_fn>"),
+            Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
             Function::UserDefined {
-                name,
-                parameters: _,
-                closure: _,
-                body: _,
+                name, ..
             } => write!(f, "{}", name),
         }
     }

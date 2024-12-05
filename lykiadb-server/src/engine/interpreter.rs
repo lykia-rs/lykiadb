@@ -347,41 +347,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
                 Ok(RV::Undefined)
             }
-            Expr::Literal {
-                value,
-                raw: _,
-                span: _,
-                id: _,
-            } => Ok(self.literal_to_rv(value)),
-            Expr::Grouping {
-                expr,
-                span: _,
-                id: _,
-            } => self.visit_expr(expr),
-            Expr::Unary {
-                operation,
-                expr,
-                span: _,
-                id: _,
-            } => self.eval_unary(operation, expr),
-            Expr::Binary {
-                operation,
-                left,
-                right,
-                span: _,
-                id: _,
-            } => self.eval_binary(left, right, *operation),
-            Expr::Variable {
-                name,
-                span: _,
-                id: _,
-            } => self.look_up_variable(&name.name, e),
-            Expr::Assignment {
-                dst,
-                expr,
-                span: _,
-                id: _,
-            } => {
+            Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
+            Expr::Grouping { expr, .. } => self.visit_expr(expr),
+            Expr::Unary { operation, expr, .. } => self.eval_unary(operation, expr),
+            Expr::Binary { operation, left, right, .. } => self.eval_binary(left, right, *operation),
+            Expr::Variable { name, ..} => self.look_up_variable(&name.name, e),
+            Expr::Assignment { dst, expr, .. } => {
                 let distance = self.current_program.clone().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
@@ -407,8 +378,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 left,
                 operation,
                 right,
-                span: _,
-                id: _,
+                ..
             } => {
                 let is_true = self.visit_expr(left)?.as_bool();
 
@@ -424,7 +394,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 callee,
                 args,
                 span,
-                id: _,
+                ..
             } => {
                 let eval = self.visit_expr(callee)?;
 
@@ -468,8 +438,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 name,
                 parameters,
                 body,
-                span: _,
-                id: _,
+                ..
             } => {
                 let fn_name = if name.is_some() {
                     &name.as_ref().unwrap().name
@@ -505,8 +474,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 upper,
                 subject,
                 kind,
-                span: _,
-                id: _,
+                ..
             } => {
                 let lower_eval = self.visit_expr(lower)?;
                 let upper_eval = self.visit_expr(upper)?;
@@ -553,7 +521,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 object,
                 name,
                 span,
-                id: _,
+                ..
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
@@ -586,8 +554,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 object,
                 name,
                 value,
-                span: _,
-                id: _,
+                ..
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
@@ -621,14 +588,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         match s {
             Stmt::Program {
                 body: stmts,
-                span: _,
+                ..
             } => {
                 return self.execute_block(stmts, Some(self.env));
             }
-            Stmt::Expression { expr, span: _ } => {
+            Stmt::Expression { expr, .. } => {
                 return self.visit_expr(expr);
             }
-            Stmt::Declaration { dst, expr, span: _ } => {
+            Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
                 self.env_man.write().unwrap().declare(
                     self.env,
@@ -638,7 +605,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Block {
                 body: stmts,
-                span: _,
+                ..
             } => {
                 return self.execute_block(stmts, None);
             }
@@ -646,7 +613,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 condition,
                 body,
                 r#else_body: r#else,
-                span: _,
+                ..
             } => {
                 if self.visit_expr(condition)?.as_bool() {
                     self.visit_stmt(body)?;
@@ -658,7 +625,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 condition,
                 body,
                 post,
-                span: _,
+                ..
             } => {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
@@ -688,7 +655,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ));
                 }
             }
-            Stmt::Return { span: _, expr } => {
+            Stmt::Return { expr, .. } => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));

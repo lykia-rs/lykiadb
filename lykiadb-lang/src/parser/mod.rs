@@ -365,10 +365,7 @@ impl<'a> Parser<'a> {
         let inner_stmt = &(stmt);
 
         let body: Vec<Stmt> = match inner_stmt.as_ref() {
-            Stmt::Block {
-                body: stmts,
-                span: _,
-            } => stmts.clone(),
+            Stmt::Block { body: stmts, .. } => stmts.clone(),
             _ => vec![*stmt.clone()],
         };
 
@@ -397,7 +394,7 @@ impl<'a> Parser<'a> {
         if self.match_next(sym!(Equal)) {
             let value = self.assignment()?;
             match expr.as_ref() {
-                Expr::Variable { name, span, id: _ } => {
+                Expr::Variable { name, span, .. } => {
                     return Ok(Box::new(Expr::Assignment {
                         id: self.get_expr_id(),
                         dst: name.clone(),
@@ -409,7 +406,7 @@ impl<'a> Parser<'a> {
                     object,
                     name,
                     span,
-                    id: _,
+                    ..
                 } => {
                     return Ok(Box::new(Expr::Set {
                         object: object.clone(),
@@ -760,7 +757,7 @@ impl<'a> Parser<'a> {
                 span: tok.span,
                 id: self.get_expr_id(),
             })),
-            Identifier { dollar: _ } => Ok(Box::new(Expr::Variable {
+            Identifier { .. } => Ok(Box::new(Expr::Variable {
                 name: tok.extract_identifier().unwrap(),
                 span: tok.span,
                 id: self.get_expr_id(),

@@ -94,12 +94,7 @@ impl<'a> Resolver<'a> {
 impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
-            Expr::Literal {
-                raw: _,
-                span: _,
-                value,
-                id: _,
-            } => match value {
+            Expr::Literal {value, .. } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
                         self.visit_expr(map.get(item).unwrap())?;
@@ -112,24 +107,11 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 _ => (),
             },
-            Expr::Grouping {
-                expr,
-                span: _,
-                id: _,
-            } => self.resolve_expr(expr),
-            Expr::Unary {
-                operation: _,
-                expr,
-                span: _,
-                id: _,
-            } => self.resolve_expr(expr),
-            Expr::Binary {
-                operation: _,
-                left,
-                right,
-                span: _,
-                id: _,
-            } => {
+            
+            Expr::Grouping { expr, .. }
+            | Expr::Unary { expr, .. } => self.resolve_expr(expr),
+            
+            Expr::Binary { left, right, ..} => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             }
@@ -147,44 +129,22 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 }
                 self.resolve_local(*id, name);
             }
-            Expr::Assignment {
-                dst,
-                expr,
-                span: _,
-                id,
-            } => {
+            Expr::Assignment { dst, expr, id, .. } => {
                 self.resolve_expr(expr);
                 self.resolve_local(*id, dst);
             }
-            Expr::Logical {
-                left,
-                operation: _,
-                right,
-                span: _,
-                id: _,
-            } => {
+            Expr::Logical { left, right, .. } => {
                 self.resolve_expr(left);
                 self.resolve_expr(right);
             }
-            Expr::Call {
-                callee,
-                args,
-                span: _,
-                id: _,
-            } => {
+            Expr::Call { callee, args, .. } => {
                 self.resolve_expr(callee);
 
                 for argument in args {
                     self.resolve_expr(argument);
                 }
             }
-            Expr::Function {
-                name,
-                parameters,
-                body,
-                span: _,
-                id: _,
-            } => {
+            Expr::Function { name, parameters, body, .. } => {
                 if name.is_some() {
                     self.declare(&name.as_ref().unwrap().clone());
                     self.define(&name.as_ref().unwrap().clone());
@@ -197,33 +157,15 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();
             }
-            Expr::Between {
-                lower,
-                upper,
-                subject,
-                kind: _,
-                span: _,
-                id: _,
-            } => {
+            Expr::Between { lower, upper, subject, .. } => {
                 self.resolve_expr(lower);
                 self.resolve_expr(upper);
                 self.resolve_expr(subject);
             }
-            Expr::Get {
-                object,
-                name: _,
-                span: _,
-                id: _,
-            } => {
+            Expr::Get { object, .. } => {
                 self.resolve_expr(object);
             }
-            Expr::Set {
-                object,
-                name: _,
-                value,
-                span: _,
-                id: _,
-            } => {
+            Expr::Set { object, value, .. } => {
                 self.resolve_expr(object);
                 self.resolve_expr(value);
             }
@@ -238,25 +180,22 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
 
     fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ResolveError> {
         match s {
-            Stmt::Program {
-                body: stmts,
-                span: _,
-            } => {
+            Stmt::Program { body: stmts, .. } => {
                 self.resolve_stmts(stmts);
             }
             Stmt::Block {
                 body: stmts,
-                span: _,
+                ..
             } => {
                 self.begin_scope();
                 self.resolve_stmts(stmts);
                 self.end_scope();
             }
-            Stmt::Break { span: _ } | Stmt::Continue { span: _ } => (),
-            Stmt::Expression { expr, span: _ } => {
+            Stmt::Break { .. } | Stmt::Continue { .. } => (),
+            Stmt::Expression { expr, .. } => {
                 self.resolve_expr(expr);
             }
-            Stmt::Declaration { dst, expr, span: _ } => {
+            Stmt::Declaration { dst, expr, .. } => {
                 self.declare(dst);
                 self.resolve_expr(expr);
                 self.define(dst);
@@ -265,7 +204,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 condition,
                 body,
                 r#else_body: r#else,
-                span: _,
+                ..
             } => {
                 self.resolve_expr(condition);
                 self.resolve_stmt(body);
@@ -277,7 +216,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 condition,
                 body,
                 post,
-                span: _,
+                ..
             } => {
                 if condition.is_some() {
                     self.resolve_expr(condition.as_ref().unwrap());
@@ -287,7 +226,7 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                     self.resolve_stmt(post.as_ref().unwrap());
                 }
             }
-            Stmt::Return { span: _, expr } => {
+            Stmt::Return { expr, .. } => {
                 if expr.is_some() {
                     self.resolve_expr(expr.as_ref().unwrap());
                 }

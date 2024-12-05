@@ -30,11 +30,7 @@ impl<'a> Planner<'a> {
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
         match expr {
-            Expr::Select {
-                query,
-                span: _,
-                id: _,
-            } => {
+            Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query)?);
                 Ok(plan)
             }
