@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     engine::{
         error::ExecutionError,
@@ -17,7 +15,8 @@ use lykiadb_lang::{
     Spanned,
 };
 
-use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
+use super::{scope::Scope, 
+    IntermediateExpr, Node, Plan, PlannerError};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -50,7 +49,8 @@ impl<'a> Planner<'a> {
 
         // WHERE
         if let Some(predicate) = &core.r#where {
-            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
+            let (expr, subqueries): (
+                IntermediateExpr, Vec<Node>) =
                 self.build_expr(predicate.as_ref(), true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
@@ -65,6 +65,11 @@ impl<'a> Planner<'a> {
 
         // PROJECTION
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
+            for projection in &core.projection {
+                if let SqlProjection::Expr { expr, .. } = projection {
+                    self.build_expr(&expr, false, true)?;
+                }
+            }
             node = Node::Projection {
                 source: Box::new(node),
                 fields: core.projection.clone(),
@@ -93,19 +98,19 @@ impl<'a> Planner<'a> {
         expr: &Expr,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+    ) -> Result<(
+        IntermediateExpr, Vec<Node>), HaltReason> {
         // TODO(vck): Implement this
 
         let mut subqueries: Vec<Node> = vec![];
-        let overrides = HashMap::new();
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
             Expr::Get { object, name, .. } => {
                 println!("Get {}.({})", object, name);
                 None
             }
-            Expr::Variable { name, .. } => {
-                println!("Variable {}", name);
+            Expr::FieldPath { head, tail, .. } => {
+                println!("FieldPath {} {}", head.to_string(), tail.iter().map(|x| x.to_string()).collect::<String>());
                 None
             }
             Expr::Call { callee, args, .. } => {
@@ -132,7 +137,6 @@ impl<'a> Planner<'a> {
         Ok((
             IntermediateExpr::Expr {
                 expr: expr.clone(),
-                overrides,
             },
             subqueries,
         ))

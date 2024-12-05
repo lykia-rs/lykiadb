@@ -37,18 +37,10 @@ pub enum Aggregate {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ExprOverride {
-    Subquery(usize),
-    Aggregate,
-    Field,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
     Constant(RV),
     Expr {
         expr: Expr,
-        overrides: HashMap<usize, ExprOverride>,
     },
 }
 
