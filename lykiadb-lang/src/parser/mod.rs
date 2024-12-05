@@ -583,33 +583,14 @@ impl<'a> Parser<'a> {
         self.sql_insert()
     }
 
-    fn call(&mut self) -> ParseResult<Box<Expr>> {
-        let mut expr = self.primary()?;
-
-        if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if !name.dollar
-                && self.peek_bw(0).tok_type != sym!(LeftParen)
-                && self.in_select_depth > 0
-            {
-                let head = name.clone();
-                let mut tail: Vec<crate::Identifier> = vec![];
-                while self.match_next(sym!(Dot)) {
-                    let identifier = self.expected(Identifier { dollar: false })?.clone();
-                    tail.push(identifier.extract_identifier().unwrap());
-                }
-                return Ok(Box::new(Expr::FieldPath {
-                    head,
-                    tail,
-                    span: self.get_merged_span(span, &self.peek_bw(0).span),
-                    id: *id,
-                }));
-            }
-        }
-
+    fn parse_get_path(&mut self, initial: Box<Expr>, tok: TokenType) -> ParseResult<Box<Expr>> {
+        
+        let mut expr = initial;
+        
         loop {
             if self.match_next(sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;
-            } else if self.match_next(sym!(Dot)) {
+            } else if self.match_next(tok.clone()) {
                 let identifier = self.expected(Identifier { dollar: false })?.clone();
                 expr = Box::new(Expr::Get {
                     object: expr.clone(),
@@ -620,7 +601,40 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
+        };
+
+        Ok(expr)
+    }
+
+    fn call(&mut self) -> ParseResult<Box<Expr>> {
+        let mut expr = self.primary()?;
+
+        if let Expr::Variable { name, span, id } = expr.as_ref() {
+            if !name.dollar
+            {
+                let next_tok = &self.peek_bw(0).tok_type;
+
+                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && self.in_select_depth > 0 {
+                    let head = name.clone();
+                    let mut tail: Vec<crate::Identifier> = vec![];
+                    while self.match_next(sym!(Dot)) {
+                        let identifier = self.expected(Identifier { dollar: false })?.clone();
+                        tail.push(identifier.extract_identifier().unwrap());
+                    }
+                    return Ok(Box::new(Expr::FieldPath {
+                        head,
+                        tail,
+                        span: self.get_merged_span(span, &self.peek_bw(0).span),
+                        id: *id,
+                    }));
+                }
+
+                expr = self.parse_get_path(expr, sym!(DoubleColon))?;
+                return Ok(expr);
+            }
         }
+
+        expr = self.parse_get_path(expr, sym!(Dot))?;
 
         Ok(expr)
     }

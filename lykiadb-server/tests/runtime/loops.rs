@@ -10,7 +10,7 @@ fn test_loop_statements_0() {
             {
                 if ($i == 2) continue;
                 if ($i == 8) break;
-                TestUtils.out($i);
+                TestUtils::out($i);
             }
         }
     }",
@@ -33,7 +33,7 @@ fn test_loop_statements_1() {
         if ($i > 17) break;
         if ($i < 15) continue;
         for (var $j = 0; $j < 10000000; $j = $j + 1) {
-            TestUtils.out($i + \":\" + $j);
+            TestUtils::out($i + \":\" + $j);
             if ($j > 2) break;
         }
     }",
@@ -62,7 +62,7 @@ fn test_loop_statements_2() {
     for (var $i = 0; $i < 10000000; $i = $i+1) {
         break;
         $q = $q + 1;
-        TestUtils.out(\"Shouldn't be shown\");
+        TestUtils::out(\"Shouldn't be shown\");
     }
     
     {
@@ -72,7 +72,7 @@ fn test_loop_statements_2() {
                     {
                         {
                             {
-                                TestUtils.out($q);
+                                TestUtils::out($q);
                             }
                         }
                     }

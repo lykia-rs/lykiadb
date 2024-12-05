@@ -22,6 +22,7 @@ pub enum Symbol {
     LessEqual,
     Bang,
     Dot,
+    DoubleColon,
     Minus,
     Plus,
     Slash,

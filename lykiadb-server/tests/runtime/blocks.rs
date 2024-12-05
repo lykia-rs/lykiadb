@@ -18,17 +18,17 @@ fn test_blocks_0() {
         var $b = \"outer b\";
         {
             var $a = \"inner a\";
-            TestUtils.out($a);
-            TestUtils.out($b);
-            TestUtils.out($c);
+            TestUtils::out($a);
+            TestUtils::out($b);
+            TestUtils::out($c);
         }
-        TestUtils.out($a);
-        TestUtils.out($b);
-        TestUtils.out($c);
+        TestUtils::out($a);
+        TestUtils::out($b);
+        TestUtils::out($c);
     }
-    TestUtils.out($a);
-    TestUtils.out($b);
-    TestUtils.out($c);",
+    TestUtils::out($a);
+    TestUtils::out($b);
+    TestUtils::out($c);",
         vec![
             RV::Str(Arc::new("inner a".to_string())),
             RV::Str(Arc::new("outer b".to_string())),
@@ -52,15 +52,15 @@ fn test_blocks_1() {
             var $a = \"global\";
             {
                 var $a = \"block\";
-                TestUtils.out($a);
+                TestUtils::out($a);
             }
-            TestUtils.out($a);
+            TestUtils::out($a);
         };
         fnBlock();
-        TestUtils.out($a);
+        TestUtils::out($a);
     ";
 
-    let prog_1 = "TestUtils.out($a);";
+    let prog_1 = "TestUtils::out($a);";
     let expected_err_message = "Variable '$a' was not found";
     //
     let err_0 = runtime.interpret(prog_0).unwrap_err();
