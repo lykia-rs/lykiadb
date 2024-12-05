@@ -539,6 +539,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
+            Expr::FieldPath { .. } => {
+                Err(HaltReason::Error(
+                    InterpretError::Other {
+                        message: format!(
+                            "Unexpected field path expression",
+                        ),
+                    }
+                    .into(),
+                ))
+            }
             Expr::Get {
                 object,
                 name,

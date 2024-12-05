@@ -45,12 +45,13 @@ assert_parsing! {
                       "where": {
                         "@type": "Expr::Binary",
                         "left": {
-                          "@type": "Expr::Variable",
-                          "name": {
+                          "@type": "Expr::FieldPath",
+                          "head": {
                             "@type": "Identifier",
                             "dollar": false,
                             "name": "id"
-                          }
+                          },
+                          "tail": []
                         },
                         "operation": {
                           "@type": "IsEqual"
@@ -116,12 +117,13 @@ assert_parsing! {
                         "left": {
                           "@type": "Expr::Binary",
                           "left": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "id"
-                            }
+                            },
+                            "tail": []
                           },
                           "operation": {
                             "@type": "Greater"
@@ -140,12 +142,13 @@ assert_parsing! {
                         "right": {
                           "@type": "Expr::Binary",
                           "left": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "name"
-                            }
+                            },
+                            "tail": []
                           },
                           "operation": {
                             "@type": "IsEqual"
@@ -216,12 +219,13 @@ assert_parsing! {
                             "left": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Variable",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "id"
-                                }
+                                },
+                                "tail": []
                               },
                               "operation": {
                                 "@type": "Greater"
@@ -240,12 +244,13 @@ assert_parsing! {
                             "right": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Variable",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "name"
-                                }
+                                },
+                                "tail": []
                               },
                               "operation": {
                                 "@type": "IsEqual"
@@ -270,12 +275,13 @@ assert_parsing! {
                             "left": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Variable",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "id"
-                                }
+                                },
+                                "tail": []
                               },
                               "operation": {
                                 "@type": "Less"
@@ -294,12 +300,13 @@ assert_parsing! {
                             "right": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Variable",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "name"
-                                }
+                                },
+                                "tail": []
                               },
                               "operation": {
                                 "@type": "IsEqual"

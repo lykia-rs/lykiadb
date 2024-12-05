@@ -45,12 +45,13 @@ assert_parsing! {
                       "@type": "In"
                     },
                     "left": {
-                      "@type": "Expr::Variable",
-                      "name": {
+                      "@type": "Expr::FieldPath",
+                      "head": {
                         "@type": "Identifier",
                         "name": "id",
                         "dollar": false
-                      }
+                      },
+                      "tail": []
                     },
                     "right": {
                       "@type": "Expr::Grouping",
@@ -67,12 +68,13 @@ assert_parsing! {
                               {
                                 "@type": "SqlProjection::Expr",
                                 "expr": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
+                                  "@type": "Expr::FieldPath",
+                                  "head": {
                                     "@type": "Identifier",
                                     "name": "id",
                                     "dollar": false
-                                  }
+                                  },
+                                  "tail": []
                                 },
                                 "alias": null
                               }
@@ -157,12 +159,13 @@ assert_parsing! {
                     "@type": "NotIn"
                   },
                   "left": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "id",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "right": {
                     "@type": "Expr::Grouping",
@@ -179,12 +182,13 @@ assert_parsing! {
                             {
                               "@type": "SqlProjection::Expr",
                               "expr": {
-                                "@type": "Expr::Variable",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
                                   "@type": "Identifier",
                                   "name": "id",
                                   "dollar": false
-                                }
+                                },
+                                "tail": []
                               },
                               "alias": null
                             }
@@ -269,12 +273,13 @@ assert_parsing! {
                     "@type": "Between"
                   },
                   "subject": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "id",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "lower": {
                     "@type": "Expr::Literal",
@@ -346,12 +351,13 @@ assert_parsing! {
                     "@type": "NotBetween"
                   },
                   "subject": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "id",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "lower": {
                     "@type": "Expr::Literal",
@@ -422,12 +428,13 @@ assert_parsing! {
                     "@type": "Like"
                   },
                   "left": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "name",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "right": {
                     "@type": "Expr::Literal",
@@ -491,12 +498,13 @@ assert_parsing! {
                     "@type": "NotLike"
                   },
                   "left": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "name",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "right": {
                     "@type": "Expr::Literal",
@@ -560,12 +568,13 @@ assert_parsing! {
                     "@type": "Is"
                   },
                   "left": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "level",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "right": {
                     "@type": "Expr::Literal",
@@ -629,12 +638,13 @@ assert_parsing! {
                     "@type": "IsNot"
                   },
                   "left": {
-                    "@type": "Expr::Variable",
-                    "name": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
                       "@type": "Identifier",
                       "name": "level",
                       "dollar": false
-                    }
+                    },
+                    "tail": []
                   },
                   "right": {
                     "@type": "Expr::Literal",

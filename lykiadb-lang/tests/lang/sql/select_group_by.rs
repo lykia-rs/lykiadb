@@ -36,12 +36,13 @@ assert_parsing! {
                     },
                     "group_by": [
                       {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "department_id"
-                        }
+                        },
+                        "tail": []
                       }
                     ],
                     "having": null,
@@ -53,12 +54,13 @@ assert_parsing! {
                           "@type": "Expr::Call",
                           "args": [
                             {
-                              "@type": "Expr::Variable",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "salary"
-                              }
+                              },
+                              "tail": []
                             }
                           ],
                           "callee": {
@@ -115,12 +117,13 @@ assert_parsing! {
                     },
                     "group_by": [
                       {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "department_id"
-                        }
+                        },
+                        "tail": []
                       }
                     ],
                     "having": {
@@ -129,12 +132,13 @@ assert_parsing! {
                         "@type": "Expr::Call",
                         "args": [
                           {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "salary"
-                            }
+                            },
+                            "tail": []
                           }
                         ],
                         "callee": {
@@ -165,12 +169,13 @@ assert_parsing! {
                           "@type": "Expr::Call",
                           "args": [
                             {
-                              "@type": "Expr::Variable",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "salary"
-                              }
+                              },
+                              "tail": []
                             }
                           ],
                           "callee": {
@@ -227,20 +232,22 @@ assert_parsing! {
                     },
                     "group_by": [
                       {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "department_id"
-                        }
+                        },
+                        "tail": []
                       },
                       {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "job_id"
-                        }
+                        },
+                        "tail": []
                       }
                     ],
                     "having": {
@@ -249,12 +256,13 @@ assert_parsing! {
                         "@type": "Expr::Call",
                         "args": [
                           {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "salary"
-                            }
+                            },
+                            "tail": []
                           }
                         ],
                         "callee": {
@@ -285,12 +293,13 @@ assert_parsing! {
                           "@type": "Expr::Call",
                           "args": [
                             {
-                              "@type": "Expr::Variable",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "salary"
-                              }
+                              },
+                              "tail": []
                             }
                           ],
                           "callee": {

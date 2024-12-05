@@ -242,6 +242,19 @@ pub enum Expr {
         #[derivative(Hash = "ignore")]
         id: usize,
     },
+    #[serde(rename = "Expr::FieldPath")]
+    FieldPath {
+        head: Identifier,
+        tail: Vec<Identifier>,
+        #[serde(skip)]
+        #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
+        span: Span,
+        #[serde(skip)]
+        #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
+        id: usize,
+    },
     #[serde(rename = "Expr::Set")]
     Set {
         object: Box<Expr>,
@@ -261,102 +274,23 @@ pub enum Expr {
 impl Spanned for Expr {
     fn get_span(&self) -> Span {
         match self {
-            Expr::Select {
-                query: _,
-                span,
-                id: _,
-            }
-            | Expr::Insert {
-                command: _,
-                span,
-                id: _,
-            }
-            | Expr::Delete {
-                command: _,
-                span,
-                id: _,
-            }
-            | Expr::Update {
-                command: _,
-                span,
-                id: _,
-            }
-            | Expr::Variable {
-                name: _,
-                span,
-                id: _,
-            }
-            | Expr::Grouping {
-                expr: _,
-                span,
-                id: _,
-            }
-            | Expr::Literal {
-                value: _,
-                raw: _,
-                span,
-                id: _,
-            }
-            | Expr::Function {
-                name: _,
-                parameters: _,
-                body: _,
-                span,
-                id: _,
-            }
-            | Expr::Between {
-                lower: _,
-                upper: _,
-                subject: _,
-                kind: _,
-                span,
-                id: _,
-            }
-            | Expr::Binary {
-                left: _,
-                operation: _,
-                right: _,
-                span,
-                id: _,
-            }
-            | Expr::Unary {
-                operation: _,
-                expr: _,
-                span,
-                id: _,
-            }
-            | Expr::Assignment {
-                dst: _,
-                expr: _,
-                span,
-                id: _,
-            }
-            | Expr::Logical {
-                left: _,
-                operation: _,
-                right: _,
-                span,
-                id: _,
-            }
-            | Expr::Call {
-                callee: _,
-                args: _,
-                span,
-                id: _,
-            }
-            | Expr::Get {
-                object: _,
-                name: _,
-                span,
-                id: _,
-            }
-            | Expr::Set {
-                object: _,
-                name: _,
-                value: _,
-                span,
-                id: _,
-            } => *span,
+            Expr::Select { span, .. }
+            | Expr::Insert { span, .. }
+            | Expr::Delete { span, .. }
+            | Expr::Update { span, .. }
+            | Expr::Variable { span, .. }
+            | Expr::Grouping { span, .. }
+            | Expr::Literal { span, .. }
+            | Expr::Function { span, .. }
+            | Expr::Between { span, .. }
+            | Expr::Binary { span, .. }
+            | Expr::Unary { span, .. }
+            | Expr::Assignment { span, .. }
+            | Expr::Logical { span, .. }
+            | Expr::Call { span, .. }
+            | Expr::Get { span, .. }
+            | Expr::FieldPath { span, .. }
+            | Expr::Set { span, .. } => *span,
         }
     }
 }
@@ -364,102 +298,23 @@ impl Spanned for Expr {
 impl AstNode for Expr {
     fn get_id(&self) -> usize {
         match self {
-            Expr::Select {
-                query: _,
-                span: _,
-                id,
-            }
-            | Expr::Insert {
-                command: _,
-                span: _,
-                id,
-            }
-            | Expr::Delete {
-                command: _,
-                span: _,
-                id,
-            }
-            | Expr::Update {
-                command: _,
-                span: _,
-                id,
-            }
-            | Expr::Variable {
-                name: _,
-                span: _,
-                id,
-            }
-            | Expr::Grouping {
-                expr: _,
-                span: _,
-                id,
-            }
-            | Expr::Literal {
-                value: _,
-                raw: _,
-                span: _,
-                id,
-            }
-            | Expr::Function {
-                name: _,
-                parameters: _,
-                body: _,
-                span: _,
-                id,
-            }
-            | Expr::Between {
-                lower: _,
-                upper: _,
-                subject: _,
-                kind: _,
-                span: _,
-                id,
-            }
-            | Expr::Binary {
-                left: _,
-                operation: _,
-                right: _,
-                span: _,
-                id,
-            }
-            | Expr::Unary {
-                operation: _,
-                expr: _,
-                span: _,
-                id,
-            }
-            | Expr::Assignment {
-                dst: _,
-                expr: _,
-                span: _,
-                id,
-            }
-            | Expr::Logical {
-                left: _,
-                operation: _,
-                right: _,
-                span: _,
-                id,
-            }
-            | Expr::Call {
-                callee: _,
-                args: _,
-                span: _,
-                id,
-            }
-            | Expr::Get {
-                object: _,
-                name: _,
-                span: _,
-                id,
-            }
-            | Expr::Set {
-                object: _,
-                name: _,
-                value: _,
-                span: _,
-                id,
-            } => *id,
+            Expr::Select { id, .. }
+            | Expr::Insert { id, .. }
+            | Expr::Delete { id, .. }
+            | Expr::Update { id, .. }
+            | Expr::Variable { id, .. }
+            | Expr::Grouping { id, .. }
+            | Expr::Literal { id, .. }
+            | Expr::Function { id, .. }
+            | Expr::Between { id, .. }
+            | Expr::Binary { id, .. }
+            | Expr::Unary { id, .. }
+            | Expr::Assignment { id, .. }
+            | Expr::Logical { id, .. }
+            | Expr::Call { id, .. }
+            | Expr::Get { id, .. }
+            | Expr::FieldPath { id, .. }
+            | Expr::Set { id, .. } => *id,
         }
     }
 }
@@ -554,6 +409,17 @@ impl Display for Expr {
                 )
             }
             Expr::Get { object, name, .. } => write!(f, "{}.{}", object, name),
+            Expr::FieldPath { head, tail, .. } => {
+                write!(
+                    f,
+                    "{}{}",
+                    head,
+                    tail.iter()
+                        .map(|x| format!(".{}", x))
+                        .collect::<Vec<_>>()
+                        .join("")
+                )
+            },
             Expr::Set {
                 object,
                 name,
@@ -581,6 +447,7 @@ impl Expr {
             | Expr::Update { .. }
             | Expr::Variable { .. }
             | Expr::Literal { .. }
+            | Expr::FieldPath { .. }
             | Expr::Function { .. } => None,
             //
             Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {

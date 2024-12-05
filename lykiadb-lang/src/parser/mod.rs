@@ -592,6 +592,23 @@ impl<'a> Parser<'a> {
     fn call(&mut self) -> ParseResult<Box<Expr>> {
         let mut expr = self.primary()?;
 
+        if let Expr::Variable { name, span, id } = expr.as_ref() {
+            if !name.dollar && self.peek_bw(0).tok_type != sym!(LeftParen) && self.in_select_depth > 0 {
+                let head = name.clone();
+                let mut tail: Vec<crate::Identifier> = vec![];
+                while self.match_next(sym!(Dot)) {
+                    let identifier = self.expected(Identifier { dollar: false })?.clone();
+                    tail.push(identifier.extract_identifier().unwrap());
+                }
+                return Ok(Box::new(Expr::FieldPath {
+                    head,
+                    tail,
+                    span: self.get_merged_span(span, &self.peek_bw(0).span),
+                    id: *id,
+                }));
+            }
+        }
+
         loop {
             if self.match_next(sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;

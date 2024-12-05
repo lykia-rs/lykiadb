@@ -227,26 +227,11 @@ impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
                 self.resolve_expr(object);
                 self.resolve_expr(value);
             }
-            Expr::Select {
-                query: _,
-                span: _,
-                id: _,
-            }
-            | Expr::Insert {
-                command: _,
-                span: _,
-                id: _,
-            }
-            | Expr::Update {
-                command: _,
-                span: _,
-                id: _,
-            }
-            | Expr::Delete {
-                command: _,
-                span: _,
-                id: _,
-            } => (),
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Update { .. }
+            | Expr::Delete { .. } 
+            | Expr::FieldPath { .. } => (),
         };
         Ok(())
     }

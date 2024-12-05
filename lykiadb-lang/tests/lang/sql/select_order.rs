@@ -98,12 +98,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "id"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Desc"
@@ -162,12 +163,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "id"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Asc"
@@ -176,12 +178,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "name"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Asc"
@@ -240,12 +243,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "id"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Asc"
@@ -254,12 +258,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "name"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Asc"
@@ -318,12 +323,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "id"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Asc"
@@ -332,12 +338,13 @@ assert_parsing! {
                     {
                       "@type": "SqlOrderByClause",
                       "expr": {
-                        "@type": "Expr::Variable",
-                        "name": {
+                        "@type": "Expr::FieldPath",
+                        "head": {
                           "@type": "Identifier",
                           "dollar": false,
                           "name": "name"
-                        }
+                        },
+                        "tail": []
                       },
                       "ordering": {
                         "@type": "SqlOrdering::Desc"
