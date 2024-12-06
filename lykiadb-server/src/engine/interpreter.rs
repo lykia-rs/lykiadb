@@ -663,6 +663,12 @@ pub struct Output {
     out: Vec<RV>,
 }
 
+impl Default for Output {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Output {
     pub fn new() -> Output {
         Output { out: Vec::new() }

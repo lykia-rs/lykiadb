@@ -67,7 +67,7 @@ impl<'a> Planner<'a> {
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
-                    self.build_expr(&expr, false, true)?;
+                    self.build_expr(expr, false, true)?;
                 }
             }
             node = Node::Projection {
@@ -110,7 +110,7 @@ impl<'a> Planner<'a> {
                 None
             }
             Expr::FieldPath { head, tail, .. } => {
-                println!("FieldPath {} {}", head.to_string(), tail.iter().map(|x| x.to_string()).collect::<String>());
+                println!("FieldPath {} {}", head, tail.iter().map(|x| x.to_string()).collect::<String>());
                 None
             }
             Expr::Call { callee, args, .. } => {

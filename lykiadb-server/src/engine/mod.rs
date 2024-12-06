@@ -60,6 +60,12 @@ pub mod test_helpers {
         runtime: Runtime,
     }
 
+    impl Default for RuntimeTester {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl RuntimeTester {
         pub fn new() -> RuntimeTester {
             let out = alloc_shared(Output::new());
@@ -127,7 +133,7 @@ pub mod test_helpers {
                     assert_eq!(errors.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n"), part[3..].trim());
                 }
     
-                else if part.starts_with(">") {
+                else if part.starts_with('>') {
                     let result = self.runtime.interpret(part[1..].trim());
     
                     if let Err(err) = result {
@@ -139,7 +145,7 @@ pub mod test_helpers {
                     self.out.write().unwrap().expect(vec![RV::Str(Arc::new(part.to_string()))]);
                 }
                 else {
-                    self.out.write().unwrap().expect_str(part.to_string().split("\n").map(|x| x.to_string()).collect());
+                    self.out.write().unwrap().expect_str(part.to_string().split('\n').map(|x| x.to_string()).collect());
                 }     
             }
         }

@@ -628,11 +628,11 @@ impl<'a> Parser<'a> {
                     }));
                 }
 
-                return Ok(self.expect_get_path(expr, sym!(DoubleColon))?);
+                return self.expect_get_path(expr, sym!(DoubleColon));
             }
         }
 
-        Ok(self.expect_get_path(expr, sym!(Dot))?)
+        self.expect_get_path(expr, sym!(Dot))
     }
 
     fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
@@ -777,7 +777,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expected(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
-        if self.cmp_tok(&expected_tok_type) {
+        if self.cmp_tok(expected_tok_type) {
             return Ok(self.advance());
         };
         let prev_token = self.peek_bw(1);
