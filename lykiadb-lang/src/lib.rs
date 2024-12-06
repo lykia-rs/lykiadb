@@ -96,6 +96,16 @@ pub struct Identifier {
     pub span: Span,
 }
 
+impl Identifier {
+    pub fn new(name: &str, dollar: bool) -> Self {
+        Identifier {
+            name: name.to_string(),
+            dollar,
+            span: Span::default(),
+        }
+    }
+}
+
 impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{}", self.name)
