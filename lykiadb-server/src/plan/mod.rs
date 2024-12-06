@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 
 use lykiadb_lang::{
     ast::{
@@ -39,9 +39,7 @@ pub enum Aggregate {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
     Constant(RV),
-    Expr {
-        expr: Expr,
-    },
+    Expr { expr: Expr },
 }
 
 impl Display for IntermediateExpr {

@@ -15,8 +15,7 @@ use lykiadb_lang::{
     Spanned,
 };
 
-use super::{scope::Scope, 
-    IntermediateExpr, Node, Plan, PlannerError};
+use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -49,8 +48,7 @@ impl<'a> Planner<'a> {
 
         // WHERE
         if let Some(predicate) = &core.r#where {
-            let (expr, subqueries): (
-                IntermediateExpr, Vec<Node>) =
+            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
                 self.build_expr(predicate.as_ref(), true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
@@ -67,7 +65,7 @@ impl<'a> Planner<'a> {
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
-                    self.build_expr(&expr, false, true)?;
+                    self.build_expr(expr, false, true)?;
                 }
             }
             node = Node::Projection {
@@ -98,8 +96,7 @@ impl<'a> Planner<'a> {
         expr: &Expr,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(
-        IntermediateExpr, Vec<Node>), HaltReason> {
+    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
         // TODO(vck): Implement this
 
         let mut subqueries: Vec<Node> = vec![];
@@ -110,7 +107,11 @@ impl<'a> Planner<'a> {
                 None
             }
             Expr::FieldPath { head, tail, .. } => {
-                println!("FieldPath {} {}", head.to_string(), tail.iter().map(|x| x.to_string()).collect::<String>());
+                println!(
+                    "FieldPath {} {}",
+                    head,
+                    tail.iter().map(|x| x.to_string()).collect::<String>()
+                );
                 None
             }
             Expr::Call { callee, args, .. } => {
@@ -134,12 +135,7 @@ impl<'a> Planner<'a> {
             return Err(err);
         }
 
-        Ok((
-            IntermediateExpr::Expr {
-                expr: expr.clone(),
-            },
-            subqueries,
-        ))
+        Ok((IntermediateExpr::Expr { expr: expr.clone() }, subqueries))
     }
 
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {

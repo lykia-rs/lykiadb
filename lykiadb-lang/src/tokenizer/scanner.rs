@@ -231,7 +231,7 @@ impl<'a> Scanner<'a> {
 
     fn scan_double_token(&mut self, start: usize, c: char) -> Token {
         self.advance();
-        
+
         if self.match_next(':') && c == ':' {
             Token {
                 tok_type: sym!(DoubleColon),

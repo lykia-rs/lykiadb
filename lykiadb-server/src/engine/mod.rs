@@ -45,11 +45,11 @@ impl Runtime {
 }
 
 pub mod test_helpers {
+    use pretty_assertions::assert_eq;
     use std::collections::HashMap;
     use std::sync::Arc;
-    use pretty_assertions::assert_eq;
 
-    use crate::engine::{Runtime, RuntimeMode, Interpreter, error::ExecutionError};
+    use crate::engine::{error::ExecutionError, Interpreter, Runtime, RuntimeMode};
     use crate::util::{alloc_shared, Shared};
     use crate::value::RV;
 
@@ -60,13 +60,19 @@ pub mod test_helpers {
         runtime: Runtime,
     }
 
+    impl Default for RuntimeTester {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl RuntimeTester {
         pub fn new() -> RuntimeTester {
             let out = alloc_shared(Output::new());
 
-            RuntimeTester {  
+            RuntimeTester {
                 out: out.clone(),
-                runtime: Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)), 
+                runtime: Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)),
             }
         }
 
@@ -74,7 +80,6 @@ pub mod test_helpers {
             let parts: Vec<&str> = input.split("#[").collect();
 
             for part in parts[1..].iter() {
-
                 let mut tester = RuntimeTester::new();
 
                 let directives_and_input = part.trim();
@@ -111,36 +116,49 @@ pub mod test_helpers {
         }
 
         fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
-    
-            assert!(case_parts.len() > 1, "Expected at least one input/output pair");
-    
+            assert!(
+                case_parts.len() > 1,
+                "Expected at least one input/output pair"
+            );
+
             let mut errors: Vec<ExecutionError> = vec![];
-    
+
             let result = self.runtime.interpret(&case_parts[0]);
-    
+
             if let Err(err) = result {
                 errors.push(err);
             }
-    
+
             for part in &case_parts[1..] {
                 if part.starts_with("err") {
-                    assert_eq!(errors.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n"), part[3..].trim());
-                }
-    
-                else if part.starts_with(">") {
+                    assert_eq!(
+                        errors
+                            .iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<String>>()
+                            .join("\n"),
+                        part[3..].trim()
+                    );
+                } else if part.starts_with('>') {
                     let result = self.runtime.interpret(part[1..].trim());
-    
+
                     if let Err(err) = result {
                         errors.push(err);
                     }
-                }
-                else if flags.get("run") == Some(&"plan") {
+                } else if flags.get("run") == Some(&"plan") {
                     // TODO(vck): Remove this
-                    self.out.write().unwrap().expect(vec![RV::Str(Arc::new(part.to_string()))]);
+                    self.out
+                        .write()
+                        .unwrap()
+                        .expect(vec![RV::Str(Arc::new(part.to_string()))]);
+                } else {
+                    self.out.write().unwrap().expect_str(
+                        part.to_string()
+                            .split('\n')
+                            .map(|x| x.to_string())
+                            .collect(),
+                    );
                 }
-                else {
-                    self.out.write().unwrap().expect_str(part.to_string().split("\n").map(|x| x.to_string()).collect());
-                }     
             }
         }
     }

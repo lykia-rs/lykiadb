@@ -585,7 +585,7 @@ impl<'a> Parser<'a> {
 
     fn expect_get_path(&mut self, initial: Box<Expr>, tok: TokenType) -> ParseResult<Box<Expr>> {
         let mut expr = initial;
-        
+
         loop {
             if self.match_next(&sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;
@@ -600,7 +600,7 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-        };
+        }
 
         Ok(expr)
     }
@@ -609,11 +609,12 @@ impl<'a> Parser<'a> {
         let expr = self.primary()?;
 
         if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if !name.dollar
-            {
+            if !name.dollar {
                 let next_tok = &self.peek_bw(0).tok_type;
 
-                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && self.in_select_depth > 0 {
+                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
+                    && self.in_select_depth > 0
+                {
                     let head = name.clone();
                     let mut tail: Vec<crate::Identifier> = vec![];
                     while self.match_next(&sym!(Dot)) {
@@ -628,11 +629,11 @@ impl<'a> Parser<'a> {
                     }));
                 }
 
-                return Ok(self.expect_get_path(expr, sym!(DoubleColon))?);
+                return self.expect_get_path(expr, sym!(DoubleColon));
             }
         }
 
-        Ok(self.expect_get_path(expr, sym!(Dot))?)
+        self.expect_get_path(expr, sym!(Dot))
     }
 
     fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
@@ -777,7 +778,7 @@ impl<'a> Parser<'a> {
     }
 
     fn expected(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
-        if self.cmp_tok(&expected_tok_type) {
+        if self.cmp_tok(expected_tok_type) {
             return Ok(self.advance());
         };
         let prev_token = self.peek_bw(1);
