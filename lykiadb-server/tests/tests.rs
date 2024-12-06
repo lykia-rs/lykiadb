@@ -1,6 +1,5 @@
 #![recursion_limit = "192"]
 
-mod runtime;
 mod util;
 mod planner {
     use crate::util::run_test;
