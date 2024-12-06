@@ -338,7 +338,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let mut planner = Planner::new(self); // TODO(vck): Use the existing context
+                let mut planner = Planner::new(self);
                 let plan = planner.build(e)?;
                 if let Some(out) = &self.output {
                     out.write()
@@ -663,12 +663,6 @@ pub struct Output {
     out: Vec<RV>,
 }
 
-impl Default for Output {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Output {
     pub fn new() -> Output {
         Output { out: Vec::new() }
@@ -731,75 +725,5 @@ pub mod test_helpers {
         let result = runtime.interpret(code);
         assert!(result.is_err());
         assert_eq!(result.err().unwrap().to_string(), error);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::value::RV;
-
-    use super::test_helpers::get_runtime;
-
-    #[test]
-    fn test_unary_evaluation() {
-        let code = "
-            test_utils::out(-2);
-            test_utils::out(-(-2));
-            test_utils::out(!3);
-            test_utils::out(!!3);
-            test_utils::out(!!!3);
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Num(-2.0),
-            RV::Num(2.0),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-        ]);
-    }
-    #[test]
-    fn test_binary_evaluation() {
-        let code = "
-            test_utils::out(5-(-2));
-            test_utils::out((5 + 2) * 4);
-            test_utils::out(5 + 2 * 4);
-            test_utils::out((13 + 4) * (7 + 3));
-            test_utils::out(-5-2);
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Num(7.0),
-            RV::Num(28.0),
-            RV::Num(13.0),
-            RV::Num(170.0),
-            RV::Num(-7.0),
-        ]);
-    }
-
-    #[test]
-    fn test_logical_evaluation() {
-        let code = "
-            test_utils::out(5 && 1);
-            test_utils::out(5 || 1);
-            test_utils::out(5 && 0);
-            test_utils::out(5 || 0);
-            test_utils::out(!(5 || 0));
-            test_utils::out(!(5 || 0) || 1);
-            test_utils::out(!(5 || 0) || (1 && 0));
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Bool(true),
-            RV::Bool(true),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-        ]);
     }
 }

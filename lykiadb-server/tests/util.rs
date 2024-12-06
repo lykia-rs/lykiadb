@@ -15,7 +15,7 @@ fn run_plan(case_parts: Vec<String>, flags: HashMap<&str, &str>) {
     }
 }
 
-fn run_interpreter(case_parts: Vec<String>, flags: HashMap<&str, &str>) {
+fn run_case(case_parts: Vec<String>, _: HashMap<&str, &str>) {
     let (out, mut runtime) = get_runtime();
 
     assert!(case_parts.len() > 1, "Expected at least one input/output pair");
@@ -29,7 +29,6 @@ fn run_interpreter(case_parts: Vec<String>, flags: HashMap<&str, &str>) {
     }
 
     for part in &case_parts[1..] {
-
         if part.starts_with("err") {
             assert_eq!(errors.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n"), part[3..].trim());
         }
@@ -47,7 +46,7 @@ fn run_interpreter(case_parts: Vec<String>, flags: HashMap<&str, &str>) {
     }
 }
 
-pub fn run_test(input: &str) {
+pub fn run_test_file(input: &str) {
     let parts: Vec<&str> = input.split("#[").collect();
 
     for part in parts[1..].iter() {
@@ -80,7 +79,7 @@ pub fn run_test(input: &str) {
                 run_plan(case_parts, flags.clone());
             }
             Some(&"interpreter") => {
-                run_interpreter(case_parts, flags.clone());
+                run_case(case_parts, flags.clone());
             }
             _ => panic!("Unknown directive"),
         }
