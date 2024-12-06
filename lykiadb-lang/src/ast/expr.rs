@@ -491,39 +491,6 @@ impl Expr {
             }
         }
     }
-
-    pub fn collect(&self, predicate: &impl Fn(&Expr) -> bool, collected: &mut Vec<Expr>) {
-        if predicate(self) {
-            collected.push(self.clone());
-            return;
-        }
-        match &self {
-            Expr::Grouping { expr, .. } => expr.collect(predicate, collected),
-            Expr::Between {
-                lower,
-                upper,
-                subject,
-                ..
-            } => {
-                lower.collect(predicate, collected);
-                upper.collect(predicate, collected);
-                subject.collect(predicate, collected);
-            }
-            Expr::Binary { left, right, .. } => {
-                left.collect(predicate, collected);
-                right.collect(predicate, collected);
-            }
-            Expr::Unary { expr, .. } => expr.collect(predicate, collected),
-            Expr::Logical { left, right, .. } => {
-                left.collect(predicate, collected);
-                right.collect(predicate, collected);
-            }
-            Expr::Call { args, .. } => {
-                args.iter().for_each(|x| x.collect(predicate, collected));
-            }
-            _ => (),
-        }
-    }
 }
 
 #[cfg(test)]
