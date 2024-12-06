@@ -1,18 +1,18 @@
 #[name=multiple_programs, run=interpreter]>
 
-function resolvedFirst() {
+function $resolved_first() {
     var $a = "global";
     {
-        function showA() {
+        function $show_a() {
             test_utils::out($a);
         };
     
-        showA();
+        $show_a();
         var $a = "block";
-        showA();
+        $show_a();
     }
 };
-resolvedFirst();
+$resolved_first();
 
 ---
 
@@ -21,7 +21,7 @@ global
 
 ---
 
-resolvedFirst();
+$resolved_first();
 
 ---
 

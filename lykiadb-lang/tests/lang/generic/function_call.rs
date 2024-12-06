@@ -4,7 +4,7 @@ use serde_json::json;
 
 assert_parsing! {
     print_50: {
-        "print(50);" => {
+        "$hello(50);" => {
             "@type": "Stmt::Program",
             "body": [
               {
@@ -24,8 +24,8 @@ assert_parsing! {
                     "@type": "Expr::Variable",
                     "name": {
                       "@type": "Identifier",
-                      "dollar": false,
-                      "name": "print"
+                      "dollar": true,
+                      "name": "$hello"
                     }
                   }
                 }

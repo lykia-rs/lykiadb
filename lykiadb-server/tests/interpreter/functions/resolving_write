@@ -2,24 +2,24 @@
 
 var $a = "global";
 {
-    function showA() {
+    function $show_a() {
         test_utils::out($a);
     };
 
     var $a = "block";
     
-    function showB() {
+    function $show_b() {
         test_utils::out($a);
     };
 
     
-    showA();
-    showB();
+    $show_a();
+    $show_b();
     
     $a = "test";
     
-    showA();
-    showB();
+    $show_a();
+    $show_b();
 }
 
 ---
@@ -34,23 +34,23 @@ test
 
 var $a = "global";
 {
-    var $showA = function() {
+    var $show_a = function() {
         test_utils::out($a);
     };
 
     var $a = "block";
     
-    var $showB = function() {
+    var $show_b = function() {
         test_utils::out($a);
     };
 
-    $showA();
-    $showB();
+    $show_a();
+    $show_b();
 
     $a = "test";
 
-    $showA();
-    $showB();
+    $show_a();
+    $show_b();
 }
 
 ---

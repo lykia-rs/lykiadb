@@ -330,8 +330,8 @@ impl<'a> Parser<'a> {
         let mut tokens = vec![];
         let fun_tok = self.peek_bw(1);
         tokens.push(fun_tok.clone());
-        let token = if self.cmp_tok(&Identifier { dollar: false }) {
-            Some(self.expected(&Identifier { dollar: false })?.clone())
+        let token = if self.cmp_tok(&Identifier { dollar: true }) {
+            Some(self.expected(&Identifier { dollar: true })?.clone())
         } else {
             None
         };

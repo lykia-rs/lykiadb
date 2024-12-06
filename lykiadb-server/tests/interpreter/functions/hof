@@ -1,15 +1,15 @@
 #[name=higher_order_0, run=interpreter]>
 
-function f($x, $q) {
+function $f($x, $q) {
     $x($q);
 };
 
-function g($q) {
+function $g($q) {
     test_utils::out($q);
 };
 
 for (var $i = 0; $i < 10; $i = $i + 1) {
-    f(g, $i);
+    $f($g, $i);
 }
 
 ---
@@ -28,16 +28,16 @@ for (var $i = 0; $i < 10; $i = $i + 1) {
 
 #[name=higher_order_1, run=interpreter]>
 
-function makeCounter() {
+function $make_counter() {
     var $i = 0;
-    function count() {
+    function $count() {
         $i = $i + 1;
         test_utils::out($i);
     };
 
-    return count;
+    return $count;
 };
-var $count = makeCounter();
+var $count = $make_counter();
 $count();
 $count();
 

@@ -2,13 +2,13 @@
 
 var $a = "global";
 {
-    function showA() {
+    function $show_a() {
         test_utils::out($a);
     };
 
-    showA();
+    $show_a();
     var $a = "block";
-    showA();
+    $show_a();
 }
 
 ---
@@ -21,19 +21,19 @@ global
 
 var $a = "global";
 {
-    function showA() {
+    function $show_a() {
         test_utils::out($a);
     };
 
-    showA();
+    $show_a();
     var $a = "block";
-    showA();
+    $show_a();
 
-    function showB() {
+    function $show_b() {
         test_utils::out($a);
     };
 
-    showB();
+    $show_b();
 }
 
 ---
@@ -47,13 +47,13 @@ block
 {
     var $a = "global";
     {
-        function showA() {
+        function $show_a() {
             test_utils::out($a);
         };
     
-        showA();
+        $show_a();
         var $a = "block";
-        showA();
+        $show_a();
     }
 }
 
@@ -68,22 +68,22 @@ global
 var $text = 'outer $text';
         
 var $a = {
-    myFun: function() {
-        function pre_define() {
+    my_fun: function() {
+        function $pre_define() {
             test_utils::out($text);
         };
-        pre_define();
+        $pre_define();
 
         var $text = 'inner $text';
 
-        function post_define() {
+        function $post_define() {
             test_utils::out($text);
         };
-        post_define();
+        $post_define();
     }
 };
 
-$a.myFun();
+$a.my_fun();
 
 ---
 
@@ -98,39 +98,39 @@ var $text = 'outer $text';
 var $a = {
     b: {
         c0: {
-            myFun: function() {
-                function pre_define() {
+            my_fun: function() {
+                function $pre_define() {
                     test_utils::out($text);
                 };
-                pre_define();
+                $pre_define();
 
                 var $text = 'c0 inner $text';
 
-                function post_define() {
+                function $post_define() {
                     test_utils::out($text);
                 };
-                post_define();
+                $post_define();
             }
         },
         c1: {
-            myFun: function() {
-                function pre_define() {
+            my_fun: function() {
+                function $pre_define() {
                     test_utils::out($text);
                 };
-                pre_define();
+                $pre_define();
 
                 var $text = 'c1 inner $text';
 
-                function post_define() {
+                function $post_define() {
                     test_utils::out($text);
                 };
-                post_define();
+                $post_define();
             }
         }
     }
 };
-$a.b.c0.myFun();
-$a.b.c1.myFun();
+$a.b.c0.my_fun();
+$a.b.c1.my_fun();
 
 ---
 

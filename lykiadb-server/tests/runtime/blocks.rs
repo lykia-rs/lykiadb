@@ -48,7 +48,7 @@ fn test_blocks_1() {
     let (out, mut runtime) = get_runtime();
 
     let prog_0 = "
-        function fnBlock() {
+        function $fn_block() {
             var $a = \"global\";
             {
                 var $a = \"block\";
@@ -56,7 +56,7 @@ fn test_blocks_1() {
             }
             test_utils::out($a);
         };
-        fnBlock();
+        $fn_block();
         test_utils::out($a);
     ";
 

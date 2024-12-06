@@ -1,11 +1,11 @@
 #[name=anonymous_fn_0, run=interpreter]>
 
-var $pr = function a() {
+var $pr = function $a() {
     test_utils::out("hello");
 };
 
 $pr();
-a();
+$a();
 
 ---
 
@@ -15,11 +15,11 @@ hello
 
 #[name=anonymous_fn_1_iife, run=interpreter]>
 
-(function a() {
+(function $a() {
     test_utils::out("hello");
 })();
 
-a();
+$a();
 
 ---
 
