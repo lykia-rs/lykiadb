@@ -185,3 +185,124 @@ impl<'de> Deserialize<'de> for RV {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_rv_as_bool() {
+        // Test numeric values
+        assert!(!RV::Num(0.0).as_bool());
+        assert!(RV::Num(1.0).as_bool());
+        assert!(RV::Num(-1.0).as_bool());
+        assert!(!RV::Num(f64::NAN).as_bool());
+
+        // Test strings
+        assert!(!RV::Str(Arc::new("".to_string())).as_bool());
+        assert!(RV::Str(Arc::new("hello".to_string())).as_bool());
+
+        // Test booleans
+        assert!(RV::Bool(true).as_bool());
+        assert!(!RV::Bool(false).as_bool());
+
+        // Test special values
+        assert!(!RV::Null.as_bool());
+        assert!(!RV::Undefined.as_bool());
+        assert!(!RV::NaN.as_bool());
+
+        // Test collections
+        let empty_array = RV::Array(alloc_shared(Vec::new()));
+        let empty_object = RV::Object(alloc_shared(FxHashMap::default()));
+        assert!(empty_array.as_bool());
+        assert!(empty_object.as_bool());
+    }
+
+    #[test]
+    fn test_rv_as_number() {
+        // Test numeric values
+        assert_eq!(RV::Num(42.0).as_number(), Some(42.0));
+        assert_eq!(RV::Num(-42.0).as_number(), Some(-42.0));
+        assert_eq!(RV::Num(0.0).as_number(), Some(0.0));
+
+        // Test booleans
+        assert_eq!(RV::Bool(true).as_number(), Some(1.0));
+        assert_eq!(RV::Bool(false).as_number(), Some(0.0));
+
+        // Test strings
+        assert_eq!(RV::Str(Arc::new("42".to_string())).as_number(), Some(42.0));
+        assert_eq!(RV::Str(Arc::new("-42".to_string())).as_number(), Some(-42.0));
+        assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_number(), None);
+        assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
+
+        // Test other types
+        assert_eq!(RV::Null.as_number(), None);
+        assert_eq!(RV::Undefined.as_number(), None);
+        assert_eq!(RV::NaN.as_number(), None);
+        assert_eq!(RV::Array(alloc_shared(Vec::new())).as_number(), None);
+        assert_eq!(RV::Object(alloc_shared(FxHashMap::default())).as_number(), None);
+    }
+
+    #[test]
+    fn test_rv_is_in() {
+        // Test string contains
+        let haystack = RV::Str(Arc::new("hello world".to_string()));
+        let needle = RV::Str(Arc::new("world".to_string()));
+        assert_eq!(needle.is_in(&haystack), RV::Bool(true));
+        
+        let not_found = RV::Str(Arc::new("xyz".to_string()));
+        assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
+
+        // Test array contains
+        let mut arr = Vec::new();
+        arr.push(RV::Num(1.0));
+        arr.push(RV::Str(Arc::new("test".to_string())));
+        let array = RV::Array(alloc_shared(arr));
+
+        assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
+        assert_eq!(RV::Num(2.0).is_in(&array), RV::Bool(false));
+        assert_eq!(RV::Str(Arc::new("test".to_string())).is_in(&array), RV::Bool(true));
+
+        // Test object key contains
+        let mut map = FxHashMap::default();
+        map.insert("key".to_string(), RV::Num(1.0));
+        let object = RV::Object(alloc_shared(map));
+
+        assert_eq!(RV::Str(Arc::new("key".to_string())).is_in(&object), RV::Bool(true));
+        assert_eq!(RV::Str(Arc::new("missing".to_string())).is_in(&object), RV::Bool(false));
+    }
+
+    #[test]
+    fn test_rv_not() {
+        assert_eq!(RV::Bool(true).not(), RV::Bool(false));
+        assert_eq!(RV::Bool(false).not(), RV::Bool(true));
+        assert_eq!(RV::Num(0.0).not(), RV::Bool(true));
+        assert_eq!(RV::Num(1.0).not(), RV::Bool(false));
+        assert_eq!(RV::Str(Arc::new("".to_string())).not(), RV::Bool(true));
+        assert_eq!(RV::Str(Arc::new("hello".to_string())).not(), RV::Bool(false));
+        assert_eq!(RV::Null.not(), RV::Bool(true));
+        assert_eq!(RV::Undefined.not(), RV::Bool(true));
+        assert_eq!(RV::NaN.not(), RV::Bool(true));
+    }
+
+    #[test]
+    fn test_rv_display() {
+        assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "hello");
+        assert_eq!(RV::Num(42.0).to_string(), "42");
+        assert_eq!(RV::Bool(true).to_string(), "true");
+        assert_eq!(RV::Bool(false).to_string(), "false");
+        assert_eq!(RV::Undefined.to_string(), "undefined");
+        assert_eq!(RV::NaN.to_string(), "NaN");
+        assert_eq!(RV::Null.to_string(), "null");
+
+        let mut arr = Vec::new();
+        arr.push(RV::Num(1.0));
+        arr.push(RV::Str(Arc::new("test".to_string())));
+        assert_eq!(RV::Array(alloc_shared(arr)).to_string(), "[1, test]");
+
+        let mut map = FxHashMap::default();
+        map.insert("key".to_string(), RV::Num(42.0));
+        assert_eq!(RV::Object(alloc_shared(map)).to_string(), "{key: 42}");
+    }
+}
