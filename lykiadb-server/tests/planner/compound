@@ -6,9 +6,10 @@ SELECT * FROM books;
 
 ---
 
-- compound [Union]
+- compound [type=Union]
   - scan [books as books]
   - scan [books as books]
+
 
 #[name=simple_intersect, run=plan]>
 
@@ -18,7 +19,7 @@ SELECT * FROM books;
 
 ---
 
-- compound [Intersect]
+- compound [type=Intersect]
   - scan [books as books]
   - scan [books as books]
 
@@ -31,7 +32,7 @@ SELECT * FROM books;
 
 ---
 
-- compound [Except]
+- compound [type=Except]
   - scan [books as books]
   - scan [books as books]
 
@@ -48,11 +49,27 @@ SELECT * FROM books;
 
 ---
 
-- compound [Union]
-  - filter (id Greater Num(5.0)):
+- compound [type=Union]
+  - filter [(id Greater Num(5.0))]
     - scan [books as books]
-  - compound [Intersect]
+  - compound [type=Intersect]
     - scan [books as books]
-    - compound [Except]
+    - compound [type=Except]
       - scan [books as books]
       - scan [books as books]
+
+
+#[name=with_projection, run=plan]>
+
+SELECT id FROM books where id > 5
+UNION
+SELECT title FROM books;
+
+---
+
+- compound [type=Union]
+  - project [id as id]
+    - filter [(id Greater Num(5.0))]
+      - scan [books as books]
+  - project [title as title]
+    - scan [books as books]

@@ -41,12 +41,13 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": null,
                           "expr": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "surname"
-                            }
+                            },
+                            "tail": []
                           }
                         }
                       ],
@@ -98,12 +99,13 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": null,
                           "expr": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "surname"
-                            }
+                            },
+                            "tail": []
                           }
                         }
                       ],
@@ -155,12 +157,13 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": null,
                           "expr": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "surname"
-                            }
+                            },
+                            "tail": []
                           }
                         }
                       ],

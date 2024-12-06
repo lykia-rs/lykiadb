@@ -1,7 +1,7 @@
+use super::RV;
 use lykiadb_lang::ast::expr::Operation;
 use std::ops;
 use std::sync::Arc;
-use super::RV;
 
 impl PartialEq for RV {
     fn eq(&self, other: &Self) -> bool {

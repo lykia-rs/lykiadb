@@ -144,12 +144,13 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": null,
                           "expr": {
-                            "@type": "Expr::Variable",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "id"
-                            }
+                            },
+                            "tail": []
                           }
                         },
                         {
@@ -160,20 +161,17 @@ assert_parsing! {
                             "name": "username"
                           },
                           "expr": {
-                            "@type": "Expr::Get",
-                            "name": {
+                            "@type": "Expr::FieldPath",
+                            "head": {
+                              "@type": "Identifier",
+                              "dollar": false,
+                              "name": "users"
+                            },
+                            "tail": [{
                               "@type": "Identifier",
                               "dollar": false,
                               "name": "name"
-                            },
-                            "object": {
-                              "@type": "Expr::Variable",
-                              "name": {
-                                "@type": "Identifier",
-                                "dollar": false,
-                                "name": "users"
-                              }
-                            }
+                            }]
                           }
                         }
                       ],

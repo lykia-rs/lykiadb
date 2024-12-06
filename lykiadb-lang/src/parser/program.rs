@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    ast::{expr::Expr, stmt::Stmt}, tokenizer::scanner::Scanner, Locals, Scopes
+    ast::{expr::Expr, stmt::Stmt},
+    tokenizer::scanner::Scanner,
+    Locals, Scopes,
 };
 
 use super::{resolver::Resolver, ParseError, ParseResult, Parser};
@@ -25,17 +27,7 @@ impl Program {
 
     pub fn get_distance(&self, expr: &Expr) -> Option<usize> {
         let expr_id: usize = match expr {
-            Expr::Variable {
-                name: _,
-                span: _,
-                id,
-            } => *id,
-            Expr::Assignment {
-                span: _,
-                id,
-                expr: _,
-                dst: _,
-            } => *id,
+            Expr::Variable { id, .. } | Expr::Assignment { id, .. } => *id,
             _ => panic!("Expected variable or assignment expression."),
         };
 

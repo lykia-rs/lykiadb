@@ -1,0 +1,61 @@
+#[name=resolving_write_0, run=interpreter]>
+
+var $a = "global";
+{
+    function $show_a() {
+        test_utils::out($a);
+    };
+
+    var $a = "block";
+    
+    function $show_b() {
+        test_utils::out($a);
+    };
+
+    
+    $show_a();
+    $show_b();
+    
+    $a = "test";
+    
+    $show_a();
+    $show_b();
+}
+
+---
+
+global
+block
+global
+test
+
+
+#[name=resolving_write_1, run=interpreter]>
+
+var $a = "global";
+{
+    var $show_a = function() {
+        test_utils::out($a);
+    };
+
+    var $a = "block";
+    
+    var $show_b = function() {
+        test_utils::out($a);
+    };
+
+    $show_a();
+    $show_b();
+
+    $a = "test";
+
+    $show_a();
+    $show_b();
+}
+
+---
+
+global
+block
+global
+test

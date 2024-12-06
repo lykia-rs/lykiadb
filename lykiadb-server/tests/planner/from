@@ -1,0 +1,36 @@
+#[name=plain, run=plan]>
+
+SELECT * FROM books;
+
+---
+
+- scan [books as books]
+
+#[name=expression, run=plan]>
+
+SELECT * FROM [1,1,2,3,5,8,13] as fib;
+
+---
+
+- eval_scan [Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))]
+
+#[name=subquery, run=plan]>
+
+SELECT u.id as id FROM (select * from books) u;
+
+---
+
+- project [u.id as id]
+  - subquery [u]
+    - scan [books as books]
+
+
+#[name=mixed, run=plan]>
+
+SELECT * FROM books, [1,2,3] as num;
+
+---
+
+- join [type=Cross, None]
+  - scan [books as books]
+  - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]

@@ -14,7 +14,7 @@ pub struct Scanner<'a> {
     line: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ScanError {
     UnexpectedCharacter { span: Span },
     UnterminatedString { span: Span },
@@ -231,7 +231,20 @@ impl<'a> Scanner<'a> {
 
     fn scan_double_token(&mut self, start: usize, c: char) -> Token {
         self.advance();
-        if self.match_next('&') && c == '&' {
+        
+        if self.match_next(':') && c == ':' {
+            Token {
+                tok_type: sym!(DoubleColon),
+                literal: None,
+                lexeme: Some("::".to_owned()),
+                span: Span {
+                    start,
+                    end: start + 2,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
+        } else if self.match_next('&') && c == '&' {
             Token {
                 tok_type: sym!(LogicalAnd),
                 literal: None,
@@ -280,6 +293,7 @@ impl<'a> Scanner<'a> {
                     '=' => sym!(Equal),
                     '<' => sym!(Less),
                     '>' => sym!(Greater),
+                    ':' => sym!(Colon),
                     _ => unreachable!(), // TODO(vck): fix
                 },
                 literal: None,
@@ -356,7 +370,7 @@ impl<'a> Scanner<'a> {
                 'A'..='Z' | 'a'..='z' | '_' | '$' | '\\' => {
                     Some(self.scan_identifier(start_idx, tokens.last())?)
                 }
-                '!' | '=' | '<' | '>' | '|' | '&' => {
+                '!' | '=' | '<' | '>' | '|' | '&' | ':' => {
                     Some(self.scan_double_token(start_idx, start_char))
                 }
                 '/' => self.scan_slash(start_idx),

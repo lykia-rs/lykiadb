@@ -1,0 +1,47 @@
+#[name=higher_order_0, run=interpreter]>
+
+function $f($x, $q) {
+    $x($q);
+};
+
+function $g($q) {
+    test_utils::out($q);
+};
+
+for (var $i = 0; $i < 10; $i = $i + 1) {
+    $f($g, $i);
+}
+
+---
+
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+
+#[name=higher_order_1, run=interpreter]>
+
+function $make_counter() {
+    var $i = 0;
+    function $count() {
+        $i = $i + 1;
+        test_utils::out($i);
+    };
+
+    return $count;
+};
+var $count = $make_counter();
+$count();
+$count();
+
+---
+
+1
+2

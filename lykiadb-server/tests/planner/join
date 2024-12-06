@@ -6,8 +6,8 @@ SELECT * FROM books b
 
 ---
 
-- filter (c.name IsEqual Str("Science")):
-  - join [Inner, (b.category_id IsEqual c.id)]:
+- filter [(c.name IsEqual Str("Science"))]
+  - join [type=Inner, (b.category_id IsEqual c.id)]
     - scan [books as b]
     - scan [categories as c]
 
@@ -21,9 +21,9 @@ SELECT * FROM books b
 
 ---
 
-- filter (p.name IsEqual Str("Springer")):
-  - join [Inner, (b.publisher_id IsEqual p.id)]:
-    - join [Inner, (b.category_id IsEqual c.id)]:
+- filter [(p.name IsEqual Str("Springer"))]
+  - join [type=Inner, (b.publisher_id IsEqual p.id)]
+    - join [type=Inner, (b.category_id IsEqual c.id)]
       - scan [books as b]
       - scan [categories as c]
     - scan [publishers as p]
@@ -44,9 +44,18 @@ SELECT * FROM books b
 
 ---
 
-- filter (p.name IsEqual Str("Springer")):
-  - join [Inner, (b.publisher_id IsEqual p.id)]:
+- filter [(p.name IsEqual Str("Springer"))]
+  - join [type=Inner, (b.publisher_id IsEqual p.id)]
     - scan [books as b]
-    - join [Inner, (b.category_id IsEqual c.id)]:
+    - join [type=Inner, (b.category_id IsEqual c.id)]
       - scan [categories as c]
       - scan [publishers as p]
+
+
+#[name=illegal_subquery_in_condition, run=plan]>
+
+select * from books inner join categories ON (select * from books);
+
+---err
+
+Plan(SubqueryNotAllowed(Span { start: 0, end: 0, line: 0, line_end: 0 }))

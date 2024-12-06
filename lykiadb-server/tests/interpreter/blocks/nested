@@ -1,0 +1,71 @@
+#[name=nested_0, run=interpreter]>
+
+var $a = "global a";
+var $b = "global b";
+var $c = "global c";
+{
+    var $a = "outer a";
+    var $b = "outer b";
+    {
+        var $a = "inner a";
+        test_utils::out($a);
+        test_utils::out($b);
+        test_utils::out($c);
+    }
+    test_utils::out($a);
+    test_utils::out($b);
+    test_utils::out($c);
+}
+test_utils::out($a);
+test_utils::out($b);
+test_utils::out($c);
+
+---
+
+inner a
+outer b
+global c
+outer a
+outer b
+global c
+global a
+global b
+global c
+
+
+#[name=nested_1, run=interpreter]>
+
+function $fn_block() {
+    var $a = "global";
+    {
+        var $a = "block";
+        test_utils::out($a);
+    }
+    test_utils::out($a);
+};
+
+$fn_block();
+test_utils::out($a);
+
+---
+
+block
+global
+
+---err
+
+Environment(Other { message: "Variable '$a' was not found" })
+
+--->
+
+test_utils::out($a);
+
+---
+
+block
+global
+
+---err
+
+Environment(Other { message: "Variable '$a' was not found" })
+Environment(Other { message: "Variable '$a' was not found" })

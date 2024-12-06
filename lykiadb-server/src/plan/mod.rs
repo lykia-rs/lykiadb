@@ -1,15 +1,31 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use lykiadb_lang::{
     ast::{
         expr::Expr,
-        sql::{SqlCollectionIdentifier, SqlCompoundOperator, SqlJoinType, SqlOrdering},
+        sql::{
+            SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
+            SqlOrdering, SqlProjection,
+        },
     },
-    Identifier,
+    Identifier, Span,
 };
 use serde::{Deserialize, Serialize};
 
+use crate::value::RV;
+
 pub mod planner;
+mod scope;
+
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum PlannerError {
+    SubqueryNotAllowed(Span),
+    ObjectNotFoundInScope(Identifier),
+    DuplicateObjectInScope {
+        previous: Identifier,
+        ident: Identifier,
+    },
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Aggregate {
@@ -18,6 +34,25 @@ pub enum Aggregate {
     Max(Expr),
     Min(Expr),
     Sum(Expr),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum IntermediateExpr {
+    Constant(RV),
+    Expr {
+        expr: Expr,
+    },
+}
+
+impl Display for IntermediateExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IntermediateExpr::Constant(rv) => write!(f, "{:?}", rv),
+            IntermediateExpr::Expr { expr, .. } => {
+                write!(f, "{}", expr)
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -35,19 +70,19 @@ pub enum Node {
 
     Aggregate {
         source: Box<Node>,
-        group_by: Vec<Expr>,
+        group_by: Vec<IntermediateExpr>,
         aggregates: Vec<Aggregate>,
     },
 
     Filter {
         source: Box<Node>,
-        predicate: Expr,
+        predicate: IntermediateExpr,
+        subqueries: Vec<Node>,
     },
 
     Projection {
         source: Box<Node>,
-        expressions: Vec<Expr>,
-        aliases: Vec<String>,
+        fields: Vec<SqlProjection>,
     },
 
     Limit {
@@ -62,32 +97,33 @@ pub enum Node {
 
     Order {
         source: Box<Node>,
-        key: Vec<(Expr, SqlOrdering)>,
+        key: Vec<(IntermediateExpr, SqlOrdering)>,
     },
 
     Values {
-        rows: Vec<Vec<Expr>>,
-    },
-
-    ValuesHandle {
-        identifier: Identifier,
+        rows: Vec<Vec<IntermediateExpr>>,
     },
 
     Scan {
         source: SqlCollectionIdentifier,
-        filter: Option<Expr>,
+        filter: Option<IntermediateExpr>,
+    },
+
+    EvalScan {
+        source: SqlExpressionSource,
+        filter: Option<IntermediateExpr>,
     },
 
     Join {
         left: Box<Node>,
         join_type: SqlJoinType,
         right: Box<Node>,
-        constraint: Option<Expr>,
+        constraint: Option<IntermediateExpr>,
     },
 
     Subquery {
         source: Box<Node>,
-        alias: Identifier,
+        alias: Option<Identifier>,
     },
 
     Nothing,
@@ -108,24 +144,121 @@ impl Node {
     fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
         let indent_str = Self::TAB.repeat(indent);
         match self {
-            Node::Filter { source, predicate } => {
-                write!(f, "{}- filter {}:{}", indent_str, predicate, Self::NEWLINE)?;
+            Node::Nothing => write!(f, "{}- nothing{}", indent_str, Self::NEWLINE),
+            Node::Order { source, key } => {
+                let key_description = key
+                    .iter()
+                    .map(|(expr, ordering)| format!("({}, {:?})", expr, ordering))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(
+                    f,
+                    "{}- order [{}]{}",
+                    indent_str,
+                    key_description,
+                    Self::NEWLINE
+                )?;
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Projection { source, fields } => {
+                let fields_description = fields
+                    .iter()
+                    .map(|field| match field {
+                        SqlProjection::All { collection } => {
+                            if let Some(c) = collection.as_ref() {
+                                return format!("* in {}", c.name);
+                            }
+                            "*".to_string()
+                        }
+                        SqlProjection::Expr { expr, alias } => {
+                            if let Some(alias) = alias {
+                                return format!("{} as {}", expr, alias.name);
+                            }
+                            format!("{} as {}", expr, expr)
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(
+                    f,
+                    "{}- project [{}]{}",
+                    indent_str,
+                    fields_description,
+                    Self::NEWLINE
+                )?;
+
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Filter {
+                source,
+                predicate,
+                subqueries,
+            } => {
+                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
+                if !subqueries.is_empty() {
+                    write!(f, "{}  > subqueries{}", indent_str, Self::NEWLINE)?;
+                    subqueries
+                        .iter()
+                        .try_for_each(|subquery| subquery._fmt_recursive(f, indent + 2))?;
+                }
+                source._fmt_recursive(f, indent + 1)
+            }
+            Node::Subquery { source, alias } => {
+                write!(
+                    f,
+                    "{}- subquery [{}]{}",
+                    indent_str,
+                    alias
+                        .as_ref()
+                        .map(|x| x.name.clone())
+                        .unwrap_or("unnamed".to_string()),
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Scan { source, filter } => {
-                write!(f, "{}- scan [{} as {}]{}", indent_str, source.name, source.alias.as_ref().unwrap_or(&source.name), Self::NEWLINE)
+                write!(
+                    f,
+                    "{}- scan [{} as {}]{}",
+                    indent_str,
+                    source.name,
+                    source.alias.as_ref().unwrap_or(&source.name),
+                    Self::NEWLINE
+                )
             }
-            Node::Compound { source, operator, right } => {
-                write!(f, "{}- compound [{:?}]{}", indent_str, operator, Self::NEWLINE)?;
+            Node::Compound {
+                source,
+                operator,
+                right,
+            } => {
+                write!(
+                    f,
+                    "{}- compound [type={:?}]{}",
+                    indent_str,
+                    operator,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
             Node::Limit { source, limit } => {
-                write!(f, "{}- limit {}{}", indent_str, limit, Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- limit [count={}]{}",
+                    indent_str,
+                    limit,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Offset { source, offset } => {
-                write!(f, "{}- offset {}{}", indent_str, offset, Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- offset [count={}]{}",
+                    indent_str,
+                    offset,
+                    Self::NEWLINE
+                )?;
                 source._fmt_recursive(f, indent + 1)
             }
             Node::Join {
@@ -134,9 +267,28 @@ impl Node {
                 right,
                 constraint,
             } => {
-                write!(f, "{}- join [{:?}, {}]:{}", indent_str, join_type, constraint.as_ref().unwrap(), Self::NEWLINE)?;
+                write!(
+                    f,
+                    "{}- join [type={:?}, {}]{}",
+                    indent_str,
+                    join_type,
+                    constraint
+                        .as_ref()
+                        .map(|x| x.to_string())
+                        .unwrap_or("None".to_string()),
+                    Self::NEWLINE
+                )?;
                 left._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
+            }
+            Node::EvalScan { source, filter } => {
+                write!(
+                    f,
+                    "{}- eval_scan [{}]{}",
+                    indent_str,
+                    source.expr,
+                    Self::NEWLINE
+                )
             }
             _ => "<NotImplementedYet>".fmt(f),
         }
@@ -145,6 +297,6 @@ impl Node {
 
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-       self._fmt_recursive(f, 0)
-    }  
+        self._fmt_recursive(f, 0)
+    }
 }

@@ -1,4 +1,6 @@
-use crate::value::environment::EnvironmentError;
+use std::fmt::{Display, Formatter, Result};
+
+use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
 use lykiadb_lang::{
@@ -8,13 +10,20 @@ use lykiadb_lang::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionError {
     Scan(ScanError),
     Parse(ParseError),
     Resolve(ResolveError),
     Interpret(InterpretError),
     Environment(EnvironmentError),
+    Plan(PlannerError),
+}
+
+impl Display for ExecutionError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl From<ParseError> for ExecutionError {
@@ -136,24 +145,23 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
                 span,
             );
         }
-        /*ExecutionError::Interpret(InterpretError::AssignmentToUndefined { token }) => {
+        ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, ident }) => {
             print(
-                "Assignment to an undefined variable",
-                &format!(
-                    "{} is undefined, so no value can be assigned to it.",
-                    token.span.lexeme,
-                ),
-                token.span,
+                "Duplicate object in scope",
+                &format!("Object {} is already defined in the scope.", previous.name),
+                previous.span,
             );
         }
-        ExecutionError::Interpret(InterpretError::VariableNotFound { token }) => {
+        ExecutionError::Plan(PlannerError::SubqueryNotAllowed(span)) => {
+            println!("{:?}", span);
             print(
-                "Variable not found",
-                &format!("{} is not defined, cannot be evaluated.", token.span.lexeme,),
-                token.span,
+                "Subquery not allowed",
+                "Subqueries are not allowed in this context.",
+                span,
             );
-        }*/
-        ExecutionError::Interpret(InterpretError::Other { message }) => {
+        }
+        ExecutionError::Environment(EnvironmentError::Other { message })
+        | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());
         }
         _ => {}

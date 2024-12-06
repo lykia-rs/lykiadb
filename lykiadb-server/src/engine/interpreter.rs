@@ -8,6 +8,7 @@ use lykiadb_lang::tokenizer::scanner::Scanner;
 use lykiadb_lang::Span;
 use lykiadb_lang::Spanned;
 use lykiadb_lang::{Literal, Locals, Scopes};
+use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +19,7 @@ use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::{EnvId, Environment};
-use crate::value::{RV, eval::eval_binary};
+use crate::value::{eval::eval_binary, RV};
 
 use std::sync::Arc;
 use std::vec;
@@ -56,7 +57,7 @@ impl SourceProcessor {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
     NotCallable {
         span: Span,
@@ -172,46 +173,39 @@ impl LoopStack {
 pub struct Interpreter {
     env: EnvId,
     root_env: EnvId,
-    loop_stack: LoopStack,
     env_man: Shared<Environment>,
-    source_processor: SourceProcessor,
     current_program: Option<Arc<Program>>,
-}
-
-pub struct ExecutionContext {
-    interpreter: Shared<Interpreter>
-}
-
-impl ExecutionContext {
-    pub fn new(out: Option<Shared<Output>>) -> ExecutionContext {
-        let mut env_man = Environment::new();
-        let native_fns = stdlib(out.clone());
-        let env = env_man.top();
-
-        for (name, value) in native_fns {
-            env_man.declare(env, name.to_string(), value);
-        }
-        ExecutionContext {
-            interpreter: alloc_shared(Interpreter::new(alloc_shared(env_man))),
-        }
-    }
-
-    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
-        self.interpreter.write().unwrap().visit_expr(e)
-    }
+    //
+    loop_stack: LoopStack,
+    source_processor: SourceProcessor,
+    output: Option<Shared<Output>>,
 }
 
 impl Interpreter {
-    pub fn new(env_man: Shared<Environment>) -> Interpreter {
+    pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
+        let mut env_man = Environment::new();
+        if with_stdlib {
+            let native_fns = stdlib(out.clone());
+            let env = env_man.top();
+
+            for (name, value) in native_fns {
+                env_man.declare(env, name.to_string(), value);
+            }
+        }
         let env = EnvId(0);
         Interpreter {
-            env_man,
+            env_man: alloc_shared(env_man),
             env,
             root_env: env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
+            output: out,
         }
+    }
+
+    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+        self.visit_expr(e)
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
@@ -344,45 +338,28 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let mut planner = Planner::new(ExecutionContext::new(None));
+                let mut planner = Planner::new(self);
                 let plan = planner.build(e)?;
+                if let Some(out) = &self.output {
+                    out.write()
+                        .unwrap()
+                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                }
                 Ok(RV::Undefined)
             }
-            Expr::Literal {
-                value,
-                raw: _,
-                span: _,
-                id: _,
-            } => Ok(self.literal_to_rv(value)),
-            Expr::Grouping {
-                expr,
-                span: _,
-                id: _,
-            } => self.visit_expr(expr),
+            Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
+            Expr::Grouping { expr, .. } => self.visit_expr(expr),
             Expr::Unary {
-                operation,
-                expr,
-                span: _,
-                id: _,
+                operation, expr, ..
             } => self.eval_unary(operation, expr),
             Expr::Binary {
                 operation,
                 left,
                 right,
-                span: _,
-                id: _,
+                ..
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable {
-                name,
-                span: _,
-                id: _,
-            } => self.look_up_variable(&name.name, e),
-            Expr::Assignment {
-                dst,
-                expr,
-                span: _,
-                id: _,
-            } => {
+            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
+            Expr::Assignment { dst, expr, .. } => {
                 let distance = self.current_program.clone().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
@@ -408,8 +385,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 left,
                 operation,
                 right,
-                span: _,
-                id: _,
+                ..
             } => {
                 let is_true = self.visit_expr(left)?.as_bool();
 
@@ -422,10 +398,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Call {
-                callee,
-                args,
-                span,
-                id: _,
+                callee, args, span, ..
             } => {
                 let eval = self.visit_expr(callee)?;
 
@@ -469,8 +442,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 name,
                 parameters,
                 body,
-                span: _,
-                id: _,
+                ..
             } => {
                 let fn_name = if name.is_some() {
                     &name.as_ref().unwrap().name
@@ -484,7 +456,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     closure: self.env,
                 };
 
-                let callable = RV::Callable(Callable::new(Some(parameters.len()), CallableKind::Generic, fun.into()));
+                let callable = RV::Callable(Callable::new(
+                    Some(parameters.len()),
+                    CallableKind::Generic,
+                    fun,
+                ));
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
@@ -502,8 +478,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 upper,
                 subject,
                 kind,
-                span:_ ,
-                id: _,
+                ..
             } => {
                 let lower_eval = self.visit_expr(lower)?;
                 let upper_eval = self.visit_expr(upper)?;
@@ -516,9 +491,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let max_num = lower_num.max(upper_num);
 
                     match kind {
-                        RangeKind::Between => Ok(RV::Bool(
-                            min_num <= subject_num && subject_num <= max_num,
-                        )),
+                        RangeKind::Between => {
+                            Ok(RV::Bool(min_num <= subject_num && subject_num <= max_num))
+                        }
                         RangeKind::NotBetween => {
                             Ok(RV::Bool(min_num > subject_num || subject_num > max_num))
                         }
@@ -536,11 +511,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
+            Expr::FieldPath { .. } => Err(HaltReason::Error(
+                InterpretError::Other {
+                    message: "Unexpected field path expression".to_string(),
+                }
+                .into(),
+            )),
             Expr::Get {
-                object,
-                name,
-                span,
-                id: _,
+                object, name, span, ..
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
@@ -573,8 +551,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 object,
                 name,
                 value,
-                span: _,
-                id: _,
+                ..
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
@@ -606,16 +583,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         }
 
         match s {
-            Stmt::Program {
-                body: stmts,
-                span: _,
-            } => {
+            Stmt::Program { body: stmts, .. } => {
                 return self.execute_block(stmts, Some(self.env));
             }
-            Stmt::Expression { expr, span: _ } => {
+            Stmt::Expression { expr, .. } => {
                 return self.visit_expr(expr);
             }
-            Stmt::Declaration { dst, expr, span: _ } => {
+            Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
                 self.env_man.write().unwrap().declare(
                     self.env,
@@ -623,17 +597,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     evaluated.clone(),
                 );
             }
-            Stmt::Block {
-                body: stmts,
-                span: _,
-            } => {
+            Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(stmts, None);
             }
             Stmt::If {
                 condition,
                 body,
                 r#else_body: r#else,
-                span: _,
+                ..
             } => {
                 if self.visit_expr(condition)?.as_bool() {
                     self.visit_stmt(body)?;
@@ -645,7 +616,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 condition,
                 body,
                 post,
-                span: _,
+                ..
             } => {
                 self.loop_stack.push_loop(LoopState::Go);
                 while !self.loop_stack.is_loop_at(LoopState::Broken)
@@ -675,7 +646,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ));
                 }
             }
-            Stmt::Return { span: _, expr } => {
+            Stmt::Return { expr, .. } => {
                 if expr.is_some() {
                     let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));
@@ -692,12 +663,6 @@ pub struct Output {
     out: Vec<RV>,
 }
 
-impl Default for Output {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Output {
     pub fn new() -> Output {
         Output { out: Vec::new() }
@@ -708,7 +673,19 @@ impl Output {
     }
 
     pub fn expect(&mut self, rv: Vec<RV>) {
-        assert_eq!(self.out, rv);
+        if rv.len() == 1 {
+            if let Some(first) = rv.first() {
+                assert_eq!(
+                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
+                    first.to_string()
+                );
+            }
+        }
+        assert_eq!(self.out, rv)
+    }
+    // TODO(vck): Remove this
+    pub fn expect_str(&mut self, rv: Vec<String>) {
+        assert_eq!(self.out.iter().map(|x| x.to_string()).collect::<Vec<String>>(), rv)
     }
 }
 
@@ -718,95 +695,5 @@ impl Stateful for Output {
             self.push(item.clone());
         }
         Ok(RV::Undefined)
-    }
-}
-
-pub mod test_helpers {
-    use crate::engine::{Runtime, RuntimeMode};
-    use crate::util::{alloc_shared, Shared};
-    use crate::value::RV;
-
-    use super::Output;
-
-    pub fn get_runtime() -> (Shared<Output>, Runtime) {
-        let out = alloc_shared(Output::new());
-
-        (out.clone(), Runtime::new(RuntimeMode::File, Some(out)))
-    }
-
-    pub fn exec_assert(code: &str, output: Vec<RV>) {
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(output);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::value::RV;
-
-    use super::test_helpers::get_runtime;
-
-    #[test]
-    fn test_unary_evaluation() {
-        let code = "
-            TestUtils.out(-2);
-            TestUtils.out(-(-2));
-            TestUtils.out(!3);
-            TestUtils.out(!!3);
-            TestUtils.out(!!!3);
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Num(-2.0),
-            RV::Num(2.0),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-        ]);
-    }
-    #[test]
-    fn test_binary_evaluation() {
-        let code = "
-            TestUtils.out(5-(-2));
-            TestUtils.out((5 + 2) * 4);
-            TestUtils.out(5 + 2 * 4);
-            TestUtils.out((13 + 4) * (7 + 3));
-            TestUtils.out(-5-2);
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Num(7.0),
-            RV::Num(28.0),
-            RV::Num(13.0),
-            RV::Num(170.0),
-            RV::Num(-7.0),
-        ]);
-    }
-
-    #[test]
-    fn test_logical_evaluation() {
-        let code = "
-            TestUtils.out(5 && 1);
-            TestUtils.out(5 || 1);
-            TestUtils.out(5 && 0);
-            TestUtils.out(5 || 0);
-            TestUtils.out(!(5 || 0));
-            TestUtils.out(!(5 || 0) || 1);
-            TestUtils.out(!(5 || 0) || (1 && 0));
-        ";
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect(vec![
-            RV::Bool(true),
-            RV::Bool(true),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-            RV::Bool(true),
-            RV::Bool(false),
-        ]);
     }
 }

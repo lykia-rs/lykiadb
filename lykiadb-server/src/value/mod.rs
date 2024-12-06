@@ -1,15 +1,16 @@
-use std::sync::{Arc, RwLock};
+use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
-use rustc_hash::FxHashMap;
+use std::fmt::Display;
+use std::sync::{Arc, RwLock};
 
 use crate::util::alloc_shared;
 use crate::util::Shared;
 use callable::Callable;
 
+pub mod callable;
 pub mod environment;
 pub mod eval;
-pub mod callable;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -73,15 +74,11 @@ impl RV {
 
     pub fn is_in(&self, other: &RV) -> RV {
         match (self, other) {
-            (RV::Str(lhs), RV::Str(rhs)) => {
-                RV::Bool(rhs.contains(lhs.as_str()))
-            }
-            (lhs, RV::Array(rhs)) => {
-                RV::Bool(rhs.read().unwrap().contains(&lhs))
-            }
+            (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
+            (lhs, RV::Array(rhs)) => RV::Bool(rhs.read().unwrap().contains(lhs)),
             (RV::Str(key), RV::Object(map)) => {
                 RV::Bool(map.read().unwrap().contains_key(key.as_str()))
-            },
+            }
             _ => RV::Bool(false),
         }
     }
@@ -91,6 +88,41 @@ impl RV {
     }
 }
 
+impl Display for RV {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RV::Str(s) => write!(f, "{}", s),
+            RV::Num(n) => write!(f, "{}", n),
+            RV::Bool(b) => write!(f, "{}", b),
+            RV::Undefined => write!(f, "undefined"),
+            RV::NaN => write!(f, "NaN"),
+            RV::Null => write!(f, "null"),
+            RV::Array(arr) => {
+                let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
+                write!(f, "[")?;
+                for (i, item) in arr.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "]")
+            }
+            RV::Object(obj) => {
+                let obj = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+                write!(f, "{{")?;
+                for (i, (key, value)) in obj.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", key, value)?;
+                }
+                write!(f, "}}")
+            }
+            RV::Callable(_) => write!(f, "<Callable>"),
+        }
+    }
+}
 
 impl Serialize for RV {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -114,14 +146,12 @@ impl Serialize for RV {
             }
             RV::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj as &RwLock<FxHashMap<String, RV>>)
-                    .read()
-                    .unwrap();
+                let arr = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
                 for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
                 map.end()
-            },
+            }
             _ => serializer.serialize_none(),
         }
     }
@@ -155,4 +185,3 @@ impl<'de> Deserialize<'de> for RV {
         }
     }
 }
-

@@ -1,3 +1,4 @@
+use crate::engine::interpreter::Interpreter;
 use crate::engine::{Runtime, RuntimeMode};
 use crate::value::RV;
 use ::std::time::Instant;
@@ -59,7 +60,7 @@ impl ServerSession {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
             conn: TcpConnection::new(stream),
-            runtime: Runtime::new(RuntimeMode::File, None),
+            runtime: Runtime::new(RuntimeMode::File, Interpreter::new(None, true)),
         }
     }
 

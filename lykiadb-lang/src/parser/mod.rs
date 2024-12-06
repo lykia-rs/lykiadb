@@ -15,7 +15,7 @@ use std::sync::Arc;
 pub mod program;
 pub mod resolver;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ParseError {
     UnexpectedToken { token: Token },
     MissingToken { token: Token, expected: TokenType },
@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             statements.push(*self.declaration()?);
         }
-        self.expected(Eof)?;
+        self.expected(&Eof)?;
         Ok(Box::new(Stmt::Program {
             body: statements.clone(),
             span: self.get_merged_span(&(statements[0]), &(statements[statements.len() - 1])),
@@ -114,18 +114,18 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> ParseResult<Box<Stmt>> {
-        match_next!(self, kw!(Var), var_declaration);
+        match_next!(self, &kw!(Var), var_declaration);
         self.statement()
     }
 
     fn statement(&mut self) -> ParseResult<Box<Stmt>> {
-        match_next!(self, kw!(If), if_statement);
-        match_next!(self, kw!(While), while_statement);
-        match_next!(self, kw!(For), for_statement);
-        match_next!(self, kw!(Loop), loop_statement);
-        match_next!(self, kw!(Break), break_statement);
-        match_next!(self, kw!(Continue), continue_statement);
-        match_next!(self, kw!(Return), return_statement);
+        match_next!(self, &kw!(If), if_statement);
+        match_next!(self, &kw!(While), while_statement);
+        match_next!(self, &kw!(For), for_statement);
+        match_next!(self, &kw!(Loop), loop_statement);
+        match_next!(self, &kw!(Break), break_statement);
+        match_next!(self, &kw!(Continue), continue_statement);
+        match_next!(self, &kw!(Return), return_statement);
         if self.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
             || self.peek_next_all_of(&[sym!(LeftBrace), Str, sym!(Colon)])
             || self.peek_next_all_of(&[sym!(LeftBrace), Num, sym!(Colon)])
@@ -133,18 +133,18 @@ impl<'a> Parser<'a> {
         {
             return self.expression_statement();
         }
-        match_next!(self, sym!(LeftBrace), block);
+        match_next!(self, &sym!(LeftBrace), block);
         self.expression_statement()
     }
 
     fn if_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let if_tok = self.peek_bw(1);
-        self.expected(sym!(LeftParen))?;
+        self.expected(&sym!(LeftParen))?;
         let condition = self.expression()?;
-        self.expected(sym!(RightParen))?;
+        self.expected(&sym!(RightParen))?;
         let if_branch = self.statement()?;
 
-        if self.match_next(kw!(Else)) {
+        if self.match_next(&kw!(Else)) {
             let else_branch = self.statement()?;
             return Ok(Box::new(Stmt::If {
                 condition,
@@ -163,9 +163,9 @@ impl<'a> Parser<'a> {
 
     fn loop_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let loop_tok = self.peek_bw(1);
-        self.expected(sym!(LeftBrace))?;
+        self.expected(&sym!(LeftBrace))?;
         let inner_stmt = self.block()?;
-        self.match_next(sym!(Semicolon));
+        self.match_next(&sym!(Semicolon));
         Ok(Box::new(Stmt::Loop {
             condition: None,
             body: inner_stmt.clone(),
@@ -176,12 +176,12 @@ impl<'a> Parser<'a> {
 
     fn while_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let while_tok = self.peek_bw(1);
-        self.expected(sym!(LeftParen))?;
+        self.expected(&sym!(LeftParen))?;
         let condition = self.expression()?;
-        self.expected(sym!(RightParen))?;
-        self.expected(sym!(LeftBrace))?;
+        self.expected(&sym!(RightParen))?;
+        self.expected(&sym!(LeftBrace))?;
         let inner_stmt = self.block()?;
-        self.match_next(sym!(Semicolon));
+        self.match_next(&sym!(Semicolon));
 
         Ok(Box::new(Stmt::Loop {
             condition: Some(condition),
@@ -197,7 +197,7 @@ impl<'a> Parser<'a> {
         if !self.cmp_tok(&sym!(Semicolon)) {
             expr = Some(self.expression()?);
         }
-        self.expected(sym!(Semicolon))?;
+        self.expected(&sym!(Semicolon))?;
 
         if expr.is_none() {
             return Ok(Box::new(Stmt::Return {
@@ -214,36 +214,36 @@ impl<'a> Parser<'a> {
 
     fn for_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let for_tok = self.peek_bw(1);
-        self.expected(sym!(LeftParen))?;
+        self.expected(&sym!(LeftParen))?;
 
-        let initializer = if self.match_next(sym!(Semicolon)) {
+        let initializer = if self.match_next(&sym!(Semicolon)) {
             None
         } else {
             Some(self.declaration()?)
         };
 
-        let condition = if self.match_next(sym!(Semicolon)) {
+        let condition = if self.match_next(&sym!(Semicolon)) {
             None
         } else {
             let wrapped = self.expression()?;
-            self.expected(sym!(Semicolon))?;
+            self.expected(&sym!(Semicolon))?;
             Some(wrapped)
         };
 
-        let increment = if self.match_next(sym!(RightParen)) {
+        let increment = if self.match_next(&sym!(RightParen)) {
             None
         } else {
             let wrapped = self.expression()?;
-            self.expected(sym!(RightParen))?;
+            self.expected(&sym!(RightParen))?;
             Some(Box::new(Stmt::Expression {
                 expr: wrapped.clone(),
                 span: wrapped.get_span(),
             }))
         };
 
-        self.expected(sym!(LeftBrace))?;
+        self.expected(&sym!(LeftBrace))?;
         let inner_stmt = self.block()?;
-        self.match_next(sym!(Semicolon));
+        self.match_next(&sym!(Semicolon));
 
         if initializer.is_none() {
             return Ok(Box::new(Stmt::Loop {
@@ -276,7 +276,7 @@ impl<'a> Parser<'a> {
 
         let closing_brace = self.peek_bw(1);
 
-        self.expected(sym!(RightBrace))?;
+        self.expected(&sym!(RightBrace))?;
 
         Ok(Box::new(Stmt::Block {
             body: statements.clone(),
@@ -286,27 +286,27 @@ impl<'a> Parser<'a> {
 
     fn break_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let tok = self.peek_bw(1);
-        self.expected(sym!(Semicolon))?;
+        self.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Break { span: tok.span }))
     }
 
     fn continue_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let tok = self.peek_bw(1);
-        self.expected(sym!(Semicolon))?;
+        self.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let expr = self.expression()?;
         let span = expr.get_span();
-        self.expected(sym!(Semicolon))?;
+        self.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Expression { expr, span }))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Box<Stmt>> {
         let var_tok = self.peek_bw(1);
-        let ident = self.expected(Identifier { dollar: true })?.clone();
-        let expr = match self.match_next(sym!(Equal)) {
+        let ident = self.expected(&Identifier { dollar: true })?.clone();
+        let expr = match self.match_next(&sym!(Equal)) {
             true => self.expression()?,
             false => {
                 let node = Expr::Literal {
@@ -318,7 +318,7 @@ impl<'a> Parser<'a> {
                 Box::new(node)
             }
         };
-        self.expected(sym!(Semicolon))?;
+        self.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Declaration {
             dst: ident.extract_identifier().unwrap(),
             expr: expr.clone(),
@@ -330,8 +330,8 @@ impl<'a> Parser<'a> {
         let mut tokens = vec![];
         let fun_tok = self.peek_bw(1);
         tokens.push(fun_tok.clone());
-        let token = if self.cmp_tok(&Identifier { dollar: false }) {
-            Some(self.expected(Identifier { dollar: false })?.clone())
+        let token = if self.cmp_tok(&Identifier { dollar: true }) {
+            Some(self.expected(&Identifier { dollar: true })?.clone())
         } else {
             None
         };
@@ -340,35 +340,32 @@ impl<'a> Parser<'a> {
             tokens.push(t.clone());
         }
 
-        let left_paren = self.expected(sym!(LeftParen))?;
+        let left_paren = self.expected(&sym!(LeftParen))?;
 
         tokens.push(left_paren.clone());
 
         let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            let p = self.expected(Identifier { dollar: true })?;
+            let p = self.expected(&Identifier { dollar: true })?;
             tokens.push(p.clone());
             parameters.push(p.clone());
-            while self.match_next(sym!(Comma)) {
-                let q = self.expected(Identifier { dollar: true })?;
+            while self.match_next(&sym!(Comma)) {
+                let q = self.expected(&Identifier { dollar: true })?;
                 tokens.push(q.clone());
                 parameters.push(q.clone());
             }
         }
-        let right_par = self.expected(sym!(RightParen))?;
+        let right_par = self.expected(&sym!(RightParen))?;
         tokens.push(right_par.clone());
 
-        self.expected(sym!(LeftBrace))?;
+        self.expected(&sym!(LeftBrace))?;
 
         let stmt = self.block()?;
 
         let inner_stmt = &(stmt);
 
         let body: Vec<Stmt> = match inner_stmt.as_ref() {
-            Stmt::Block {
-                body: stmts,
-                span: _,
-            } => stmts.clone(),
+            Stmt::Block { body: stmts, .. } => stmts.clone(),
             _ => vec![*stmt.clone()],
         };
 
@@ -387,17 +384,17 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> ParseResult<Box<Expr>> {
-        match_next!(self, kw!(Fun), fun_declaration);
+        match_next!(self, &kw!(Fun), fun_declaration);
         self.assignment()
     }
 
     fn assignment(&mut self) -> ParseResult<Box<Expr>> {
         let expr = self.or()?;
 
-        if self.match_next(sym!(Equal)) {
+        if self.match_next(&sym!(Equal)) {
             let value = self.assignment()?;
             match expr.as_ref() {
-                Expr::Variable { name, span, id: _ } => {
+                Expr::Variable { name, span, .. } => {
                     return Ok(Box::new(Expr::Assignment {
                         id: self.get_expr_id(),
                         dst: name.clone(),
@@ -406,10 +403,7 @@ impl<'a> Parser<'a> {
                     }));
                 }
                 Expr::Get {
-                    object,
-                    name,
-                    span,
-                    id: _,
+                    object, name, span, ..
                 } => {
                     return Ok(Box::new(Expr::Set {
                         object: object.clone(),
@@ -436,7 +430,7 @@ impl<'a> Parser<'a> {
         } else {
             sym!(LogicalOr)
         };
-        if self.match_next(operator) {
+        if self.match_next(&operator) {
             let op = self.peek_bw(1);
             let right = self.and()?;
             return Ok(Box::new(Expr::Logical {
@@ -457,7 +451,7 @@ impl<'a> Parser<'a> {
         } else {
             sym!(LogicalAnd)
         };
-        if self.match_next(operator) {
+        if self.match_next(&operator) {
             let op = self.peek_bw(1);
             let right = self.equality()?;
             return Ok(Box::new(Expr::Logical {
@@ -542,28 +536,26 @@ impl<'a> Parser<'a> {
 
         match (&expr_conj_fst, &expr_conj_sec) {
             (Some(SqlKeyword(Between)), None) => self.cmp_between(left, false),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
-                self.cmp_between(left, true)
-            }
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => self.cmp_between(left, true),
             _ => Ok(expr),
         }
     }
 
-    fn cmp_between(
-        &mut self,
-        subject: Box<Expr>,
-        falsy: bool,
-    ) -> ParseResult<Box<Expr>> {
+    fn cmp_between(&mut self, subject: Box<Expr>, falsy: bool) -> ParseResult<Box<Expr>> {
         let lower = self.term()?;
 
-        self.expected(skw!(And))?;
+        self.expected(&skw!(And))?;
         let upper = self.term()?;
 
         Ok(Box::new(Expr::Between {
             subject: subject.clone(),
             lower,
             upper: upper.clone(),
-            kind: if falsy { RangeKind::NotBetween } else { RangeKind::Between },
+            kind: if falsy {
+                RangeKind::NotBetween
+            } else {
+                RangeKind::Between
+            },
             span: subject.get_span().merge(&upper.get_span()),
             id: self.get_expr_id(),
         }))
@@ -591,14 +583,14 @@ impl<'a> Parser<'a> {
         self.sql_insert()
     }
 
-    fn call(&mut self) -> ParseResult<Box<Expr>> {
-        let mut expr = self.primary()?;
-
+    fn expect_get_path(&mut self, initial: Box<Expr>, tok: TokenType) -> ParseResult<Box<Expr>> {
+        let mut expr = initial;
+        
         loop {
-            if self.match_next(sym!(LeftParen)) {
+            if self.match_next(&sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;
-            } else if self.match_next(sym!(Dot)) {
-                let identifier = self.expected(Identifier { dollar: false })?.clone();
+            } else if self.match_next(&tok.clone()) {
+                let identifier = self.expected(&Identifier { dollar: false })?.clone();
                 expr = Box::new(Expr::Get {
                     object: expr.clone(),
                     name: identifier.extract_identifier().unwrap(),
@@ -608,9 +600,39 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-        }
+        };
 
         Ok(expr)
+    }
+
+    fn call(&mut self) -> ParseResult<Box<Expr>> {
+        let expr = self.primary()?;
+
+        if let Expr::Variable { name, span, id } = expr.as_ref() {
+            if !name.dollar
+            {
+                let next_tok = &self.peek_bw(0).tok_type;
+
+                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && self.in_select_depth > 0 {
+                    let head = name.clone();
+                    let mut tail: Vec<crate::Identifier> = vec![];
+                    while self.match_next(&sym!(Dot)) {
+                        let identifier = self.expected(&Identifier { dollar: false })?.clone();
+                        tail.push(identifier.extract_identifier().unwrap());
+                    }
+                    return Ok(Box::new(Expr::FieldPath {
+                        head,
+                        tail,
+                        span: self.get_merged_span(span, &self.peek_bw(0).span),
+                        id: *id,
+                    }));
+                }
+
+                return Ok(self.expect_get_path(expr, sym!(DoubleColon))?);
+            }
+        }
+
+        Ok(self.expect_get_path(expr, sym!(Dot))?)
     }
 
     fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
@@ -618,12 +640,12 @@ impl<'a> Parser<'a> {
 
         if !self.cmp_tok(&sym!(RightParen)) {
             arguments.push(*self.expression()?);
-            while self.match_next(sym!(Comma)) {
+            while self.match_next(&sym!(Comma)) {
                 arguments.push(*self.expression()?);
             }
         }
 
-        let paren = self.expected(sym!(RightParen))?.clone();
+        let paren = self.expected(&sym!(RightParen))?.clone();
 
         Ok(Box::new(Expr::Call {
             callee: callee.clone(),
@@ -663,14 +685,14 @@ impl<'a> Parser<'a> {
                 });
             };
 
-            self.expected(sym!(Colon))?;
+            self.expected(&sym!(Colon))?;
             let value = self.expression()?;
             obj_literal.insert(key, value);
-            if !self.match_next(sym!(Comma)) {
+            if !self.match_next(&sym!(Comma)) {
                 break;
             }
         }
-        self.expected(sym!(RightBrace))?;
+        self.expected(&sym!(RightBrace))?;
         self.in_object_depth -= 1;
         Ok(Box::new(Expr::Literal {
             value: Literal::Object(obj_literal),
@@ -686,11 +708,11 @@ impl<'a> Parser<'a> {
         while !self.cmp_tok(&sym!(RightBracket)) {
             let value = self.expression()?;
             array_literal.push(*value.clone());
-            if !self.match_next(sym!(Comma)) {
+            if !self.match_next(&sym!(Comma)) {
                 break;
             }
         }
-        self.expected(sym!(RightBracket))?;
+        self.expected(&sym!(RightBracket))?;
         self.in_array_depth -= 1;
         Ok(Box::new(Expr::Literal {
             value: Literal::Array(array_literal),
@@ -708,7 +730,7 @@ impl<'a> Parser<'a> {
             Symbol(LeftBracket) => self.array_literal(tok),
             Symbol(LeftParen) => {
                 let expr = self.expression()?;
-                self.expected(sym!(RightParen))?;
+                self.expected(&sym!(RightParen))?;
                 Ok(Box::new(Expr::Grouping {
                     span: (expr).get_span(),
                     expr,
@@ -745,7 +767,7 @@ impl<'a> Parser<'a> {
                 span: tok.span,
                 id: self.get_expr_id(),
             })),
-            Identifier { dollar: _ } => Ok(Box::new(Expr::Variable {
+            Identifier { .. } => Ok(Box::new(Expr::Variable {
                 name: tok.extract_identifier().unwrap(),
                 span: tok.span,
                 id: self.get_expr_id(),
@@ -754,14 +776,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expected(&mut self, expected_tok_type: TokenType) -> ParseResult<&Token> {
+    fn expected(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
         if self.cmp_tok(&expected_tok_type) {
             return Ok(self.advance());
         };
         let prev_token = self.peek_bw(1);
         Err(ParseError::MissingToken {
             token: prev_token.clone(),
-            expected: expected_tok_type,
+            expected: expected_tok_type.clone(),
         })
     }
 
@@ -789,8 +811,8 @@ impl<'a> Parser<'a> {
         current.tok_type == *t
     }
 
-    fn match_next(&mut self, t: TokenType) -> bool {
-        if self.cmp_tok(&t) {
+    fn match_next(&mut self, t: &TokenType) -> bool {
+        if self.cmp_tok(t) {
             self.advance();
             return true;
         }
@@ -870,17 +892,17 @@ impl<'a> Parser<'a> {
 }
 
 use crate::ast::sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlFrom, SqlInsert,
-    SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection, SqlSelect,
-    SqlSelectCompound, SqlSelectCore, SqlUpdate, SqlValues,
+    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource,
+    SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
+    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate, SqlValues,
 };
 
 macro_rules! optional_with_expected {
     ($self: ident, $optional: expr, $expected: expr) => {
-        if $self.match_next($optional) {
-            let token = $self.expected($expected);
+        if $self.match_next(&$optional) {
+            let token = $self.expected(&$expected);
             Some(token.unwrap().clone())
-        } else if $self.match_next($expected) {
+        } else if $self.match_next(&$expected) {
             let token = $self.peek_bw(1);
             Some(token.clone())
         } else {
@@ -891,11 +913,11 @@ macro_rules! optional_with_expected {
 
 impl<'a> Parser<'a> {
     fn sql_insert(&mut self) -> ParseResult<Box<Expr>> {
-        if !self.match_next(skw!(Insert)) {
+        if !self.match_next(&skw!(Insert)) {
             return self.sql_update();
         }
 
-        self.expected(skw!(Into))?;
+        self.expected(&skw!(Into))?;
 
         if let Some(collection) = self.sql_collection_identifier()? {
             let values = if self.cmp_tok(&skw!(Select)) {
@@ -906,16 +928,16 @@ impl<'a> Parser<'a> {
                 }
 
                 SqlValues::Select(select_inner.unwrap())
-            } else if self.match_next(skw!(Values)) {
-                self.expected(sym!(LeftParen))?;
+            } else if self.match_next(&skw!(Values)) {
+                self.expected(&sym!(LeftParen))?;
                 let mut values: Vec<Expr> = vec![];
                 loop {
                     values.push(*self.expression()?);
-                    if !self.match_next(sym!(Comma)) {
+                    if !self.match_next(&sym!(Comma)) {
                         break;
                     }
                 }
-                self.expected(sym!(RightParen))?;
+                self.expected(&sym!(RightParen))?;
                 SqlValues::Values { values }
             } else {
                 return Err(ParseError::UnexpectedToken {
@@ -935,26 +957,26 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_update(&mut self) -> ParseResult<Box<Expr>> {
-        if !self.match_next(skw!(Update)) {
+        if !self.match_next(&skw!(Update)) {
             return self.sql_delete();
         }
 
         let collection = self.sql_collection_identifier()?;
 
-        self.expected(skw!(Set))?;
+        self.expected(&skw!(Set))?;
 
         let mut assignments: Vec<Expr> = vec![];
 
         loop {
-            self.expected(Identifier { dollar: false })?;
-            self.expected(sym!(Equal))?;
+            self.expected(&Identifier { dollar: false })?;
+            self.expected(&sym!(Equal))?;
             assignments.push(*self.expression()?);
-            if !self.match_next(sym!(Comma)) {
+            if !self.match_next(&sym!(Comma)) {
                 break;
             }
         }
 
-        let r#where = if self.match_next(skw!(Where)) {
+        let r#where = if self.match_next(&skw!(Where)) {
             Some(self.expression()?)
         } else {
             None
@@ -972,14 +994,14 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_delete(&mut self) -> ParseResult<Box<Expr>> {
-        if !self.match_next(skw!(Delete)) {
+        if !self.match_next(&skw!(Delete)) {
             return self.sql_select();
         }
 
-        self.expected(skw!(From))?;
+        self.expected(&skw!(From))?;
 
         if let Some(collection) = self.sql_collection_identifier()? {
-            let r#where = if self.match_next(skw!(Where)) {
+            let r#where = if self.match_next(&skw!(Where)) {
                 Some(self.expression()?)
             } else {
                 None
@@ -1017,7 +1039,7 @@ impl<'a> Parser<'a> {
             return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
                 name: self
-                    .expected(Identifier { dollar: false })?
+                    .expected(&Identifier { dollar: false })?
                     .extract_identifier()
                     .unwrap(),
                 alias: optional_with_expected!(self, skw!(As), Identifier { dollar: false })
@@ -1052,23 +1074,23 @@ impl<'a> Parser<'a> {
     fn sql_select_inner(&mut self) -> ParseResult<SqlSelect> {
         self.in_select_depth += 1;
         let core: SqlSelectCore = self.sql_select_core()?;
-        let order_by = if self.match_next(skw!(Order)) {
-            self.expected(skw!(By))?;
+        let order_by = if self.match_next(&skw!(Order)) {
+            self.expected(&skw!(By))?;
             let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
                 let order_expr = self.expression()?;
-                let order = if self.match_next(skw!(Desc)) {
+                let order = if self.match_next(&skw!(Desc)) {
                     Some(SqlOrdering::Desc)
                 } else {
-                    self.match_next(skw!(Asc));
+                    self.match_next(&skw!(Asc));
                     Some(SqlOrdering::Asc)
                 };
                 ordering.push(SqlOrderByClause {
                     expr: order_expr,
                     ordering: order.unwrap(),
                 });
-                if !self.match_next(sym!(Comma)) {
+                if !self.match_next(&sym!(Comma)) {
                     break;
                 }
             }
@@ -1078,11 +1100,11 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let limit = if self.match_next(skw!(Limit)) {
+        let limit = if self.match_next(&skw!(Limit)) {
             let first_expr = self.expression()?;
-            let (second_expr, reverse) = if self.match_next(skw!(Offset)) {
+            let (second_expr, reverse) = if self.match_next(&skw!(Offset)) {
                 (Some(self.expression()?), false)
-            } else if self.match_next(sym!(Comma)) {
+            } else if self.match_next(&sym!(Comma)) {
                 (Some(self.expression()?), true)
             } else {
                 (None, false)
@@ -1113,10 +1135,10 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_select_core(&mut self) -> ParseResult<SqlSelectCore> {
-        self.expected(skw!(Select))?;
-        let distinct = if self.match_next(skw!(Distinct)) {
+        self.expected(&skw!(Select))?;
+        let distinct = if self.match_next(&skw!(Distinct)) {
             SqlDistinct::Distinct
-        } else if self.match_next(skw!(All)) {
+        } else if self.match_next(&skw!(All)) {
             SqlDistinct::All
         } else {
             SqlDistinct::ImplicitAll
@@ -1126,7 +1148,7 @@ impl<'a> Parser<'a> {
         let from = self.sql_select_from()?;
         let r#where = self.sql_select_where()?;
         let group_by = self.sql_select_group_by()?;
-        let having = if group_by.is_some() && self.match_next(skw!(Having)) {
+        let having = if group_by.is_some() && self.match_next(&skw!(Having)) {
             Some(self.expression()?)
         } else {
             None
@@ -1135,7 +1157,7 @@ impl<'a> Parser<'a> {
         let compound: Option<Box<SqlSelectCompound>> =
             if self.match_next_one_of(&[skw!(Union), skw!(Intersect), skw!(Except)]) {
                 let op = self.peek_bw(1);
-                let compound_op = if op.tok_type == skw!(Union) && self.match_next(skw!(All)) {
+                let compound_op = if op.tok_type == skw!(Union) && self.match_next(&skw!(All)) {
                     SqlCompoundOperator::UnionAll
                 } else {
                     match op.tok_type {
@@ -1169,7 +1191,7 @@ impl<'a> Parser<'a> {
     fn sql_select_projection(&mut self) -> ParseResult<Vec<SqlProjection>> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
-            if self.match_next(sym!(Star)) {
+            if self.match_next(&sym!(Star)) {
                 projections.push(SqlProjection::All { collection: None });
             } else if self.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
             {
@@ -1185,7 +1207,7 @@ impl<'a> Parser<'a> {
                     alias: alias.map(|t| t.extract_identifier().unwrap()),
                 });
             }
-            if !self.match_next(sym!(Comma)) {
+            if !self.match_next(&sym!(Comma)) {
                 break;
             }
         }
@@ -1193,7 +1215,7 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_select_from(&mut self) -> ParseResult<Option<SqlFrom>> {
-        if self.match_next(skw!(From)) {
+        if self.match_next(&skw!(From)) {
             return Ok(Some(self.sql_select_from_join()?));
         }
         Ok(None)
@@ -1203,7 +1225,7 @@ impl<'a> Parser<'a> {
         let mut from_group: Vec<SqlFrom> = vec![];
 
         loop {
-            let left = self.sql_select_from_collection()?;
+            let left = self.sql_select_from_source()?;
             from_group.push(left);
             while self.match_next_one_of(&[
                 skw!(Left),
@@ -1215,7 +1237,7 @@ impl<'a> Parser<'a> {
                 // If the next token is a join keyword, then it must be a join from
                 let peek = self.peek_bw(1);
                 if peek.tok_type != SqlKeyword(Join) {
-                    self.expected(skw!(Join))?;
+                    self.expected(&skw!(Join))?;
                 }
                 let join_type = match peek.tok_type {
                     SqlKeyword(Inner) => SqlJoinType::Inner,
@@ -1229,8 +1251,8 @@ impl<'a> Parser<'a> {
                         });
                     }
                 };
-                let right = self.sql_select_from_collection()?;
-                let join_constraint: Option<Box<Expr>> = if self.match_next(skw!(On)) {
+                let right = self.sql_select_from_source()?;
+                let join_constraint: Option<Box<Expr>> = if self.match_next(&skw!(On)) {
                     Some(self.expression()?)
                 } else {
                     None
@@ -1245,7 +1267,7 @@ impl<'a> Parser<'a> {
                     constraint: join_constraint,
                 });
             }
-            if !self.match_next(sym!(Comma)) {
+            if !self.match_next(&sym!(Comma)) {
                 break;
             }
         }
@@ -1254,21 +1276,21 @@ impl<'a> Parser<'a> {
     }
 
     fn sql_select_where(&mut self) -> ParseResult<Option<Box<Expr>>> {
-        if self.match_next(skw!(Where)) {
+        if self.match_next(&skw!(Where)) {
             return Ok(Some(self.expression()?));
         }
         Ok(None)
     }
 
     fn sql_select_group_by(&mut self) -> ParseResult<Option<Vec<Expr>>> {
-        if self.match_next(skw!(Group)) {
-            self.expected(skw!(By))?;
+        if self.match_next(&skw!(Group)) {
+            self.expected(&skw!(By))?;
             let mut groups: Vec<Expr> = vec![];
 
             loop {
                 let sql_expr = self.expression()?;
                 groups.push(*sql_expr);
-                if !self.match_next(sym!(Comma)) {
+                if !self.match_next(&sym!(Comma)) {
                     break;
                 }
             }
@@ -1278,11 +1300,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn sql_select_from_collection(&mut self) -> ParseResult<SqlFrom> {
-        if self.match_next(sym!(LeftParen)) {
+    fn sql_select_from_source(&mut self) -> ParseResult<SqlFrom> {
+        if self.match_next(&sym!(LeftParen)) {
             if self.cmp_tok(&skw!(Select)) {
                 let subquery = Box::new(self.sql_select_inner()?);
-                self.expected(sym!(RightParen))?;
+                self.expected(&sym!(RightParen))?;
                 let alias: Option<Token> =
                     optional_with_expected!(self, skw!(As), Identifier { dollar: false });
                 return Ok(SqlFrom::Select {
@@ -1292,14 +1314,18 @@ impl<'a> Parser<'a> {
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause
             let parsed = self.sql_select_from_join()?;
-            self.expected(sym!(RightParen))?;
+            self.expected(&sym!(RightParen))?;
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier()? {
-            return Ok(SqlFrom::Collection(collection));
+            return Ok(SqlFrom::Source(SqlSource::Collection(collection)));
         } else {
-            Err(ParseError::UnexpectedToken {
-                token: self.peek_bw(0).clone(),
-            })
+            let expr = self.expression()?;
+            self.expected(&skw!(As))?;
+            let identifier = self.expected(&Identifier { dollar: false })?.clone();
+            return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
+                expr,
+                alias: identifier.extract_identifier().unwrap(),
+            })));
         }
     }
 }

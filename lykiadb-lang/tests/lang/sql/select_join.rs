@@ -93,39 +93,33 @@ assert_parsing! {
                           "constraint": {
                             "@type": "Expr::Binary",
                             "left": {
-                              "@type": "Expr::Get",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
+                                "@type": "Identifier",
+                                "dollar": false,
+                                "name": "orders"
+                              },
+                              "tail": [{
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "id"
-                              },
-                              "object": {
-                                "@type": "Expr::Variable",
-                                "name": {
-                                  "@type": "Identifier",
-                                  "dollar": false,
-                                  "name": "orders"
-                                }
-                              }
+                              }]
                             },
                             "operation": {
                               "@type": "IsEqual"
                             },
                             "right": {
-                              "@type": "Expr::Get",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
+                                "@type": "Identifier",
+                                "dollar": false,
+                                "name": "carts"
+                              },
+                              "tail": [{
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "order_id"
-                              },
-                              "object": {
-                                "@type": "Expr::Variable",
-                                "name": {
-                                  "@type": "Identifier",
-                                  "dollar": false,
-                                  "name": "carts"
-                                }
-                              }
+                              }]
                             }
                           },
                           "join_type": {
@@ -136,39 +130,33 @@ assert_parsing! {
                             "constraint": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "users"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "id"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "users"
-                                  }
-                                }
+                                }]
                               },
                               "operation": {
                                 "@type": "IsEqual"
                               },
                               "right": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "orders"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "user_id"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "orders"
-                                  }
-                                }
+                                }]
                               }
                             },
                             "join_type": {
@@ -252,39 +240,33 @@ assert_parsing! {
                             "left": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "b"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "num"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "b"
-                                  }
-                                }
+                                }]
                               },
                               "operation": {
                                 "@type": "IsEqual"
                               },
                               "right": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "a"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "num"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "a"
-                                  }
-                                }
+                                }]
                               }
                             },
                             "operation": {
@@ -293,20 +275,17 @@ assert_parsing! {
                             "right": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "b"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "value"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "b"
-                                  }
-                                }
+                                }]
                               },
                               "operation": {
                                 "@type": "IsEqual"
@@ -488,39 +467,33 @@ assert_parsing! {
                               "constraint": {
                                 "@type": "Expr::Binary",
                                 "left": {
-                                  "@type": "Expr::Get",
-                                  "name": {
+                                  "@type": "Expr::FieldPath",
+                                  "head": {
+                                    "@type": "Identifier",
+                                    "dollar": false,
+                                    "name": "c"
+                                  },
+                                  "tail": [{
                                     "@type": "Identifier",
                                     "dollar": false,
                                     "name": "id"
-                                  },
-                                  "object": {
-                                    "@type": "Expr::Variable",
-                                    "name": {
-                                      "@type": "Identifier",
-                                      "dollar": false,
-                                      "name": "c"
-                                    }
-                                  }
+                                  }]
                                 },
                                 "operation": {
                                   "@type": "IsEqual"
                                 },
                                 "right": {
-                                  "@type": "Expr::Get",
-                                  "name": {
+                                  "@type": "Expr::FieldPath",
+                                  "head": {
+                                    "@type": "Identifier",
+                                    "dollar": false,
+                                    "name": "d"
+                                  },
+                                  "tail": [{
                                     "@type": "Identifier",
                                     "dollar": false,
                                     "name": "id"
-                                  },
-                                  "object": {
-                                    "@type": "Expr::Variable",
-                                    "name": {
-                                      "@type": "Identifier",
-                                      "dollar": false,
-                                      "name": "d"
-                                    }
-                                  }
+                                  }]
                                 }
                               },
                               "join_type": {
@@ -549,39 +522,33 @@ assert_parsing! {
                                             "constraint": {
                                               "@type": "Expr::Binary",
                                               "left": {
-                                                "@type": "Expr::Get",
-                                                "name": {
+                                                "@type": "Expr::FieldPath",
+                                                "head": {
+                                                  "@type": "Identifier",
+                                                  "dollar": false,
+                                                  "name": "a"
+                                                },
+                                                "tail": [{
                                                   "@type": "Identifier",
                                                   "dollar": false,
                                                   "name": "id"
-                                                },
-                                                "object": {
-                                                  "@type": "Expr::Variable",
-                                                  "name": {
-                                                    "@type": "Identifier",
-                                                    "dollar": false,
-                                                    "name": "a"
-                                                  }
-                                                }
+                                                }]
                                               },
                                               "operation": {
                                                 "@type": "IsEqual"
                                               },
                                               "right": {
-                                                "@type": "Expr::Get",
-                                                "name": {
+                                                "@type": "Expr::FieldPath",
+                                                "head": {
+                                                  "@type": "Identifier",
+                                                  "dollar": false,
+                                                  "name": "b"
+                                                },
+                                                "tail": [{
                                                   "@type": "Identifier",
                                                   "dollar": false,
                                                   "name": "id"
-                                                },
-                                                "object": {
-                                                  "@type": "Expr::Variable",
-                                                  "name": {
-                                                    "@type": "Identifier",
-                                                    "dollar": false,
-                                                    "name": "b"
-                                                  }
-                                                }
+                                                }]
                                               }
                                             },
                                             "join_type": {
@@ -693,39 +660,33 @@ assert_parsing! {
                           "constraint": {
                             "@type": "Expr::Binary",
                             "left": {
-                              "@type": "Expr::Get",
-                              "name": {
+                              "@type": "Expr::FieldPath",
+                              "head": {
+                                "@type": "Identifier",
+                                "dollar": false,
+                                "name": "baskets"
+                              },
+                              "tail": [{
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "order_id"
-                              },
-                              "object": {
-                                "@type": "Expr::Variable",
-                                "name": {
-                                  "@type": "Identifier",
-                                  "dollar": false,
-                                  "name": "baskets"
-                                }
-                              }
+                              }]
                             },
                             "operation": {
                               "@type": "IsEqual"
                             },
-                            "right": {
-                              "@type": "Expr::Get",
-                              "name": {
+                            "right":{
+                              "@type": "Expr::FieldPath",
+                              "head": {
+                                "@type": "Identifier",
+                                "dollar": false,
+                                "name": "orders"
+                              },
+                              "tail": [{
                                 "@type": "Identifier",
                                 "dollar": false,
                                 "name": "id"
-                              },
-                              "object": {
-                                "@type": "Expr::Variable",
-                                "name": {
-                                  "@type": "Identifier",
-                                  "dollar": false,
-                                  "name": "orders"
-                                }
-                              }
+                              }]
                             }
                           },
                           "join_type": {
@@ -736,39 +697,33 @@ assert_parsing! {
                             "constraint": {
                               "@type": "Expr::Binary",
                               "left": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "users"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "id"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "users"
-                                  }
-                                }
+                                }]
                               },
                               "operation": {
                                 "@type": "IsEqual"
                               },
                               "right": {
-                                "@type": "Expr::Get",
-                                "name": {
+                                "@type": "Expr::FieldPath",
+                                "head": {
+                                  "@type": "Identifier",
+                                  "dollar": false,
+                                  "name": "orders"
+                                },
+                                "tail": [{
                                   "@type": "Identifier",
                                   "dollar": false,
                                   "name": "user_id"
-                                },
-                                "object": {
-                                  "@type": "Expr::Variable",
-                                  "name": {
-                                    "@type": "Identifier",
-                                    "dollar": false,
-                                    "name": "orders"
-                                  }
-                                }
+                                }]
                               }
                             },
                             "join_type": {

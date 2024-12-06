@@ -1,28 +1,35 @@
-use crate::engine::interpreter::{ExecutionContext, HaltReason};
-use lykiadb_lang::ast::{
-    expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlSelect, SqlSelectCore}
+use crate::{
+    engine::{
+        error::ExecutionError,
+        interpreter::{HaltReason, Interpreter},
+    },
+    value::RV,
 };
 
-use super::{Node, Plan};
-pub struct Planner {
-    context: ExecutionContext
+use lykiadb_lang::{
+    ast::{
+        expr::Expr,
+        sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
+        visitor::VisitorMut,
+    },
+    Spanned,
+};
+
+use super::{scope::Scope, 
+    IntermediateExpr, Node, Plan, PlannerError};
+
+pub struct Planner<'a> {
+    interpreter: &'a mut Interpreter,
 }
 
-impl Planner {
-    pub fn new(ctx: ExecutionContext) -> Planner {
-        Planner {
-            context: ctx
-        }
+impl<'a> Planner<'a> {
+    pub fn new(interpreter: &'a mut Interpreter) -> Planner {
+        Planner { interpreter }
     }
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
         match expr {
-            Expr::Select {
-                query,
-                span: _,
-                id: _,
-            } => {
+            Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query)?);
                 Ok(plan)
             }
@@ -32,68 +39,187 @@ impl Planner {
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
+
+        let mut parent_scope = Scope::new();
+
         // FROM/JOIN
         if let Some(from) = &core.from {
-            node = self.build_from(from)?;
+            node = self.build_from(from, &mut parent_scope)?;
         }
+
         // WHERE
         if let Some(predicate) = &core.r#where {
-            // TODO: Traverse expression
+            let (expr, subqueries): (
+                IntermediateExpr, Vec<Node>) =
+                self.build_expr(predicate.as_ref(), true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
-                predicate: *predicate.clone(),
+                predicate: expr,
+                subqueries,
             }
         }
+
+        // AGGREGATES
+
+        // GROUP BY
+
+        // PROJECTION
+        if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
+            for projection in &core.projection {
+                if let SqlProjection::Expr { expr, .. } = projection {
+                    self.build_expr(&expr, false, true)?;
+                }
+            }
+            node = Node::Projection {
+                source: Box::new(node),
+                fields: core.projection.clone(),
+            };
+        }
+
+        // HAVING
+
+        // COMPOUND
         if let Some(compound) = &core.compound {
-            node = Node::Compound { 
+            node = Node::Compound {
                 source: Box::new(node),
                 operator: compound.operator.clone(),
-                right: Box::new(self.build_select_core(&compound.core)?)
+                right: Box::new(self.build_select_core(&compound.core)?),
             }
         }
-        // GROUP BY
-        // HAVING
-        // SELECT
         Ok(node)
+    }
+
+    fn eval_constant(&mut self, expr: &Expr) -> Result<RV, HaltReason> {
+        self.interpreter.visit_expr(expr)
+    }
+
+    fn build_expr(
+        &mut self,
+        expr: &Expr,
+        allow_subqueries: bool,
+        allow_aggregates: bool,
+    ) -> Result<(
+        IntermediateExpr, Vec<Node>), HaltReason> {
+        // TODO(vck): Implement this
+
+        let mut subqueries: Vec<Node> = vec![];
+
+        let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
+            Expr::Get { object, name, .. } => {
+                println!("Get {}.({})", object, name);
+                None
+            }
+            Expr::FieldPath { head, tail, .. } => {
+                println!("FieldPath {} {}", head.to_string(), tail.iter().map(|x| x.to_string()).collect::<String>());
+                None
+            }
+            Expr::Call { callee, args, .. } => {
+                println!("Call {}({:?})", callee, args);
+                None
+            }
+            Expr::Select { query, .. } => {
+                if !allow_subqueries {
+                    return Some(Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::SubqueryNotAllowed(expr.get_span()),
+                    ))));
+                }
+                let subquery = self.build_select(query);
+                subqueries.push(subquery.unwrap());
+                None
+            }
+            _ => Some(Ok(())),
+        });
+
+        if let Some(Err(err)) = result {
+            return Err(err);
+        }
+
+        Ok((
+            IntermediateExpr::Expr {
+                expr: expr.clone(),
+            },
+            subqueries,
+        ))
     }
 
     fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
-        // ORDER BY
+        if let Some(order_by) = &query.order_by {
+            let mut order_key = vec![];
+
+            for key in order_by {
+                let (expr, _) = self.build_expr(&key.expr, false, true)?;
+                order_key.push((expr, key.ordering.clone()));
+            }
+
+            node = Node::Order {
+                source: Box::new(node),
+                key: order_key,
+            };
+        }
 
         if let Some(limit) = &query.limit {
             if let Some(offset) = &limit.offset {
-                node = Node::Offset { source: Box::new(node), offset: self.context.eval(&offset)?.as_number().expect("Offset is not correct").floor() as usize }
+                node = Node::Offset {
+                    source: Box::new(node),
+                    offset: self
+                        .eval_constant(offset)?
+                        .as_number()
+                        .expect("Offset is not correct")
+                        .floor() as usize,
+                }
             }
-
-            node = Node::Limit { source: Box::new(node), limit: self.context.eval(&limit.count)?.as_number().expect("Limit is not correct").floor() as usize }
+            node = Node::Limit {
+                source: Box::new(node),
+                limit: self
+                    .eval_constant(&limit.count)?
+                    .as_number()
+                    .expect("Limit is not correct")
+                    .floor() as usize,
+            }
         }
 
         Ok(node)
     }
 
-    fn build_from(&mut self, from: &SqlFrom) -> Result<Node, HaltReason> {
-        match from {
-            SqlFrom::Collection(ident) => Ok(Node::Scan {
-                source: ident.clone(),
-                filter: None,
-            }),
+    fn build_from(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
+        let mut scope = Scope::new();
+
+        let node = match from {
+            SqlFrom::Source(source) => {
+                let wrapped = match source {
+                    SqlSource::Collection(ident) => Node::Scan {
+                        source: ident.clone(),
+                        filter: None,
+                    },
+                    SqlSource::Expr(expr) => Node::EvalScan {
+                        source: expr.clone(),
+                        filter: None,
+                    },
+                };
+
+                if let Err(err) = scope.add_source(source.clone()) {
+                    return Err(HaltReason::Error(ExecutionError::Plan(err)));
+                }
+
+                Ok(wrapped)
+            }
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
-                    alias: alias.clone().unwrap(),
+                    alias: alias.clone(),
                 };
                 Ok(node)
             }
             SqlFrom::Group { values } => {
                 let mut froms = values.iter();
-                let mut node = self.build_from(froms.next().unwrap())?;
+                let mut node = self.build_from(froms.next().unwrap(), &mut scope)?;
                 for right in froms {
                     node = Node::Join {
                         left: Box::new(node),
                         join_type: SqlJoinType::Cross,
-                        right: Box::new(self.build_from(right)?),
+                        right: Box::new(self.build_from(right, &mut scope)?),
                         constraint: None,
                     }
                 }
@@ -104,36 +230,25 @@ impl Planner {
                 join_type,
                 right,
                 constraint,
-            } => Ok(Node::Join {
-                left: Box::new(self.build_from(left)?),
-                join_type: join_type.clone(),
-                right: Box::new(self.build_from(right)?),
-                constraint: constraint.clone().map(|x| *x.clone()),
-            }),
-        }
-    }
-}
+            } => {
+                let constraint = constraint
+                    .as_ref()
+                    .map(|x| self.build_expr(x, false, false))
+                    .transpose()?;
 
-
-pub mod test_helpers {
-    use lykiadb_lang::{ast::stmt::Stmt, parser::program::Program};
-
-    use crate::engine::interpreter::ExecutionContext;
-
-    use super::Planner;
-
-    pub fn expect_plan(query: &str, expected_plan: &str) {
-        let ctx = ExecutionContext::new(None);
-        let mut planner = Planner::new(ctx);
-        let program = query.parse::<Program>().unwrap();
-        match *program.get_root() {
-            Stmt::Program { body, .. } if matches!(body.get(0), Some(Stmt::Expression { .. })) => {
-                if let Some(Stmt::Expression { expr, .. }) = body.get(0) {
-                    let generated_plan = planner.build(&expr).unwrap();
-                    assert_eq!(expected_plan, generated_plan.to_string());
-                }
+                Ok(Node::Join {
+                    left: Box::new(self.build_from(left, &mut scope)?),
+                    join_type: join_type.clone(),
+                    right: Box::new(self.build_from(right, &mut scope)?),
+                    constraint: constraint.map(|x| x.0),
+                })
             }
-            _ => panic!("Expected expression statement."),
+        };
+
+        if let Err(err) = parent_scope.merge(scope) {
+            return Err(HaltReason::Error(ExecutionError::Plan(err)));
         }
+
+        node
     }
 }

@@ -1,0 +1,37 @@
+#[name=implicit_all, run=plan]>
+
+SELECT * FROM books;
+
+---
+
+- scan [books as books]
+
+
+#[name=explicit_all, run=plan]>
+
+SELECT books.* FROM books;
+
+---
+
+- project [* in books]
+  - scan [books as books]
+
+
+#[name=simple, run=plan]>
+
+SELECT id, title FROM books;
+
+---
+
+- project [id as id, title as title]
+  - scan [books as books]
+
+
+#[name=constants, run=plan]>
+
+SELECT 5 + 5 as ten FROM books;
+
+---
+
+- project [(Num(5.0) Add Num(5.0)) as ten]
+  - scan [books as books]

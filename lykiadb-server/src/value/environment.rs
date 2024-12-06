@@ -27,7 +27,7 @@ impl Default for Environment {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum EnvironmentError {
     /*AssignmentToUndefined {
         token: Token,
