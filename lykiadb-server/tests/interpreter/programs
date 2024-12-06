@@ -1,0 +1,31 @@
+#[name=multiple_programs, run=interpreter]>
+
+function resolvedFirst() {
+    var $a = "global";
+    {
+        function showA() {
+            test_utils::out($a);
+        };
+    
+        showA();
+        var $a = "block";
+        showA();
+    }
+};
+resolvedFirst();
+
+---
+
+global
+global
+
+---
+
+resolvedFirst();
+
+---
+
+global
+global
+global
+global

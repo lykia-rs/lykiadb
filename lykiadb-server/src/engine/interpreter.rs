@@ -689,7 +689,7 @@ impl Output {
         }
         assert_eq!(self.out, rv)
     }
-
+    // TODO(vck): Remove this
     pub fn expect_str(&mut self, rv: Vec<String>) {
         assert_eq!(self.out.iter().map(|x| x.to_string()).collect::<Vec<String>>(), rv)
     }
@@ -724,12 +724,6 @@ pub mod test_helpers {
         let (out, mut runtime) = get_runtime();
         runtime.interpret(code).unwrap();
         out.write().unwrap().expect(output);
-    }
-
-    pub fn assert_out_str(code: &str, output: Vec<String>) {
-        let (out, mut runtime) = get_runtime();
-        runtime.interpret(code).unwrap();
-        out.write().unwrap().expect_str(output);
     }
 
     pub fn assert_err(code: &str, error: &str) {

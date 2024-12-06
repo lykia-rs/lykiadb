@@ -1,0 +1,140 @@
+#[name=resolving_read_0, run=interpreter]>
+
+var $a = "global";
+{
+    function showA() {
+        test_utils::out($a);
+    };
+
+    showA();
+    var $a = "block";
+    showA();
+}
+
+---
+
+global
+global
+
+
+#[name=resolving_read_1, run=interpreter]>
+
+var $a = "global";
+{
+    function showA() {
+        test_utils::out($a);
+    };
+
+    showA();
+    var $a = "block";
+    showA();
+
+    function showB() {
+        test_utils::out($a);
+    };
+
+    showB();
+}
+
+---
+
+global
+global
+block
+
+#[name=resolving_read_2, run=interpreter]>
+
+{
+    var $a = "global";
+    {
+        function showA() {
+            test_utils::out($a);
+        };
+    
+        showA();
+        var $a = "block";
+        showA();
+    }
+}
+
+---
+
+global
+global
+
+
+#[name=resolve_object, run=interpreter]>
+
+var $text = 'outer $text';
+        
+var $a = {
+    myFun: function() {
+        function pre_define() {
+            test_utils::out($text);
+        };
+        pre_define();
+
+        var $text = 'inner $text';
+
+        function post_define() {
+            test_utils::out($text);
+        };
+        post_define();
+    }
+};
+
+$a.myFun();
+
+---
+
+outer $text
+inner $text
+
+
+#[name=resolve_deeper_object, run=interpreter]>
+
+var $text = 'outer $text';
+        
+var $a = {
+    b: {
+        c0: {
+            myFun: function() {
+                function pre_define() {
+                    test_utils::out($text);
+                };
+                pre_define();
+
+                var $text = 'c0 inner $text';
+
+                function post_define() {
+                    test_utils::out($text);
+                };
+                post_define();
+            }
+        },
+        c1: {
+            myFun: function() {
+                function pre_define() {
+                    test_utils::out($text);
+                };
+                pre_define();
+
+                var $text = 'c1 inner $text';
+
+                function post_define() {
+                    test_utils::out($text);
+                };
+                post_define();
+            }
+        }
+    }
+};
+$a.b.c0.myFun();
+$a.b.c1.myFun();
+
+---
+
+outer $text
+c0 inner $text
+outer $text
+c1 inner $text

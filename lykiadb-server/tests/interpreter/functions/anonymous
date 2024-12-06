@@ -1,0 +1,51 @@
+#[name=anonymous_fn_0, run=interpreter]>
+
+var $pr = function a() {
+    test_utils::out("hello");
+};
+
+$pr();
+a();
+
+---
+
+hello
+hello
+
+
+#[name=anonymous_fn_1_iife, run=interpreter]>
+
+(function a() {
+    test_utils::out("hello");
+})();
+
+a();
+
+---
+
+hello
+hello
+
+
+#[name=anonymous_fn_2, run=interpreter]>
+
+var $pr = function() {
+    test_utils::out("hello");
+};
+
+$pr();
+
+---
+
+hello
+
+
+#[name=anonymous_fn_3_iife, run=interpreter]>
+
+(function() {
+    test_utils::out("hello");
+})();
+
+---
+
+hello
