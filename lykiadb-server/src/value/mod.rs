@@ -232,7 +232,10 @@ mod tests {
 
         // Test strings
         assert_eq!(RV::Str(Arc::new("42".to_string())).as_number(), Some(42.0));
-        assert_eq!(RV::Str(Arc::new("-42".to_string())).as_number(), Some(-42.0));
+        assert_eq!(
+            RV::Str(Arc::new("-42".to_string())).as_number(),
+            Some(-42.0)
+        );
         assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_number(), None);
         assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
 
@@ -241,7 +244,10 @@ mod tests {
         assert_eq!(RV::Undefined.as_number(), None);
         assert_eq!(RV::NaN.as_number(), None);
         assert_eq!(RV::Array(alloc_shared(Vec::new())).as_number(), None);
-        assert_eq!(RV::Object(alloc_shared(FxHashMap::default())).as_number(), None);
+        assert_eq!(
+            RV::Object(alloc_shared(FxHashMap::default())).as_number(),
+            None
+        );
     }
 
     #[test]
@@ -250,7 +256,7 @@ mod tests {
         let haystack = RV::Str(Arc::new("hello world".to_string()));
         let needle = RV::Str(Arc::new("world".to_string()));
         assert_eq!(needle.is_in(&haystack), RV::Bool(true));
-        
+
         let not_found = RV::Str(Arc::new("xyz".to_string()));
         assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
 
@@ -262,15 +268,24 @@ mod tests {
 
         assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
         assert_eq!(RV::Num(2.0).is_in(&array), RV::Bool(false));
-        assert_eq!(RV::Str(Arc::new("test".to_string())).is_in(&array), RV::Bool(true));
+        assert_eq!(
+            RV::Str(Arc::new("test".to_string())).is_in(&array),
+            RV::Bool(true)
+        );
 
         // Test object key contains
         let mut map = FxHashMap::default();
         map.insert("key".to_string(), RV::Num(1.0));
         let object = RV::Object(alloc_shared(map));
 
-        assert_eq!(RV::Str(Arc::new("key".to_string())).is_in(&object), RV::Bool(true));
-        assert_eq!(RV::Str(Arc::new("missing".to_string())).is_in(&object), RV::Bool(false));
+        assert_eq!(
+            RV::Str(Arc::new("key".to_string())).is_in(&object),
+            RV::Bool(true)
+        );
+        assert_eq!(
+            RV::Str(Arc::new("missing".to_string())).is_in(&object),
+            RV::Bool(false)
+        );
     }
 
     #[test]
@@ -280,7 +295,10 @@ mod tests {
         assert_eq!(RV::Num(0.0).not(), RV::Bool(true));
         assert_eq!(RV::Num(1.0).not(), RV::Bool(false));
         assert_eq!(RV::Str(Arc::new("".to_string())).not(), RV::Bool(true));
-        assert_eq!(RV::Str(Arc::new("hello".to_string())).not(), RV::Bool(false));
+        assert_eq!(
+            RV::Str(Arc::new("hello".to_string())).not(),
+            RV::Bool(false)
+        );
         assert_eq!(RV::Null.not(), RV::Bool(true));
         assert_eq!(RV::Undefined.not(), RV::Bool(true));
         assert_eq!(RV::NaN.not(), RV::Bool(true));

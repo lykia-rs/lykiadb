@@ -58,7 +58,7 @@ mod tests {
             nt_json_encode(&mut interpreter, &[RV::Num(42.0)]).unwrap(),
             RV::Str(Arc::new("42.0".to_string()))
         );
-        
+
         assert_eq!(
             nt_json_encode(&mut interpreter, &[RV::Bool(true)]).unwrap(),
             RV::Str(Arc::new("true".to_string()))
@@ -79,7 +79,7 @@ mod tests {
         arr.push(RV::Num(1.0));
         arr.push(RV::Str(Arc::new("test".to_string())));
         let array_rv = RV::Array(alloc_shared(arr));
-        
+
         assert_eq!(
             nt_json_encode(&mut interpreter, &[array_rv]).unwrap(),
             RV::Str(Arc::new("[1.0,\"test\"]".to_string()))
@@ -113,7 +113,11 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("\"hello\"".to_string()))]).unwrap(),
+            nt_json_decode(
+                &mut interpreter,
+                &[RV::Str(Arc::new("\"hello\"".to_string()))]
+            )
+            .unwrap(),
             RV::Str(Arc::new("hello".to_string()))
         );
 
@@ -125,9 +129,10 @@ mod tests {
         // Test array
         let array_result = nt_json_decode(
             &mut interpreter,
-            &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))]
-        ).unwrap();
-        
+            &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))],
+        )
+        .unwrap();
+
         if let RV::Array(arr) = array_result {
             let arr = arr.read().unwrap();
             assert_eq!(arr.len(), 2);
@@ -140,14 +145,20 @@ mod tests {
         // Test object
         let object_result = nt_json_decode(
             &mut interpreter,
-            &[RV::Str(Arc::new("{\"key\": 123.0, \"msg\": \"value\"}".to_string()))]
-        ).unwrap();
+            &[RV::Str(Arc::new(
+                "{\"key\": 123.0, \"msg\": \"value\"}".to_string(),
+            ))],
+        )
+        .unwrap();
 
         if let RV::Object(obj) = object_result {
             let obj = obj.read().unwrap();
             assert_eq!(obj.len(), 2);
             assert_eq!(obj.get("key").unwrap(), &RV::Num(123.0));
-            assert_eq!(obj.get("msg").unwrap(), &RV::Str(Arc::new("value".to_string())));
+            assert_eq!(
+                obj.get("msg").unwrap(),
+                &RV::Str(Arc::new("value".to_string()))
+            );
         } else {
             panic!("Expected object result");
         }
@@ -159,7 +170,10 @@ mod tests {
         ));
 
         assert!(matches!(
-            nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("invalid json".to_string()))]),
+            nt_json_decode(
+                &mut interpreter,
+                &[RV::Str(Arc::new("invalid json".to_string()))]
+            ),
             Err(HaltReason::Error(_))
         ));
     }

@@ -691,7 +691,13 @@ impl Output {
     }
     // TODO(vck): Remove this
     pub fn expect_str(&mut self, rv: Vec<String>) {
-        assert_eq!(self.out.iter().map(|x| x.to_string()).collect::<Vec<String>>(), rv)
+        assert_eq!(
+            self.out
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>(),
+            rv
+        )
     }
 }
 

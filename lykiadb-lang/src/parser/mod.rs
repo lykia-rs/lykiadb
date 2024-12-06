@@ -585,7 +585,7 @@ impl<'a> Parser<'a> {
 
     fn expect_get_path(&mut self, initial: Box<Expr>, tok: TokenType) -> ParseResult<Box<Expr>> {
         let mut expr = initial;
-        
+
         loop {
             if self.match_next(&sym!(LeftParen)) {
                 expr = self.finish_call(expr)?;
@@ -600,7 +600,7 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-        };
+        }
 
         Ok(expr)
     }
@@ -609,11 +609,12 @@ impl<'a> Parser<'a> {
         let expr = self.primary()?;
 
         if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if !name.dollar
-            {
+            if !name.dollar {
                 let next_tok = &self.peek_bw(0).tok_type;
 
-                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && self.in_select_depth > 0 {
+                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
+                    && self.in_select_depth > 0
+                {
                     let head = name.clone();
                     let mut tail: Vec<crate::Identifier> = vec![];
                     while self.match_next(&sym!(Dot)) {
