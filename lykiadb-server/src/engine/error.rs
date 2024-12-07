@@ -38,24 +38,23 @@ impl From<ScanError> for ExecutionError {
     }
 }
 
-pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
+pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut writer: impl std::io::Write) {
     use ariadne::{Color, Label, Report, ReportKind, Source};
 
     // Generate & choose some colours for each of our elements
     let out = Color::Fixed(81);
 
-    let print = |message: &str, hint: &str, span: Span| {
-        Report::build(ReportKind::Error, filename, 12)
+    let mut print = |message: &str, hint: &str, span: Span| {
+        Report::build(ReportKind::Error, source_name, 12)
             .with_code(3)
             .with_message(format!("{} at line {}", message, span.line + 1))
             .with_label(
-                Label::new((filename, span.start..span.end))
+                Label::new((source_name, span.start..span.end))
                     .with_message(hint)
                     .with_color(out),
             )
             .finish()
-            .print((filename, Source::from(&source)))
-            .unwrap();
+            .write((source_name, Source::from(&source)), &mut writer).unwrap();
     };
 
     match error {
@@ -153,7 +152,6 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             );
         }
         ExecutionError::Plan(PlannerError::SubqueryNotAllowed(span)) => {
-            println!("{:?}", span);
             print(
                 "Subquery not allowed",
                 "Subqueries are not allowed in this context.",
@@ -165,5 +163,63 @@ pub fn report_error(filename: &str, source: &str, error: ExecutionError) {
             print(&message, "", Span::default());
         }
         _ => {}
+    };
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lykiadb_lang::tokenizer::token::{Token, TokenType};
+
+    fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
+        let mut output = Vec::new();
+        report_error(filename, source, error, &mut output);
+        String::from_utf8(output).unwrap()
+    }
+
+    #[test]
+    fn test_scan_error_reporting() {
+        let source = "let x = @";
+        let error = ExecutionError::Scan(ScanError::UnexpectedCharacter {
+            span: Span {
+                start: 8,
+                end: 9,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Unexpected character"));
+        assert!(output.contains("Remove this character"));
+        assert!(output.contains("at line 1"));
+    }
+
+    #[test]
+    fn test_interpret_error_reporting() {
+        let source = "obj.nonexistent";
+        let error = ExecutionError::Interpret(InterpretError::PropertyNotFound {
+            property: "nonexistent".to_string(),
+            span: Span {
+                start: 4,
+                end: 14,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Property nonexistent not found"));
+        assert!(output.contains("Check if that field is present"));
+    }
+
+    #[test]
+    fn test_environment_error_reporting() {
+        let source = "";
+        let error = ExecutionError::Environment(EnvironmentError::Other {
+            message: "Variable not found".to_string(),
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Variable not found"));
     }
 }
