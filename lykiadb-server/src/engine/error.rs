@@ -88,8 +88,8 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
         }
         ExecutionError::Parse(ParseError::NoTokens) => {
             print(
-                "There is nothing to parse.",
-                "What about adding some tokens?",
+                "There is nothing to parse",
+                "",
                 Span::default(),
             );
         }
@@ -167,8 +167,10 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
 }
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use super::*;
-    use lykiadb_lang::{kw, tokenizer::token::{Keyword, Token, TokenType}, Identifier, Literal};
+    use lykiadb_lang::{kw, sym, tokenizer::token::{Keyword, Symbol, Token, TokenType}, Identifier, Literal};
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
         let mut output = Vec::new();
@@ -237,6 +239,55 @@ mod tests {
     }
 
     #[test]
+    fn test_parser_no_tokens() {
+        let source = "";
+        let error = ExecutionError::Parse(ParseError::NoTokens);
+
+        let output = capture_error_output("test.txt", source, error);
+
+        assert!(output.contains("There is nothing to parse"));
+    }
+
+    #[test]
+    fn test_parser_unexpected_token() {
+        let source = "let x = ;";
+        let error = ExecutionError::Parse(ParseError::UnexpectedToken {
+            token: Token {
+                tok_type: sym!(Symbol::Semicolon),
+                lexeme: Some(";".to_string()),
+                span: Span {
+                    start: 8,
+                    end: 9,
+                    line: 0,
+                    line_end: 0,
+                },
+                literal: None,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Unexpected token"));
+        assert!(output.contains("Unexpected token ;"));
+    }
+
+    #[test]
+    fn test_interpreter_unexpected_statement() {
+        let source = "break;";
+        let error = ExecutionError::Interpret(InterpretError::UnexpectedStatement {
+            span: Span {
+                start: 0,
+                end: 5,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Unexpected statement"));
+        assert!(output.contains("Remove this"));
+    }
+
+    #[test]
     fn test_parser_invalid_assignment() {
         let source = "5 = 10";
         let error = ExecutionError::Parse(ParseError::InvalidAssignmentTarget {
@@ -261,7 +312,7 @@ mod tests {
     // Planner Error Tests
     #[test]
     fn test_planner_duplicate_object() {
-        let source = "CREATE TABLE users; CREATE TABLE users;";
+        let source = "Select * from users, users;";
         let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope {
             previous: Identifier::new("users", false),
             ident: Identifier::new("users", false),
@@ -274,10 +325,10 @@ mod tests {
 
     #[test]
     fn test_planner_subquery_not_allowed() {
-        let source = "SELECT * FROM (SELECT * FROM users) WHERE id IN (SELECT id FROM users)";
+        let source = "SELECT * FROM users inner join orders on users.id = (SELECT id FROM users);";
         let error = ExecutionError::Plan(PlannerError::SubqueryNotAllowed(Span {
-            start: 14,
-            end: 33,
+            start: 47,
+            end: 70,
             line: 0,
             line_end: 0,
         }));
