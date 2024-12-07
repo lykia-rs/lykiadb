@@ -1,0 +1,271 @@
+#[name=unary_evaluation, run=interpreter]>
+
+test_utils::out(-2);
+test_utils::out(-(-2));
+test_utils::out(!3);
+test_utils::out(!!3);
+test_utils::out(!!!3);
+
+---
+
+-2
+2
+false
+true
+false
+
+#[name=binary_evaluation, run=interpreter]>
+
+test_utils::out(5-(-2));
+test_utils::out((5 + 2) * 4);
+test_utils::out(5 + 2 * 4);
+test_utils::out((13 + 4) * (7 + 3));
+test_utils::out(-5-2);
+
+---
+
+7
+28
+13
+170
+-7
+
+#[name=logical_evaluation, run=interpreter]>
+
+test_utils::out(5 && 1);
+test_utils::out(5 || 1);
+test_utils::out(5 && 0);
+test_utils::out(5 || 0);
+test_utils::out(!(5 || 0));
+test_utils::out(!(5 || 0) || 1);
+test_utils::out(!(5 || 0) || (1 && 0));
+
+---
+
+true
+true
+false
+true
+false
+true
+false
+
+
+#[name=get_evaluation, run=interpreter]>
+
+var $obj = {
+    name: "John",
+    age: 30,
+    address: {
+        city: "New York",
+        zip: 10001
+    }
+};
+
+test_utils::out($obj.name);
+test_utils::out($obj.age);
+test_utils::out($obj.address.city);
+test_utils::out($obj.address.zip);
+
+---
+
+John
+30
+New York
+10001
+
+
+#[name=get_errors, run=interpreter]>
+
+var $obj = {
+    name: "John"
+};
+
+test_utils::out($obj.age);
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+
+--->
+
+test_utils::out($obj.address.city);
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+
+--->
+
+test_utils::out(null.prop);
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+
+--->
+
+test_utils::out(5.prop);
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
+
+--->
+
+test_utils::out("string".length);
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
+Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
+
+#[name=set_evaluation, run=interpreter]>
+
+var $obj = {
+    name: "John",
+    age: 30,
+    address: {
+        city: "New York",
+        zip: 10001
+    }
+};
+
+$obj.name = "Jane";
+test_utils::out($obj.name);
+
+$obj.age = 31;
+test_utils::out($obj.age);
+
+$obj.address.city = "Boston";
+test_utils::out($obj.address.city);
+
+$obj.newProp = "test";
+test_utils::out($obj.newProp);
+
+---
+
+Jane
+31
+Boston
+test
+
+
+#[name=set_errors, run=interpreter]>
+
+var $obj = {
+    name: "John"
+};
+
+$obj.address.city = "Boston";
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+
+--->
+
+null.prop = "test";
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+
+--->
+
+5.prop = "test";
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
+
+--->
+
+"string".prop = "test";
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
+Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
+
+--->
+
+undefined.prop = "test";
+
+---err
+
+Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
+Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
+
+
+#[name=between_evaluation, run=interpreter]>
+
+var $x = 5;
+test_utils::out($x between 1 and 10);
+test_utils::out($x between 5 and 10);
+test_utils::out($x between 1 and 5);
+test_utils::out($x between 6 and 10);
+test_utils::out($x between 0 and 4);
+
+test_utils::out($x not between 1 and 10);
+test_utils::out($x not between 5 and 10);
+test_utils::out($x not between 1 and 5);
+test_utils::out($x not between 6 and 10);
+test_utils::out($x not between 0 and 4);
+
+---
+
+true
+true
+true
+false
+false
+false
+false
+false
+true
+true
+
+#[name=between_errors, run=interpreter]>
+
+test_utils::out(5 between "1" and 10);
+
+---err
+
+Interpret(Other { message: "Range can only be created with numbers. Str(\"1\") Num(10.0) Num(5.0)" })
+
+--->
+
+test_utils::out(5 between 1 and "10");
+
+---err
+
+Interpret(Other { message: "Range can only be created with numbers. Str(\"1\") Num(10.0) Num(5.0)" })
+Interpret(Other { message: "Range can only be created with numbers. Num(1.0) Str(\"10\") Num(5.0)" })
+
+--->
+
+test_utils::out("5" between 1 and 10);
+
+---err
+
+Interpret(Other { message: "Range can only be created with numbers. Str(\"1\") Num(10.0) Num(5.0)" })
+Interpret(Other { message: "Range can only be created with numbers. Num(1.0) Str(\"10\") Num(5.0)" })
+Interpret(Other { message: "Range can only be created with numbers. Num(1.0) Num(10.0) Str(\"5\")" })
