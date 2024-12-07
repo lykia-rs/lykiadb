@@ -168,12 +168,172 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lykiadb_lang::tokenizer::token::{Token, TokenType};
+    use lykiadb_lang::{kw, tokenizer::token::{Keyword, Token, TokenType}, Identifier, Literal};
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
         let mut output = Vec::new();
         report_error(filename, source, error, &mut output);
         String::from_utf8(output).unwrap()
+    }
+
+
+    // Scanner Error Tests
+    #[test]
+    fn test_scanner_unterminated_string() {
+        let source = r#"let x = "unterminated"#;
+        let error = ExecutionError::Scan(ScanError::UnterminatedString {
+            span: Span {
+                start: 8,
+                end: 21,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Unterminated string"));
+        assert!(output.contains("Terminate the string with a double quote"));
+    }
+
+    #[test]
+    fn test_scanner_malformed_number() {
+        let source = "let x = 123.456.789";
+        let error = ExecutionError::Scan(ScanError::MalformedNumberLiteral {
+            span: Span {
+                start: 8,
+                end: 19,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Malformed number literal"));
+        assert!(output.contains("Make sure that number literal is up to spec"));
+    }
+
+    // Parser Error Tests
+    #[test]
+    fn test_parser_missing_token() {
+        let source = "var x = ";
+        let error = ExecutionError::Parse(ParseError::MissingToken {
+            token: Token {
+                tok_type: kw!(Keyword::Var),
+                lexeme: Some("var".to_string()),
+                span: Span {
+                    start: 0,
+                    end: 3,
+                    line: 0,
+                    line_end: 0,
+                },
+                literal: None,
+            },
+            expected: TokenType::Identifier { dollar: true }
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Missing token"));
+        assert!(output.contains("Add a Identifier { dollar: true } token after \"var\"."));
+    }
+
+    #[test]
+    fn test_parser_invalid_assignment() {
+        let source = "5 = 10";
+        let error = ExecutionError::Parse(ParseError::InvalidAssignmentTarget {
+            left: Token {
+                tok_type: TokenType::Num,
+                lexeme: Some("5".to_string()),
+                span: Span {
+                    start: 0,
+                    end: 1,
+                    line: 0,
+                    line_end: 0,
+                },
+                literal: Some(Literal::Num(5.0)),
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Invalid assignment target"));
+        assert!(output.contains("No values can be assigned to 5"));
+    }
+
+    // Planner Error Tests
+    #[test]
+    fn test_planner_duplicate_object() {
+        let source = "CREATE TABLE users; CREATE TABLE users;";
+        let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope {
+            previous: Identifier::new("users", false),
+            ident: Identifier::new("users", false),
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Duplicate object in scope"));
+        assert!(output.contains("Object users is already defined in the scope"));
+    }
+
+    #[test]
+    fn test_planner_subquery_not_allowed() {
+        let source = "SELECT * FROM (SELECT * FROM users) WHERE id IN (SELECT id FROM users)";
+        let error = ExecutionError::Plan(PlannerError::SubqueryNotAllowed(Span {
+            start: 14,
+            end: 33,
+            line: 0,
+            line_end: 0,
+        }));
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Subquery not allowed"));
+        assert!(output.contains("Subqueries are not allowed in this context"));
+    }
+
+    // Interpreter Error Tests
+    #[test]
+    fn test_interpreter_arity_mismatch() {
+        let source = "function test(a, b) {}; test(1);";
+        let error = ExecutionError::Interpret(InterpretError::ArityMismatch {
+            span: Span {
+                start: 24,
+                end: 29,
+                line: 0,
+                line_end: 0,
+            },
+            expected: 2,
+            found: 1,
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Function arity mismatch"));
+        assert!(output.contains("Function expects 2 arguments, while provided 1"));
+    }
+
+    #[test]
+    fn test_interpreter_not_callable() {
+        let source = "let x = 5; x();";
+        let error = ExecutionError::Interpret(InterpretError::NotCallable {
+            span: Span {
+                start: 12,
+                end: 15,
+                line: 0,
+                line_end: 0,
+            },
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Not callable"));
+        assert!(output.contains("Expression does not yield a callable"));
+    }
+
+    // Environment Error Tests
+    #[test]
+    fn test_environment_variable_not_found() {
+        let source = "io::print(undefined_var);";
+        let error = ExecutionError::Environment(EnvironmentError::Other {
+            message: "Variable 'undefined_var' not found in current scope".to_string(),
+        });
+
+        let output = capture_error_output("test.txt", source, error);
+        assert!(output.contains("Variable 'undefined_var' not found in current scope"));
     }
 
     #[test]
