@@ -1,20 +1,20 @@
-function helloWorld ($message) {
-    print("Hello world!", $message);
+function $hello_world($message) {
+    io::print("Hello world!", $message);
     {
         {
             return "and returning from here.";
             {
-                print("inner");
-                print("inner");
-                print("inner");
+                io::print("inner");
+                io::print("inner");
+                io::print("inner");
             }
-            print("outer");
-            print("outer");
-            print("outer");
+            io::print("outer");
+            io::print("outer");
+            io::print("outer");
         }
     }
 };
 
 for (var $i = 0; $i < 10; $i = $i + 1) {
-    print(helloWorld("My name is Lykia."));
+    io::print($hello_world("My name is Lykia."));
 }

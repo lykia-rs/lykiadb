@@ -1,7 +1,7 @@
 // Define recursive Fibonacci function
-function fib($n) {
+function $fib($n) {
   if ($n < 2) return $n;
-  return fib($n - 2) + fib($n - 1);
+  return $fib($n - 2) + $fib($n - 1);
 };
 
-fib(35);
+$fib(35);
