@@ -1,12 +1,12 @@
-function makeCounter() {
+function $make_counter() {
     var $i = 0;
-    function count() {
+    function $count() {
         $i = $i + 1;
-        print($i);
+        io::print($i);
     };
 
-    return count;
+    return $count;
 };
-var $count = makeCounter();
+var $count = $make_counter();
 $count();
 $count();
