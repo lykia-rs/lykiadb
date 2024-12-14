@@ -3,6 +3,7 @@ use core::panic;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::borrow::{Borrow, BorrowMut};
+use string_interner::{symbol::SymbolU32, StringInterner, Symbol};
 
 use super::RV;
 
@@ -12,7 +13,7 @@ pub struct EnvId(pub usize);
 
 #[derive(Debug)]
 struct EnvironmentFrame {
-    map: FxHashMap<String, RV>,
+    map: FxHashMap<SymbolU32, RV>,
     pub parent: Option<EnvId>,
 }
 
@@ -69,11 +70,11 @@ impl Environment {
         EnvId(self.envs.len() - 1)
     }
 
-    pub fn declare(&mut self, env_id: EnvId, name: String, value: RV) {
+    pub fn declare(&mut self, env_id: EnvId, name: SymbolU32, value: RV) {
         self.envs[env_id.0].map.insert(name, value);
     }
 
-    pub fn assign(&mut self, env_id: EnvId, name: String, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign(&mut self, env_id: EnvId, name: SymbolU32, value: RV) -> Result<bool, HaltReason> {
         let env = self.envs[env_id.0].borrow();
         if env.map.contains_key(&name) {
             self.envs[env_id.0].borrow_mut().map.insert(name, value);
@@ -85,7 +86,7 @@ impl Environment {
         }
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Assignment to an undefined variable '{}'", &name),
+                message: format!("Assignment to an undefined variable '{}'", "TODO Fix"),
             }
             .into(),
         ))
@@ -95,7 +96,7 @@ impl Environment {
         &mut self,
         env_id: EnvId,
         distance: usize,
-        name: &str,
+        name: SymbolU32,
         value: RV,
     ) -> Result<bool, HaltReason> {
         let ancestor = self.ancestor(env_id, distance);
@@ -104,18 +105,18 @@ impl Environment {
             self.envs[unwrapped.0]
                 .borrow_mut()
                 .map
-                .insert(name.to_string(), value);
+                .insert(name, value);
         } else {
             self.envs[env_id.0]
                 .borrow_mut()
                 .map
-                .insert(name.to_string(), value);
+                .insert(name, value);
         }
 
         Ok(true)
     }
 
-    pub fn read(&self, env_id: EnvId, name: &str) -> Result<RV, HaltReason> {
+    pub fn read(&self, env_id: EnvId, name: &SymbolU32) -> Result<RV, HaltReason> {
         if self.envs[env_id.0].map.contains_key(name) {
             // TODO(vck): Remove clone
             return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
@@ -127,13 +128,13 @@ impl Environment {
 
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Variable '{}' was not found", &name),
+                message: format!("Variable '{}' was not found", "TODO Fix"),
             }
             .into(),
         ))
     }
 
-    pub fn read_at(&self, env_id: EnvId, distance: usize, name: &str) -> Result<RV, HaltReason> {
+    pub fn read_at(&self, env_id: EnvId, distance: usize, name: &SymbolU32) -> Result<RV, HaltReason> {
         let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
@@ -146,7 +147,7 @@ impl Environment {
 
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Variable '{}' was not found", &name),
+                message: format!("Variable '{}' was not found", "TODO Fix"),
             }
             .into(),
         ))
@@ -169,51 +170,62 @@ impl Environment {
 
 #[cfg(test)]
 mod test {
+    use string_interner::{backend::StringBackend, symbol::SymbolU32, StringInterner};
+
     use crate::value::RV;
+
+    fn get_interner() -> StringInterner::<StringBackend<SymbolU32>> {
+        StringInterner::<StringBackend<SymbolU32>>::new()
+    }
 
     #[test]
     fn test_read_basic() {
         let mut env_man = super::Environment::new();
+        let mut interner = get_interner();
         let env = env_man.top();
-        env_man.declare(env, "five".to_string(), RV::Num(5.0));
-        assert_eq!(env_man.read(env, "five").unwrap(), RV::Num(5.0));
+        env_man.declare(env, interner.get_or_intern("five"), RV::Num(5.0));
+        assert_eq!(env_man.read(env, &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_read_from_parent() {
         let mut env_man = super::Environment::new();
+        let mut interner = get_interner();
         let parent = env_man.top();
-        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
-        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.0));
+        assert_eq!(env_man.read(child, &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
     }
 
     #[test]
     fn test_write_to_parent() {
         let mut env_man = super::Environment::new();
+        let mut interner = get_interner();
         let parent = env_man.top();
-        env_man.declare(parent, "five".to_string(), RV::Num(5.0));
+        env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
         env_man
-            .assign(child, "five".to_string(), RV::Num(5.1))
+            .assign(child, interner.get_or_intern("five"), RV::Num(5.1))
             .unwrap();
-        assert_eq!(env_man.read(parent, "five").unwrap(), RV::Num(5.1));
-        assert_eq!(env_man.read(child, "five").unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(parent, &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(child, &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
     }
 
     #[test]
     fn test_read_undefined_variable() {
         let env_man = super::Environment::new();
+        let mut interner = get_interner();
         let env = env_man.top();
-        assert!(env_man.read(env, "five").is_err());
+        assert!(env_man.read(env, &interner.get_or_intern("five")).is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
         let mut env_man = super::Environment::new();
+        let mut interner = get_interner();
         let env = env_man.top();
         assert!(env_man
-            .assign(env, "five".to_string(), RV::Num(5.0))
+            .assign(env, interner.get_or_intern("five"), RV::Num(5.0))
             .is_err());
     }
 }
