@@ -259,9 +259,9 @@ impl Interpreter {
             self.env_man
                 .read()
                 .unwrap()
-                .read_at(self.env, unwrapped, &self.interner.get_or_intern(name))
+                .read_at(self.env, unwrapped, &name, &self.interner.get_or_intern(name))
         } else {
-            self.env_man.read().unwrap().read(self.root_env, &self.interner.get_or_intern(name))
+            self.env_man.read().unwrap().read(self.root_env, &name, &self.interner.get_or_intern(name))
         }
     }
 
@@ -385,6 +385,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 } else {
                     self.env_man.write().unwrap().assign(
                         self.env,
+                        &dst.name,
                         self.interner.get_or_intern(&dst.name),
                         evaluated.clone(),
                     )

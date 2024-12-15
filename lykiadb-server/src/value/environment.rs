@@ -53,8 +53,10 @@ impl Environment {
     }
 
     pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
+        let map: FxHashMap<SymbolU32, RV> = FxHashMap::default();
+        // map.try_reserve(4).unwrap(); // speeds up sudo execution, don't know why
         self.envs.push(EnvironmentFrame {
-            map: FxHashMap::default(),
+            map,
             parent,
         });
         EnvId(self.envs.len() - 1)
@@ -74,19 +76,19 @@ impl Environment {
         self.envs[env_id.0].map.insert(name, value);
     }
 
-    pub fn assign(&mut self, env_id: EnvId, name: SymbolU32, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign(&mut self, env_id: EnvId, key: &str, key_sym: SymbolU32, value: RV) -> Result<bool, HaltReason> {
         let env = self.envs[env_id.0].borrow();
-        if env.map.contains_key(&name) {
-            self.envs[env_id.0].borrow_mut().map.insert(name, value);
+        if env.map.contains_key(&key_sym) {
+            self.envs[env_id.0].borrow_mut().map.insert(key_sym, value);
             return Ok(true);
         }
 
         if env.parent.is_some() {
-            return self.assign(env.parent.unwrap(), name, value);
+            return self.assign(env.parent.unwrap(), key, key_sym, value);
         }
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Assignment to an undefined variable '{}'", "TODO Fix"),
+                message: format!("Assignment to an undefined variable '{}'", key),
             }
             .into(),
         ))
@@ -116,38 +118,38 @@ impl Environment {
         Ok(true)
     }
 
-    pub fn read(&self, env_id: EnvId, name: &SymbolU32) -> Result<RV, HaltReason> {
-        if self.envs[env_id.0].map.contains_key(name) {
+    pub fn read(&self, env_id: EnvId, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
+        if self.envs[env_id.0].map.contains_key(key_sym) {
             // TODO(vck): Remove clone
-            return Ok(self.envs[env_id.0].map.get(name).unwrap().clone());
+            return Ok(self.envs[env_id.0].map.get(key_sym).unwrap().clone());
         }
 
         if self.envs[env_id.0].parent.is_some() {
-            return self.read(self.envs[env_id.0].parent.unwrap(), name);
+            return self.read(self.envs[env_id.0].parent.unwrap(), key,  key_sym);
         }
 
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Variable '{}' was not found", "TODO Fix"),
+                message: format!("Variable '{}' was not found", key),
             }
             .into(),
         ))
     }
 
-    pub fn read_at(&self, env_id: EnvId, distance: usize, name: &SymbolU32) -> Result<RV, HaltReason> {
+    pub fn read_at(&self, env_id: EnvId, distance: usize, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
         let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
             // TODO(vck): Remove clone
-            return Ok(self.envs[unwrapped.0].map.get(name).unwrap().clone());
+            return Ok(self.envs[unwrapped.0].map.get(key_sym).unwrap().clone());
         }
-        if let Some(val) = self.envs[env_id.0].map.get(name) {
+        if let Some(val) = self.envs[env_id.0].map.get(key_sym) {
             return Ok(val.clone());
         }
 
         Err(HaltReason::Error(
             EnvironmentError::Other {
-                message: format!("Variable '{}' was not found", "TODO Fix"),
+                message: format!("Variable '{}' was not found", key),
             }
             .into(),
         ))
@@ -184,7 +186,7 @@ mod test {
         let mut interner = get_interner();
         let env = env_man.top();
         env_man.declare(env, interner.get_or_intern("five"), RV::Num(5.0));
-        assert_eq!(env_man.read(env, &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
+        assert_eq!(env_man.read(env, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
     }
 
     #[test]
@@ -194,7 +196,7 @@ mod test {
         let parent = env_man.top();
         env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
-        assert_eq!(env_man.read(child, &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
+        assert_eq!(env_man.read(child, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
     }
 
     #[test]
@@ -205,10 +207,10 @@ mod test {
         env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
         env_man
-            .assign(child, interner.get_or_intern("five"), RV::Num(5.1))
+            .assign(child, &"five", interner.get_or_intern("five"), RV::Num(5.1))
             .unwrap();
-        assert_eq!(env_man.read(parent, &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
-        assert_eq!(env_man.read(child, &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(parent, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
+        assert_eq!(env_man.read(child, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
     }
 
     #[test]
@@ -216,7 +218,7 @@ mod test {
         let env_man = super::Environment::new();
         let mut interner = get_interner();
         let env = env_man.top();
-        assert!(env_man.read(env, &interner.get_or_intern("five")).is_err());
+        assert!(env_man.read(env, &"five", &interner.get_or_intern("five")).is_err());
     }
 
     #[test]
@@ -225,7 +227,7 @@ mod test {
         let mut interner = get_interner();
         let env = env_man.top();
         assert!(env_man
-            .assign(env, interner.get_or_intern("five"), RV::Num(5.0))
+            .assign(env, &"five", interner.get_or_intern("five"), RV::Num(5.0))
             .is_err());
     }
 }
