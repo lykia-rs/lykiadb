@@ -169,7 +169,7 @@ pub fn report_error(
 }
 #[cfg(test)]
 mod tests {
-    use core::panic;
+    
 
     use super::*;
     use lykiadb_lang::{

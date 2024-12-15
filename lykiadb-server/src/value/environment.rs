@@ -3,7 +3,7 @@ use core::panic;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::borrow::{Borrow, BorrowMut};
-use string_interner::{symbol::SymbolU32, StringInterner, Symbol};
+use string_interner::symbol::SymbolU32;
 
 use super::RV;
 
@@ -191,7 +191,7 @@ mod test {
         env_man.declare(env, interner.get_or_intern("five"), RV::Num(5.0));
         assert_eq!(
             env_man
-                .read(env, &"five", &interner.get_or_intern("five"))
+                .read(env, "five", &interner.get_or_intern("five"))
                 .unwrap(),
             RV::Num(5.0)
         );
@@ -206,7 +206,7 @@ mod test {
         let child = env_man.push(Some(parent));
         assert_eq!(
             env_man
-                .read(child, &"five", &interner.get_or_intern("five"))
+                .read(child, "five", &interner.get_or_intern("five"))
                 .unwrap(),
             RV::Num(5.0)
         );
@@ -220,17 +220,17 @@ mod test {
         env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
         env_man
-            .assign(child, &"five", interner.get_or_intern("five"), RV::Num(5.1))
+            .assign(child, "five", interner.get_or_intern("five"), RV::Num(5.1))
             .unwrap();
         assert_eq!(
             env_man
-                .read(parent, &"five", &interner.get_or_intern("five"))
+                .read(parent, "five", &interner.get_or_intern("five"))
                 .unwrap(),
             RV::Num(5.1)
         );
         assert_eq!(
             env_man
-                .read(child, &"five", &interner.get_or_intern("five"))
+                .read(child, "five", &interner.get_or_intern("five"))
                 .unwrap(),
             RV::Num(5.1)
         );
@@ -242,7 +242,7 @@ mod test {
         let mut interner = get_interner();
         let env = env_man.top();
         assert!(env_man
-            .read(env, &"five", &interner.get_or_intern("five"))
+            .read(env, "five", &interner.get_or_intern("five"))
             .is_err());
     }
 
@@ -252,7 +252,7 @@ mod test {
         let mut interner = get_interner();
         let env = env_man.top();
         assert!(env_man
-            .assign(env, &"five", interner.get_or_intern("five"), RV::Num(5.0))
+            .assign(env, "five", interner.get_or_intern("five"), RV::Num(5.0))
             .is_err());
     }
 }

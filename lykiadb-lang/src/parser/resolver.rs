@@ -34,11 +34,7 @@ impl<'a> Resolver<'a> {
     ) -> Resolver<'a> {
         Resolver {
             scopes,
-            locals: if let Some(previous_locals) = previous_locals {
-                previous_locals
-            } else {
-                FxHashMap::default()
-            },
+            locals: previous_locals.unwrap_or_default(),
             program,
         }
     }
@@ -91,7 +87,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
+impl VisitorMut<(), ResolveError> for Resolver<'_> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
             Expr::Literal { value, .. } => match value {

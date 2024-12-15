@@ -11,6 +11,12 @@ pub struct ParserBenchmark {
     locals: Locals,
 }
 
+impl Default for ParserBenchmark {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParserBenchmark {
     pub fn new() -> ParserBenchmark {
         ParserBenchmark {
@@ -60,7 +66,7 @@ fn runtime() {
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
-    group.bench_function("2-way join", |b| b.iter(|| runtime()));
+    group.bench_function("2-way join", |b| b.iter(runtime));
     group.finish();
 }
 

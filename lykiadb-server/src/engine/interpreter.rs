@@ -142,7 +142,7 @@ impl LoopStack {
         if self.is_loops_empty() {
             return None;
         }
-        return self.ongoing_loops.last();
+        self.ongoing_loops.last()
     }
 
     pub fn set_last_loop(&mut self, to: LoopState) {
@@ -259,13 +259,13 @@ impl Interpreter {
             self.env_man.read().unwrap().read_at(
                 self.env,
                 unwrapped,
-                &name,
+                name,
                 &self.interner.get_or_intern(name),
             )
         } else {
             self.env_man.read().unwrap().read(
                 self.root_env,
-                &name,
+                name,
                 &self.interner.get_or_intern(name),
             )
         }
@@ -283,7 +283,7 @@ impl Interpreter {
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            write_guard.declare(fn_env, param.clone(), arguments.get(i).unwrap().clone());
+            write_guard.declare(fn_env, *param, arguments.get(i).unwrap().clone());
         }
 
         drop(write_guard);
