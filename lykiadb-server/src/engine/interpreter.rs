@@ -11,6 +11,9 @@ use lykiadb_lang::{Literal, Locals, Scopes};
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use string_interner::backend::StringBackend;
+use string_interner::symbol::SymbolU32;
+use string_interner::StringInterner;
 
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
@@ -139,7 +142,7 @@ impl LoopStack {
         if self.is_loops_empty() {
             return None;
         }
-        return self.ongoing_loops.last();
+        self.ongoing_loops.last()
     }
 
     pub fn set_last_loop(&mut self, to: LoopState) {
@@ -179,17 +182,20 @@ pub struct Interpreter {
     loop_stack: LoopStack,
     source_processor: SourceProcessor,
     output: Option<Shared<Output>>,
+    //
+    interner: StringInterner<StringBackend<SymbolU32>>,
 }
 
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
         let mut env_man = Environment::new();
+        let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
             let native_fns = stdlib(out.clone());
             let env = env_man.top();
 
             for (name, value) in native_fns {
-                env_man.declare(env, name.to_string(), value);
+                env_man.declare(env, interner.get_or_intern(name), value);
             }
         }
         let env = EnvId(0);
@@ -201,6 +207,7 @@ impl Interpreter {
             source_processor: SourceProcessor::new(),
             current_program: None,
             output: out,
+            interner,
         }
     }
 
@@ -246,15 +253,21 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         let distance = self.current_program.clone().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
-            self.env_man
-                .read()
-                .unwrap()
-                .read_at(self.env, unwrapped, name)
+            self.env_man.read().unwrap().read_at(
+                self.env,
+                unwrapped,
+                name,
+                &self.interner.get_or_intern(name),
+            )
         } else {
-            self.env_man.read().unwrap().read(self.root_env, name)
+            self.env_man.read().unwrap().read(
+                self.root_env,
+                name,
+                &self.interner.get_or_intern(name),
+            )
         }
     }
 
@@ -262,19 +275,18 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         closure: EnvId,
-        parameters: &[String],
+        parameters: &[SymbolU32],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        let fn_env = self.env_man.write().unwrap().push(Some(closure));
+        let mut write_guard = self.env_man.write().unwrap();
+        let fn_env = write_guard.push(Some(closure));
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            self.env_man.write().unwrap().declare(
-                fn_env,
-                param.to_string(),
-                arguments.get(i).unwrap().clone(),
-            );
+            write_guard.declare(fn_env, *param, arguments.get(i).unwrap().clone());
         }
+
+        drop(write_guard);
 
         self.execute_block(statements, Some(fn_env))
     }
@@ -334,21 +346,8 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select { .. }
-            | Expr::Insert { .. }
-            | Expr::Update { .. }
-            | Expr::Delete { .. } => {
-                let mut planner = Planner::new(self);
-                let plan = planner.build(e)?;
-                if let Some(out) = &self.output {
-                    out.write()
-                        .unwrap()
-                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-                }
-                Ok(RV::Undefined)
-            }
             Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
-            Expr::Grouping { expr, .. } => self.visit_expr(expr),
+            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
             Expr::Unary {
                 operation, expr, ..
             } => self.eval_unary(operation, expr),
@@ -358,29 +357,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 ..
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
-            Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.clone().unwrap().get_distance(e);
-                let evaluated = self.visit_expr(expr)?;
-                let result = if let Some(distance_unv) = distance {
-                    self.env_man.write().unwrap().assign_at(
-                        self.env,
-                        distance_unv,
-                        &dst.name,
-                        evaluated.clone(),
-                    )
-                } else {
-                    self.env_man.write().unwrap().assign(
-                        self.env,
-                        dst.name.clone(),
-                        evaluated.clone(),
-                    )
-                };
-                if result.is_err() {
-                    return Err(result.err().unwrap());
-                }
-                Ok(evaluated)
-            }
+            Expr::Grouping { expr, .. } => self.visit_expr(expr),
             Expr::Logical {
                 left,
                 operation,
@@ -396,6 +373,29 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
 
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
+            }
+            Expr::Assignment { dst, expr, .. } => {
+                let distance = self.current_program.clone().unwrap().get_distance(e);
+                let evaluated = self.visit_expr(expr)?;
+                let result = if let Some(distance_unv) = distance {
+                    self.env_man.write().unwrap().assign_at(
+                        self.env,
+                        distance_unv,
+                        self.interner.get_or_intern(&dst.name),
+                        evaluated.clone(),
+                    )
+                } else {
+                    self.env_man.write().unwrap().assign(
+                        self.env,
+                        &dst.name,
+                        self.interner.get_or_intern(&dst.name),
+                        evaluated.clone(),
+                    )
+                };
+                if result.is_err() {
+                    return Err(result.err().unwrap());
+                }
+                Ok(evaluated)
             }
             Expr::Call {
                 callee, args, span, ..
@@ -424,6 +424,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let val = callable.call(self, args_evaluated.as_slice());
 
                     self.loop_stack.pop_fn();
+
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
                         Ok(unpacked_val) => Ok(unpacked_val),
@@ -450,9 +451,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     "<anonymous>"
                 };
                 let fun = Function::UserDefined {
-                    name: fn_name.to_string(),
+                    name: self.interner.get_or_intern(fn_name),
                     body: Arc::clone(body),
-                    parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
+                    parameters: parameters
+                        .iter()
+                        .map(|x| self.interner.get_or_intern(&x.name))
+                        .collect(),
                     closure: self.env,
                 };
 
@@ -466,7 +470,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     // TODO(vck): Callable shouldn't be cloned here
                     self.env_man.write().unwrap().declare(
                         self.env,
-                        name.as_ref().unwrap().name.to_string(),
+                        self.interner.get_or_intern(&name.as_ref().unwrap().name),
                         callable.clone(),
                     );
                 }
@@ -572,6 +576,19 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Update { .. }
+            | Expr::Delete { .. } => {
+                let mut planner = Planner::new(self);
+                let plan = planner.build(e)?;
+                if let Some(out) = &self.output {
+                    out.write()
+                        .unwrap()
+                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                }
+                Ok(RV::Undefined)
+            }
         }
     }
 
@@ -593,7 +610,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let evaluated = self.visit_expr(expr)?;
                 self.env_man.write().unwrap().declare(
                     self.env,
-                    dst.name.to_string(),
+                    self.interner.get_or_intern(&dst.name),
                     evaluated.clone(),
                 );
             }

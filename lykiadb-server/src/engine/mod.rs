@@ -97,7 +97,7 @@ pub mod test_helpers {
                     .split(',')
                     .map(|flag| {
                         let kv: Vec<&str> = flag.split('=').collect();
-                        return (kv[0].trim(), kv[1].trim());
+                        (kv[0].trim(), kv[1].trim())
                     })
                     .fold(std::collections::HashMap::new(), |mut acc, (k, v)| {
                         acc.insert(k, v);

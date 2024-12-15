@@ -21,7 +21,7 @@ pub enum ScanError {
     MalformedNumberLiteral { span: Span },
 }
 
-impl<'a> Scanner<'a> {
+impl Scanner<'_> {
     pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
             chars: source.chars().enumerate().peekable(),

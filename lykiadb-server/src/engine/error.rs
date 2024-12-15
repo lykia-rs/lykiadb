@@ -38,7 +38,12 @@ impl From<ScanError> for ExecutionError {
     }
 }
 
-pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut writer: impl std::io::Write) {
+pub fn report_error(
+    source_name: &str,
+    source: &str,
+    error: ExecutionError,
+    mut writer: impl std::io::Write,
+) {
     use ariadne::{Color, Label, Report, ReportKind, Source};
 
     // Generate & choose some colours for each of our elements
@@ -54,7 +59,8 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
                     .with_color(out),
             )
             .finish()
-            .write((source_name, Source::from(&source)), &mut writer).unwrap();
+            .write((source_name, Source::from(&source)), &mut writer)
+            .unwrap();
     };
 
     match error {
@@ -87,11 +93,7 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
             );
         }
         ExecutionError::Parse(ParseError::NoTokens) => {
-            print(
-                "There is nothing to parse",
-                "",
-                Span::default(),
-            );
+            print("There is nothing to parse", "", Span::default());
         }
         ExecutionError::Parse(ParseError::InvalidAssignmentTarget { left }) => {
             print(
@@ -167,17 +169,20 @@ pub fn report_error(source_name: &str, source: &str, error: ExecutionError, mut 
 }
 #[cfg(test)]
 mod tests {
-    use core::panic;
+    
 
     use super::*;
-    use lykiadb_lang::{kw, sym, tokenizer::token::{Keyword, Symbol, Token, TokenType}, Identifier, Literal};
+    use lykiadb_lang::{
+        kw, sym,
+        tokenizer::token::{Keyword, Symbol, Token, TokenType},
+        Identifier, Literal,
+    };
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
         let mut output = Vec::new();
         report_error(filename, source, error, &mut output);
         String::from_utf8(output).unwrap()
     }
-
 
     // Scanner Error Tests
     #[test]
@@ -230,7 +235,7 @@ mod tests {
                 },
                 literal: None,
             },
-            expected: TokenType::Identifier { dollar: true }
+            expected: TokenType::Identifier { dollar: true },
         });
 
         let output = capture_error_output("test.txt", source, error);

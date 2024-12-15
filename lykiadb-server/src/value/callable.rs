@@ -7,6 +7,7 @@ use crate::{
 use lykiadb_lang::ast::stmt::Stmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
+use string_interner::symbol::SymbolU32;
 
 #[derive(Debug, Clone)]
 pub enum CallableKind {
@@ -55,8 +56,8 @@ pub enum Function {
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
-        name: String,
-        parameters: Vec<String>,
+        name: SymbolU32,
+        parameters: Vec<SymbolU32>,
         closure: EnvId,
         body: Arc<Vec<Stmt>>,
     },
@@ -66,7 +67,7 @@ impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
-            Function::UserDefined { name, .. } => write!(f, "{}", name),
+            Function::UserDefined {  .. } => write!(f, "<user_defined_fn>"),
         }
     }
 }

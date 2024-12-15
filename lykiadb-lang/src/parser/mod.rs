@@ -912,7 +912,7 @@ macro_rules! optional_with_expected {
     };
 }
 
-impl<'a> Parser<'a> {
+impl Parser<'_> {
     fn sql_insert(&mut self) -> ParseResult<Box<Expr>> {
         if !self.match_next(&skw!(Insert)) {
             return self.sql_update();
