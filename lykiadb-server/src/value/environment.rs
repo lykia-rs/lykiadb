@@ -55,10 +55,7 @@ impl Environment {
     pub fn push(&mut self, parent: Option<EnvId>) -> EnvId {
         let map: FxHashMap<SymbolU32, RV> = FxHashMap::default();
         // map.try_reserve(4).unwrap(); // speeds up sudo execution, don't know why
-        self.envs.push(EnvironmentFrame {
-            map,
-            parent,
-        });
+        self.envs.push(EnvironmentFrame { map, parent });
         EnvId(self.envs.len() - 1)
     }
 
@@ -76,7 +73,13 @@ impl Environment {
         self.envs[env_id.0].map.insert(name, value);
     }
 
-    pub fn assign(&mut self, env_id: EnvId, key: &str, key_sym: SymbolU32, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign(
+        &mut self,
+        env_id: EnvId,
+        key: &str,
+        key_sym: SymbolU32,
+        value: RV,
+    ) -> Result<bool, HaltReason> {
         let env = self.envs[env_id.0].borrow();
         if env.map.contains_key(&key_sym) {
             self.envs[env_id.0].borrow_mut().map.insert(key_sym, value);
@@ -104,15 +107,9 @@ impl Environment {
         let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
-            self.envs[unwrapped.0]
-                .borrow_mut()
-                .map
-                .insert(name, value);
+            self.envs[unwrapped.0].borrow_mut().map.insert(name, value);
         } else {
-            self.envs[env_id.0]
-                .borrow_mut()
-                .map
-                .insert(name, value);
+            self.envs[env_id.0].borrow_mut().map.insert(name, value);
         }
 
         Ok(true)
@@ -125,7 +122,7 @@ impl Environment {
         }
 
         if self.envs[env_id.0].parent.is_some() {
-            return self.read(self.envs[env_id.0].parent.unwrap(), key,  key_sym);
+            return self.read(self.envs[env_id.0].parent.unwrap(), key, key_sym);
         }
 
         Err(HaltReason::Error(
@@ -136,7 +133,13 @@ impl Environment {
         ))
     }
 
-    pub fn read_at(&self, env_id: EnvId, distance: usize, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
+    pub fn read_at(
+        &self,
+        env_id: EnvId,
+        distance: usize,
+        key: &str,
+        key_sym: &SymbolU32,
+    ) -> Result<RV, HaltReason> {
         let ancestor = self.ancestor(env_id, distance);
 
         if let Some(unwrapped) = ancestor {
@@ -176,7 +179,7 @@ mod test {
 
     use crate::value::RV;
 
-    fn get_interner() -> StringInterner::<StringBackend<SymbolU32>> {
+    fn get_interner() -> StringInterner<StringBackend<SymbolU32>> {
         StringInterner::<StringBackend<SymbolU32>>::new()
     }
 
@@ -186,7 +189,12 @@ mod test {
         let mut interner = get_interner();
         let env = env_man.top();
         env_man.declare(env, interner.get_or_intern("five"), RV::Num(5.0));
-        assert_eq!(env_man.read(env, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
+        assert_eq!(
+            env_man
+                .read(env, &"five", &interner.get_or_intern("five"))
+                .unwrap(),
+            RV::Num(5.0)
+        );
     }
 
     #[test]
@@ -196,7 +204,12 @@ mod test {
         let parent = env_man.top();
         env_man.declare(parent, interner.get_or_intern("five"), RV::Num(5.0));
         let child = env_man.push(Some(parent));
-        assert_eq!(env_man.read(child, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.0));
+        assert_eq!(
+            env_man
+                .read(child, &"five", &interner.get_or_intern("five"))
+                .unwrap(),
+            RV::Num(5.0)
+        );
     }
 
     #[test]
@@ -209,8 +222,18 @@ mod test {
         env_man
             .assign(child, &"five", interner.get_or_intern("five"), RV::Num(5.1))
             .unwrap();
-        assert_eq!(env_man.read(parent, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
-        assert_eq!(env_man.read(child, &"five", &interner.get_or_intern("five")).unwrap(), RV::Num(5.1));
+        assert_eq!(
+            env_man
+                .read(parent, &"five", &interner.get_or_intern("five"))
+                .unwrap(),
+            RV::Num(5.1)
+        );
+        assert_eq!(
+            env_man
+                .read(child, &"five", &interner.get_or_intern("five"))
+                .unwrap(),
+            RV::Num(5.1)
+        );
     }
 
     #[test]
@@ -218,7 +241,9 @@ mod test {
         let env_man = super::Environment::new();
         let mut interner = get_interner();
         let env = env_man.top();
-        assert!(env_man.read(env, &"five", &interner.get_or_intern("five")).is_err());
+        assert!(env_man
+            .read(env, &"five", &interner.get_or_intern("five"))
+            .is_err());
     }
 
     #[test]

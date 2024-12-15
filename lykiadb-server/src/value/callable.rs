@@ -5,9 +5,9 @@ use crate::{
     util::Shared,
 };
 use lykiadb_lang::ast::stmt::Stmt;
-use string_interner::symbol::SymbolU32;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
+use string_interner::symbol::SymbolU32;
 
 #[derive(Debug, Clone)]
 pub enum CallableKind {
