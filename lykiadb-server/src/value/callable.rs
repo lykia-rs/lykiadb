@@ -1,4 +1,4 @@
-use super::environment::EnvId;
+use super::environment::EnvironmentFrame;
 use super::RV;
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
@@ -40,7 +40,7 @@ impl Callable {
                 closure,
                 body,
                 ..
-            } => interpreter.user_fn_call(body, *closure, parameters, arguments),
+            } => interpreter.user_fn_call(body, closure.clone(), parameters, arguments),
         }
     }
 }
@@ -58,7 +58,7 @@ pub enum Function {
     UserDefined {
         name: SymbolU32,
         parameters: Vec<SymbolU32>,
-        closure: EnvId,
+        closure: Arc<EnvironmentFrame>,
         body: Arc<Vec<Stmt>>,
     },
 }
@@ -67,7 +67,7 @@ impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
-            Function::UserDefined {  .. } => write!(f, "<user_defined_fn>"),
+            Function::UserDefined { .. } => write!(f, "<user_defined_fn>"),
         }
     }
 }

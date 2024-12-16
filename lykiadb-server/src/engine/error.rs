@@ -169,7 +169,6 @@ pub fn report_error(
 }
 #[cfg(test)]
 mod tests {
-    
 
     use super::*;
     use lykiadb_lang::{

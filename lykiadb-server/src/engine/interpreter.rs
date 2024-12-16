@@ -21,7 +21,7 @@ use super::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
-use crate::value::environment::{EnvId, Environment};
+use crate::value::environment::EnvironmentFrame;
 use crate::value::{eval::eval_binary, RV};
 
 use std::sync::Arc;
@@ -174,9 +174,8 @@ impl LoopStack {
 }
 
 pub struct Interpreter {
-    env: EnvId,
-    root_env: EnvId,
-    env_man: Shared<Environment>,
+    env: Arc<EnvironmentFrame>,
+    root_env: Arc<EnvironmentFrame>,
     current_program: Option<Arc<Program>>,
     //
     loop_stack: LoopStack,
@@ -188,21 +187,18 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
-        let mut env_man = Environment::new();
+        let root_env = Arc::new(EnvironmentFrame::new(None));
         let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
             let native_fns = stdlib(out.clone());
-            let env = env_man.top();
 
             for (name, value) in native_fns {
-                env_man.declare(env, interner.get_or_intern(name), value);
+                root_env.define(interner.get_or_intern(name), value);
             }
         }
-        let env = EnvId(0);
         Interpreter {
-            env_man: alloc_shared(env_man),
-            env,
-            root_env: env,
+            env: root_env.clone(),
+            root_env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
@@ -254,56 +250,43 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        let distance = self.current_program.clone().unwrap().get_distance(expr);
+        let distance = self.current_program.as_ref().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
-            self.env_man.read().unwrap().read_at(
-                self.env,
+            EnvironmentFrame::read_at(
+                &self.env,
                 unwrapped,
                 name,
                 &self.interner.get_or_intern(name),
             )
         } else {
-            self.env_man.read().unwrap().read(
-                self.root_env,
-                name,
-                &self.interner.get_or_intern(name),
-            )
+            self.root_env.read(name, &self.interner.get_or_intern(name))
         }
     }
 
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<Stmt>,
-        closure: EnvId,
+        closure: Arc<EnvironmentFrame>,
         parameters: &[SymbolU32],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        let mut write_guard = self.env_man.write().unwrap();
-        let fn_env = write_guard.push(Some(closure));
+        let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            write_guard.declare(fn_env, *param, arguments.get(i).unwrap().clone());
+            fn_env.define(*param, arguments.get(i).unwrap().clone());
         }
 
-        drop(write_guard);
-
-        self.execute_block(statements, Some(fn_env))
+        self.execute_block(statements, Arc::new(fn_env))
     }
 
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Option<EnvId>,
+        env_opt: Arc<EnvironmentFrame>,
     ) -> Result<RV, HaltReason> {
-        let mut env_tmp: Option<EnvId> = None;
+        let previous = std::mem::replace(&mut self.env, env_opt);
 
-        if let Some(env_opt_unwrapped) = env_opt {
-            env_tmp = Some(self.env);
-            self.env = env_opt_unwrapped;
-        } else {
-            self.env = self.env_man.write().unwrap().push(Some(self.env));
-        }
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
@@ -312,11 +295,9 @@ impl Interpreter {
                 break;
             }
         }
-        if let Some(env_tmp_unwrapped) = env_tmp {
-            self.env = env_tmp_unwrapped;
-        } else {
-            self.env = self.env_man.write().unwrap().remove(self.env);
-        }
+
+        self.env = previous;
+
         ret
     }
 
@@ -375,18 +356,18 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.clone().unwrap().get_distance(e);
+                let distance = self.current_program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
-                    self.env_man.write().unwrap().assign_at(
-                        self.env,
+                    EnvironmentFrame::assign_at(
+                        &self.env,
                         distance_unv,
+                        &dst.name,
                         self.interner.get_or_intern(&dst.name),
                         evaluated.clone(),
                     )
                 } else {
-                    self.env_man.write().unwrap().assign(
-                        self.env,
+                    self.root_env.assign(
                         &dst.name,
                         self.interner.get_or_intern(&dst.name),
                         evaluated.clone(),
@@ -457,7 +438,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .iter()
                         .map(|x| self.interner.get_or_intern(&x.name))
                         .collect(),
-                    closure: self.env,
+                    closure: self.env.clone(),
                 };
 
                 let callable = RV::Callable(Callable::new(
@@ -468,8 +449,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env_man.write().unwrap().declare(
-                        self.env,
+                    self.env.define(
                         self.interner.get_or_intern(&name.as_ref().unwrap().name),
                         callable.clone(),
                     );
@@ -601,21 +581,21 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
         match s {
             Stmt::Program { body: stmts, .. } => {
-                return self.execute_block(stmts, Some(self.env));
+                return self.execute_block(stmts, self.env.clone());
             }
             Stmt::Expression { expr, .. } => {
                 return self.visit_expr(expr);
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
-                self.env_man.write().unwrap().declare(
-                    self.env,
-                    self.interner.get_or_intern(&dst.name),
-                    evaluated.clone(),
-                );
+                self.env
+                    .define(self.interner.get_or_intern(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
-                return self.execute_block(stmts, None);
+                return self.execute_block(
+                    stmts,
+                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))),
+                );
             }
             Stmt::If {
                 condition,
