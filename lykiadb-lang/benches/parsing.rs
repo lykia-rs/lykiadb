@@ -1,5 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lykiadb_lang::{parser::{program::Program, resolver::Resolver, Parser}, tokenizer::scanner::Scanner, Locals, Scopes};
+use lykiadb_lang::{
+    parser::{program::Program, resolver::Resolver, Parser},
+    tokenizer::scanner::Scanner,
+    Locals, Scopes,
+};
 use rustc_hash::FxHashMap;
 
 pub struct ParserBenchmark {
@@ -7,6 +11,11 @@ pub struct ParserBenchmark {
     locals: Locals,
 }
 
+impl Default for ParserBenchmark {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl ParserBenchmark {
     pub fn new() -> ParserBenchmark {
@@ -49,16 +58,15 @@ fn runtime() {
     EXCEPT
     SELECT * FROM books;
     
-    ".to_string();
+    "
+    .to_string();
     let mut parser = black_box(ParserBenchmark::new());
     black_box(parser.process(black_box(&content)));
 }
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
-    group.bench_function("2-way join", |b| {
-        b.iter(|| runtime())
-    });
+    group.bench_function("2-way join", |b| b.iter(runtime));
     group.finish();
 }
 

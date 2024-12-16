@@ -1,16 +1,15 @@
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
+use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
-use lykiadb_lang::parser::resolver::Resolver;
-use lykiadb_lang::parser::Parser;
-use lykiadb_lang::tokenizer::scanner::Scanner;
-use lykiadb_lang::Span;
-use lykiadb_lang::Spanned;
-use lykiadb_lang::{Literal, Locals, Scopes};
+use lykiadb_lang::{LangError, SourceProcessor};
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use string_interner::backend::StringBackend;
+use string_interner::symbol::SymbolU32;
+use string_interner::StringInterner;
 
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
@@ -18,44 +17,11 @@ use super::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
-use crate::value::environment::{EnvId, Environment};
+use crate::value::environment::EnvironmentFrame;
 use crate::value::{eval::eval_binary, RV};
 
 use std::sync::Arc;
 use std::vec;
-
-pub struct SourceProcessor {
-    scopes: Scopes,
-    locals: Locals,
-}
-
-impl Default for SourceProcessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SourceProcessor {
-    pub fn new() -> SourceProcessor {
-        SourceProcessor {
-            scopes: vec![],
-            locals: FxHashMap::default(),
-        }
-    }
-
-    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program, Some(self.locals.clone()));
-        let (scopes, locals) = resolver.resolve().unwrap();
-
-        self.scopes = scopes;
-        self.locals.clone_from(&locals);
-        program.set_locals(self.locals.clone());
-
-        Ok(program)
-    }
-}
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
@@ -82,6 +48,12 @@ pub enum InterpretError {
 impl From<InterpretError> for ExecutionError {
     fn from(err: InterpretError) -> Self {
         ExecutionError::Interpret(err)
+    }
+}
+
+impl From<LangError> for ExecutionError {
+    fn from(err: LangError) -> Self {
+        ExecutionError::Lang(err)
     }
 }
 
@@ -139,7 +111,7 @@ impl LoopStack {
         if self.is_loops_empty() {
             return None;
         }
-        return self.ongoing_loops.last();
+        self.ongoing_loops.last()
     }
 
     pub fn set_last_loop(&mut self, to: LoopState) {
@@ -171,36 +143,36 @@ impl LoopStack {
 }
 
 pub struct Interpreter {
-    env: EnvId,
-    root_env: EnvId,
-    env_man: Shared<Environment>,
+    env: Arc<EnvironmentFrame>,
+    root_env: Arc<EnvironmentFrame>,
     current_program: Option<Arc<Program>>,
     //
     loop_stack: LoopStack,
     source_processor: SourceProcessor,
     output: Option<Shared<Output>>,
+    //
+    interner: StringInterner<StringBackend<SymbolU32>>,
 }
 
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
-        let mut env_man = Environment::new();
+        let root_env = Arc::new(EnvironmentFrame::new(None));
+        let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
             let native_fns = stdlib(out.clone());
-            let env = env_man.top();
 
             for (name, value) in native_fns {
-                env_man.declare(env, name.to_string(), value);
+                root_env.define(interner.get_or_intern(name), value);
             }
         }
-        let env = EnvId(0);
         Interpreter {
-            env_man: alloc_shared(env_man),
-            env,
-            root_env: env,
+            env: root_env.clone(),
+            root_env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
             output: out,
+            interner,
         }
     }
 
@@ -246,52 +218,44 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        let distance = self.current_program.clone().unwrap().get_distance(expr);
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+        let distance = self.current_program.as_ref().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
-            self.env_man
-                .read()
-                .unwrap()
-                .read_at(self.env, unwrapped, name)
+            EnvironmentFrame::read_at(
+                &self.env,
+                unwrapped,
+                name,
+                &self.interner.get_or_intern(name),
+            )
         } else {
-            self.env_man.read().unwrap().read(self.root_env, name)
+            self.root_env.read(name, &self.interner.get_or_intern(name))
         }
     }
 
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<Stmt>,
-        closure: EnvId,
-        parameters: &[String],
+        closure: Arc<EnvironmentFrame>,
+        parameters: &[SymbolU32],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        let fn_env = self.env_man.write().unwrap().push(Some(closure));
+        let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, param) in parameters.iter().enumerate() {
             // TODO: Remove clone here
-            self.env_man.write().unwrap().declare(
-                fn_env,
-                param.to_string(),
-                arguments.get(i).unwrap().clone(),
-            );
+            fn_env.define(*param, arguments.get(i).unwrap().clone());
         }
 
-        self.execute_block(statements, Some(fn_env))
+        self.execute_block(statements, Arc::new(fn_env))
     }
 
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Option<EnvId>,
+        env_opt: Arc<EnvironmentFrame>,
     ) -> Result<RV, HaltReason> {
-        let mut env_tmp: Option<EnvId> = None;
+        let previous = std::mem::replace(&mut self.env, env_opt);
 
-        if let Some(env_opt_unwrapped) = env_opt {
-            env_tmp = Some(self.env);
-            self.env = env_opt_unwrapped;
-        } else {
-            self.env = self.env_man.write().unwrap().push(Some(self.env));
-        }
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
@@ -300,11 +264,9 @@ impl Interpreter {
                 break;
             }
         }
-        if let Some(env_tmp_unwrapped) = env_tmp {
-            self.env = env_tmp_unwrapped;
-        } else {
-            self.env = self.env_man.write().unwrap().remove(self.env);
-        }
+
+        self.env = previous;
+
         ret
     }
 
@@ -334,21 +296,8 @@ impl Interpreter {
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Select { .. }
-            | Expr::Insert { .. }
-            | Expr::Update { .. }
-            | Expr::Delete { .. } => {
-                let mut planner = Planner::new(self);
-                let plan = planner.build(e)?;
-                if let Some(out) = &self.output {
-                    out.write()
-                        .unwrap()
-                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-                }
-                Ok(RV::Undefined)
-            }
             Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
-            Expr::Grouping { expr, .. } => self.visit_expr(expr),
+            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
             Expr::Unary {
                 operation, expr, ..
             } => self.eval_unary(operation, expr),
@@ -358,29 +307,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 right,
                 ..
             } => self.eval_binary(left, right, *operation),
-            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
-            Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.clone().unwrap().get_distance(e);
-                let evaluated = self.visit_expr(expr)?;
-                let result = if let Some(distance_unv) = distance {
-                    self.env_man.write().unwrap().assign_at(
-                        self.env,
-                        distance_unv,
-                        &dst.name,
-                        evaluated.clone(),
-                    )
-                } else {
-                    self.env_man.write().unwrap().assign(
-                        self.env,
-                        dst.name.clone(),
-                        evaluated.clone(),
-                    )
-                };
-                if result.is_err() {
-                    return Err(result.err().unwrap());
-                }
-                Ok(evaluated)
-            }
+            Expr::Grouping { expr, .. } => self.visit_expr(expr),
             Expr::Logical {
                 left,
                 operation,
@@ -396,6 +323,29 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
 
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
+            }
+            Expr::Assignment { dst, expr, .. } => {
+                let distance = self.current_program.as_ref().unwrap().get_distance(e);
+                let evaluated = self.visit_expr(expr)?;
+                let result = if let Some(distance_unv) = distance {
+                    EnvironmentFrame::assign_at(
+                        &self.env,
+                        distance_unv,
+                        &dst.name,
+                        self.interner.get_or_intern(&dst.name),
+                        evaluated.clone(),
+                    )
+                } else {
+                    self.root_env.assign(
+                        &dst.name,
+                        self.interner.get_or_intern(&dst.name),
+                        evaluated.clone(),
+                    )
+                };
+                if result.is_err() {
+                    return Err(result.err().unwrap());
+                }
+                Ok(evaluated)
             }
             Expr::Call {
                 callee, args, span, ..
@@ -424,6 +374,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let val = callable.call(self, args_evaluated.as_slice());
 
                     self.loop_stack.pop_fn();
+
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
                         Ok(unpacked_val) => Ok(unpacked_val),
@@ -450,10 +401,13 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     "<anonymous>"
                 };
                 let fun = Function::UserDefined {
-                    name: fn_name.to_string(),
+                    name: self.interner.get_or_intern(fn_name),
                     body: Arc::clone(body),
-                    parameters: parameters.iter().map(|x| x.name.to_string()).collect(),
-                    closure: self.env,
+                    parameters: parameters
+                        .iter()
+                        .map(|x| self.interner.get_or_intern(&x.name))
+                        .collect(),
+                    closure: self.env.clone(),
                 };
 
                 let callable = RV::Callable(Callable::new(
@@ -464,9 +418,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env_man.write().unwrap().declare(
-                        self.env,
-                        name.as_ref().unwrap().name.to_string(),
+                    self.env.define(
+                        self.interner.get_or_intern(&name.as_ref().unwrap().name),
                         callable.clone(),
                     );
                 }
@@ -572,6 +525,19 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Update { .. }
+            | Expr::Delete { .. } => {
+                let mut planner = Planner::new(self);
+                let plan = planner.build(e)?;
+                if let Some(out) = &self.output {
+                    out.write()
+                        .unwrap()
+                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                }
+                Ok(RV::Undefined)
+            }
         }
     }
 
@@ -584,21 +550,21 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
         match s {
             Stmt::Program { body: stmts, .. } => {
-                return self.execute_block(stmts, Some(self.env));
+                return self.execute_block(stmts, self.env.clone());
             }
             Stmt::Expression { expr, .. } => {
                 return self.visit_expr(expr);
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
-                self.env_man.write().unwrap().declare(
-                    self.env,
-                    dst.name.to_string(),
-                    evaluated.clone(),
-                );
+                self.env
+                    .define(self.interner.get_or_intern(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
-                return self.execute_block(stmts, None);
+                return self.execute_block(
+                    stmts,
+                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))),
+                );
             }
             Stmt::If {
                 condition,

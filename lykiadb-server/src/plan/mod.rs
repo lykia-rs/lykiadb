@@ -1,12 +1,10 @@
 use std::fmt::Display;
 
-use lykiadb_lang::{
-    ast::{
-        expr::Expr,
-        sql::{
-            SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
-            SqlOrdering, SqlProjection,
-        },
+use lykiadb_lang::ast::{
+    expr::Expr,
+    sql::{
+        SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
+        SqlOrdering, SqlProjection,
     },
     Identifier, Span,
 };

@@ -6,12 +6,10 @@ use crate::{
     value::RV,
 };
 
-use lykiadb_lang::{
-    ast::{
-        expr::Expr,
-        sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
-        visitor::VisitorMut,
-    },
+use lykiadb_lang::ast::{
+    expr::Expr,
+    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
+    visitor::VisitorMut,
     Spanned,
 };
 

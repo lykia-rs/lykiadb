@@ -1,8 +1,9 @@
 use crate::ast::expr::Expr;
 use crate::ast::stmt::Stmt;
 use crate::ast::visitor::VisitorMut;
-use crate::{Identifier, Literal};
-use crate::{Locals, Scopes, Span};
+use crate::ast::Span;
+use crate::ast::{Identifier, Literal};
+use crate::{Locals, Scopes};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -34,11 +35,7 @@ impl<'a> Resolver<'a> {
     ) -> Resolver<'a> {
         Resolver {
             scopes,
-            locals: if let Some(previous_locals) = previous_locals {
-                previous_locals
-            } else {
-                FxHashMap::default()
-            },
+            locals: previous_locals.unwrap_or_default(),
             program,
         }
     }
@@ -91,7 +88,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl<'a> VisitorMut<(), ResolveError> for Resolver<'a> {
+impl VisitorMut<(), ResolveError> for Resolver<'_> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
             Expr::Literal { value, .. } => match value {

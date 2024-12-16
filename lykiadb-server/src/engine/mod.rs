@@ -1,9 +1,6 @@
 use self::error::ExecutionError;
 use crate::value::RV;
 use interpreter::Interpreter;
-use lykiadb_lang::parser::Parser;
-use lykiadb_lang::tokenizer::scanner::Scanner;
-use serde_json::Value;
 use tracing::info;
 
 pub mod error;
@@ -24,13 +21,6 @@ pub enum RuntimeMode {
 impl Runtime {
     pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
         Runtime { mode, interpreter }
-    }
-
-    pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let program = Parser::parse(&tokens)?;
-        let json = program.to_json();
-        Ok(json)
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
@@ -97,7 +87,7 @@ pub mod test_helpers {
                     .split(',')
                     .map(|flag| {
                         let kv: Vec<&str> = flag.split('=').collect();
-                        return (kv[0].trim(), kv[1].trim());
+                        (kv[0].trim(), kv[1].trim())
                     })
                     .fold(std::collections::HashMap::new(), |mut acc, (k, v)| {
                         acc.insert(k, v);

@@ -3,15 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use std::{fmt::Display, sync::Arc};
 
-use crate::{Identifier, Span, Spanned};
-
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
     stmt::Stmt,
-    AstNode,
+    AstNode, Identifier, Literal, Span, Spanned,
 };
-
-use crate::Literal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
@@ -497,7 +493,7 @@ impl Expr {
 pub mod test {
     use std::collections::HashSet;
 
-    use crate::{ast::expr::Expr, Literal, Span};
+    use crate::ast::expr::Expr;
 
     use super::*;
 
@@ -703,12 +699,10 @@ pub mod test {
             });
             assert_eq!(visited, vec![3, 1, 2]);
         }
-
     }
 
     #[test]
     fn test_expr_get_id() {
-
         // Test Variable
         let var_expr = Expr::Variable {
             name: Identifier::new("test_var", false),
@@ -821,7 +815,6 @@ pub mod test {
     #[test]
     fn test_expr_get_span() {
         let test_span = Span::default();
-
 
         // Test Variable
         let var_expr = Expr::Variable {
@@ -1073,10 +1066,7 @@ pub mod test {
     fn test_function_display() {
         let func = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
-            parameters: vec![
-                Identifier::new("a", false),
-                Identifier::new("b", false),
-            ],
+            parameters: vec![Identifier::new("a", false), Identifier::new("b", false)],
             body: Arc::new(vec![]),
             span: Span::default(),
             id: 1,
@@ -1139,7 +1129,6 @@ pub mod test {
         assert_eq!(call.to_string(), "test_func(Num(1.0), Num(2.0))");
     }
 
-    
     pub fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
         Expr::Binary {
             left: Box::new(Expr::Literal {
