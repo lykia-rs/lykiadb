@@ -250,7 +250,7 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        let distance = self.current_program.clone().unwrap().get_distance(expr);
+        let distance = self.current_program.as_ref().unwrap().get_distance(expr);
         if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(
                 &self.env,
@@ -285,7 +285,7 @@ impl Interpreter {
         statements: &Vec<Stmt>,
         env_opt: Arc<EnvironmentFrame>,
     ) -> Result<RV, HaltReason> {
-        let previous = std::mem::replace(&mut self.env, env_opt.clone());
+        let previous = std::mem::replace(&mut self.env, env_opt);
 
         let mut ret = Ok(RV::Undefined);
 
@@ -356,7 +356,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.clone().unwrap().get_distance(e);
+                let distance = self.current_program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
@@ -589,7 +589,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
                 self.env
-                    .define(self.interner.get_or_intern(&dst.name), evaluated.clone());
+                    .define(self.interner.get_or_intern(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(

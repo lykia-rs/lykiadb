@@ -22,7 +22,7 @@ pub enum EnvironmentError {
     Other { message: String },
 }
 
-macro_rules! env_ancestor {
+macro_rules! to_ancestor {
     ($init:expr, $distance:expr) => {{
         let mut env = $init;
         for _ in 0..$distance {
@@ -74,7 +74,13 @@ impl EnvironmentFrame {
         key_sym: SymbolU32,
         value: RV,
     ) -> Result<bool, HaltReason> {
-        env_ancestor!(env, distance).assign(key, key_sym, value)
+        if distance == 0 {
+            return env.assign(key, key_sym, value);
+        }
+        if distance == 1 && env.parent.is_some() {
+            return env.parent.as_ref().unwrap().assign(key, key_sym, value);
+        }
+        to_ancestor!(env, distance).assign(key, key_sym, value)
     }
 
     pub fn read(&self, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
@@ -99,7 +105,13 @@ impl EnvironmentFrame {
         key: &str,
         key_sym: &SymbolU32,
     ) -> Result<RV, HaltReason> {
-        env_ancestor!(env, distance)
+        if distance == 0 {
+            return env.read(key, key_sym);
+        }
+        if distance == 1 && env.parent.is_some() {
+            return env.parent.as_ref().unwrap().read(key, key_sym);
+        }
+        to_ancestor!(env, distance)
             .map
             .read()
             .unwrap()
