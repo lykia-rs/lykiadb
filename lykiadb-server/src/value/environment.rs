@@ -84,9 +84,10 @@ impl EnvironmentFrame {
     }
 
     pub fn read(&self, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
-        if self.map.read().unwrap().contains_key(key_sym) {
+        let guard = self.map.read().unwrap();
+        if let Some(value) = guard.get(key_sym) {
             // TODO(vck): Remove clone
-            return Ok(self.map.read().unwrap().get(key_sym).unwrap().clone());
+            return Ok(value.clone());
         }
         self.parent.as_ref().map_or(
             Err(HaltReason::Error(
