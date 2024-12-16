@@ -2,12 +2,9 @@ use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::parser::program::Program;
-use lykiadb_lang::parser::resolver::Resolver;
-use lykiadb_lang::parser::Parser;
-use lykiadb_lang::tokenizer::scanner::Scanner;
-use lykiadb_lang::Span;
+use lykiadb_lang::{LangError, SourceProcessor, Span};
 use lykiadb_lang::Spanned;
-use lykiadb_lang::{Literal, Locals, Scopes};
+use lykiadb_lang::Literal;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -26,39 +23,6 @@ use crate::value::{eval::eval_binary, RV};
 
 use std::sync::Arc;
 use std::vec;
-
-pub struct SourceProcessor {
-    scopes: Scopes,
-    locals: Locals,
-}
-
-impl Default for SourceProcessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl SourceProcessor {
-    pub fn new() -> SourceProcessor {
-        SourceProcessor {
-            scopes: vec![],
-            locals: FxHashMap::default(),
-        }
-    }
-
-    pub fn process(&mut self, source: &str) -> Result<Program, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let mut program = Parser::parse(&tokens)?;
-        let mut resolver = Resolver::new(self.scopes.clone(), &program, Some(self.locals.clone()));
-        let (scopes, locals) = resolver.resolve().unwrap();
-
-        self.scopes = scopes;
-        self.locals.clone_from(&locals);
-        program.set_locals(self.locals.clone());
-
-        Ok(program)
-    }
-}
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
@@ -85,6 +49,12 @@ pub enum InterpretError {
 impl From<InterpretError> for ExecutionError {
     fn from(err: InterpretError) -> Self {
         ExecutionError::Interpret(err)
+    }
+}
+
+impl From<LangError> for ExecutionError {
+    fn from(err: LangError) -> Self {
+        ExecutionError::Lang(err)
     }
 }
 

@@ -16,7 +16,6 @@ use crate::engine::error::ExecutionError;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
     Run(String),
-    Ast(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,13 +69,6 @@ impl ServerSession {
             let start = Instant::now();
             match &message {
                 Message::Request(req) => match req {
-                    Request::Ast(source) => {
-                        let ast = self.runtime.ast(source);
-                        self.conn
-                            .write(Message::Response(Response::Program(ast.unwrap())))
-                            .await
-                            .unwrap();
-                    }
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(command);
                         let response = if execution.is_ok() {

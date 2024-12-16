@@ -12,9 +12,6 @@ use lykiadb_connect::{get_session, report_error, Message, Protocol, Request, Res
 struct Args {
     /// Path to the script to be executed
     filename: Option<String>,
-
-    #[clap(short, long, default_value = "false")]
-    print_ast: bool,
 }
 
 struct Shell;
@@ -45,7 +42,6 @@ impl Shell {
         &mut self,
         session: &mut impl ClientSession,
         filename: &str,
-        print_ast: bool,
     ) {
         let file = File::open(filename).expect("File couldn't be opened.");
 
@@ -55,11 +51,7 @@ impl Shell {
             .read_to_string(&mut content)
             .expect("File couldn't be read.");
 
-        let msg = if print_ast {
-            Message::Request(Request::Ast(content.to_string()))
-        } else {
-            Message::Request(Request::Run(content.to_string()))
-        };
+        let msg = Message::Request(Request::Run(content.to_string()));
 
         let response = session.send_receive(msg).await.unwrap();
         self.handle_response(filename, &content, response);
@@ -87,7 +79,7 @@ async fn main() {
     match args.filename {
         Some(filename) => {
             shell
-                .run_file(&mut session, &filename, args.print_ast)
+                .run_file(&mut session, &filename)
                 .await
         }
         None => shell.run_repl(&mut session).await,

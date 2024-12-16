@@ -26,13 +26,6 @@ impl Runtime {
         Runtime { mode, interpreter }
     }
 
-    pub fn ast(&mut self, source: &str) -> Result<Value, ExecutionError> {
-        let tokens = Scanner::scan(source)?;
-        let program = Parser::parse(&tokens)?;
-        let json = program.to_json();
-        Ok(json)
-    }
-
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
         let out = self.interpreter.interpret(source);
 

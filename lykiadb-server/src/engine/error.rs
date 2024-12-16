@@ -4,17 +4,13 @@ use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
 use lykiadb_lang::{
-    parser::{resolver::ResolveError, ParseError},
-    tokenizer::scanner::ScanError,
-    Span,
+    parser::ParseError, tokenizer::scanner::ScanError, LangError, Span
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ExecutionError {
-    Scan(ScanError),
-    Parse(ParseError),
-    Resolve(ResolveError),
+    Lang(LangError),
     Interpret(InterpretError),
     Environment(EnvironmentError),
     Plan(PlannerError),
@@ -23,18 +19,6 @@ pub enum ExecutionError {
 impl Display for ExecutionError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(f, "{:?}", self)
-    }
-}
-
-impl From<ParseError> for ExecutionError {
-    fn from(err: ParseError) -> Self {
-        ExecutionError::Parse(err)
-    }
-}
-
-impl From<ScanError> for ExecutionError {
-    fn from(err: ScanError) -> Self {
-        ExecutionError::Scan(err)
     }
 }
 
@@ -64,24 +48,24 @@ pub fn report_error(
     };
 
     match error {
-        ExecutionError::Scan(ScanError::UnexpectedCharacter { span }) => {
+        ExecutionError::Lang(LangError::Scan(ScanError::UnexpectedCharacter { span })) => {
             print("Unexpected character", "Remove this character", span);
         }
-        ExecutionError::Scan(ScanError::UnterminatedString { span }) => {
+        ExecutionError::Lang(LangError::Scan(ScanError::UnterminatedString { span })) => {
             print(
                 "Unterminated string",
                 "Terminate the string with a double quote (\").",
                 span,
             );
         }
-        ExecutionError::Scan(ScanError::MalformedNumberLiteral { span }) => {
+        ExecutionError::Lang(LangError::Scan(ScanError::MalformedNumberLiteral { span })) => {
             print(
                 "Malformed number literal",
                 "Make sure that number literal is up to spec.",
                 span,
             );
         }
-        ExecutionError::Parse(ParseError::MissingToken { token, expected }) => {
+        ExecutionError::Lang(LangError::Parse(ParseError::MissingToken { token, expected })) => {
             print(
                 "Missing token",
                 &format!(
@@ -92,17 +76,17 @@ pub fn report_error(
                 token.span,
             );
         }
-        ExecutionError::Parse(ParseError::NoTokens) => {
+        ExecutionError::Lang(LangError::Parse(ParseError::NoTokens)) => {
             print("There is nothing to parse", "", Span::default());
         }
-        ExecutionError::Parse(ParseError::InvalidAssignmentTarget { left }) => {
+        ExecutionError::Lang(LangError::Parse(ParseError::InvalidAssignmentTarget { left })) => {
             print(
                 "Invalid assignment target",
                 &format!("No values can be assigned to {}", left.lexeme.unwrap()),
                 left.span,
             );
         }
-        ExecutionError::Parse(ParseError::UnexpectedToken { token }) => {
+        ExecutionError::Lang(LangError::Parse(ParseError::UnexpectedToken { token })) => {
             print(
                 "Unexpected token",
                 &format!(
@@ -187,14 +171,14 @@ mod tests {
     #[test]
     fn test_scanner_unterminated_string() {
         let source = r#"let x = "unterminated"#;
-        let error = ExecutionError::Scan(ScanError::UnterminatedString {
+        let error = ExecutionError::Lang(LangError::Scan(ScanError::UnterminatedString {
             span: Span {
                 start: 8,
                 end: 21,
                 line: 0,
                 line_end: 0,
             },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Unterminated string"));
@@ -204,14 +188,14 @@ mod tests {
     #[test]
     fn test_scanner_malformed_number() {
         let source = "let x = 123.456.789";
-        let error = ExecutionError::Scan(ScanError::MalformedNumberLiteral {
+        let error = ExecutionError::Lang(LangError::Scan(ScanError::MalformedNumberLiteral {
             span: Span {
                 start: 8,
                 end: 19,
                 line: 0,
                 line_end: 0,
             },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Malformed number literal"));
@@ -222,7 +206,7 @@ mod tests {
     #[test]
     fn test_parser_missing_token() {
         let source = "var x = ";
-        let error = ExecutionError::Parse(ParseError::MissingToken {
+        let error = ExecutionError::Lang(LangError::Parse(ParseError::MissingToken {
             token: Token {
                 tok_type: kw!(Keyword::Var),
                 lexeme: Some("var".to_string()),
@@ -235,7 +219,7 @@ mod tests {
                 literal: None,
             },
             expected: TokenType::Identifier { dollar: true },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Missing token"));
@@ -245,7 +229,7 @@ mod tests {
     #[test]
     fn test_parser_no_tokens() {
         let source = "";
-        let error = ExecutionError::Parse(ParseError::NoTokens);
+        let error = ExecutionError::Lang(LangError::Parse(ParseError::NoTokens));
 
         let output = capture_error_output("test.txt", source, error);
 
@@ -255,7 +239,7 @@ mod tests {
     #[test]
     fn test_parser_unexpected_token() {
         let source = "let x = ;";
-        let error = ExecutionError::Parse(ParseError::UnexpectedToken {
+        let error = ExecutionError::Lang(LangError::Parse(ParseError::UnexpectedToken {
             token: Token {
                 tok_type: sym!(Symbol::Semicolon),
                 lexeme: Some(";".to_string()),
@@ -267,7 +251,7 @@ mod tests {
                 },
                 literal: None,
             },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Unexpected token"));
@@ -294,7 +278,7 @@ mod tests {
     #[test]
     fn test_parser_invalid_assignment() {
         let source = "5 = 10";
-        let error = ExecutionError::Parse(ParseError::InvalidAssignmentTarget {
+        let error = ExecutionError::Lang(LangError::Parse(ParseError::InvalidAssignmentTarget {
             left: Token {
                 tok_type: TokenType::Num,
                 lexeme: Some("5".to_string()),
@@ -306,7 +290,7 @@ mod tests {
                 },
                 literal: Some(Literal::Num(5.0)),
             },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Invalid assignment target"));
@@ -394,14 +378,14 @@ mod tests {
     #[test]
     fn test_scan_error_reporting() {
         let source = "let x = @";
-        let error = ExecutionError::Scan(ScanError::UnexpectedCharacter {
+        let error = ExecutionError::Lang(LangError::Scan(ScanError::UnexpectedCharacter {
             span: Span {
                 start: 8,
                 end: 9,
                 line: 0,
                 line_end: 0,
             },
-        });
+        }));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Unexpected character"));
