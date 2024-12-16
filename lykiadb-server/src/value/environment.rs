@@ -82,7 +82,7 @@ impl EnvironmentFrame {
             // TODO(vck): Remove clone
             return Ok(self.map.read().unwrap().get(key_sym).unwrap().clone());
         }
-        return self.parent.as_ref().map_or(
+        self.parent.as_ref().map_or(
             Err(HaltReason::Error(
                 EnvironmentError::Other {
                     message: format!("Variable '{}' was not found", key),
@@ -90,7 +90,7 @@ impl EnvironmentFrame {
                 .into(),
             )),
             |parent| parent.read(key, key_sym),
-        );
+        )
     }
 
     pub fn read_at(
@@ -103,7 +103,7 @@ impl EnvironmentFrame {
             .map
             .read()
             .unwrap()
-            .get(&key_sym)
+            .get(key_sym)
             .map_or(
                 Err(HaltReason::Error(
                     EnvironmentError::Other {

@@ -198,7 +198,7 @@ impl Interpreter {
         }
         Interpreter {
             env: root_env.clone(),
-            root_env: root_env,
+            root_env,
             loop_stack: LoopStack::new(),
             source_processor: SourceProcessor::new(),
             current_program: None,
