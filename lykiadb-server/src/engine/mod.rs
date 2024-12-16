@@ -1,9 +1,6 @@
 use self::error::ExecutionError;
 use crate::value::RV;
 use interpreter::Interpreter;
-use lykiadb_lang::parser::Parser;
-use lykiadb_lang::tokenizer::scanner::Scanner;
-use serde_json::Value;
 use tracing::info;
 
 pub mod error;
