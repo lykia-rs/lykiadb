@@ -105,9 +105,10 @@ mod test {
     use std::collections::HashSet;
 
     use crate::ast::{
-            expr::{test::create_simple_add_expr, Expr},
-            stmt::Stmt, Span,
-        };
+        expr::{test::create_simple_add_expr, Expr},
+        stmt::Stmt,
+        Span,
+    };
 
     pub fn create_simple_block_stmt(a: Expr, b: Expr) -> Stmt {
         Stmt::Block {

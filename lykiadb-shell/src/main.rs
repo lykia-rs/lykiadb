@@ -38,11 +38,7 @@ impl Shell {
         }
     }
 
-    async fn run_file(
-        &mut self,
-        session: &mut impl ClientSession,
-        filename: &str,
-    ) {
+    async fn run_file(&mut self, session: &mut impl ClientSession, filename: &str) {
         let file = File::open(filename).expect("File couldn't be opened.");
 
         let mut content: String = String::new();
@@ -77,11 +73,7 @@ async fn main() {
     let mut session = get_session("localhost:19191", Protocol::Tcp).await;
     let mut shell = Shell;
     match args.filename {
-        Some(filename) => {
-            shell
-                .run_file(&mut session, &filename)
-                .await
-        }
+        Some(filename) => shell.run_file(&mut session, &filename).await,
         None => shell.run_repl(&mut session).await,
     };
 }

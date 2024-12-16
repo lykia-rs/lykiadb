@@ -3,9 +3,7 @@ use std::fmt::{Display, Formatter, Result};
 use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
-use lykiadb_lang::{
-    ast::Span, parser::ParseError, tokenizer::scanner::ScanError, LangError
-};
+use lykiadb_lang::{ast::Span, parser::ParseError, tokenizer::scanner::ScanError, LangError};
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -156,8 +154,9 @@ mod tests {
 
     use super::*;
     use lykiadb_lang::{
-        ast::{Identifier, Literal}, kw, sym, tokenizer::token::{Keyword, Symbol, Token, TokenType}
-        
+        ast::{Identifier, Literal},
+        kw, sym,
+        tokenizer::token::{Keyword, Symbol, Token, TokenType},
     };
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {

@@ -1,4 +1,8 @@
-use parser::{program::Program, resolver::{ResolveError, Resolver}, ParseError, Parser};
+use parser::{
+    program::Program,
+    resolver::{ResolveError, Resolver},
+    ParseError, Parser,
+};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tokenizer::scanner::{ScanError, Scanner};
@@ -14,7 +18,7 @@ pub type Locals = FxHashMap<usize, usize>;
 pub enum LangError {
     Parse(ParseError),
     Scan(ScanError),
-    Resolve(ResolveError)
+    Resolve(ResolveError),
 }
 
 impl From<ParseError> for LangError {

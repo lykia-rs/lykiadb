@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
 use super::{
-    sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate}, stmt::Stmt, AstNode, Identifier, Literal, Span, Spanned
+    sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
+    stmt::Stmt,
+    AstNode, Identifier, Literal, Span, Spanned,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
