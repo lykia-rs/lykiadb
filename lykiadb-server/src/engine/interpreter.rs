@@ -259,10 +259,7 @@ impl Interpreter {
                 &self.interner.get_or_intern(name),
             )
         } else {
-            self.root_env.read(
-                name,
-                &self.interner.get_or_intern(name),
-            )
+            self.root_env.read(name, &self.interner.get_or_intern(name))
         }
     }
 
@@ -370,7 +367,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         evaluated.clone(),
                     )
                 } else {
-                    self.root_env.assign( &dst.name, self.interner.get_or_intern(&dst.name), evaluated.clone(),)
+                    self.root_env.assign(
+                        &dst.name,
+                        self.interner.get_or_intern(&dst.name),
+                        evaluated.clone(),
+                    )
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -587,13 +588,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
-                self.env.define(
-                    self.interner.get_or_intern(&dst.name),
-                    evaluated.clone(),
-                );
+                self.env
+                    .define(self.interner.get_or_intern(&dst.name), evaluated.clone());
             }
             Stmt::Block { body: stmts, .. } => {
-                return self.execute_block(stmts, Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))));
+                return self.execute_block(
+                    stmts,
+                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))),
+                );
             }
             Stmt::If {
                 condition,

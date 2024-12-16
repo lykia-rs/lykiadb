@@ -67,7 +67,7 @@ impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
-            Function::UserDefined {  .. } => write!(f, "<user_defined_fn>"),
+            Function::UserDefined { .. } => write!(f, "<user_defined_fn>"),
         }
     }
 }

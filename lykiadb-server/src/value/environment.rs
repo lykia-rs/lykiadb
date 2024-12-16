@@ -11,7 +11,6 @@ pub struct EnvironmentFrame {
     pub parent: Option<Arc<EnvironmentFrame>>,
 }
 
-
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum EnvironmentError {
     /*AssignmentToUndefined {
@@ -33,7 +32,6 @@ macro_rules! env_ancestor {
     }};
 }
 
-
 impl From<EnvironmentError> for ExecutionError {
     fn from(err: EnvironmentError) -> Self {
         ExecutionError::Environment(err)
@@ -42,19 +40,17 @@ impl From<EnvironmentError> for ExecutionError {
 
 impl EnvironmentFrame {
     pub fn new(parent: Option<Arc<EnvironmentFrame>>) -> EnvironmentFrame {
-        EnvironmentFrame { parent, map: RwLock::new(FxHashMap::default()) }
+        EnvironmentFrame {
+            parent,
+            map: RwLock::new(FxHashMap::default()),
+        }
     }
 
     pub fn define(&self, name: SymbolU32, value: RV) {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(
-        &self,
-        key: &str,
-        key_sym: SymbolU32,
-        value: RV,
-    ) -> Result<bool, HaltReason> {
+    pub fn assign(&self, key: &str, key_sym: SymbolU32, value: RV) -> Result<bool, HaltReason> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
@@ -67,7 +63,7 @@ impl EnvironmentFrame {
                 }
                 .into(),
             )),
-            |parent| parent.as_ref().assign(key, key_sym, value)
+            |parent| parent.as_ref().assign(key, key_sym, value),
         )
     }
 
@@ -94,7 +90,7 @@ impl EnvironmentFrame {
                 .into(),
             )),
             |parent| parent.read(key, key_sym),
-        )
+        );
     }
 
     pub fn read_at(
@@ -105,13 +101,18 @@ impl EnvironmentFrame {
     ) -> Result<RV, HaltReason> {
         env_ancestor!(env, distance)
             .map
-            .read().unwrap()
-            .get(&key_sym).map_or(Err(HaltReason::Error(
-                EnvironmentError::Other {
-                    message: format!("Variable '{}' was not found", key),
-                }
-                .into(),
-            )), |v| Ok(v.clone()))
+            .read()
+            .unwrap()
+            .get(&key_sym)
+            .map_or(
+                Err(HaltReason::Error(
+                    EnvironmentError::Other {
+                        message: format!("Variable '{}' was not found", key),
+                    }
+                    .into(),
+                )),
+                |v| Ok(v.clone()),
+            )
     }
 }
 
@@ -147,9 +148,7 @@ mod test {
         root.define(interner.get_or_intern("five"), RV::Num(5.0));
         let child = super::EnvironmentFrame::new(Some(Arc::new(root)));
         assert_eq!(
-            child
-                .read("five", &interner.get_or_intern("five"))
-                .unwrap(),
+            child.read("five", &interner.get_or_intern("five")).unwrap(),
             RV::Num(5.0)
         );
     }
@@ -158,23 +157,22 @@ mod test {
     fn test_write_to_parent() {
         let root = Arc::new(super::EnvironmentFrame::new(None));
         let mut interner = get_interner();
-        
+
         root.define(interner.get_or_intern("five"), RV::Num(5.0));
-        
+
         let child = super::EnvironmentFrame::new(Some(root.clone()));
-        
-        child.assign("five", interner.get_or_intern("five"), RV::Num(5.1))
+
+        child
+            .assign("five", interner.get_or_intern("five"), RV::Num(5.1))
             .unwrap();
 
         assert_eq!(
-            root.read("five", &interner.get_or_intern("five"))
-                .unwrap(),
+            root.read("five", &interner.get_or_intern("five")).unwrap(),
             RV::Num(5.1)
         );
 
         assert_eq!(
-            child.read("five", &interner.get_or_intern("five"))
-                .unwrap(),
+            child.read("five", &interner.get_or_intern("five")).unwrap(),
             RV::Num(5.1)
         );
     }
@@ -183,9 +181,7 @@ mod test {
     fn test_read_undefined_variable() {
         let env = super::EnvironmentFrame::new(None);
         let mut interner = get_interner();
-        assert!(env
-            .read("five", &interner.get_or_intern("five"))
-            .is_err());
+        assert!(env.read("five", &interner.get_or_intern("five")).is_err());
     }
 
     #[test]
