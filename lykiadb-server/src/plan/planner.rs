@@ -6,14 +6,11 @@ use crate::{
     value::RV,
 };
 
-use lykiadb_lang::{
-    ast::{
+use lykiadb_lang::ast::{
         expr::Expr,
         sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
-        visitor::VisitorMut,
-    },
-    Spanned,
-};
+        visitor::VisitorMut, Spanned,
+    };
 
 use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 

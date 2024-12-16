@@ -1,6 +1,7 @@
-use crate::{Identifier, Literal, Span};
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
+
+use crate::ast::{Identifier, Literal, Span};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {

@@ -1,7 +1,6 @@
-use crate::Identifier;
 use serde::{Deserialize, Serialize};
 
-use super::expr::Expr;
+use super::{expr::Expr, Identifier};
 
 // Enums
 

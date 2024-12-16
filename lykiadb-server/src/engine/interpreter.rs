@@ -1,10 +1,9 @@
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
+use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
-use lykiadb_lang::{LangError, SourceProcessor, Span};
-use lykiadb_lang::Spanned;
-use lykiadb_lang::Literal;
+use lykiadb_lang::{LangError, SourceProcessor};
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

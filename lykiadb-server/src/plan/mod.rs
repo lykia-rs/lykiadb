@@ -1,15 +1,12 @@
 use std::fmt::Display;
 
-use lykiadb_lang::{
-    ast::{
+use lykiadb_lang::ast::{
         expr::Expr,
         sql::{
             SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
             SqlOrdering, SqlProjection,
-        },
-    },
-    Identifier, Span,
-};
+        }, Identifier, Span,
+    };
 use serde::{Deserialize, Serialize};
 
 use crate::value::RV;

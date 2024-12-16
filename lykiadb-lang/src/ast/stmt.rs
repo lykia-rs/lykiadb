@@ -1,9 +1,7 @@
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
-use crate::{Identifier, Span, Spanned};
-
-use super::expr::Expr;
+use super::{expr::Expr, Identifier, Span, Spanned};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
 #[serde(tag = "@type")]
@@ -106,13 +104,10 @@ impl Spanned for Stmt {
 mod test {
     use std::collections::HashSet;
 
-    use crate::{
-        ast::{
+    use crate::ast::{
             expr::{test::create_simple_add_expr, Expr},
-            stmt::Stmt,
-        },
-        Span,
-    };
+            stmt::Stmt, Span,
+        };
 
     pub fn create_simple_block_stmt(a: Expr, b: Expr) -> Stmt {
         Stmt::Block {

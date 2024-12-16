@@ -3,11 +3,11 @@ use self::program::Program;
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
 use crate::ast::expr::RangeKind;
+use crate::ast::{Literal, Span, Spanned};
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
 use crate::{kw, skw, sym};
-use crate::{Literal, Span, Spanned};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -616,7 +616,7 @@ impl<'a> Parser<'a> {
                     && self.in_select_depth > 0
                 {
                     let head = name.clone();
-                    let mut tail: Vec<crate::Identifier> = vec![];
+                    let mut tail: Vec<super::ast::Identifier> = vec![];
                     while self.match_next(&sym!(Dot)) {
                         let identifier = self.expected(&Identifier { dollar: false })?.clone();
                         tail.push(identifier.extract_identifier().unwrap());

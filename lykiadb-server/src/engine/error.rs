@@ -4,7 +4,7 @@ use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
 use lykiadb_lang::{
-    parser::ParseError, tokenizer::scanner::ScanError, LangError, Span
+    ast::Span, parser::ParseError, tokenizer::scanner::ScanError, LangError
 };
 use serde::{Deserialize, Serialize};
 
@@ -156,9 +156,8 @@ mod tests {
 
     use super::*;
     use lykiadb_lang::{
-        kw, sym,
-        tokenizer::token::{Keyword, Symbol, Token, TokenType},
-        Identifier, Literal,
+        ast::{Identifier, Literal}, kw, sym, tokenizer::token::{Keyword, Symbol, Token, TokenType}
+        
     };
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
