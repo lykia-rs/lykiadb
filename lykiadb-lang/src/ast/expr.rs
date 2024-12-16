@@ -3,15 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use std::{fmt::Display, sync::Arc};
 
-use crate::{Identifier, Span, Spanned};
-
 use super::{
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
     stmt::Stmt,
-    AstNode,
+    AstNode, Identifier, Literal, Span, Spanned,
 };
-
-use crate::Literal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
@@ -497,7 +493,7 @@ impl Expr {
 pub mod test {
     use std::collections::HashSet;
 
-    use crate::{ast::expr::Expr, Literal, Span};
+    use crate::ast::expr::Expr;
 
     use super::*;
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use lykiadb_lang::{ast::sql::SqlSource, Identifier};
+use lykiadb_lang::ast::{sql::SqlSource, Identifier};
 
 use super::PlannerError;
 
