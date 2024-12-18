@@ -1111,13 +1111,12 @@ impl Parser<'_> {
                 (None, false)
             };
 
-            if second_expr.is_some() && reverse {
-                Some(SqlLimitClause {
+            match (&second_expr, reverse) {
+                (Some(_), true) => Some(SqlLimitClause {
                     count: second_expr.unwrap(),
                     offset: Some(first_expr),
-                })
-            } else {
-                Some(SqlLimitClause {
+                }),
+                _ => Some(SqlLimitClause {
                     count: first_expr,
                     offset: second_expr,
                 })
