@@ -128,7 +128,7 @@ pub fn report_error(
                 span,
             );
         }
-        ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, ident }) => {
+        ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, .. }) => {
             print(
                 "Duplicate object in scope",
                 &format!("Object {} is already defined in the scope.", previous.name),
@@ -160,7 +160,7 @@ mod tests {
     };
 
     fn capture_error_output(filename: &str, source: &str, error: ExecutionError) -> String {
-        let mut output = Vec::new();
+        let mut output = vec![];
         report_error(filename, source, error, &mut output);
         String::from_utf8(output).unwrap()
     }

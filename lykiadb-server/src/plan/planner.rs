@@ -20,7 +20,7 @@ pub struct Planner<'a> {
 }
 
 impl<'a> Planner<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> Planner {
+    pub fn new(interpreter: &'a mut Interpreter) -> Planner<'a> {
         Planner { interpreter }
     }
 

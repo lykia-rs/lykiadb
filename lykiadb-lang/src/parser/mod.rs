@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn program(&mut self) -> ParseResult<Box<Stmt>> {
-        let mut statements: Vec<Stmt> = Vec::new();
+        let mut statements: Vec<Stmt> = vec![];
         while !self.is_at_end() {
             statements.push(*self.declaration()?);
         }
@@ -1111,13 +1111,12 @@ impl Parser<'_> {
                 (None, false)
             };
 
-            if second_expr.is_some() && reverse {
-                Some(SqlLimitClause {
+            match (&second_expr, reverse) {
+                (Some(_), true) => Some(SqlLimitClause {
                     count: second_expr.unwrap(),
                     offset: Some(first_expr),
-                })
-            } else {
-                Some(SqlLimitClause {
+                }),
+                _ => Some(SqlLimitClause {
                     count: first_expr,
                     offset: second_expr,
                 })
