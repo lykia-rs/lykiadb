@@ -142,12 +142,10 @@ pub mod test_helpers {
                         .unwrap()
                         .expect(vec![RV::Str(Arc::new(part.to_string()))]);
                 } else {
-                    self.out.write().unwrap().expect_str(
-                        part
-                            .split('\n')
-                            .map(|x| x.to_string())
-                            .collect(),
-                    );
+                    self.out
+                        .write()
+                        .unwrap()
+                        .expect_str(part.split('\n').map(|x| x.to_string()).collect());
                 }
             }
         }

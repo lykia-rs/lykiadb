@@ -75,10 +75,7 @@ mod tests {
         );
 
         // Test array
-        let arr = vec![
-            RV::Num(1.0),
-            RV::Str(Arc::new("test".to_string()))
-        ];
+        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
         let array_rv = RV::Array(alloc_shared(arr));
 
         assert_eq!(
