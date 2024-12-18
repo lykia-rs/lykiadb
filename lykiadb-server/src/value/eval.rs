@@ -192,7 +192,7 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
 
 #[cfg(test)]
 mod test {
-    use std::{f64::INFINITY, sync::Arc};
+    use std::sync::Arc;
 
     use lykiadb_lang::ast::expr::Operation;
     use rustc_hash::FxHashMap;
@@ -462,7 +462,7 @@ mod test {
         //
         assert_eq!(
             eval_binary(RV::Bool(true), RV::Bool(false), Operation::Divide),
-            RV::Num(INFINITY)
+            RV::Num(f64::INFINITY)
         );
         assert_eq!(
             eval_binary(RV::Bool(false), RV::Bool(true), Operation::Divide),
@@ -489,7 +489,7 @@ mod test {
         );
         assert_eq!(
             eval_binary(RV::Num(1.0), RV::Bool(false), Operation::Divide),
-            RV::Num(INFINITY)
+            RV::Num(f64::INFINITY)
         );
         //
         assert_eq!(

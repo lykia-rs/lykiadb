@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn program(&mut self) -> ParseResult<Box<Stmt>> {
-        let mut statements: Vec<Stmt> = Vec::new();
+        let mut statements: Vec<Stmt> = vec![];
         while !self.is_at_end() {
             statements.push(*self.declaration()?);
         }

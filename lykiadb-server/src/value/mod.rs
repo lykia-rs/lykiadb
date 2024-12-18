@@ -168,7 +168,7 @@ impl<'de> Deserialize<'de> for RV {
             serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
             serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
             serde_json::Value::Array(arr) => {
-                let mut vec = Vec::new();
+                let mut vec = vec![];
                 for item in arr {
                     vec.push(serde_json::from_value(item).unwrap());
                 }
@@ -261,9 +261,10 @@ mod tests {
         assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
 
         // Test array contains
-        let mut arr = Vec::new();
-        arr.push(RV::Num(1.0));
-        arr.push(RV::Str(Arc::new("test".to_string())));
+        let arr = vec![
+            RV::Num(1.0),
+            RV::Str(Arc::new("test".to_string()))
+        ];
         let array = RV::Array(alloc_shared(arr));
 
         assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
@@ -314,9 +315,10 @@ mod tests {
         assert_eq!(RV::NaN.to_string(), "NaN");
         assert_eq!(RV::Null.to_string(), "null");
 
-        let mut arr = Vec::new();
-        arr.push(RV::Num(1.0));
-        arr.push(RV::Str(Arc::new("test".to_string())));
+        let arr = vec![
+            RV::Num(1.0),
+            RV::Str(Arc::new("test".to_string()))
+        ];
         assert_eq!(RV::Array(alloc_shared(arr)).to_string(), "[1, test]");
 
         let mut map = FxHashMap::default();
