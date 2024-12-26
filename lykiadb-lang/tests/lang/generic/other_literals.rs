@@ -51,20 +51,5 @@ assert_parsing! {
                 }
             ]
         }
-    },
-    null: {
-        "null;" => {
-            "@type": "Stmt::Program",
-            "body": [
-                {
-                    "@type": "Stmt::Expression",
-                    "expr": {
-                        "@type": "Expr::Literal",
-                        "value": "Null",
-                        "raw": "null"
-                    }
-                }
-            ]
-        }
     }
 }

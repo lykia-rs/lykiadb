@@ -7,14 +7,8 @@ impl PartialEq for RV {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
-            (RV::Null, RV::Null) => true,
             (RV::Undefined, RV::Undefined) => true,
-            (RV::NaN, RV::NaN) => true,
-            (RV::Null, RV::Undefined) => true,
-            (RV::Undefined, RV::Null) => true,
             //
-            (RV::NaN, _) | (_, RV::NaN) => false,
-            (RV::Null, _) | (_, RV::Null) => false,
             (RV::Undefined, _) | (_, RV::Undefined) => false,
             //
             (RV::Str(a), RV::Str(b)) => a == b,
@@ -39,14 +33,8 @@ impl PartialOrd for RV {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
-            (RV::Null, RV::Null) => Some(std::cmp::Ordering::Equal),
             (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
-            (RV::NaN, RV::NaN) => Some(std::cmp::Ordering::Equal),
-            (RV::Null, RV::Undefined) => Some(std::cmp::Ordering::Equal),
-            (RV::Undefined, RV::Null) => Some(std::cmp::Ordering::Equal),
             //
-            (RV::NaN, _) | (_, RV::NaN) => None,
-            (RV::Null, _) | (_, RV::Null) => None,
             (RV::Undefined, _) | (_, RV::Undefined) => None,
             //
             (RV::Str(a), RV::Str(b)) => Some(a.cmp(b)),
@@ -82,7 +70,6 @@ impl ops::Add for RV {
 
     fn add(self, rhs: Self) -> Self::Output {
         match (&self, &rhs) {
-            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
             //
             (RV::Bool(_), RV::Bool(_)) | (RV::Num(_), RV::Bool(_)) | (RV::Bool(_), RV::Num(_)) => {
                 RV::Num(self.as_number().unwrap() + rhs.as_number().unwrap())
@@ -98,7 +85,7 @@ impl ops::Add for RV {
             (RV::Str(s), RV::Bool(bool)) => RV::Str(Arc::new(s.to_string() + &bool.to_string())),
             (RV::Bool(bool), RV::Str(s)) => RV::Str(Arc::new(bool.to_string() + &s.to_string())),
             //
-            (_, _) => RV::NaN,
+            (_, _) => RV::Undefined,
         }
     }
 }
@@ -108,14 +95,12 @@ impl ops::Sub for RV {
 
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
-            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
-            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
                 .as_number()
                 .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a - b))
-                .unwrap_or(RV::NaN),
+                .unwrap_or(RV::Undefined),
         }
     }
 }
@@ -125,14 +110,12 @@ impl ops::Mul for RV {
 
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
-            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
-            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
                 .as_number()
                 .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| RV::Num(a * b))
-                .unwrap_or(RV::NaN),
+                .unwrap_or(RV::Undefined),
         }
     }
 }
@@ -142,20 +125,18 @@ impl ops::Div for RV {
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::NaN,
-            (RV::NaN, _) | (_, RV::NaN) => RV::NaN,
-            (RV::Null, _) | (_, RV::Null) => RV::Num(0.0),
+            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
                 .as_number()
                 .and_then(|a| r.as_number().map(|b| (a, b)))
                 .map(|(a, b)| {
                     if a == 0.0 && b == 0.0 {
-                        RV::NaN
+                        RV::Undefined
                     } else {
                         RV::Num(a / b)
                     }
                 })
-                .unwrap_or(RV::NaN),
+                .unwrap_or(RV::Undefined),
         }
     }
 }
@@ -204,9 +185,7 @@ mod test {
 
     #[test]
     fn test_is_value_truthy() {
-        assert!(!(RV::Null).as_bool());
         assert!(!(RV::Undefined).as_bool());
-        assert!(!(RV::NaN).as_bool());
         assert!(!(RV::Bool(false)).as_bool());
         assert!((RV::Bool(true)).as_bool());
         assert!(!(RV::Num(0.0)).as_bool());
@@ -361,7 +340,7 @@ mod test {
                 RV::Str(Arc::new("b".to_string())),
                 Operation::Subtract
             ),
-            RV::NaN
+            RV::Undefined
         );
         assert_eq!(
             eval_binary(
@@ -369,7 +348,7 @@ mod test {
                 RV::Str(Arc::new("a".to_string())),
                 Operation::Subtract
             ),
-            RV::NaN
+            RV::Undefined
         );
     }
 
@@ -432,7 +411,7 @@ mod test {
                 RV::Str(Arc::new("b".to_string())),
                 Operation::Multiply
             ),
-            RV::NaN
+            RV::Undefined
         );
         assert_eq!(
             eval_binary(
@@ -440,7 +419,7 @@ mod test {
                 RV::Str(Arc::new("a".to_string())),
                 Operation::Multiply
             ),
-            RV::NaN
+            RV::Undefined
         );
     }
 
@@ -471,7 +450,7 @@ mod test {
         //
         assert_eq!(
             eval_binary(RV::Bool(false), RV::Bool(false), Operation::Divide),
-            RV::NaN
+            RV::Undefined
         );
         //
         assert_eq!(
@@ -503,7 +482,7 @@ mod test {
                 RV::Str(Arc::new("b".to_string())),
                 Operation::Divide
             ),
-            RV::NaN
+            RV::Undefined
         );
         assert_eq!(
             eval_binary(
@@ -511,7 +490,7 @@ mod test {
                 RV::Str(Arc::new("a".to_string())),
                 Operation::Divide
             ),
-            RV::NaN
+            RV::Undefined
         );
     }
 
@@ -1029,78 +1008,78 @@ mod test {
 
     #[test]
     fn test_eval_binary_nan() {
-        assert_eq!(eval_binary(RV::NaN, RV::Num(1.0), Operation::Add), RV::NaN);
-        assert_eq!(eval_binary(RV::Num(1.0), RV::NaN, Operation::Add), RV::NaN);
+        assert_eq!(eval_binary(RV::Undefined, RV::Num(1.0), Operation::Add), RV::Undefined);
+        assert_eq!(eval_binary(RV::Num(1.0), RV::Undefined, Operation::Add), RV::Undefined);
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::Subtract),
-            RV::NaN
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Subtract),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::Subtract),
-            RV::NaN
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Subtract),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::Multiply),
-            RV::NaN
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Multiply),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::Multiply),
-            RV::NaN
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Multiply),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::Divide),
-            RV::NaN
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Divide),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::Divide),
-            RV::NaN
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Divide),
+            RV::Undefined
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::IsEqual),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::IsEqual),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::IsEqual),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::IsEqual),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::IsNotEqual),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::IsNotEqual),
             RV::Bool(true)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::IsNotEqual),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::IsNotEqual),
             RV::Bool(true)
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::Less),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Less),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::Less),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Less),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::LessEqual),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::LessEqual),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::LessEqual),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::LessEqual),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::Greater),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Greater),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::Greater),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Greater),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::NaN, RV::Num(1.0), Operation::GreaterEqual),
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::GreaterEqual),
             RV::Bool(false)
         );
         assert_eq!(
-            eval_binary(RV::Num(1.0), RV::NaN, Operation::GreaterEqual),
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::GreaterEqual),
             RV::Bool(false)
         );
     }

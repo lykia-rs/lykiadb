@@ -70,7 +70,7 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Null]).unwrap(),
+            nt_json_encode(&mut interpreter, &[RV::Undefined]).unwrap(),
             RV::Str(Arc::new("null".to_string()))
         );
 
@@ -121,7 +121,7 @@ mod tests {
 
         assert_eq!(
             nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("null".to_string()))]).unwrap(),
-            RV::Null
+            RV::Undefined
         );
 
         // Test array

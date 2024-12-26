@@ -36,7 +36,6 @@ pub enum Symbol {
 pub enum TokenType {
     Str,
     Num,
-    Null,
     Undefined,
     False,
     True,
@@ -102,7 +101,6 @@ pub enum SqlKeyword {
     //
     Is,
     Not,
-    Null,
     Like,
     In,
     Between,
@@ -200,7 +198,6 @@ pub static GENERIC_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => kw!(Keyword::While),
     "loop" => kw!(Keyword::Loop),
     //
-    "null" =>  TokenType::Null,
     "undefined" => TokenType::Undefined,
     "false" => TokenType::False,
     "true" => TokenType::True,
@@ -228,7 +225,6 @@ pub static SQL_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "EXPLAIN" => skw!(SqlKeyword::Explain),
     "IS" => skw!(SqlKeyword::Is),
     "NOT" => skw!(SqlKeyword::Not),
-    "NULL" => skw!(SqlKeyword::Null),
     "LIKE" => skw!(SqlKeyword::Like),
     "IN" => skw!(SqlKeyword::In),
     "BETWEEN" => skw!(SqlKeyword::Between),

@@ -750,12 +750,6 @@ impl<'a> Parser<'a> {
                 span: tok.span,
                 id: self.get_expr_id(),
             })),
-            TokenType::Null => Ok(Box::new(Expr::Literal {
-                value: Literal::Null,
-                raw: "null".to_string(),
-                span: tok.span,
-                id: self.get_expr_id(),
-            })),
             TokenType::Undefined => Ok(Box::new(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),

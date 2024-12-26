@@ -329,8 +329,7 @@ impl Display for Expr {
                 Literal::Str(s) => write!(f, "Str(\"{}\")", s),
                 Literal::Num(n) => write!(f, "Num({:?})", n),
                 Literal::Bool(b) => write!(f, "{}", b),
-                Literal::Undefined => write!(f, "undefined"),
-                Literal::Object(o) => write!(f, "{:?}", o),
+                Literal::Object(o) => write!(f, "Object({:?})", o),
                 Literal::Array(a) => write!(
                     f,
                     "Array({})",
@@ -339,8 +338,7 @@ impl Display for Expr {
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
-                Literal::NaN => write!(f, "NaN"),
-                Literal::Null => write!(f, "null"),
+                Literal::Undefined => write!(f, "Undefined"),
             },
             Expr::Function {
                 name, parameters, ..

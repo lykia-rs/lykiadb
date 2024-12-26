@@ -11,6 +11,7 @@ use callable::Callable;
 pub mod callable;
 pub mod environment;
 pub mod eval;
+pub mod datatype;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -20,9 +21,7 @@ pub enum RV {
     Object(Shared<FxHashMap<String, RV>>),
     Array(Shared<Vec<RV>>),
     Callable(Callable),
-    Undefined,
-    NaN,
-    Null,
+    Undefined
 }
 
 impl RV {
@@ -31,7 +30,7 @@ impl RV {
             RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
             RV::Str(value) => !value.is_empty(),
             RV::Bool(value) => *value,
-            RV::Null | RV::Undefined | RV::NaN => false,
+            RV::Undefined => false,
             _ => true,
         }
     }
@@ -95,8 +94,6 @@ impl Display for RV {
             RV::Num(n) => write!(f, "{}", n),
             RV::Bool(b) => write!(f, "{}", b),
             RV::Undefined => write!(f, "undefined"),
-            RV::NaN => write!(f, "NaN"),
-            RV::Null => write!(f, "null"),
             RV::Array(arr) => {
                 let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
                 write!(f, "[")?;
@@ -134,8 +131,6 @@ impl Serialize for RV {
             RV::Num(n) => serializer.serialize_f64(*n),
             RV::Bool(b) => serializer.serialize_bool(*b),
             RV::Undefined => serializer.serialize_none(),
-            RV::NaN => serializer.serialize_none(),
-            RV::Null => serializer.serialize_none(),
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
@@ -181,7 +176,7 @@ impl<'de> Deserialize<'de> for RV {
                 }
                 Ok(RV::Object(alloc_shared(map)))
             }
-            serde_json::Value::Null => Ok(RV::Null),
+            serde_json::Value::Null => Ok(RV::Undefined),
         }
     }
 }
@@ -208,9 +203,7 @@ mod tests {
         assert!(!RV::Bool(false).as_bool());
 
         // Test special values
-        assert!(!RV::Null.as_bool());
         assert!(!RV::Undefined.as_bool());
-        assert!(!RV::NaN.as_bool());
 
         // Test collections
         let empty_array = RV::Array(alloc_shared(Vec::new()));
@@ -240,9 +233,7 @@ mod tests {
         assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
 
         // Test other types
-        assert_eq!(RV::Null.as_number(), None);
         assert_eq!(RV::Undefined.as_number(), None);
-        assert_eq!(RV::NaN.as_number(), None);
         assert_eq!(RV::Array(alloc_shared(Vec::new())).as_number(), None);
         assert_eq!(
             RV::Object(alloc_shared(FxHashMap::default())).as_number(),
@@ -297,9 +288,7 @@ mod tests {
             RV::Str(Arc::new("hello".to_string())).not(),
             RV::Bool(false)
         );
-        assert_eq!(RV::Null.not(), RV::Bool(true));
         assert_eq!(RV::Undefined.not(), RV::Bool(true));
-        assert_eq!(RV::NaN.not(), RV::Bool(true));
     }
 
     #[test]
@@ -309,8 +298,6 @@ mod tests {
         assert_eq!(RV::Bool(true).to_string(), "true");
         assert_eq!(RV::Bool(false).to_string(), "false");
         assert_eq!(RV::Undefined.to_string(), "undefined");
-        assert_eq!(RV::NaN.to_string(), "NaN");
-        assert_eq!(RV::Null.to_string(), "null");
 
         let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
         assert_eq!(RV::Array(alloc_shared(arr)).to_string(), "[1, test]");
