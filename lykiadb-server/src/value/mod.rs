@@ -1,3 +1,4 @@
+use datatype::Datatype;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
@@ -21,10 +22,41 @@ pub enum RV {
     Object(Shared<FxHashMap<String, RV>>),
     Array(Shared<Vec<RV>>),
     Callable(Callable),
+    Datatype(Datatype),
     Undefined
 }
 
 impl RV {
+    pub fn get_type(&self) -> Datatype {
+        match &self {
+            RV::Str(_) => Datatype::Str,
+            RV::Num(_) => Datatype::Num,
+            RV::Bool(_) => Datatype::Bool,
+            RV::Object(obj) => {
+                let obj: &FxHashMap<String, RV> = &obj.read().unwrap();
+                if obj.is_empty() {
+                    return Datatype::None;
+                }
+                let mut document = FxHashMap::default();
+                for key in obj.keys() {
+                    let datatype = obj.get(key).unwrap().get_type();
+                    document.insert(key.to_string(), datatype);
+                }
+                Datatype::Document(document)
+            },
+            RV::Array(arr) => {
+                let arr: &[RV] = &arr.read().unwrap();
+                if arr.is_empty() {
+                    return Datatype::Array(Box::from(Datatype::None));
+                }
+                Datatype::Array(Box::from(arr[0].get_type()))
+            },
+            RV::Callable(_) => Datatype::Callable,
+            RV::Datatype(_) => Datatype::Datatype,
+            RV::Undefined => Datatype::None,
+        }
+    }
+
     pub fn as_bool(&self) -> bool {
         match &self {
             RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
@@ -117,6 +149,7 @@ impl Display for RV {
                 write!(f, "}}")
             }
             RV::Callable(_) => write!(f, "<Callable>"),
+            RV::Datatype(dtype) => write!(f, "<Datatype, {}>", dtype),
         }
     }
 }

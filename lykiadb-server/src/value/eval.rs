@@ -24,6 +24,8 @@ impl PartialEq for RV {
             (RV::Num(_), RV::Bool(b)) => self.eq_any_bool(*b),
             (RV::Bool(a), RV::Num(_)) => other.eq_any_bool(*a),
             //
+            (RV::Datatype(a), RV::Datatype(b)) => a == b,
+            //
             _ => false,
         }
     }

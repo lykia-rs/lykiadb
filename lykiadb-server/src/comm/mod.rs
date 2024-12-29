@@ -71,8 +71,9 @@ impl ServerSession {
                 Message::Request(req) => match req {
                     Request::Run(command) => {
                         let execution = self.runtime.interpret(command);
+                        
                         let response = if execution.is_ok() {
-                            Response::Value(execution.ok().or_else(|| Some(RV::Undefined)).unwrap())
+                            Response::Value(execution.ok().unwrap())
                         } else {
                             Response::Error(execution.err().unwrap())
                         };
