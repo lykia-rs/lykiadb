@@ -1,3 +1,4 @@
+use datatype::Datatype;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,7 @@ use crate::util::Shared;
 use callable::Callable;
 
 pub mod callable;
+pub mod datatype;
 pub mod environment;
 pub mod eval;
 
@@ -20,18 +22,47 @@ pub enum RV {
     Object(Shared<FxHashMap<String, RV>>),
     Array(Shared<Vec<RV>>),
     Callable(Callable),
+    Datatype(Datatype),
     Undefined,
-    NaN,
-    Null,
 }
 
 impl RV {
+    pub fn get_type(&self) -> Datatype {
+        match &self {
+            RV::Str(_) => Datatype::Str,
+            RV::Num(_) => Datatype::Num,
+            RV::Bool(_) => Datatype::Bool,
+            RV::Object(obj) => {
+                let obj: &FxHashMap<String, RV> = &obj.read().unwrap();
+                if obj.is_empty() {
+                    return Datatype::None;
+                }
+                let mut object = FxHashMap::default();
+                for key in obj.keys() {
+                    let datatype = obj.get(key).unwrap().get_type();
+                    object.insert(key.to_string(), datatype);
+                }
+                Datatype::Object(object)
+            }
+            RV::Array(arr) => {
+                let arr: &[RV] = &arr.read().unwrap();
+                if arr.is_empty() {
+                    return Datatype::Array(Box::from(Datatype::None));
+                }
+                Datatype::Array(Box::from(arr[0].get_type()))
+            }
+            RV::Callable(_) => Datatype::Callable,
+            RV::Datatype(_) => Datatype::Datatype,
+            RV::Undefined => Datatype::None,
+        }
+    }
+
     pub fn as_bool(&self) -> bool {
         match &self {
             RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
             RV::Str(value) => !value.is_empty(),
             RV::Bool(value) => *value,
-            RV::Null | RV::Undefined | RV::NaN => false,
+            RV::Undefined => false,
             _ => true,
         }
     }
@@ -95,8 +126,6 @@ impl Display for RV {
             RV::Num(n) => write!(f, "{}", n),
             RV::Bool(b) => write!(f, "{}", b),
             RV::Undefined => write!(f, "undefined"),
-            RV::NaN => write!(f, "NaN"),
-            RV::Null => write!(f, "null"),
             RV::Array(arr) => {
                 let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
                 write!(f, "[")?;
@@ -120,6 +149,7 @@ impl Display for RV {
                 write!(f, "}}")
             }
             RV::Callable(_) => write!(f, "<Callable>"),
+            RV::Datatype(dtype) => write!(f, "<Datatype, {}>", dtype),
         }
     }
 }
@@ -134,8 +164,6 @@ impl Serialize for RV {
             RV::Num(n) => serializer.serialize_f64(*n),
             RV::Bool(b) => serializer.serialize_bool(*b),
             RV::Undefined => serializer.serialize_none(),
-            RV::NaN => serializer.serialize_none(),
-            RV::Null => serializer.serialize_none(),
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
@@ -168,7 +196,7 @@ impl<'de> Deserialize<'de> for RV {
             serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
             serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
             serde_json::Value::Array(arr) => {
-                let mut vec = Vec::new();
+                let mut vec = vec![];
                 for item in arr {
                     vec.push(serde_json::from_value(item).unwrap());
                 }
@@ -181,7 +209,7 @@ impl<'de> Deserialize<'de> for RV {
                 }
                 Ok(RV::Object(alloc_shared(map)))
             }
-            serde_json::Value::Null => Ok(RV::Null),
+            serde_json::Value::Null => Ok(RV::Undefined),
         }
     }
 }
@@ -208,9 +236,7 @@ mod tests {
         assert!(!RV::Bool(false).as_bool());
 
         // Test special values
-        assert!(!RV::Null.as_bool());
         assert!(!RV::Undefined.as_bool());
-        assert!(!RV::NaN.as_bool());
 
         // Test collections
         let empty_array = RV::Array(alloc_shared(Vec::new()));
@@ -240,9 +266,7 @@ mod tests {
         assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
 
         // Test other types
-        assert_eq!(RV::Null.as_number(), None);
         assert_eq!(RV::Undefined.as_number(), None);
-        assert_eq!(RV::NaN.as_number(), None);
         assert_eq!(RV::Array(alloc_shared(Vec::new())).as_number(), None);
         assert_eq!(
             RV::Object(alloc_shared(FxHashMap::default())).as_number(),
@@ -261,9 +285,7 @@ mod tests {
         assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
 
         // Test array contains
-        let mut arr = Vec::new();
-        arr.push(RV::Num(1.0));
-        arr.push(RV::Str(Arc::new("test".to_string())));
+        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
         let array = RV::Array(alloc_shared(arr));
 
         assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
@@ -299,9 +321,7 @@ mod tests {
             RV::Str(Arc::new("hello".to_string())).not(),
             RV::Bool(false)
         );
-        assert_eq!(RV::Null.not(), RV::Bool(true));
         assert_eq!(RV::Undefined.not(), RV::Bool(true));
-        assert_eq!(RV::NaN.not(), RV::Bool(true));
     }
 
     #[test]
@@ -311,12 +331,8 @@ mod tests {
         assert_eq!(RV::Bool(true).to_string(), "true");
         assert_eq!(RV::Bool(false).to_string(), "false");
         assert_eq!(RV::Undefined.to_string(), "undefined");
-        assert_eq!(RV::NaN.to_string(), "NaN");
-        assert_eq!(RV::Null.to_string(), "null");
 
-        let mut arr = Vec::new();
-        arr.push(RV::Num(1.0));
-        arr.push(RV::Str(Arc::new("test".to_string())));
+        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
         assert_eq!(RV::Array(alloc_shared(arr)).to_string(), "[1, test]");
 
         let mut map = FxHashMap::default();

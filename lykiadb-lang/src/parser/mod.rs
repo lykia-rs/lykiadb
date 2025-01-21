@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn program(&mut self) -> ParseResult<Box<Stmt>> {
-        let mut statements: Vec<Stmt> = Vec::new();
+        let mut statements: Vec<Stmt> = vec![];
         while !self.is_at_end() {
             statements.push(*self.declaration()?);
         }
@@ -750,12 +750,6 @@ impl<'a> Parser<'a> {
                 span: tok.span,
                 id: self.get_expr_id(),
             })),
-            TokenType::Null => Ok(Box::new(Expr::Literal {
-                value: Literal::Null,
-                raw: "null".to_string(),
-                span: tok.span,
-                id: self.get_expr_id(),
-            })),
             TokenType::Undefined => Ok(Box::new(Expr::Literal {
                 value: Literal::Undefined,
                 raw: "undefined".to_string(),
@@ -1111,16 +1105,15 @@ impl Parser<'_> {
                 (None, false)
             };
 
-            if second_expr.is_some() && reverse {
-                Some(SqlLimitClause {
+            match (&second_expr, reverse) {
+                (Some(_), true) => Some(SqlLimitClause {
                     count: second_expr.unwrap(),
                     offset: Some(first_expr),
-                })
-            } else {
-                Some(SqlLimitClause {
+                }),
+                _ => Some(SqlLimitClause {
                     count: first_expr,
                     offset: second_expr,
-                })
+                }),
             }
         } else {
             None

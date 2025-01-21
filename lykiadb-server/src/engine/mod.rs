@@ -120,17 +120,17 @@ pub mod test_helpers {
             }
 
             for part in &case_parts[1..] {
-                if part.starts_with("err") {
+                if let Some(stripped) = part.strip_prefix("err") {
                     assert_eq!(
                         errors
                             .iter()
                             .map(|x| x.to_string())
                             .collect::<Vec<String>>()
                             .join("\n"),
-                        part[3..].trim()
+                        stripped.trim()
                     );
-                } else if part.starts_with('>') {
-                    let result = self.runtime.interpret(part[1..].trim());
+                } else if let Some(stripped) = part.strip_prefix('>') {
+                    let result = self.runtime.interpret(stripped.trim());
 
                     if let Err(err) = result {
                         errors.push(err);
@@ -142,12 +142,10 @@ pub mod test_helpers {
                         .unwrap()
                         .expect(vec![RV::Str(Arc::new(part.to_string()))]);
                 } else {
-                    self.out.write().unwrap().expect_str(
-                        part.to_string()
-                            .split('\n')
-                            .map(|x| x.to_string())
-                            .collect(),
-                    );
+                    self.out
+                        .write()
+                        .unwrap()
+                        .expect_str(part.split('\n').map(|x| x.to_string()).collect());
                 }
             }
         }

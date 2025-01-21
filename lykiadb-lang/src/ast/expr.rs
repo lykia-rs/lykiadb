@@ -329,8 +329,7 @@ impl Display for Expr {
                 Literal::Str(s) => write!(f, "Str(\"{}\")", s),
                 Literal::Num(n) => write!(f, "Num({:?})", n),
                 Literal::Bool(b) => write!(f, "{}", b),
-                Literal::Undefined => write!(f, "undefined"),
-                Literal::Object(o) => write!(f, "{:?}", o),
+                Literal::Object(o) => write!(f, "Object({:?})", o),
                 Literal::Array(a) => write!(
                     f,
                     "Array({})",
@@ -339,8 +338,7 @@ impl Display for Expr {
                         .collect::<Vec<_>>()
                         .join(", ")
                 ),
-                Literal::NaN => write!(f, "NaN"),
-                Literal::Null => write!(f, "null"),
+                Literal::Undefined => write!(f, "Undefined"),
             },
             Expr::Function {
                 name, parameters, ..
@@ -529,7 +527,7 @@ pub mod test {
             ];
 
             for expr in simple_exprs {
-                let mut visited = Vec::new();
+                let mut visited = vec![];
                 expr.walk(&mut |e| {
                     visited.push(e.get_id());
                     Some(Ok::<(), ()>(()))
@@ -558,7 +556,7 @@ pub mod test {
                 id: 3,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             binary_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))
@@ -580,7 +578,7 @@ pub mod test {
                 id: 2,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             unary_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))
@@ -614,7 +612,7 @@ pub mod test {
                 id: 4,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             call_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))
@@ -647,7 +645,7 @@ pub mod test {
                 id: 4,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             between_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))
@@ -668,7 +666,7 @@ pub mod test {
                 id: 2,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             get_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))
@@ -692,7 +690,7 @@ pub mod test {
                 id: 3,
             };
 
-            let mut visited = Vec::new();
+            let mut visited = vec![];
             set_expr.walk(&mut |e| {
                 visited.push(e.get_id());
                 Some(Ok::<(), ()>(()))

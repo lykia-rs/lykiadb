@@ -19,7 +19,7 @@ fn runtime(filename: &str) {
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("sample-size-example");
     // group.bench_function("For", |b| b.iter(|| runtime(black_box("benches/scripts/while.ly"))));
-    group.bench_function("Fibonacci 35", |b| {
+    group.bench_function("Fibonacci 15", |b| {
         b.iter(|| runtime(black_box("benches/scripts/fib.ly")))
     });
     // group.bench_function("While", |b| b.iter(|| runtime(black_box("benches/scripts/while.ly"))));
@@ -30,7 +30,7 @@ fn bench(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default().significance_level(0.1).sample_size(10);
+    config = Criterion::default();
     targets = bench
 }
 

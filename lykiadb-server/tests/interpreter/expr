@@ -98,13 +98,13 @@ Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end:
 
 --->
 
-test_utils::out(null.prop);
+test_utils::out(undefined.prop);
 
 ---err
 
 Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
 Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 
 --->
 
@@ -114,7 +114,7 @@ test_utils::out(5.prop);
 
 Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
 Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
 
 --->
@@ -125,7 +125,7 @@ test_utils::out("string".length);
 
 Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
 Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
 Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
 
@@ -174,12 +174,12 @@ Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end:
 
 --->
 
-null.prop = "test";
+undefined.prop = "test";
 
 ---err
 
 Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 
 --->
 
@@ -188,7 +188,7 @@ Interpret(Other { message: "Only objects have properties. Null is not an object"
 ---err
 
 Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
 
 --->
@@ -198,7 +198,7 @@ Interpret(Other { message: "Only objects have properties. Num(5.0) is not an obj
 ---err
 
 Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
 Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
 
@@ -209,7 +209,7 @@ undefined.prop = "test";
 ---err
 
 Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-Interpret(Other { message: "Only objects have properties. Null is not an object" })
+Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
 Interpret(Other { message: "Only objects have properties. Num(5.0) is not an object" })
 Interpret(Other { message: "Only objects have properties. Str(\"string\") is not an object" })
 Interpret(Other { message: "Only objects have properties. Undefined is not an object" })
@@ -269,3 +269,35 @@ test_utils::out("5" between 1 and 10);
 Interpret(Other { message: "Range can only be created with numbers. Str(\"1\") Num(10.0) Num(5.0)" })
 Interpret(Other { message: "Range can only be created with numbers. Num(1.0) Str(\"10\") Num(5.0)" })
 Interpret(Other { message: "Range can only be created with numbers. Num(1.0) Num(10.0) Str(\"5\")" })
+
+#[name=obj_assignment, run=interpreter]>
+
+var $object = {};
+$object.test = 1;
+
+test_utils::out($object.test == 1);
+
+---
+
+true
+
+#[name=obj_assignment, run=interpreter]>
+
+var $object = {};
+$object.level_one = {};
+$object.level_one.level_two = {};
+$object.level_one.level_two.level_three = {};
+
+$object.level_one.title = "1";
+$object.level_one.level_two.title = "2";
+$object.level_one.level_two.level_three.title = "3";
+
+test_utils::out($object.level_one.title);
+test_utils::out($object.level_one.level_two.title);
+test_utils::out($object.level_one.level_two.level_three.title);
+
+---
+
+1
+2
+3

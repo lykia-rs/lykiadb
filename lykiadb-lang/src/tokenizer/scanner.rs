@@ -1210,7 +1210,7 @@ mod test {
     #[test]
     fn test_sql_keywords() {
         assert_tokens(
-            "Begin Transaction Rollback Commit Where Having Asc Desc Order By Explain Is Not Null Offset Like Limit And Or Join Inner Right Left On Create Insert Update Delete Drop Into Values Index Collection Select From As Cross Default Group Key Of Only Primary References Set System Unique Read Write", vec![
+            "Begin Transaction Rollback Commit Where Having Asc Desc Order By Explain Is Not      Offset Like Limit And Or Join Inner Right Left On Create Insert Update Delete Drop Into Values Index Collection Select From As Cross Default Group Key Of Only Primary References Set System Unique Read Write", vec![
             Token {tok_type: skw!(SqlKeyword::Begin), literal: None, lexeme: lexm!("Begin"), span: Span { line: 0, start: 0, line_end: 0, end: 5 }},
             Token {tok_type: skw!(SqlKeyword::Transaction), literal: None, lexeme: lexm!("Transaction") , span: Span { line: 0, start: 6, line_end: 0, end: 17 }},
             Token {tok_type: skw!(SqlKeyword::Rollback), literal: None, lexeme: lexm!("Rollback"), span: Span { line: 0, start: 18, line_end: 0, end: 26 }},
@@ -1224,7 +1224,6 @@ mod test {
             Token {tok_type: skw!(SqlKeyword::Explain), literal: None, lexeme: lexm!("Explain"), span: Span { line: 0, start: 65, line_end: 0, end: 72 }},
             Token {tok_type: skw!(SqlKeyword::Is), literal: None, lexeme: lexm!("Is"), span: Span { line: 0, start: 73, line_end: 0, end: 75 }},
             Token {tok_type: skw!(SqlKeyword::Not), literal: None, lexeme: lexm!("Not"), span: Span { line: 0, start: 76, line_end: 0, end: 79 }},
-            Token {tok_type: skw!(SqlKeyword::Null), literal: None, lexeme: lexm!("Null"), span: Span { line: 0, start: 80, line_end: 0, end: 84 }},
             Token {tok_type: skw!(SqlKeyword::Offset), literal: None, lexeme: lexm!("Offset"), span: Span { line: 0, start: 85, line_end: 0, end: 91 }},
             Token {tok_type: skw!(SqlKeyword::Like), literal: None, lexeme: lexm!("Like"), span: Span { line: 0, start: 92, line_end: 0, end: 96 }},
             Token {tok_type: skw!(SqlKeyword::Limit), literal: None, lexeme: lexm!("Limit"), span: Span { line: 0, start: 97, line_end: 0, end: 102 }},

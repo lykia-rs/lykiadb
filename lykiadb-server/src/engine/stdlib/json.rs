@@ -70,14 +70,12 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Null]).unwrap(),
+            nt_json_encode(&mut interpreter, &[RV::Undefined]).unwrap(),
             RV::Str(Arc::new("null".to_string()))
         );
 
         // Test array
-        let mut arr = Vec::new();
-        arr.push(RV::Num(1.0));
-        arr.push(RV::Str(Arc::new("test".to_string())));
+        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
         let array_rv = RV::Array(alloc_shared(arr));
 
         assert_eq!(
@@ -123,7 +121,7 @@ mod tests {
 
         assert_eq!(
             nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("null".to_string()))]).unwrap(),
-            RV::Null
+            RV::Undefined
         );
 
         // Test array

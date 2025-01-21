@@ -20,7 +20,7 @@ pub struct Planner<'a> {
 }
 
 impl<'a> Planner<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> Planner {
+    pub fn new(interpreter: &'a mut Interpreter) -> Planner<'a> {
         Planner { interpreter }
     }
 
@@ -108,7 +108,7 @@ impl<'a> Planner<'a> {
                 println!(
                     "FieldPath {} {}",
                     head,
-                    tail.iter().map(|x| x.to_string()).collect::<String>()
+                    tail.iter().map(|x| x.to_string() + " ").collect::<String>()
                 );
                 None
             }

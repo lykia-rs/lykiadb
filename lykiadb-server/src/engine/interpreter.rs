@@ -200,7 +200,7 @@ impl Interpreter {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
                 return Ok(RV::Num(-num));
             }
-            Ok(RV::NaN)
+            Ok(RV::Undefined)
         } else {
             Ok(RV::Bool(!self.visit_expr(expr)?.as_bool()))
         }
@@ -276,8 +276,6 @@ impl Interpreter {
             Literal::Num(n) => RV::Num(*n),
             Literal::Bool(b) => RV::Bool(*b),
             Literal::Undefined => RV::Undefined,
-            Literal::NaN => RV::NaN,
-            Literal::Null => RV::Null,
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {

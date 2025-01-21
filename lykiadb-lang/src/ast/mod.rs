@@ -52,11 +52,9 @@ pub enum Literal {
     Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Undefined,
     Object(FxHashMap<String, Box<Expr>>),
     Array(Vec<Expr>),
-    NaN,
-    Null,
+    Undefined,
 }
 
 impl Literal {
@@ -78,8 +76,6 @@ impl Hash for Literal {
             Literal::Array(a) => a.hash(state),
             //
             Literal::Undefined => "undefined".hash(state),
-            Literal::NaN => "NaN".hash(state),
-            Literal::Null => "null".hash(state),
         }
     }
 }
