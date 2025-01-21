@@ -4,25 +4,27 @@ use rustc_hash::FxHashMap;
 use crate::{
     util::{alloc_shared, Shared},
     value::{
-        callable::{Callable, CallableKind, Function}, datatype::Datatype, RV
+        callable::{Callable, CallableKind, Function},
+        datatype::Datatype,
+        RV,
     },
 };
 
 use self::{
+    dtype::nt_of,
     fib::nt_fib,
     json::{nt_json_decode, nt_json_encode},
     out::nt_print,
     time::nt_clock,
-    dtype::nt_of,
 };
 
 use super::interpreter::Output;
 
+pub mod dtype;
 pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
-pub mod dtype;
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = FxHashMap::default();
@@ -91,27 +93,20 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         )),
     );
 
-    dtype_namespace.insert(
-        "str".to_owned(),
-        RV::Datatype(Datatype::Str),
-    );
+    dtype_namespace.insert("str".to_owned(), RV::Datatype(Datatype::Str));
 
-    dtype_namespace.insert(
-        "num".to_owned(),
-        RV::Datatype(Datatype::Num),
-    );
+    dtype_namespace.insert("num".to_owned(), RV::Datatype(Datatype::Num));
 
-    dtype_namespace.insert(
-        "bool".to_owned(),
-        RV::Datatype(Datatype::Bool),
-    );
+    dtype_namespace.insert("bool".to_owned(), RV::Datatype(Datatype::Bool));
 
     dtype_namespace.insert(
         "array".to_owned(),
         RV::Callable(Callable::new(
             Some(1),
             CallableKind::Generic,
-            Function::Lambda { function: nt_array_of },
+            Function::Lambda {
+                function: nt_array_of,
+            },
         )),
     );
 
@@ -120,24 +115,17 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         RV::Callable(Callable::new(
             Some(1),
             CallableKind::Generic,
-            Function::Lambda { function: nt_object_of },
+            Function::Lambda {
+                function: nt_object_of,
+            },
         )),
     );
 
-    dtype_namespace.insert(
-        "callable".to_owned(),
-        RV::Datatype(Datatype::Callable),
-    );
+    dtype_namespace.insert("callable".to_owned(), RV::Datatype(Datatype::Callable));
 
-    dtype_namespace.insert(
-        "dtype".to_owned(),
-        RV::Datatype(Datatype::Datatype),
-    );
+    dtype_namespace.insert("dtype".to_owned(), RV::Datatype(Datatype::Datatype));
 
-    dtype_namespace.insert(
-        "none".to_owned(),
-        RV::Datatype(Datatype::None),
-    );
+    dtype_namespace.insert("none".to_owned(), RV::Datatype(Datatype::None));
 
     if out.is_some() {
         let mut test_namespace = FxHashMap::default();
@@ -164,7 +152,10 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert("json".to_owned(), RV::Object(alloc_shared(json_namespace)));
     std.insert("time".to_owned(), RV::Object(alloc_shared(time_namespace)));
     std.insert("io".to_owned(), RV::Object(alloc_shared(io_namespace)));
-    std.insert("dtype".to_owned(), RV::Object(alloc_shared(dtype_namespace)));
+    std.insert(
+        "dtype".to_owned(),
+        RV::Object(alloc_shared(dtype_namespace)),
+    );
 
     std
 }

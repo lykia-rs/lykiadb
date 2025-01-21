@@ -1113,7 +1113,7 @@ impl Parser<'_> {
                 _ => Some(SqlLimitClause {
                     count: first_expr,
                     offset: second_expr,
-                })
+                }),
             }
         } else {
             None

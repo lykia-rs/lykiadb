@@ -10,7 +10,7 @@ pub enum Datatype {
     Array(Box<Datatype>),
     Callable,
     Datatype,
-    None
+    None,
 }
 
 impl Display for Datatype {
@@ -21,17 +21,22 @@ impl Display for Datatype {
             Datatype::Bool => write!(f, "dtype::bool"),
             Datatype::Object(map) => {
                 write!(f, "dtype::object({{")?;
-                write!(f, "{}", 
-                    map.iter().map(|(key, value)| {
-                        return format!("{}: {}", key, value);
-                    }).collect::<Vec<String>>().join(", ")
+                write!(
+                    f,
+                    "{}",
+                    map.iter()
+                        .map(|(key, value)| {
+                            return format!("{}: {}", key, value);
+                        })
+                        .collect::<Vec<String>>()
+                        .join(", ")
                 )?;
                 write!(f, "}})")
-            },
+            }
             Datatype::Array(inner) => write!(f, "dtype::array({})", inner),
             Datatype::Callable => write!(f, "dtype::callable"),
             Datatype::Datatype => write!(f, "dtype::dtype"),
-            Datatype::None => write!(f, "dtype::none")
+            Datatype::None => write!(f, "dtype::none"),
         }
     }
 }

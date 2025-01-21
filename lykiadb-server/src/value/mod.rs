@@ -10,9 +10,9 @@ use crate::util::Shared;
 use callable::Callable;
 
 pub mod callable;
+pub mod datatype;
 pub mod environment;
 pub mod eval;
-pub mod datatype;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -23,7 +23,7 @@ pub enum RV {
     Array(Shared<Vec<RV>>),
     Callable(Callable),
     Datatype(Datatype),
-    Undefined
+    Undefined,
 }
 
 impl RV {
@@ -43,14 +43,14 @@ impl RV {
                     object.insert(key.to_string(), datatype);
                 }
                 Datatype::Object(object)
-            },
+            }
             RV::Array(arr) => {
                 let arr: &[RV] = &arr.read().unwrap();
                 if arr.is_empty() {
                     return Datatype::Array(Box::from(Datatype::None));
                 }
                 Datatype::Array(Box::from(arr[0].get_type()))
-            },
+            }
             RV::Callable(_) => Datatype::Callable,
             RV::Datatype(_) => Datatype::Datatype,
             RV::Undefined => Datatype::None,

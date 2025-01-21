@@ -1010,8 +1010,14 @@ mod test {
 
     #[test]
     fn test_eval_binary_nan() {
-        assert_eq!(eval_binary(RV::Undefined, RV::Num(1.0), Operation::Add), RV::Undefined);
-        assert_eq!(eval_binary(RV::Num(1.0), RV::Undefined, Operation::Add), RV::Undefined);
+        assert_eq!(
+            eval_binary(RV::Undefined, RV::Num(1.0), Operation::Add),
+            RV::Undefined
+        );
+        assert_eq!(
+            eval_binary(RV::Num(1.0), RV::Undefined, Operation::Add),
+            RV::Undefined
+        );
         assert_eq!(
             eval_binary(RV::Undefined, RV::Num(1.0), Operation::Subtract),
             RV::Undefined
