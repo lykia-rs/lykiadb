@@ -1,4 +1,4 @@
-use dtype::nt_array_of;
+use dtype::{nt_array_of, nt_object_of};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -116,8 +116,12 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     );
 
     dtype_namespace.insert(
-        "document".to_owned(),
-        RV::Datatype(Datatype::Document(FxHashMap::default())),
+        "object".to_owned(),
+        RV::Callable(Callable::new(
+            Some(1),
+            CallableKind::Generic,
+            Function::Lambda { function: nt_object_of },
+        )),
     );
 
     dtype_namespace.insert(

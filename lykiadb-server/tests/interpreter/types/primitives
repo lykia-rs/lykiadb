@@ -56,6 +56,19 @@ false
 <Datatype, dtype::array(dtype::num)>
 
 
+#[name=object, run=interpreter]>
+test_utils::out(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::num, b: dtype::num}));
+test_utils::out(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::num)}));
+test_utils::out(dtype::of_({a: [1, 2, 3] }));
+test_utils::out(dtype::of_({a: 1, b: 2}));
+---
+
+true
+true
+<Datatype, dtype::object({a: dtype::array(dtype::num)})>
+<Datatype, dtype::object({b: dtype::num, a: dtype::num})>
+
+
 #[name=callable, run=interpreter]>
 
 test_utils::out(dtype::of_(io::print) == dtype::callable);

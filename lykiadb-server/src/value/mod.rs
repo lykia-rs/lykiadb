@@ -37,12 +37,12 @@ impl RV {
                 if obj.is_empty() {
                     return Datatype::None;
                 }
-                let mut document = FxHashMap::default();
+                let mut object = FxHashMap::default();
                 for key in obj.keys() {
                     let datatype = obj.get(key).unwrap().get_type();
-                    document.insert(key.to_string(), datatype);
+                    object.insert(key.to_string(), datatype);
                 }
-                Datatype::Document(document)
+                Datatype::Object(object)
             },
             RV::Array(arr) => {
                 let arr: &[RV] = &arr.read().unwrap();

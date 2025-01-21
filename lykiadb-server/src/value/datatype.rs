@@ -6,7 +6,7 @@ pub enum Datatype {
     Str,
     Num,
     Bool,
-    Document(FxHashMap<String, Datatype>),
+    Object(FxHashMap<String, Datatype>),
     Array(Box<Datatype>),
     Callable,
     Datatype,
@@ -19,11 +19,13 @@ impl Display for Datatype {
             Datatype::Str => write!(f, "dtype::str"),
             Datatype::Num => write!(f, "dtype::num"),
             Datatype::Bool => write!(f, "dtype::bool"),
-            Datatype::Document(map) => {
-                write!(f, "dtype::document({{")?;
-                for (key, value) in map.iter() {
-                    writeln!(f, "{}: {}, ", key, value)?;
-                }
+            Datatype::Object(map) => {
+                write!(f, "dtype::object({{")?;
+                write!(f, "{}", 
+                    map.iter().map(|(key, value)| {
+                        return format!("{}: {}", key, value);
+                    }).collect::<Vec<String>>().join(", ")
+                )?;
                 write!(f, "}})")
             },
             Datatype::Array(inner) => write!(f, "dtype::array({})", inner),

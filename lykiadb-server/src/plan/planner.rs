@@ -108,7 +108,7 @@ impl<'a> Planner<'a> {
                 println!(
                     "FieldPath {} {}",
                     head,
-                    tail.iter().map(|x| x.to_string()).collect::<String>()
+                    tail.iter().map(|x| x.to_string() + " ").collect::<String>()
                 );
                 None
             }
