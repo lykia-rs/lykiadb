@@ -26,7 +26,7 @@ impl Display for Datatype {
                     "{}",
                     map.iter()
                         .map(|(key, value)| {
-                            return format!("{}: {}", key, value);
+                            format!("{}: {}", key, value)
                         })
                         .collect::<Vec<String>>()
                         .join(", ")
