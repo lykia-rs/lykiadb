@@ -333,7 +333,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(evaluated)
             }
             Expr::Call {
-                callee, args, span, ..
+                callee, args,  ..
             } => {
                 let eval = self.visit_expr(callee)?;
 

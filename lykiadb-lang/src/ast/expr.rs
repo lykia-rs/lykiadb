@@ -53,7 +53,7 @@ pub struct TypeAnnotation {
 
 impl Display for TypeAnnotation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.type_expr.to_string())
+        write!(f, "{}", self.type_expr)
     }
 }
 
@@ -373,7 +373,7 @@ impl Display for Expr {
                         .map(|(x, y)| x.to_string() + ": " + &y.to_string())
                         .collect::<Vec<_>>()
                         .join(", "),
-                    return_type.to_string()
+                    return_type
                 )
             }
             Expr::Between {
