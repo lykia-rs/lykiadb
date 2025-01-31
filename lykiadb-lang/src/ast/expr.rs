@@ -367,7 +367,7 @@ impl Display for Expr {
             } => {
                 write!(
                     f,
-                    "fn {}({}) -> {}",
+                    "{} ({}) -> {}",
                     name.as_ref().unwrap(),
                     parameters
                         .iter()
@@ -425,7 +425,7 @@ impl Display for Expr {
                         .join(", ")
                 )
             }
-            Expr::Get { object, name, .. } => write!(f, "{}.{}", object, name),
+            Expr::Get { object, name, .. } => write!(f, "{}::{}", object, name),
             Expr::FieldPath { head, tail, .. } => {
                 write!(
                     f,
@@ -1118,11 +1118,11 @@ pub mod test {
                 (Identifier::new("a", false), TypeAnnotation {
                     type_expr: Box::from(Expr::Get {
                         object: Box::new(Expr::Variable {
-                            name: Identifier::new("obj", false),
+                            name: Identifier::new("dtype", false),
                             span: Span::default(),
                             id: 26,
                         }),
-                        name: Identifier::new("prop", false),
+                        name: Identifier::new("num", false),
                         span: Span::default(),
                         id: 27,
                     }),
@@ -1131,11 +1131,11 @@ pub mod test {
                 (Identifier::new("b", false), TypeAnnotation {
                     type_expr: Box::from(Expr::Get {
                         object: Box::new(Expr::Variable {
-                            name: Identifier::new("obj", false),
+                            name: Identifier::new("dtype", false),
                             span: Span::default(),
                             id: 26,
                         }),
-                        name: Identifier::new("prop", false),
+                        name: Identifier::new("num", false),
                         span: Span::default(),
                         id: 27,
                     }),
@@ -1145,11 +1145,11 @@ pub mod test {
             return_type: TypeAnnotation {
                 type_expr: Box::from(Expr::Get {
                     object: Box::new(Expr::Variable {
-                        name: Identifier::new("obj", false),
+                        name: Identifier::new("dtype", false),
                         span: Span::default(),
                         id: 26,
                     }),
-                    name: Identifier::new("prop", false),
+                    name: Identifier::new("unit", false),
                     span: Span::default(),
                     id: 27,
                 }),
@@ -1159,7 +1159,7 @@ pub mod test {
             span: Span::default(),
             id: 1,
         };
-        assert_eq!(func.to_string(), "fn test_func(a: dtype::num, b: dtype::num) -> dtype::unit");
+        assert_eq!(func.to_string(), "test_func (a: dtype::num, b: dtype::num) -> dtype::unit");
     }
 
     #[test]
