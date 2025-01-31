@@ -151,9 +151,9 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                     self.define(&name.as_ref().unwrap().clone());
                 }
                 self.begin_scope();
-                for param in parameters {
-                    self.declare(param);
-                    self.define(param);
+                for (ident, _) in parameters {
+                    self.declare(ident);
+                    self.define(ident);
                 }
                 self.resolve_stmts(body.as_ref());
                 self.end_scope();

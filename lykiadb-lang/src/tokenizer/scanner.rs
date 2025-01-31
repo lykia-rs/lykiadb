@@ -268,6 +268,18 @@ impl Scanner<'_> {
                     line_end: self.line,
                 },
             }
+        } else if self.match_next('>') && c == '-' {
+            Token {
+                tok_type: sym!(RightArrow),
+                literal: None,
+                lexeme: Some("->".to_owned()),
+                span: Span {
+                    start,
+                    end: start + 2,
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }
         } else if self.match_next('=') {
             Token {
                 tok_type: match c {
@@ -294,6 +306,7 @@ impl Scanner<'_> {
                     '<' => sym!(Less),
                     '>' => sym!(Greater),
                     ':' => sym!(Colon),
+                    '-' => sym!(Minus),
                     _ => unreachable!(), // TODO(vck): fix
                 },
                 literal: None,
@@ -370,7 +383,7 @@ impl Scanner<'_> {
                 'A'..='Z' | 'a'..='z' | '_' | '$' | '\\' => {
                     Some(self.scan_identifier(start_idx, tokens.last())?)
                 }
-                '!' | '=' | '<' | '>' | '|' | '&' | ':' => {
+                '!' | '=' | '<' | '>' | '|' | '&' | ':' | '-' => {
                     Some(self.scan_double_token(start_idx, start_char))
                 }
                 '/' => self.scan_slash(start_idx),

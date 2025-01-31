@@ -30,6 +30,7 @@ pub enum Symbol {
     Star,
     LogicalAnd,
     LogicalOr,
+    RightArrow
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]

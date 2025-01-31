@@ -43,6 +43,27 @@ pub enum RangeKind {
 #[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
 #[serde(tag = "@type")]
 #[derivative(Eq, PartialEq, Hash)]
+pub struct TypeAnnotation {
+    pub type_expr: Box<Expr>,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub span: Span
+}
+
+impl Display for TypeAnnotation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.type_expr.to_string()
+        )
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
+#[serde(tag = "@type")]
+#[derivative(Eq, PartialEq, Hash)]
 pub enum Expr {
     #[serde(rename = "Expr::Select")]
     Select {
@@ -132,7 +153,8 @@ pub enum Expr {
     #[serde(rename = "Expr::Function")]
     Function {
         name: Option<Identifier>,
-        parameters: Vec<Identifier>,
+        parameters: Vec<(Identifier, TypeAnnotation)>,
+        return_type: TypeAnnotation,
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -341,17 +363,18 @@ impl Display for Expr {
                 Literal::Undefined => write!(f, "Undefined"),
             },
             Expr::Function {
-                name, parameters, ..
+                name, parameters, return_type, ..
             } => {
                 write!(
                     f,
-                    "fn {}({})",
+                    "fn {}({}) -> {}",
                     name.as_ref().unwrap(),
                     parameters
                         .iter()
-                        .map(|x| x.to_string())
+                        .map(|(x, y)| x.to_string() + ": " + &y.to_string())
                         .collect::<Vec<_>>()
-                        .join(", ")
+                        .join(", "),
+                    return_type.to_string()
                 )
             }
             Expr::Between {
@@ -520,6 +543,19 @@ pub mod test {
                 Expr::Function {
                     name: Some(Identifier::new("test", false)),
                     parameters: vec![],
+                    return_type: TypeAnnotation {
+                        type_expr: Box::from(Expr::Get {
+                            object: Box::new(Expr::Variable {
+                                name: Identifier::new("obj", false),
+                                span: Span::default(),
+                                id: 26,
+                            }),
+                            name: Identifier::new("prop", false),
+                            span: Span::default(),
+                            id: 27,
+                        }),
+                        span: Span::default(),
+                    },
                     body: Arc::new(vec![]),
                     span: Span::default(),
                     id: 4,
@@ -848,6 +884,19 @@ pub mod test {
         let func_expr = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
             parameters: vec![],
+            return_type: TypeAnnotation {
+                type_expr: Box::from(Expr::Get {
+                    object: Box::new(Expr::Variable {
+                        name: Identifier::new("obj", false),
+                        span: Span::default(),
+                        id: 26,
+                    }),
+                    name: Identifier::new("prop", false),
+                    span: Span::default(),
+                    id: 27,
+                }),
+                span: Span::default(),
+            },
             body: Arc::new(vec![]),
             span: test_span,
             id: 9,
@@ -1062,14 +1111,55 @@ pub mod test {
 
     #[test]
     fn test_function_display() {
+
         let func = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
-            parameters: vec![Identifier::new("a", false), Identifier::new("b", false)],
+            parameters: vec![
+                (Identifier::new("a", false), TypeAnnotation {
+                    type_expr: Box::from(Expr::Get {
+                        object: Box::new(Expr::Variable {
+                            name: Identifier::new("obj", false),
+                            span: Span::default(),
+                            id: 26,
+                        }),
+                        name: Identifier::new("prop", false),
+                        span: Span::default(),
+                        id: 27,
+                    }),
+                    span: Span::default(),
+                }),
+                (Identifier::new("b", false), TypeAnnotation {
+                    type_expr: Box::from(Expr::Get {
+                        object: Box::new(Expr::Variable {
+                            name: Identifier::new("obj", false),
+                            span: Span::default(),
+                            id: 26,
+                        }),
+                        name: Identifier::new("prop", false),
+                        span: Span::default(),
+                        id: 27,
+                    }),
+                    span: Span::default(),
+                })
+            ],
+            return_type: TypeAnnotation {
+                type_expr: Box::from(Expr::Get {
+                    object: Box::new(Expr::Variable {
+                        name: Identifier::new("obj", false),
+                        span: Span::default(),
+                        id: 26,
+                    }),
+                    name: Identifier::new("prop", false),
+                    span: Span::default(),
+                    id: 27,
+                }),
+                span: Span::default(),
+            },
             body: Arc::new(vec![]),
             span: Span::default(),
             id: 1,
         };
-        assert_eq!(func.to_string(), "fn test_func(a, b)");
+        assert_eq!(func.to_string(), "fn test_func(a: dtype::num, b: dtype::num) -> dtype::unit");
     }
 
     #[test]

@@ -2,7 +2,7 @@ use self::program::Program;
 
 use super::ast::expr::{Expr, Operation};
 use super::ast::stmt::Stmt;
-use crate::ast::expr::RangeKind;
+use crate::ast::expr::{RangeKind, TypeAnnotation};
 use crate::ast::{Literal, Span, Spanned};
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
@@ -326,37 +326,46 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    fn expect_type_annotation(&mut self) -> ParseResult<TypeAnnotation> {
+        let start_tok = self.peek_bw(0);
+        let expr = self.expression()?;
+
+        let last_span = expr.get_span();
+        Ok(TypeAnnotation {
+            type_expr: expr,
+            span: self.get_merged_span(&start_tok.span, &last_span),
+        })
+        
+    }
+
     fn fun_declaration(&mut self) -> ParseResult<Box<Expr>> {
-        let mut tokens = vec![];
         let fun_tok = self.peek_bw(1);
-        tokens.push(fun_tok.clone());
+
         let token = if self.cmp_tok(&Identifier { dollar: true }) {
             Some(self.expected(&Identifier { dollar: true })?.clone())
         } else {
             None
         };
 
-        if let Some(t) = token.clone() {
-            tokens.push(t.clone());
-        }
+        self.expected(&sym!(LeftParen))?;
 
-        let left_paren = self.expected(&sym!(LeftParen))?;
+        let mut parameters: Vec<(Token, TypeAnnotation)> = vec![];
 
-        tokens.push(left_paren.clone());
-
-        let mut parameters: Vec<Token> = vec![];
         if !self.cmp_tok(&sym!(RightParen)) {
-            let p = self.expected(&Identifier { dollar: true })?;
-            tokens.push(p.clone());
-            parameters.push(p.clone());
+            let p = self.expected(&Identifier { dollar: true })?.clone();
+            self.expected(&sym!(Colon))?;
+            parameters.push((p, self.expect_type_annotation()?));
             while self.match_next(&sym!(Comma)) {
-                let q = self.expected(&Identifier { dollar: true })?;
-                tokens.push(q.clone());
-                parameters.push(q.clone());
+                let q = self.expected(&Identifier { dollar: true })?.clone();
+                self.expected(&sym!(Colon))?;
+                parameters.push((q.clone(), self.expect_type_annotation()?));
             }
         }
-        let right_par = self.expected(&sym!(RightParen))?;
-        tokens.push(right_par.clone());
+        self.expected(&sym!(RightParen))?;
+
+        self.expected(&sym!(RightArrow))?;
+
+        let return_type = self.expect_type_annotation()?;
 
         self.expected(&sym!(LeftBrace))?;
 
@@ -373,8 +382,9 @@ impl<'a> Parser<'a> {
             name: token.map(|t| t.extract_identifier().unwrap()),
             parameters: parameters
                 .iter()
-                .map(|t| t.extract_identifier().unwrap())
+                .map(|(t, annotation)| (t.extract_identifier().unwrap(), annotation.clone()))
                 .collect(),
+            return_type,
             body: Arc::new(body),
             span: self.get_merged_span(&fun_tok.span, &stmt.get_span()),
             id: self.get_expr_id(),
