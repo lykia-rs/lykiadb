@@ -1,9 +1,9 @@
 #[name=multiple_programs, run=interpreter]>
 
-function $resolved_first() {
+function $resolved_first() -> dtype::unit {
     var $a = "global";
     {
-        function $show_a() {
+        function $show_a() -> dtype::unit {
             test_utils::out($a);
         };
     

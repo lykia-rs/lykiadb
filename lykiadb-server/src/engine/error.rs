@@ -94,20 +94,6 @@ pub fn report_error(
                 token.span,
             );
         }
-        ExecutionError::Interpret(InterpretError::ArityMismatch {
-            span,
-            expected,
-            found,
-        }) => {
-            print(
-                "Function arity mismatch",
-                &format!(
-                    "Function expects {} arguments, while provided {}.",
-                    expected, found
-                ),
-                span,
-            );
-        }
         ExecutionError::Interpret(InterpretError::UnexpectedStatement { span }) => {
             print("Unexpected statement", "Remove this.", span);
         }
@@ -322,26 +308,6 @@ mod tests {
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Subquery not allowed"));
         assert!(output.contains("Subqueries are not allowed in this context"));
-    }
-
-    // Interpreter Error Tests
-    #[test]
-    fn test_interpreter_arity_mismatch() {
-        let source = "function test(a, b) {}; test(1);";
-        let error = ExecutionError::Interpret(InterpretError::ArityMismatch {
-            span: Span {
-                start: 24,
-                end: 29,
-                line: 0,
-                line_end: 0,
-            },
-            expected: 2,
-            found: 1,
-        });
-
-        let output = capture_error_output("test.txt", source, error);
-        assert!(output.contains("Function arity mismatch"));
-        assert!(output.contains("Function expects 2 arguments, while provided 1"));
     }
 
     #[test]

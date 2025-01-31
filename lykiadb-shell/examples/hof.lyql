@@ -1,6 +1,6 @@
-function $make_counter() {
+function $make_counter() -> dtype::callable(dtype::unit, dtype::unit) {
     var $i = 0;
-    function $count() {
+    function $count() -> dtype::unit {
         $i = $i + 1;
         io::print($i);
     };

@@ -1,5 +1,5 @@
-use super::environment::EnvironmentFrame;
 use super::RV;
+use super::{datatype::Datatype, environment::EnvironmentFrame};
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
     util::Shared,
@@ -17,17 +17,24 @@ pub enum CallableKind {
 
 #[derive(Clone, Debug)]
 pub struct Callable {
-    pub arity: Option<usize>,
     pub kind: CallableKind,
     pub function: Arc<Function>,
+    pub parameter_types: Datatype,
+    pub return_type: Datatype,
 }
 
 impl Callable {
-    pub fn new(arity: Option<usize>, call_type: CallableKind, function: Function) -> Self {
+    pub fn new(
+        function: Function,
+        input_type: Datatype,
+        return_type: Datatype,
+        call_type: CallableKind,
+    ) -> Self {
         Callable {
-            arity,
-            kind: call_type,
             function: Arc::new(function),
+            parameter_types: input_type,
+            return_type,
+            kind: call_type,
         }
     }
 

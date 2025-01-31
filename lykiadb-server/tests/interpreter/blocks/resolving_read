@@ -2,7 +2,7 @@
 
 var $a = "global";
 {
-    function $show_a() {
+    function $show_a() -> dtype::unit {
         test_utils::out($a);
     };
 
@@ -21,7 +21,7 @@ global
 
 var $a = "global";
 {
-    function $show_a() {
+    function $show_a() -> dtype::unit {
         test_utils::out($a);
     };
 
@@ -29,7 +29,7 @@ var $a = "global";
     var $a = "block";
     $show_a();
 
-    function $show_b() {
+    function $show_b() -> dtype::unit {
         test_utils::out($a);
     };
 
@@ -47,7 +47,7 @@ block
 {
     var $a = "global";
     {
-        function $show_a() {
+        function $show_a() -> dtype::unit {
             test_utils::out($a);
         };
     
@@ -68,15 +68,15 @@ global
 var $text = 'outer $text';
         
 var $a = {
-    my_fun: function() {
-        function $pre_define() {
+    my_fun: function() -> dtype::unit {
+        function $pre_define() -> dtype::unit {
             test_utils::out($text);
         };
         $pre_define();
 
         var $text = 'inner $text';
 
-        function $post_define() {
+        function $post_define() -> dtype::unit {
             test_utils::out($text);
         };
         $post_define();
@@ -98,30 +98,30 @@ var $text = 'outer $text';
 var $a = {
     b: {
         c0: {
-            my_fun: function() {
-                function $pre_define() {
+            my_fun: function() -> dtype::unit {
+                function $pre_define() -> dtype::unit {
                     test_utils::out($text);
                 };
                 $pre_define();
 
                 var $text = 'c0 inner $text';
 
-                function $post_define() {
+                function $post_define() -> dtype::unit {
                     test_utils::out($text);
                 };
                 $post_define();
             }
         },
         c1: {
-            my_fun: function() {
-                function $pre_define() {
+            my_fun: function() -> dtype::unit {
+                function $pre_define() -> dtype::unit {
                     test_utils::out($text);
                 };
                 $pre_define();
 
                 var $text = 'c1 inner $text';
 
-                function $post_define() {
+                function $post_define() -> dtype::unit {
                     test_utils::out($text);
                 };
                 $post_define();

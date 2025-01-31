@@ -71,15 +71,13 @@ true
 
 #[name=callable, run=interpreter]>
 
-test_utils::out(dtype::of_(io::print) == dtype::callable);
 test_utils::out(dtype::of_(io::print) == dtype::str);
 test_utils::out(dtype::of_(io::print));
 
 ---
 
-true
 false
-<Datatype, dtype::callable>
+<Datatype, dtype::callable(dtype::_any, dtype::unit)>
 
 
 #[name=datatype, run=interpreter]>
