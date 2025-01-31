@@ -17,6 +17,7 @@ use super::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
+use crate::value::datatype::Datatype;
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{eval::eval_binary, RV};
 
@@ -27,11 +28,6 @@ use std::vec;
 pub enum InterpretError {
     NotCallable {
         span: Span,
-    },
-    ArityMismatch {
-        span: Span,
-        expected: usize,
-        found: usize,
     },
     UnexpectedStatement {
         span: Span,
@@ -351,16 +347,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let eval = self.visit_expr(callee)?;
 
                 if let RV::Callable(callable) = eval {
-                    if callable.arity.is_some() && callable.arity.unwrap() != args.len() {
-                        return Err(HaltReason::Error(
-                            InterpretError::ArityMismatch {
-                                span: *span,
-                                expected: callable.arity.unwrap(),
-                                found: args.len(),
-                            }
-                            .into(),
-                        ));
-                    }
 
                     let mut args_evaluated: Vec<RV> = vec![];
 
@@ -390,6 +376,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Function {
                 name,
                 parameters,
+                return_type,
                 body,
                 ..
             } => {
@@ -398,20 +385,30 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 } else {
                     "<anonymous>"
                 };
+
+                let param_identifiers = parameters
+                    .iter()
+                    .map(|(x, _)| self.interner.get_or_intern(&x.name))
+                    .collect();
+                
+
                 let fun = Function::UserDefined {
                     name: self.interner.get_or_intern(fn_name),
                     body: Arc::clone(body),
-                    parameters: parameters
-                        .iter()
-                        .map(|x| self.interner.get_or_intern(&x.name))
-                        .collect(),
+                    parameters: param_identifiers,
                     closure: self.env.clone(),
                 };
 
+                // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(Callable::new(
-                    Some(parameters.len()),
-                    CallableKind::Generic,
                     fun,
+                    Datatype::Tuple(parameters
+                        .iter()
+                        .map(|(_, type_annotation)| self.eval(type_annotation.type_expr.as_ref()).unwrap().into())
+                        .collect()
+                    ),
+                    self.eval(return_type.type_expr.as_ref())?.into(),
+                    CallableKind::Generic,
                 ));
 
                 if name.is_some() {

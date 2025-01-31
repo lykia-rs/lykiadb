@@ -1,4 +1,4 @@
-use dtype::{nt_array_of, nt_object_of};
+use dtype::{nt_array_of, nt_object_of, nt_callable_of, nt_tuple_of};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -38,58 +38,65 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     benchmark_namespace.insert(
         "fib".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda { function: nt_fib },
+            Datatype::Tuple(vec![Datatype::Num]),
+            Datatype::Num,
+            CallableKind::Generic,
         )),
     );
 
     json_namespace.insert(
         "stringify".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda {
                 function: nt_json_encode,
             },
+            Datatype::InternalAny,
+            Datatype::Str,
+            CallableKind::Generic,
         )),
     );
 
     json_namespace.insert(
         "parse".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda {
                 function: nt_json_decode,
             },
+            Datatype::Str,
+            // TODO(vck): This should be a concrete type
+            Datatype::InternalAny,
+            CallableKind::Generic,
         )),
     );
 
     time_namespace.insert(
         "clock".to_owned(),
         RV::Callable(Callable::new(
-            Some(0),
-            CallableKind::Generic,
             Function::Lambda { function: nt_clock },
+            Datatype::Unit,
+            Datatype::Num,
+            CallableKind::Generic,
         )),
     );
 
     io_namespace.insert(
         "print".to_owned(),
         RV::Callable(Callable::new(
-            None,
-            CallableKind::Generic,
             Function::Lambda { function: nt_print },
+            Datatype::InternalAny,
+            Datatype::Unit,
+            CallableKind::Generic,
         )),
     );
 
     dtype_namespace.insert(
         "of_".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda { function: nt_of },
+            Datatype::InternalAny,
+            Datatype::Datatype,
+            CallableKind::Generic,
         )),
     );
 
@@ -99,29 +106,53 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert("bool".to_owned(), RV::Datatype(Datatype::Bool));
 
+    dtype_namespace.insert("unit".to_owned(), RV::Datatype(Datatype::Unit));
+
     dtype_namespace.insert(
         "array".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda {
                 function: nt_array_of,
             },
+            Datatype::InternalAny,
+            Datatype::Datatype,
+            CallableKind::Generic,
         )),
     );
 
     dtype_namespace.insert(
         "object".to_owned(),
         RV::Callable(Callable::new(
-            Some(1),
-            CallableKind::Generic,
             Function::Lambda {
                 function: nt_object_of,
             },
+            Datatype::InternalAny,
+            Datatype::Datatype,
+            CallableKind::Generic,
         )),
     );
 
-    dtype_namespace.insert("callable".to_owned(), RV::Datatype(Datatype::Callable));
+    dtype_namespace.insert("callable".to_owned(), 
+        RV::Callable(Callable::new(
+            Function::Lambda {
+                function: nt_callable_of,
+            },
+            Datatype::InternalAny,
+            Datatype::Datatype,
+            CallableKind::Generic,
+        )),
+    );
+
+    dtype_namespace.insert("tuple".to_owned(), 
+        RV::Callable(Callable::new(
+            Function::Lambda {
+                function: nt_tuple_of,
+            },
+            Datatype::InternalAny,
+            Datatype::Datatype,
+            CallableKind::Generic,
+        )),
+    );
 
     dtype_namespace.insert("dtype".to_owned(), RV::Datatype(Datatype::Datatype));
 
@@ -133,9 +164,10 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         test_namespace.insert(
             "out".to_owned(),
             RV::Callable(Callable::new(
-                None,
-                CallableKind::Generic,
                 Function::Stateful(out.unwrap().clone()),
+                Datatype::Unit,
+                Datatype::Unit,
+                CallableKind::Generic,
             )),
         );
 

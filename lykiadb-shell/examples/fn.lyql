@@ -1,4 +1,4 @@
-function $hello_world($message) {
+function $hello_world($message: dtype::str) -> dtype::unit {
     io::print("Hello world!", $message);
     {
         {

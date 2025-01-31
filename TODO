@@ -1,0 +1,11 @@
+TODO
+
+OK  - Fn type annotation
+- Type checking
+- Type inference
+- Remove undefined, only Unit
+
+- val types
+- Almost no statements, pro-expression
+- Remove "var", only "val"
+- fn keyword
