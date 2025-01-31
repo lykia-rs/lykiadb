@@ -335,7 +335,6 @@ impl<'a> Parser<'a> {
             type_expr: expr,
             span: self.get_merged_span(&start_tok.span, &last_span),
         })
-        
     }
 
     fn fun_declaration(&mut self) -> ParseResult<Box<Expr>> {

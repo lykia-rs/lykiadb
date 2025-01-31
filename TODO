@@ -2,7 +2,10 @@ TODO
 
 OK  - Fn type annotation
 - Type checking
-- Type inference
+    - Infer expression type
+    - Is function call valid?
+    - Is assignment valid?
+    - Fix "any"
 - Remove undefined, only Unit
 
 - val types

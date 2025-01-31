@@ -26,19 +26,10 @@ use std::vec;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum InterpretError {
-    NotCallable {
-        span: Span,
-    },
-    UnexpectedStatement {
-        span: Span,
-    },
-    PropertyNotFound {
-        span: Span,
-        property: String,
-    },
-    Other {
-        message: String,
-    }, // TODO(vck): Refactor this
+    NotCallable { span: Span },
+    UnexpectedStatement { span: Span },
+    PropertyNotFound { span: Span, property: String },
+    Other { message: String }, // TODO(vck): Refactor this
 }
 
 impl From<InterpretError> for ExecutionError {
@@ -347,7 +338,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let eval = self.visit_expr(callee)?;
 
                 if let RV::Callable(callable) = eval {
-
                     let mut args_evaluated: Vec<RV> = vec![];
 
                     for arg in args.iter() {
@@ -390,7 +380,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     .iter()
                     .map(|(x, _)| self.interner.get_or_intern(&x.name))
                     .collect();
-                
 
                 let fun = Function::UserDefined {
                     name: self.interner.get_or_intern(fn_name),
@@ -402,10 +391,15 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(Callable::new(
                     fun,
-                    Datatype::Tuple(parameters
-                        .iter()
-                        .map(|(_, type_annotation)| self.eval(type_annotation.type_expr.as_ref()).unwrap().into())
-                        .collect()
+                    Datatype::Tuple(
+                        parameters
+                            .iter()
+                            .map(|(_, type_annotation)| {
+                                self.eval(type_annotation.type_expr.as_ref())
+                                    .unwrap()
+                                    .into()
+                            })
+                            .collect(),
                     ),
                     self.eval(return_type.type_expr.as_ref())?.into(),
                     CallableKind::Generic,

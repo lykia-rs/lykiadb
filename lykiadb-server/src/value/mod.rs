@@ -55,7 +55,7 @@ impl RV {
                 let input = Box::from(c.parameter_types.clone());
                 let output = Box::from(c.return_type.clone());
                 Datatype::Callable(input, output)
-            },
+            }
             RV::Datatype(_) => Datatype::Datatype,
             RV::Undefined => Datatype::None,
         }

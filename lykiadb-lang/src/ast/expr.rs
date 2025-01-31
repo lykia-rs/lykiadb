@@ -48,16 +48,12 @@ pub struct TypeAnnotation {
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
-    pub span: Span
+    pub span: Span,
 }
 
 impl Display for TypeAnnotation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.type_expr.to_string()
-        )
+        write!(f, "{}", self.type_expr.to_string())
     }
 }
 
@@ -363,7 +359,10 @@ impl Display for Expr {
                 Literal::Undefined => write!(f, "Undefined"),
             },
             Expr::Function {
-                name, parameters, return_type, ..
+                name,
+                parameters,
+                return_type,
+                ..
             } => {
                 write!(
                     f,
@@ -1111,36 +1110,41 @@ pub mod test {
 
     #[test]
     fn test_function_display() {
-
         let func = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
             parameters: vec![
-                (Identifier::new("a", false), TypeAnnotation {
-                    type_expr: Box::from(Expr::Get {
-                        object: Box::new(Expr::Variable {
-                            name: Identifier::new("dtype", false),
+                (
+                    Identifier::new("a", false),
+                    TypeAnnotation {
+                        type_expr: Box::from(Expr::Get {
+                            object: Box::new(Expr::Variable {
+                                name: Identifier::new("dtype", false),
+                                span: Span::default(),
+                                id: 26,
+                            }),
+                            name: Identifier::new("num", false),
                             span: Span::default(),
-                            id: 26,
+                            id: 27,
                         }),
-                        name: Identifier::new("num", false),
                         span: Span::default(),
-                        id: 27,
-                    }),
-                    span: Span::default(),
-                }),
-                (Identifier::new("b", false), TypeAnnotation {
-                    type_expr: Box::from(Expr::Get {
-                        object: Box::new(Expr::Variable {
-                            name: Identifier::new("dtype", false),
+                    },
+                ),
+                (
+                    Identifier::new("b", false),
+                    TypeAnnotation {
+                        type_expr: Box::from(Expr::Get {
+                            object: Box::new(Expr::Variable {
+                                name: Identifier::new("dtype", false),
+                                span: Span::default(),
+                                id: 26,
+                            }),
+                            name: Identifier::new("num", false),
                             span: Span::default(),
-                            id: 26,
+                            id: 27,
                         }),
-                        name: Identifier::new("num", false),
                         span: Span::default(),
-                        id: 27,
-                    }),
-                    span: Span::default(),
-                })
+                    },
+                ),
             ],
             return_type: TypeAnnotation {
                 type_expr: Box::from(Expr::Get {
@@ -1159,7 +1163,10 @@ pub mod test {
             span: Span::default(),
             id: 1,
         };
-        assert_eq!(func.to_string(), "test_func (a: dtype::num, b: dtype::num) -> dtype::unit");
+        assert_eq!(
+            func.to_string(),
+            "test_func (a: dtype::num, b: dtype::num) -> dtype::unit"
+        );
     }
 
     #[test]

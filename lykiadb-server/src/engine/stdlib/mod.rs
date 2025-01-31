@@ -1,4 +1,4 @@
-use dtype::{nt_array_of, nt_object_of, nt_callable_of, nt_tuple_of};
+use dtype::{nt_array_of, nt_callable_of, nt_object_of, nt_tuple_of};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -132,7 +132,8 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         )),
     );
 
-    dtype_namespace.insert("callable".to_owned(), 
+    dtype_namespace.insert(
+        "callable".to_owned(),
         RV::Callable(Callable::new(
             Function::Lambda {
                 function: nt_callable_of,
@@ -143,7 +144,8 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         )),
     );
 
-    dtype_namespace.insert("tuple".to_owned(), 
+    dtype_namespace.insert(
+        "tuple".to_owned(),
         RV::Callable(Callable::new(
             Function::Lambda {
                 function: nt_tuple_of,

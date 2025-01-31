@@ -39,16 +39,16 @@ impl Display for Datatype {
                     f,
                     "{}",
                     map.iter()
-                        .map(|(key, value)| {
-                            format!("{}: {}", key, value)
-                        })
+                        .map(|(key, value)| { format!("{}: {}", key, value) })
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
                 write!(f, "}})")
             }
             Datatype::Array(inner) => write!(f, "dtype::array({})", inner),
-            Datatype::Callable(input, output) => write!(f, "dtype::callable({}, {})", input, output),
+            Datatype::Callable(input, output) => {
+                write!(f, "dtype::callable({}, {})", input, output)
+            }
             Datatype::Datatype => write!(f, "dtype::dtype"),
             Datatype::Tuple(inner) => {
                 write!(f, "dtype::tuple(")?;

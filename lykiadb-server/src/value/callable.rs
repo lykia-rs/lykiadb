@@ -1,5 +1,5 @@
-use super::{datatype::Datatype, environment::EnvironmentFrame};
 use super::RV;
+use super::{datatype::Datatype, environment::EnvironmentFrame};
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
     util::Shared,
@@ -24,11 +24,16 @@ pub struct Callable {
 }
 
 impl Callable {
-    pub fn new(function: Function, input_type: Datatype, return_type: Datatype, call_type: CallableKind) -> Self {
+    pub fn new(
+        function: Function,
+        input_type: Datatype,
+        return_type: Datatype,
+        call_type: CallableKind,
+    ) -> Self {
         Callable {
             function: Arc::new(function),
             parameter_types: input_type,
-            return_type, 
+            return_type,
             kind: call_type,
         }
     }
