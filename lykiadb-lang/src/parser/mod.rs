@@ -3,9 +3,7 @@ use super::ast::expr::Operation;
 use super::ast::stmt::Stmt;
 use crate::ast::expr::{Expr, TypeAnnotation};
 use crate::ast::{Span, Spanned};
-use crate::tokenizer::token::{
-    SqlKeyword, Symbol::*, Token, TokenType, TokenType::*,
-};
+use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -13,8 +11,8 @@ use sql::SqlParser;
 use stmt::StmtParser;
 
 mod expr;
-mod stmt;
 mod sql;
+mod stmt;
 
 pub mod program;
 pub mod resolver;

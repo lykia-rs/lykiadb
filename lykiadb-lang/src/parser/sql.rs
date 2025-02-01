@@ -1,15 +1,18 @@
-
-use crate::ast::{expr::Expr, sql::{
-    SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource,
-    SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering, SqlProjection,
-    SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate, SqlValues,
-}, Span};
+use crate::ast::{
+    expr::Expr,
+    sql::{
+        SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource,
+        SqlFrom, SqlInsert, SqlJoinType, SqlLimitClause, SqlOrderByClause, SqlOrdering,
+        SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate,
+        SqlValues,
+    },
+    Span,
+};
 
 use super::{ParseError, ParseResult, Parser};
 
 use crate::tokenizer::token::{SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*};
 use crate::{skw, sym};
-
 
 macro_rules! optional_with_expected {
     ($self: ident, $cparser: expr, $optional: expr, $expected: expr) => {
@@ -25,11 +28,9 @@ macro_rules! optional_with_expected {
     };
 }
 
-pub struct SqlParser{}
+pub struct SqlParser {}
 
 impl SqlParser {
-
-    
     pub fn sql_insert(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         if !cparser.match_next(&skw!(Insert)) {
             return self.sql_update(cparser);
@@ -74,7 +75,6 @@ impl SqlParser {
         }
     }
 
-    
     fn sql_update(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         if !cparser.match_next(&skw!(Update)) {
             return self.sql_delete(cparser);
@@ -112,7 +112,6 @@ impl SqlParser {
         }))
     }
 
-    
     fn sql_delete(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         if !cparser.match_next(&skw!(Delete)) {
             return self.sql_select(cparser);
@@ -142,8 +141,10 @@ impl SqlParser {
         }
     }
 
-    
-    fn sql_collection_identifier(&mut self, cparser: &mut Parser) -> ParseResult<Option<SqlCollectionIdentifier>> {
+    fn sql_collection_identifier(
+        &mut self,
+        cparser: &mut Parser,
+    ) -> ParseResult<Option<SqlCollectionIdentifier>> {
         if cparser.cmp_tok(&Identifier { dollar: false }) {
             if cparser.match_next_all_of(&[
                 Identifier { dollar: false },
@@ -153,8 +154,13 @@ impl SqlParser {
                 return Ok(Some(SqlCollectionIdentifier {
                     namespace: Some(cparser.peek_bw(3).extract_identifier().unwrap()),
                     name: cparser.peek_bw(1).extract_identifier().unwrap(),
-                    alias: optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false })
-                        .map(|t| t.extract_identifier().unwrap()),
+                    alias: optional_with_expected!(
+                        self,
+                        cparser,
+                        skw!(As),
+                        Identifier { dollar: false }
+                    )
+                    .map(|t| t.extract_identifier().unwrap()),
                 }));
             }
             return Ok(Some(SqlCollectionIdentifier {
@@ -163,14 +169,18 @@ impl SqlParser {
                     .expected(&Identifier { dollar: false })?
                     .extract_identifier()
                     .unwrap(),
-                alias: optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false })
-                    .map(|t| t.extract_identifier().unwrap()),
+                alias: optional_with_expected!(
+                    self,
+                    cparser,
+                    skw!(As),
+                    Identifier { dollar: false }
+                )
+                .map(|t| t.extract_identifier().unwrap()),
             }));
         }
         Ok(None)
     }
 
-    
     fn sql_select(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         if !cparser.cmp_tok(&skw!(Select)) {
             return cparser.consume_call2();
@@ -193,7 +203,6 @@ impl SqlParser {
         }))
     }
 
-    
     fn sql_select_inner(&mut self, cparser: &mut Parser) -> ParseResult<SqlSelect> {
         cparser.increment_count("in_select_depth");
         let core: SqlSelectCore = self.sql_select_core(cparser)?;
@@ -256,7 +265,6 @@ impl SqlParser {
         })
     }
 
-    
     fn sql_select_core(&mut self, cparser: &mut Parser) -> ParseResult<SqlSelectCore> {
         cparser.expected(&skw!(Select))?;
         let distinct = if cparser.match_next(&skw!(Distinct)) {
@@ -311,14 +319,16 @@ impl SqlParser {
         })
     }
 
-    
     fn sql_select_projection(&mut self, cparser: &mut Parser) -> ParseResult<Vec<SqlProjection>> {
         let mut projections: Vec<SqlProjection> = vec![];
         loop {
             if cparser.match_next(&sym!(Star)) {
                 projections.push(SqlProjection::All { collection: None });
-            } else if cparser.match_next_all_of(&[Identifier { dollar: false }, sym!(Dot), sym!(Star)])
-            {
+            } else if cparser.match_next_all_of(&[
+                Identifier { dollar: false },
+                sym!(Dot),
+                sym!(Star),
+            ]) {
                 projections.push(SqlProjection::All {
                     collection: Some(cparser.peek_bw(3).extract_identifier().unwrap()),
                 });
@@ -338,7 +348,6 @@ impl SqlParser {
         Ok(projections)
     }
 
-    
     fn sql_select_from(&mut self, cparser: &mut Parser) -> ParseResult<Option<SqlFrom>> {
         if cparser.match_next(&skw!(From)) {
             return Ok(Some(self.sql_select_from_join(cparser)?));
@@ -346,7 +355,6 @@ impl SqlParser {
         Ok(None)
     }
 
-    
     fn sql_select_from_join(&mut self, cparser: &mut Parser) -> ParseResult<SqlFrom> {
         let mut from_group: Vec<SqlFrom> = vec![];
 
@@ -401,7 +409,6 @@ impl SqlParser {
         Ok(SqlFrom::Group { values: from_group })
     }
 
-    
     fn sql_select_where(&mut self, cparser: &mut Parser) -> ParseResult<Option<Box<Expr>>> {
         if cparser.match_next(&skw!(Where)) {
             return Ok(Some(cparser.consume_expr()?));
@@ -409,7 +416,6 @@ impl SqlParser {
         Ok(None)
     }
 
-    
     fn sql_select_group_by(&mut self, cparser: &mut Parser) -> ParseResult<Option<Vec<Expr>>> {
         if cparser.match_next(&skw!(Group)) {
             cparser.expected(&skw!(By))?;
@@ -428,7 +434,6 @@ impl SqlParser {
         }
     }
 
-    
     fn sql_select_from_source(&mut self, cparser: &mut Parser) -> ParseResult<SqlFrom> {
         if cparser.match_next(&sym!(LeftParen)) {
             if cparser.cmp_tok(&skw!(Select)) {

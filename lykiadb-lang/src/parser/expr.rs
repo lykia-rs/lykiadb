@@ -11,7 +11,6 @@ use rustc_hash::FxHashMap;
 
 use super::{ParseError, ParseResult, Parser};
 
-
 macro_rules! binary {
     ($self: ident, $cparser: expr, [$($operator:expr),*], $builder: ident) => {
         let mut current_expr = $self.$builder($cparser)?;
@@ -37,11 +36,9 @@ macro_rules! binary {
     }
 }
 
-
 pub struct ExprParser {}
 
 impl ExprParser {
-
     pub fn expression(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         if cparser.match_next(&kw!(Fun)) {
             return self.fun_declaration(cparser);
@@ -185,7 +182,12 @@ impl ExprParser {
         if cparser.get_count("in_select_depth") > 0 {
             binary!(self, cparser, [sym!(BangEqual), sym!(Equal)], cmp_basic);
         } else {
-            binary!(self, cparser, [sym!(BangEqual), sym!(EqualEqual)], cmp_basic);
+            binary!(
+                self,
+                cparser,
+                [sym!(BangEqual), sym!(EqualEqual)],
+                cmp_basic
+            );
         }
     }
 
@@ -217,8 +219,13 @@ impl ExprParser {
             None
         };
         let expr_conj_sec = if expr_conj_fst.is_some()
-            && cparser.match_next_one_of(&[skw!(Is), skw!(Not), skw!(In), skw!(Between), skw!(Like)])
-        {
+            && cparser.match_next_one_of(&[
+                skw!(Is),
+                skw!(Not),
+                skw!(In),
+                skw!(Between),
+                skw!(Like),
+            ]) {
             Some((*cparser.peek_bw(1)).clone().tok_type)
         } else {
             None
@@ -253,12 +260,19 @@ impl ExprParser {
 
         match (&expr_conj_fst, &expr_conj_sec) {
             (Some(SqlKeyword(Between)), None) => self.cmp_between(left, false, cparser),
-            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => self.cmp_between(left, true, cparser),
+            (Some(SqlKeyword(Not)), Some(SqlKeyword(Between))) => {
+                self.cmp_between(left, true, cparser)
+            }
             _ => Ok(expr),
         }
     }
 
-    fn cmp_between(&mut self, subject: Box<Expr>, falsy: bool, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
+    fn cmp_between(
+        &mut self,
+        subject: Box<Expr>,
+        falsy: bool,
+        cparser: &mut Parser,
+    ) -> ParseResult<Box<Expr>> {
         let lower = self.term(cparser)?;
 
         cparser.expected(&skw!(And))?;
@@ -300,7 +314,12 @@ impl ExprParser {
         cparser.consume_call()
     }
 
-    fn expect_get_path(&mut self, initial: Box<Expr>, tok: TokenType, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
+    fn expect_get_path(
+        &mut self,
+        initial: Box<Expr>,
+        tok: TokenType,
+        cparser: &mut Parser,
+    ) -> ParseResult<Box<Expr>> {
         let mut expr = initial;
 
         loop {
@@ -488,5 +507,4 @@ impl ExprParser {
             _ => Err(ParseError::UnexpectedToken { token: tok.clone() }),
         }
     }
-
 }

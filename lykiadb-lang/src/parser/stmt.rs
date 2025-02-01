@@ -1,10 +1,8 @@
 use super::{ParseResult, Parser};
 use crate::ast::expr::Expr;
 use crate::ast::stmt::Stmt;
-use crate::ast::{Literal,  Spanned};
-use crate::tokenizer::token::{
-    Keyword::*, Symbol::*, TokenType, TokenType::*,
-};
+use crate::ast::{Literal, Spanned};
+use crate::tokenizer::token::{Keyword::*, Symbol::*, TokenType, TokenType::*};
 use crate::{kw, sym};
 
 pub struct StmtParser {}
@@ -19,14 +17,11 @@ macro_rules! match_next {
 }
 
 impl StmtParser {
-
-    
     pub fn declaration(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         match_next!(self, cparser, &kw!(Var), var_declaration);
         self.statement(cparser)
     }
 
-    
     fn statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         match_next!(self, cparser, &kw!(If), if_statement);
         match_next!(self, cparser, &kw!(While), while_statement);
@@ -46,7 +41,6 @@ impl StmtParser {
         self.expression_statement(cparser)
     }
 
-    
     fn if_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let if_tok = cparser.peek_bw(1);
         cparser.expected(&sym!(LeftParen))?;
@@ -71,7 +65,6 @@ impl StmtParser {
         }))
     }
 
-    
     fn loop_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let loop_tok = cparser.peek_bw(1);
         cparser.expected(&sym!(LeftBrace))?;
@@ -85,7 +78,6 @@ impl StmtParser {
         }))
     }
 
-    
     fn while_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let while_tok = cparser.peek_bw(1);
         cparser.expected(&sym!(LeftParen))?;
@@ -103,7 +95,6 @@ impl StmtParser {
         }))
     }
 
-    
     fn return_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let ret_tok = cparser.peek_bw(1);
         let mut expr: Option<Box<Expr>> = None;
@@ -125,7 +116,6 @@ impl StmtParser {
         }))
     }
 
-    
     fn for_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let for_tok = cparser.peek_bw(1);
         cparser.expected(&sym!(LeftParen))?;
@@ -179,7 +169,6 @@ impl StmtParser {
         }))
     }
 
-    
     pub fn block(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let mut statements: Vec<Stmt> = vec![];
 
@@ -199,21 +188,18 @@ impl StmtParser {
         }))
     }
 
-    
     fn break_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let tok = cparser.peek_bw(1);
         cparser.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Break { span: tok.span }))
     }
 
-    
     fn continue_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let tok = cparser.peek_bw(1);
         cparser.expected(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Continue { span: tok.span }))
     }
 
-    
     fn expression_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let expr = cparser.consume_expr()?;
         let span = expr.get_span();
@@ -221,7 +207,6 @@ impl StmtParser {
         Ok(Box::new(Stmt::Expression { expr, span }))
     }
 
-    
     fn var_declaration(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let var_tok = cparser.peek_bw(1);
         let ident = cparser.expected(&Identifier { dollar: true })?.clone();
@@ -244,5 +229,4 @@ impl StmtParser {
             span: cparser.get_merged_span(&var_tok.span, &expr.get_span()),
         }))
     }
-
 }
