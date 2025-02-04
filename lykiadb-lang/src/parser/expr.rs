@@ -50,32 +50,32 @@ impl ExprParser {
         let fun_tok = cparser.peek_bw(1);
 
         let token = if cparser.cmp_tok(&Identifier { dollar: true }) {
-            Some(cparser.expected(&Identifier { dollar: true })?.clone())
+            Some(cparser.expect(&Identifier { dollar: true })?.clone())
         } else {
             None
         };
 
-        cparser.expected(&sym!(LeftParen))?;
+        cparser.expect(&sym!(LeftParen))?;
 
         let mut parameters: Vec<(Token, TypeAnnotation)> = vec![];
 
         if !cparser.cmp_tok(&sym!(RightParen)) {
-            let p = cparser.expected(&Identifier { dollar: true })?.clone();
-            cparser.expected(&sym!(Colon))?;
+            let p = cparser.expect(&Identifier { dollar: true })?.clone();
+            cparser.expect(&sym!(Colon))?;
             parameters.push((p, cparser.expect_type_annotation()?));
             while cparser.match_next(&sym!(Comma)) {
-                let q = cparser.expected(&Identifier { dollar: true })?.clone();
-                cparser.expected(&sym!(Colon))?;
+                let q = cparser.expect(&Identifier { dollar: true })?.clone();
+                cparser.expect(&sym!(Colon))?;
                 parameters.push((q.clone(), cparser.expect_type_annotation()?));
             }
         }
-        cparser.expected(&sym!(RightParen))?;
+        cparser.expect(&sym!(RightParen))?;
 
-        cparser.expected(&sym!(RightArrow))?;
+        cparser.expect(&sym!(RightArrow))?;
 
         let return_type = cparser.expect_type_annotation()?;
 
-        cparser.expected(&sym!(LeftBrace))?;
+        cparser.expect(&sym!(LeftBrace))?;
 
         let stmt = cparser.consume_block()?;
 
@@ -275,7 +275,7 @@ impl ExprParser {
     ) -> ParseResult<Box<Expr>> {
         let lower = self.term(cparser)?;
 
-        cparser.expected(&skw!(And))?;
+        cparser.expect(&skw!(And))?;
         let upper = self.term(cparser)?;
 
         Ok(Box::new(Expr::Between {
@@ -326,7 +326,7 @@ impl ExprParser {
             if cparser.match_next(&sym!(LeftParen)) {
                 expr = self.finish_call(expr, cparser)?;
             } else if cparser.match_next(&tok.clone()) {
-                let identifier = cparser.expected(&Identifier { dollar: false })?.clone();
+                let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 expr = Box::new(Expr::Get {
                     object: expr.clone(),
                     name: identifier.extract_identifier().unwrap(),
@@ -355,7 +355,7 @@ impl ExprParser {
                     let head = name.clone();
                     let mut tail: Vec<crate::ast::Identifier> = vec![];
                     while cparser.match_next(&sym!(Dot)) {
-                        let identifier = cparser.expected(&Identifier { dollar: false })?.clone();
+                        let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                         tail.push(identifier.extract_identifier().unwrap());
                     }
                     return Ok(Box::new(Expr::FieldPath {
@@ -383,7 +383,7 @@ impl ExprParser {
             }
         }
 
-        let paren = cparser.expected(&sym!(RightParen))?.clone();
+        let paren = cparser.expect(&sym!(RightParen))?.clone();
 
         Ok(Box::new(Expr::Call {
             callee: callee.clone(),
@@ -423,14 +423,14 @@ impl ExprParser {
                 });
             };
 
-            cparser.expected(&sym!(Colon))?;
+            cparser.expect(&sym!(Colon))?;
             let value = self.expression(cparser)?;
             obj_literal.insert(key, value);
             if !cparser.match_next(&sym!(Comma)) {
                 break;
             }
         }
-        cparser.expected(&sym!(RightBrace))?;
+        cparser.expect(&sym!(RightBrace))?;
         cparser.decrement_count("in_object_depth");
         Ok(Box::new(Expr::Literal {
             value: Literal::Object(obj_literal),
@@ -450,7 +450,7 @@ impl ExprParser {
                 break;
             }
         }
-        cparser.expected(&sym!(RightBracket))?;
+        cparser.expect(&sym!(RightBracket))?;
         cparser.decrement_count("in_array_depth");
         Ok(Box::new(Expr::Literal {
             value: Literal::Array(array_literal),
@@ -468,7 +468,7 @@ impl ExprParser {
             Symbol(LeftBracket) => self.array_literal(tok, cparser),
             Symbol(LeftParen) => {
                 let expr = self.expression(cparser)?;
-                cparser.expected(&sym!(RightParen))?;
+                cparser.expect(&sym!(RightParen))?;
                 Ok(Box::new(Expr::Grouping {
                     span: (expr).get_span(),
                     expr,

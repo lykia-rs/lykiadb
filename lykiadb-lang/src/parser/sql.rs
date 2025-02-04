@@ -17,7 +17,7 @@ use crate::{skw, sym};
 macro_rules! optional_with_expected {
     ($self: ident, $cparser: expr, $optional: expr, $expected: expr) => {
         if $cparser.match_next(&$optional) {
-            let token = $cparser.expected(&$expected);
+            let token = $cparser.expect(&$expected);
             Some(token.unwrap().clone())
         } else if $cparser.match_next(&$expected) {
             let token = $cparser.peek_bw(1);
@@ -36,7 +36,7 @@ impl SqlParser {
             return self.sql_update(cparser);
         }
 
-        cparser.expected(&skw!(Into))?;
+        cparser.expect(&skw!(Into))?;
 
         if let Some(collection) = self.sql_collection_identifier(cparser)? {
             let values = if cparser.cmp_tok(&skw!(Select)) {
@@ -48,7 +48,7 @@ impl SqlParser {
 
                 SqlValues::Select(select_inner.unwrap())
             } else if cparser.match_next(&skw!(Values)) {
-                cparser.expected(&sym!(LeftParen))?;
+                cparser.expect(&sym!(LeftParen))?;
                 let mut values: Vec<Expr> = vec![];
                 loop {
                     values.push(*cparser.consume_expr()?);
@@ -56,7 +56,7 @@ impl SqlParser {
                         break;
                     }
                 }
-                cparser.expected(&sym!(RightParen))?;
+                cparser.expect(&sym!(RightParen))?;
                 SqlValues::Values { values }
             } else {
                 return Err(ParseError::UnexpectedToken {
@@ -82,13 +82,13 @@ impl SqlParser {
 
         let collection = self.sql_collection_identifier(cparser)?;
 
-        cparser.expected(&skw!(Set))?;
+        cparser.expect(&skw!(Set))?;
 
         let mut assignments: Vec<Expr> = vec![];
 
         loop {
-            cparser.expected(&Identifier { dollar: false })?;
-            cparser.expected(&sym!(Equal))?;
+            cparser.expect(&Identifier { dollar: false })?;
+            cparser.expect(&sym!(Equal))?;
             assignments.push(*cparser.consume_expr()?);
             if !cparser.match_next(&sym!(Comma)) {
                 break;
@@ -117,7 +117,7 @@ impl SqlParser {
             return self.sql_select(cparser);
         }
 
-        cparser.expected(&skw!(From))?;
+        cparser.expect(&skw!(From))?;
 
         if let Some(collection) = self.sql_collection_identifier(cparser)? {
             let r#where = if cparser.match_next(&skw!(Where)) {
@@ -166,7 +166,7 @@ impl SqlParser {
             return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
                 name: cparser
-                    .expected(&Identifier { dollar: false })?
+                    .expect(&Identifier { dollar: false })?
                     .extract_identifier()
                     .unwrap(),
                 alias: optional_with_expected!(
@@ -207,7 +207,7 @@ impl SqlParser {
         cparser.increment_count("in_select_depth");
         let core: SqlSelectCore = self.sql_select_core(cparser)?;
         let order_by = if cparser.match_next(&skw!(Order)) {
-            cparser.expected(&skw!(By))?;
+            cparser.expect(&skw!(By))?;
             let mut ordering: Vec<SqlOrderByClause> = vec![];
 
             loop {
@@ -266,7 +266,7 @@ impl SqlParser {
     }
 
     fn sql_select_core(&mut self, cparser: &mut Parser) -> ParseResult<SqlSelectCore> {
-        cparser.expected(&skw!(Select))?;
+        cparser.expect(&skw!(Select))?;
         let distinct = if cparser.match_next(&skw!(Distinct)) {
             SqlDistinct::Distinct
         } else if cparser.match_next(&skw!(All)) {
@@ -371,7 +371,7 @@ impl SqlParser {
                 // If the next token is a join keyword, then it must be a join from
                 let peek = cparser.peek_bw(1);
                 if peek.tok_type != SqlKeyword(Join) {
-                    cparser.expected(&skw!(Join))?;
+                    cparser.expect(&skw!(Join))?;
                 }
                 let join_type = match peek.tok_type {
                     SqlKeyword(Inner) => SqlJoinType::Inner,
@@ -418,7 +418,7 @@ impl SqlParser {
 
     fn sql_select_group_by(&mut self, cparser: &mut Parser) -> ParseResult<Option<Vec<Expr>>> {
         if cparser.match_next(&skw!(Group)) {
-            cparser.expected(&skw!(By))?;
+            cparser.expect(&skw!(By))?;
             let mut groups: Vec<Expr> = vec![];
 
             loop {
@@ -438,7 +438,7 @@ impl SqlParser {
         if cparser.match_next(&sym!(LeftParen)) {
             if cparser.cmp_tok(&skw!(Select)) {
                 let subquery = Box::new(self.sql_select_inner(cparser)?);
-                cparser.expected(&sym!(RightParen))?;
+                cparser.expect(&sym!(RightParen))?;
                 let alias: Option<Token> =
                     optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false });
                 return Ok(SqlFrom::Select {
@@ -448,14 +448,14 @@ impl SqlParser {
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause
             let parsed = self.sql_select_from_join(cparser)?;
-            cparser.expected(&sym!(RightParen))?;
+            cparser.expect(&sym!(RightParen))?;
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier(cparser)? {
             return Ok(SqlFrom::Source(SqlSource::Collection(collection)));
         } else {
             let expr = cparser.consume_expr()?;
-            cparser.expected(&skw!(As))?;
-            let identifier = cparser.expected(&Identifier { dollar: false })?.clone();
+            cparser.expect(&skw!(As))?;
+            let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
             return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
                 expr,
                 alias: identifier.extract_identifier().unwrap(),

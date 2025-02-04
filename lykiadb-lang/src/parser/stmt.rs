@@ -43,9 +43,9 @@ impl StmtParser {
 
     fn if_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let if_tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(LeftParen))?;
+        cparser.expect(&sym!(LeftParen))?;
         let condition = cparser.consume_expr()?;
-        cparser.expected(&sym!(RightParen))?;
+        cparser.expect(&sym!(RightParen))?;
         let if_branch = self.statement(cparser)?;
 
         if cparser.match_next(&kw!(Else)) {
@@ -67,7 +67,7 @@ impl StmtParser {
 
     fn loop_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let loop_tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(LeftBrace))?;
+        cparser.expect(&sym!(LeftBrace))?;
         let inner_stmt = self.block(cparser)?;
         cparser.match_next(&sym!(Semicolon));
         Ok(Box::new(Stmt::Loop {
@@ -80,10 +80,10 @@ impl StmtParser {
 
     fn while_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let while_tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(LeftParen))?;
+        cparser.expect(&sym!(LeftParen))?;
         let condition = cparser.consume_expr()?;
-        cparser.expected(&sym!(RightParen))?;
-        cparser.expected(&sym!(LeftBrace))?;
+        cparser.expect(&sym!(RightParen))?;
+        cparser.expect(&sym!(LeftBrace))?;
         let inner_stmt = self.block(cparser)?;
         cparser.match_next(&sym!(Semicolon));
 
@@ -101,7 +101,7 @@ impl StmtParser {
         if !cparser.cmp_tok(&sym!(Semicolon)) {
             expr = Some(cparser.consume_expr()?);
         }
-        cparser.expected(&sym!(Semicolon))?;
+        cparser.expect(&sym!(Semicolon))?;
 
         if expr.is_none() {
             return Ok(Box::new(Stmt::Return {
@@ -118,7 +118,7 @@ impl StmtParser {
 
     fn for_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let for_tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(LeftParen))?;
+        cparser.expect(&sym!(LeftParen))?;
 
         let initializer = if cparser.match_next(&sym!(Semicolon)) {
             None
@@ -130,7 +130,7 @@ impl StmtParser {
             None
         } else {
             let wrapped = cparser.consume_expr()?;
-            cparser.expected(&sym!(Semicolon))?;
+            cparser.expect(&sym!(Semicolon))?;
             Some(wrapped)
         };
 
@@ -138,14 +138,14 @@ impl StmtParser {
             None
         } else {
             let wrapped = cparser.consume_expr()?;
-            cparser.expected(&sym!(RightParen))?;
+            cparser.expect(&sym!(RightParen))?;
             Some(Box::new(Stmt::Expression {
                 expr: wrapped.clone(),
                 span: wrapped.get_span(),
             }))
         };
 
-        cparser.expected(&sym!(LeftBrace))?;
+        cparser.expect(&sym!(LeftBrace))?;
         let inner_stmt = self.block(cparser)?;
         cparser.match_next(&sym!(Semicolon));
 
@@ -180,7 +180,7 @@ impl StmtParser {
 
         let closing_brace = cparser.peek_bw(1);
 
-        cparser.expected(&sym!(RightBrace))?;
+        cparser.expect(&sym!(RightBrace))?;
 
         Ok(Box::new(Stmt::Block {
             body: statements.clone(),
@@ -190,26 +190,26 @@ impl StmtParser {
 
     fn break_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(Semicolon))?;
+        cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Break { span: tok.span }))
     }
 
     fn continue_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let tok = cparser.peek_bw(1);
-        cparser.expected(&sym!(Semicolon))?;
+        cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Continue { span: tok.span }))
     }
 
     fn expression_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let expr = cparser.consume_expr()?;
         let span = expr.get_span();
-        cparser.expected(&sym!(Semicolon))?;
+        cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Expression { expr, span }))
     }
 
     fn var_declaration(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
         let var_tok = cparser.peek_bw(1);
-        let ident = cparser.expected(&Identifier { dollar: true })?.clone();
+        let ident = cparser.expect(&Identifier { dollar: true })?.clone();
         let expr = match cparser.match_next(&sym!(Equal)) {
             true => cparser.consume_expr()?,
             false => {
@@ -222,7 +222,7 @@ impl StmtParser {
                 Box::new(node)
             }
         };
-        cparser.expected(&sym!(Semicolon))?;
+        cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Declaration {
             dst: ident.extract_identifier().unwrap(),
             expr: expr.clone(),

@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             statements.push(*self.consume_declaration()?);
         }
-        self.expected(&Eof)?;
+        self.expect(&Eof)?;
         Ok(Box::new(Stmt::Program {
             body: statements.clone(),
             span: self.get_merged_span(&(statements[0]), &(statements[statements.len() - 1])),
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn expected(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
+    fn expect(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
         if self.cmp_tok(expected_tok_type) {
             return Ok(self.advance());
         };
