@@ -4,13 +4,12 @@ use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::{LangError, SourceProcessor};
-use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
 use string_interner::StringInterner;
-
+use pretty_assertions::assert_eq;
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
 
@@ -625,6 +624,10 @@ impl Default for Output {
 impl Output {
     pub fn new() -> Output {
         Output { out: Vec::new() }
+    }
+
+    pub fn clear(&mut self) {
+        self.out.clear();
     }
 
     pub fn push(&mut self, rv: RV) {
