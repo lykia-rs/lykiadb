@@ -3,6 +3,7 @@ use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
+use lykiadb_lang::types::Datatype;
 use lykiadb_lang::{LangError, SourceProcessor};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -16,7 +17,6 @@ use super::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
-use crate::value::datatype::Datatype;
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{eval::eval_binary, RV};
 

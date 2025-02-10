@@ -1,8 +1,6 @@
 use rustc_hash::FxHashMap;
 use std::fmt::Display;
 
-use super::RV;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Datatype {
     Str,
@@ -16,15 +14,6 @@ pub enum Datatype {
     Unit,
     InternalAny,
     None,
-}
-
-impl From<RV> for Datatype {
-    fn from(rv: RV) -> Self {
-        match rv {
-            RV::Datatype(t) => t,
-            _ => Datatype::None,
-        }
-    }
 }
 
 impl Display for Datatype {

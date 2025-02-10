@@ -1,10 +1,10 @@
 use super::RV;
-use super::{datatype::Datatype, environment::EnvironmentFrame};
+use super::environment::EnvironmentFrame;
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
     util::Shared,
 };
-use lykiadb_lang::ast::stmt::Stmt;
+use lykiadb_lang::{ast::stmt::Stmt, types::Datatype};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use string_interner::symbol::SymbolU32;

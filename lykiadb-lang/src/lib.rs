@@ -10,7 +10,7 @@ use tokenizer::scanner::{ScanError, Scanner};
 pub mod ast;
 pub mod parser;
 pub mod tokenizer;
-
+pub mod types;
 pub type Scopes = Vec<FxHashMap<String, bool>>;
 pub type Locals = FxHashMap<usize, usize>;
 

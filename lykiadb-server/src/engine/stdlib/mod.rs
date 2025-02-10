@@ -1,11 +1,11 @@
 use dtype::{nt_array_of, nt_callable_of, nt_object_of, nt_tuple_of};
+use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
     util::{alloc_shared, Shared},
     value::{
         callable::{Callable, CallableKind, Function},
-        datatype::Datatype,
         RV,
     },
 };

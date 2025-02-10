@@ -1,4 +1,4 @@
-use datatype::Datatype;
+use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,6 @@ use crate::util::Shared;
 use callable::Callable;
 
 pub mod callable;
-pub mod datatype;
 pub mod environment;
 pub mod eval;
 
@@ -24,6 +23,15 @@ pub enum RV {
     Callable(Callable),
     Datatype(Datatype),
     Undefined,
+}
+
+impl From<RV> for Datatype {
+    fn from(rv: RV) -> Self {
+        match rv {
+            RV::Datatype(t) => t,
+            _ => Datatype::None,
+        }
+    }
 }
 
 impl RV {
