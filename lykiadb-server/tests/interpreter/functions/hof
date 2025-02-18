@@ -1,10 +1,10 @@
 #[name=higher_order_0, run=interpreter]>
 
-function $f($x: dtype::callable(dtype::tuple(dtype::str), dtype::unit), $q: dtype::num) {
+function $f($x, $q) {
     $x($q);
 };
 
-function $g($q: dtype::str) {
+function $g($q) {
     test_utils::out($q);
 };
 

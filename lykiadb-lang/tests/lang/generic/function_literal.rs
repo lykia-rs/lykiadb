@@ -4,7 +4,7 @@ use serde_json::json;
 
 assert_parsing! {
     simple: {
-        "function $a ($x: dtype::num, $y: dtype::num) {};" => {
+        "function $a ($x, $y) {};" => {
             "@type": "Stmt::Program",
             "body":         [
               {
@@ -24,25 +24,7 @@ assert_parsing! {
                         "dollar": true,
                         "name": "$x"
                       },
-                      {
-                        "@type": "TypeAnnotation",
-                        "type_expr": {
-                          "@type": "Expr::Get",
-                          "name": {
-                            "@type": "Identifier",
-                            "dollar": false,
-                            "name": "num"
-                          },
-                          "object": {
-                            "@type": "Expr::Variable",
-                            "name": {
-                              "@type": "Identifier",
-                              "dollar": false,
-                              "name": "dtype"
-                            }
-                          }
-                        }
-                      }
+                      null
                     ],
                     [
                       {
@@ -50,46 +32,10 @@ assert_parsing! {
                         "dollar": true,
                         "name": "$y"
                       },
-                      {
-                        "@type": "TypeAnnotation",
-                        "type_expr": {
-                          "@type": "Expr::Get",
-                          "name": {
-                            "@type": "Identifier",
-                            "dollar": false,
-                            "name": "num"
-                          },
-                          "object": {
-                            "@type": "Expr::Variable",
-                            "name": {
-                              "@type": "Identifier",
-                              "dollar": false,
-                              "name": "dtype"
-                            }
-                          }
-                        }
-                      }
+                      null
                     ]
                   ],
-                  "return_type": {
-                    "@type": "TypeAnnotation",
-                    "type_expr": {
-                      "@type": "Expr::Get",
-                      "name": {
-                        "@type": "Identifier",
-                        "dollar": false,
-                        "name": "unit"
-                      },
-                      "object": {
-                        "@type": "Expr::Variable",
-                        "name": {
-                          "@type": "Identifier",
-                          "dollar": false,
-                          "name": "dtype"
-                        }
-                      }
-                    }
-                  }
+                  "return_type": null
                 }
               }
             ]
@@ -110,62 +56,7 @@ assert_parsing! {
                   "name": "$make_counter"
                 },
                 "parameters": [],
-                "return_type": {
-                  "@type": "TypeAnnotation",
-                  "type_expr": {
-                    "@type": "Expr::Call",
-                    "args": [
-                      {
-                        "@type": "Expr::Get",
-                        "name": {
-                          "@type": "Identifier",
-                          "dollar": false,
-                          "name": "unit"
-                        },
-                        "object": {
-                          "@type": "Expr::Variable",
-                          "name": {
-                            "@type": "Identifier",
-                            "dollar": false,
-                            "name": "dtype"
-                          }
-                        }
-                      },
-                      {
-                        "@type": "Expr::Get",
-                        "name": {
-                          "@type": "Identifier",
-                          "dollar": false,
-                          "name": "unit"
-                        },
-                        "object": {
-                          "@type": "Expr::Variable",
-                          "name": {
-                            "@type": "Identifier",
-                            "dollar": false,
-                            "name": "dtype"
-                          }
-                        }
-                      }
-                    ],
-                    "callee": {
-                      "@type": "Expr::Get",
-                      "name": {
-                        "@type": "Identifier",
-                        "dollar": false,
-                        "name": "callable"
-                      },
-                      "object": {
-                        "@type": "Expr::Variable",
-                        "name": {
-                          "@type": "Identifier",
-                          "dollar": false,
-                          "name": "dtype"
-                        }
-                      }
-                    }
-                  }
-                }
+                "return_type": null
               }
             }
           ]

@@ -363,7 +363,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Function {
                 name,
                 parameters,
-                return_type,
                 body,
                 ..
             } => {
@@ -388,16 +387,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(Callable::new(
                     fun,
-                    Datatype::Tuple(
-                        parameters
-                            .iter()
-                            .map(|(_, type_annotation)| {
-                                self.eval(type_annotation.type_expr.as_ref())
-                                    .unwrap()
-                                    .into()
-                            })
-                            .collect(),
-                    ),
+                    Datatype::Unit,
                     Datatype::Unit,
                     CallableKind::Generic,
                 ));

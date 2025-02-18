@@ -1,7 +1,7 @@
 use self::program::Program;
 use super::ast::expr::Operation;
 use super::ast::stmt::Stmt;
-use crate::ast::expr::{Expr, TypeAnnotation};
+use crate::ast::expr::Expr;
 use crate::ast::{Span, Spanned};
 use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
@@ -112,6 +112,7 @@ impl<'a> Parser<'a> {
         }))
     }
 
+    /*
     fn expect_type_annotation(&mut self) -> ParseResult<TypeAnnotation> {
         let start_tok = self.peek_bw(0);
         let expr = self.consume_expr()?;
@@ -122,6 +123,7 @@ impl<'a> Parser<'a> {
             span: self.get_merged_span(&start_tok.span, &last_span),
         })
     }
+    */
 
     fn expect(&mut self, expected_tok_type: &TokenType) -> ParseResult<&Token> {
         if self.cmp_tok(expected_tok_type) {

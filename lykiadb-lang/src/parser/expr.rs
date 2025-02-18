@@ -57,16 +57,17 @@ impl ExprParser {
 
         cparser.expect(&sym!(LeftParen))?;
 
-        let mut parameters: Vec<(Token, TypeAnnotation)> = vec![];
+        let mut parameters: Vec<(Token, Option<TypeAnnotation>)> = vec![];
 
         if !cparser.cmp_tok(&sym!(RightParen)) {
             let p = cparser.expect(&Identifier { dollar: true })?.clone();
-            cparser.expect(&sym!(Colon))?;
-            parameters.push((p, cparser.expect_type_annotation()?));
+            // cparser.expect(&sym!(Colon))?;
+            // parameters.push((p, cparser.expect_type_annotation()?));
+            parameters.push((p, None));
             while cparser.match_next(&sym!(Comma)) {
                 let q = cparser.expect(&Identifier { dollar: true })?.clone();
-                cparser.expect(&sym!(Colon))?;
-                parameters.push((q.clone(), cparser.expect_type_annotation()?));
+                // cparser.expect(&sym!(Colon))?;
+                parameters.push((q.clone(), None));
             }
         }
         cparser.expect(&sym!(RightParen))?;

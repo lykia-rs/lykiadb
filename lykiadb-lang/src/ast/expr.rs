@@ -149,7 +149,7 @@ pub enum Expr {
     #[serde(rename = "Expr::Function")]
     Function {
         name: Option<Identifier>,
-        parameters: Vec<(Identifier, TypeAnnotation)>,
+        parameters: Vec<(Identifier, Option<TypeAnnotation>)>,
         return_type: Option<TypeAnnotation>,
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
@@ -369,7 +369,7 @@ impl Display for Expr {
                     name.as_ref().unwrap(),
                     parameters
                         .iter()
-                        .map(|(x, y)| x.to_string() + ": " + &y.to_string())
+                        .map(|(x, _)| x.to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
                 )
@@ -1089,35 +1089,11 @@ pub mod test {
             parameters: vec![
                 (
                     Identifier::new("a", false),
-                    TypeAnnotation {
-                        type_expr: Box::from(Expr::Get {
-                            object: Box::new(Expr::Variable {
-                                name: Identifier::new("dtype", false),
-                                span: Span::default(),
-                                id: 26,
-                            }),
-                            name: Identifier::new("num", false),
-                            span: Span::default(),
-                            id: 27,
-                        }),
-                        span: Span::default(),
-                    },
+                    None,
                 ),
                 (
                     Identifier::new("b", false),
-                    TypeAnnotation {
-                        type_expr: Box::from(Expr::Get {
-                            object: Box::new(Expr::Variable {
-                                name: Identifier::new("dtype", false),
-                                span: Span::default(),
-                                id: 26,
-                            }),
-                            name: Identifier::new("num", false),
-                            span: Span::default(),
-                            id: 27,
-                        }),
-                        span: Span::default(),
-                    },
+                    None,
                 ),
             ],
             return_type: None,
