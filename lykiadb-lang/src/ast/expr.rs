@@ -150,7 +150,7 @@ pub enum Expr {
     Function {
         name: Option<Identifier>,
         parameters: Vec<(Identifier, TypeAnnotation)>,
-        return_type: TypeAnnotation,
+        return_type: Option<TypeAnnotation>,
         body: Arc<Vec<Stmt>>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -361,19 +361,17 @@ impl Display for Expr {
             Expr::Function {
                 name,
                 parameters,
-                return_type,
                 ..
             } => {
                 write!(
                     f,
-                    "{} ({}) -> {}",
+                    "{} ({})",
                     name.as_ref().unwrap(),
                     parameters
                         .iter()
                         .map(|(x, y)| x.to_string() + ": " + &y.to_string())
                         .collect::<Vec<_>>()
-                        .join(", "),
-                    return_type
+                        .join(", ")
                 )
             }
             Expr::Between {
@@ -542,19 +540,7 @@ pub mod test {
                 Expr::Function {
                     name: Some(Identifier::new("test", false)),
                     parameters: vec![],
-                    return_type: TypeAnnotation {
-                        type_expr: Box::from(Expr::Get {
-                            object: Box::new(Expr::Variable {
-                                name: Identifier::new("obj", false),
-                                span: Span::default(),
-                                id: 26,
-                            }),
-                            name: Identifier::new("prop", false),
-                            span: Span::default(),
-                            id: 27,
-                        }),
-                        span: Span::default(),
-                    },
+                    return_type: None,
                     body: Arc::new(vec![]),
                     span: Span::default(),
                     id: 4,
@@ -883,19 +869,7 @@ pub mod test {
         let func_expr = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
             parameters: vec![],
-            return_type: TypeAnnotation {
-                type_expr: Box::from(Expr::Get {
-                    object: Box::new(Expr::Variable {
-                        name: Identifier::new("obj", false),
-                        span: Span::default(),
-                        id: 26,
-                    }),
-                    name: Identifier::new("prop", false),
-                    span: Span::default(),
-                    id: 27,
-                }),
-                span: Span::default(),
-            },
+            return_type: None,
             body: Arc::new(vec![]),
             span: test_span,
             id: 9,
@@ -1146,26 +1120,14 @@ pub mod test {
                     },
                 ),
             ],
-            return_type: TypeAnnotation {
-                type_expr: Box::from(Expr::Get {
-                    object: Box::new(Expr::Variable {
-                        name: Identifier::new("dtype", false),
-                        span: Span::default(),
-                        id: 26,
-                    }),
-                    name: Identifier::new("unit", false),
-                    span: Span::default(),
-                    id: 27,
-                }),
-                span: Span::default(),
-            },
+            return_type: None,
             body: Arc::new(vec![]),
             span: Span::default(),
             id: 1,
         };
         assert_eq!(
             func.to_string(),
-            "test_func (a: dtype::num, b: dtype::num) -> dtype::unit"
+            "test_func (a, b)"
         );
     }
 

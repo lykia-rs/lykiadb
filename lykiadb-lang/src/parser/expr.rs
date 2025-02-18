@@ -70,11 +70,11 @@ impl ExprParser {
             }
         }
         cparser.expect(&sym!(RightParen))?;
-
+        /*
         cparser.expect(&sym!(RightArrow))?;
 
         let return_type = cparser.expect_type_annotation()?;
-
+        */
         cparser.expect(&sym!(LeftBrace))?;
 
         let stmt = cparser.consume_block()?;
@@ -92,7 +92,7 @@ impl ExprParser {
                 .iter()
                 .map(|(t, annotation)| (t.extract_identifier().unwrap(), annotation.clone()))
                 .collect(),
-            return_type,
+            return_type: None,
             body: Arc::new(body),
             span: cparser.get_merged_span(&fun_tok.span, &stmt.get_span()),
             id: cparser.get_expr_id(),

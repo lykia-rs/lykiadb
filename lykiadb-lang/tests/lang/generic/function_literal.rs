@@ -4,7 +4,7 @@ use serde_json::json;
 
 assert_parsing! {
     simple: {
-        "function $a ($x: dtype::num, $y: dtype::num) -> dtype::unit {};" => {
+        "function $a ($x: dtype::num, $y: dtype::num) {};" => {
             "@type": "Stmt::Program",
             "body":         [
               {
@@ -96,7 +96,7 @@ assert_parsing! {
           }
     },
     hof: {
-      "function $make_counter() -> dtype::callable(dtype::unit, dtype::unit) {};" => {
+      "function $make_counter() {};" => {
           "@type": "Stmt::Program",
           "body":         [
             {

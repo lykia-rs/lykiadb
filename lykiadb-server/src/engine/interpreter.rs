@@ -398,7 +398,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                             })
                             .collect(),
                     ),
-                    self.eval(return_type.type_expr.as_ref())?.into(),
+                    Datatype::Unit,
                     CallableKind::Generic,
                 ));
 
