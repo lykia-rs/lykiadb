@@ -1,10 +1,10 @@
 #[name=higher_order_0, run=interpreter]>
 
-function $f($x: dtype::callable(dtype::tuple(dtype::str), dtype::unit), $q: dtype::num) -> dtype::unit {
+function $f($x, $q) {
     $x($q);
 };
 
-function $g($q: dtype::str) -> dtype::unit {
+function $g($q) {
     test_utils::out($q);
 };
 
@@ -27,10 +27,10 @@ for (var $i = 0; $i < 10; $i = $i + 1) {
 
 
 #[name=higher_order_1, run=interpreter]>
-function $make_counter() -> dtype::callable(dtype::unit, dtype::unit) {
+function $make_counter() {
 
     var $i = 0;
-    function $count() -> dtype::unit {
+    function $count() {
         $i = $i + 1;
         test_utils::out($i);
     };

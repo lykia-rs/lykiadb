@@ -2,13 +2,13 @@
 
 var $a = "global";
 {
-    function $show_a() -> dtype::unit {
+    function $show_a() {
         test_utils::out($a);
     };
 
     var $a = "block";
     
-    function $show_b() -> dtype::unit {
+    function $show_b() {
         test_utils::out($a);
     };
 
@@ -34,13 +34,13 @@ test
 
 var $a = "global";
 {
-    var $show_a = function() -> dtype::unit {
+    var $show_a = function() {
         test_utils::out($a);
     };
 
     var $a = "block";
     
-    var $show_b = function() -> dtype::unit {
+    var $show_b = function() {
         test_utils::out($a);
     };
 

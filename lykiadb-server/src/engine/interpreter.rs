@@ -3,21 +3,20 @@ use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
+use lykiadb_lang::types::Datatype;
 use lykiadb_lang::{LangError, SourceProcessor};
-use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
 use string_interner::StringInterner;
-
+use pretty_assertions::assert_eq;
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
 
 use crate::plan::planner::Planner;
 use crate::util::{alloc_shared, Shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
-use crate::value::datatype::Datatype;
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{eval::eval_binary, RV};
 
@@ -332,9 +331,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
                 Ok(evaluated)
             }
-            Expr::Call {
-                callee, args,  ..
-            } => {
+            Expr::Call { callee, args, .. } => {
                 let eval = self.visit_expr(callee)?;
 
                 if let RV::Callable(callable) = eval {
@@ -366,7 +363,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Function {
                 name,
                 parameters,
-                return_type,
                 body,
                 ..
             } => {
@@ -391,17 +387,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(Callable::new(
                     fun,
-                    Datatype::Tuple(
-                        parameters
-                            .iter()
-                            .map(|(_, type_annotation)| {
-                                self.eval(type_annotation.type_expr.as_ref())
-                                    .unwrap()
-                                    .into()
-                            })
-                            .collect(),
-                    ),
-                    self.eval(return_type.type_expr.as_ref())?.into(),
+                    Datatype::Unit,
+                    Datatype::Unit,
                     CallableKind::Generic,
                 ));
 
@@ -627,6 +614,10 @@ impl Default for Output {
 impl Output {
     pub fn new() -> Output {
         Output { out: Vec::new() }
+    }
+
+    pub fn clear(&mut self) {
+        self.out.clear();
     }
 
     pub fn push(&mut self, rv: RV) {

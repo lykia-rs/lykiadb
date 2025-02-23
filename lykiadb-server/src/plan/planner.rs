@@ -58,6 +58,18 @@ impl<'a> Planner<'a> {
         // AGGREGATES
 
         // GROUP BY
+        if let Some(group_by) = &core.group_by {
+            let mut keys = vec![];
+            for key in group_by {
+                let (expr, _) = self.build_expr(key, false, true)?;
+                keys.push(expr);
+            }
+            node = Node::Aggregate { 
+                source: Box::new(node),
+                group_by: keys,
+                aggregates: vec![],
+            };
+        }
 
         // PROJECTION
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {

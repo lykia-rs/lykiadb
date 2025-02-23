@@ -1,14 +1,14 @@
 var $calc = {
-  add: function ($a: dtype::num, $b: dtype::num) -> dtype::num {
+  add: function ($a, $b) {
     return $a + $b;
   },
-  sub: function ($a: dtype::num, $b: dtype::num) -> dtype::num {
+  sub: function ($a, $b) {
     return $a - $b;
   },
-  mul: function ($a: dtype::num, $b: dtype::num) -> dtype::num {
+  mul: function ($a, $b) {
     return $a * $b;
   },
-  div: function ($a: dtype::num, $b: dtype::num) -> dtype::num {
+  div: function ($a, $b) {
     return $a / $b;
   },
 };

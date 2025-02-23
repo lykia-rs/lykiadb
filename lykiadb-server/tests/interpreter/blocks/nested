@@ -35,7 +35,7 @@ global c
 
 #[name=nested_1, run=interpreter]>
 
-function $fn_block() -> dtype::unit {
+function $fn_block() {
     var $a = "global";
     {
         var $a = "block";

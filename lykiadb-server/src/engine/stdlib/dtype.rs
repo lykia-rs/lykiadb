@@ -1,9 +1,10 @@
+use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
     util::Shared,
-    value::{datatype::Datatype, RV},
+    value::RV,
 };
 
 pub fn nt_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {

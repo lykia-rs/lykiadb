@@ -286,6 +286,33 @@ impl Node {
                     Self::NEWLINE
                 )
             }
+            Node::Aggregate { source, group_by, aggregates } => {
+                let group_by_description = group_by
+                    .iter()
+                    .map(|expr| expr.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                let aggregates_description = aggregates
+                    .iter()
+                    .map(|aggregate| match aggregate {
+                        Aggregate::Average(expr) => format!("avg({})", expr),
+                        Aggregate::Count(expr) => format!("count({})", expr),
+                        Aggregate::Max(expr) => format!("max({})", expr),
+                        Aggregate::Min(expr) => format!("min({})", expr),
+                        Aggregate::Sum(expr) => format!("sum({})", expr),
+                    })
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(
+                    f,
+                    "{}- aggregate [group_by=[{}], aggregates=[{}]]{}",
+                    indent_str,
+                    group_by_description,
+                    aggregates_description,
+                    Self::NEWLINE
+                )?;
+                source._fmt_recursive(f, indent + 1)
+            }
             _ => "<NotImplementedYet>".fmt(f),
         }
     }

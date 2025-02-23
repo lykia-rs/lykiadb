@@ -1,0 +1,20 @@
+#[name=single, run=plan]>
+
+SELECT id FROM books b group by id;
+
+---
+
+- project [id as id]
+  - aggregate [group_by=[id], aggregates=[]]
+    - scan [books as b]
+
+#[name=multiple, run=plan]>
+
+SELECT release_year as yr FROM books b group by release_year, publisher_id;
+
+---
+
+- project [release_year as yr]
+  - aggregate [group_by=[release_year, publisher_id], aggregates=[]]
+    - scan [books as b]
+
