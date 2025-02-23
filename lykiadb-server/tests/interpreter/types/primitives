@@ -77,7 +77,7 @@ test_utils::out(dtype::of_(io::print));
 ---
 
 false
-<Datatype, dtype::callable(dtype::_any, dtype::unit)>
+<Datatype, dtype::callable(dtype::unknown, dtype::unit)>
 
 
 #[name=datatype, run=interpreter]>

@@ -51,7 +51,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda {
                 function: nt_json_encode,
             },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Str,
             CallableKind::Generic,
         )),
@@ -65,7 +65,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Str,
             // TODO(vck): This should be a concrete type
-            Datatype::InternalAny,
+            Datatype::Unknown,
             CallableKind::Generic,
         )),
     );
@@ -84,7 +84,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "print".to_owned(),
         RV::Callable(Callable::new(
             Function::Lambda { function: nt_print },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Unit,
             CallableKind::Generic,
         )),
@@ -94,7 +94,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "of_".to_owned(),
         RV::Callable(Callable::new(
             Function::Lambda { function: nt_of },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Datatype,
             CallableKind::Generic,
         )),
@@ -114,7 +114,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda {
                 function: nt_array_of,
             },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Datatype,
             CallableKind::Generic,
         )),
@@ -126,7 +126,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda {
                 function: nt_object_of,
             },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Datatype,
             CallableKind::Generic,
         )),
@@ -138,7 +138,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda {
                 function: nt_callable_of,
             },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Datatype,
             CallableKind::Generic,
         )),
@@ -150,7 +150,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda {
                 function: nt_tuple_of,
             },
-            Datatype::InternalAny,
+            Datatype::Unknown,
             Datatype::Datatype,
             CallableKind::Generic,
         )),
