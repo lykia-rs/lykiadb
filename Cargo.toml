@@ -1,7 +1,7 @@
 [workspace]
 resolver= "2"
 members = ["lykiadb-server", "lykiadb-shell", "lykiadb-lang", "lykiadb-connect", "lykiadb-test"]
-edition = "2021"
+edition = "2024"
 
 [profile.release]
 opt-level = 3
