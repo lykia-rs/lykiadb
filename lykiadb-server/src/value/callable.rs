@@ -9,7 +9,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use string_interner::symbol::SymbolU32;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CallableKind {
     Generic,
     Aggregator,

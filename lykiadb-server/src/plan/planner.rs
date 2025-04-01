@@ -1,15 +1,15 @@
 use crate::{
     engine::{
         error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
+        interpreter::{Aggregation, HaltReason, Interpreter},
     },
-    value::RV,
+    value::{callable::CallableKind, RV},
 };
 
 use lykiadb_lang::ast::{
     expr::Expr,
     sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
-    visitor::VisitorMut,
+    visitor::{Collector, VisitorMut},
     Spanned,
 };
 
@@ -17,6 +17,29 @@ use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
+}
+
+impl<'a> Collector<Aggregation, HaltReason> for Planner<'a> {
+    fn take(&mut self, expr: &Expr) -> Result<Vec<Aggregation>, HaltReason> {
+        match expr {
+            Expr::Call { callee, args, .. } => {
+                let callee_val = self.interpreter.eval(callee);
+                if let Ok(RV::Callable(callable)) = &callee_val {
+                    if callable.kind == CallableKind::Aggregator {
+                        return Ok(vec![Aggregation {
+                            callable: callable.clone(),
+                            args: args.clone(),
+                        }]);
+                    }
+                }
+                if callee_val.is_err() {
+                    return Err(callee_val.err().unwrap());
+                }
+                Ok(vec![])
+            }
+            _ => Ok(vec![])
+        }
+    }
 }
 
 impl<'a> Planner<'a> {
@@ -32,6 +55,22 @@ impl<'a> Planner<'a> {
             }
             _ => panic!("Not implemented yet."),
         }
+    }
+
+    fn collect_aggregates_from_expr(&mut self, expr: &Expr) -> Result<(), HaltReason> {
+        let agg = self.take(expr)?;
+
+        Ok(())
+    }
+
+    fn collect_aggregates(&mut self, core: &SqlSelectCore) -> Result<(), HaltReason> {
+        for projection in &core.projection {
+            if let SqlProjection::Expr { expr, .. } = projection {
+                self.collect_aggregates_from_expr(expr)?;
+            }
+        }
+
+        Ok(())
     }
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
@@ -56,6 +95,7 @@ impl<'a> Planner<'a> {
         }
 
         // AGGREGATES
+        self.collect_aggregates(&core)?;
 
         // GROUP BY
         if let Some(group_by) = &core.group_by {
@@ -113,19 +153,19 @@ impl<'a> Planner<'a> {
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
             Expr::Get { object, name, .. } => {
-                println!("Get {}.({})", object, name);
+                // println!("Get {}.({})", object, name);
                 None
             }
             Expr::FieldPath { head, tail, .. } => {
-                println!(
+                /* println!(
                     "FieldPath {} {}",
                     head,
                     tail.iter().map(|x| x.to_string() + " ").collect::<String>()
-                );
+                ); */
                 None
             }
             Expr::Call { callee, args, .. } => {
-                println!("Call {}({:?})", callee, args);
+                // println!("Call {}({:?})", callee, args);
                 None
             }
             Expr::Select { query, .. } => {
