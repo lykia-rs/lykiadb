@@ -600,6 +600,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Aggregation {
+    pub name: String,
+    pub args: Vec<Expr>,
+}
+
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,

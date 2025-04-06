@@ -2,7 +2,7 @@
 authors = ["Vedat Can Keklik <vcankeklik@gmail.com>"]
 name = "lykiadb-connect"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 bson = { version = "2.9.0" }

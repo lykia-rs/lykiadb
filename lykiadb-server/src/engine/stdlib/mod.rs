@@ -191,5 +191,14 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         RV::Object(alloc_shared(dtype_namespace)),
     );
 
+    std.insert("avg".to_owned(), RV::Callable(Callable::new(
+        Function::Lambda {
+            function: nt_tuple_of,
+        },
+        Datatype::Unknown,
+        Datatype::Unknown,
+        CallableKind::Aggregator("avg".to_owned()),
+    )));
+
     std
 }

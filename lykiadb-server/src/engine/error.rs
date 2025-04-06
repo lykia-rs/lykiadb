@@ -128,6 +128,13 @@ pub fn report_error(
                 span,
             );
         }
+        ExecutionError::Plan(PlannerError::NestedAggregationNotAllowed(span)) => {
+            print(
+                "Aggregate function cannot be nested inside another aggregate function",
+                "Remove inner aggregation.",
+                span,
+            );
+        }
         ExecutionError::Environment(EnvironmentError::Other { message })
         | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());

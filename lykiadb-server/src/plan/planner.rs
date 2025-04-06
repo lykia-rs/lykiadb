@@ -1,9 +1,11 @@
+use std::collections::HashSet;
+
 use crate::{
     engine::{
         error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
+        interpreter::{Aggregation, HaltReason, Interpreter},
     },
-    value::RV,
+    value::{callable::CallableKind, RV},
 };
 
 use lykiadb_lang::ast::{
@@ -19,6 +21,109 @@ pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
 }
 
+
+impl<'a> Planner<'a> {
+    fn collect_aggregates_from_expr(
+        &mut self,
+        expr: &Expr
+    ) -> Result<Vec<Aggregation>, HaltReason> {
+        match expr {
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Delete { .. }
+            | Expr::Update { .. }
+            | Expr::Variable { .. }
+            | Expr::Literal { .. }
+            | Expr::FieldPath { .. }
+            | Expr::Function { .. }
+            | Expr::Set { .. } => Ok(vec![]),
+            //
+            Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
+                let rleft = self.collect_aggregates_from_expr(left);
+                let rright = self.collect_aggregates_from_expr(right);
+
+                let mut result = vec![];
+                if let Ok(v) = rleft {
+                    result.extend(v);
+                }
+                if let Ok(v) = rright {
+                    result.extend(v);
+                }
+                Ok(result)
+            }
+            //
+            Expr::Grouping { expr, .. }
+            | Expr::Unary { expr, .. }
+            | Expr::Assignment { expr, .. } => {
+                let r = self.collect_aggregates_from_expr(expr);
+                if let Ok(v) = r {
+                    return Ok(v);
+                }
+                Ok(vec![])
+            },
+            //
+            Expr::Call { callee, args, .. } => {
+                let mut result: Vec<Aggregation> = vec![];
+                
+                let callee_val = self.interpreter.eval(callee);
+
+                if let Ok(RV::Callable(callable)) = &callee_val {
+                    if let CallableKind::Aggregator(agg_name) = &callable.kind  {
+                        result.push(Aggregation {
+                            name: agg_name.clone(),
+                            args: args.clone(),
+                        });
+                    }
+                }
+                if callee_val.is_err() {
+                    return Err(callee_val.err().unwrap());
+                }
+                let rargs: Vec<Aggregation> = args
+                    .iter()
+                    .map(|x| self.collect_aggregates_from_expr(x))
+                    .flat_map(|x| x.unwrap()).collect();
+
+                if rargs.len() > 0 {
+                    return Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::NestedAggregationNotAllowed(expr.get_span()),
+                    )));
+                }
+
+                Ok(result)
+            }
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                ..
+            } => {
+                let rlower = self.collect_aggregates_from_expr(lower);
+                let rupper = self.collect_aggregates_from_expr(upper);
+                let rsubject = self.collect_aggregates_from_expr(subject);
+
+                let mut result = vec![];
+                if let Ok(v) = rlower {
+                    result.extend(v);
+                }
+                if let Ok(v) = rupper {
+                    result.extend(v);
+                }
+                if let Ok(v) = rsubject {
+                    result.extend(v);
+                }
+                Ok(result)
+            }
+            Expr::Get { object, .. } => {
+                let robject = self.collect_aggregates_from_expr(object);
+                if let Ok(v) = robject {
+                    return Ok(v);
+                }
+                Ok(vec![])
+            },
+        }
+    }
+}
+
 impl<'a> Planner<'a> {
     pub fn new(interpreter: &'a mut Interpreter) -> Planner<'a> {
         Planner { interpreter }
@@ -32,6 +137,23 @@ impl<'a> Planner<'a> {
             }
             _ => panic!("Not implemented yet."),
         }
+    }
+
+    fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
+        let mut aggregates: HashSet<Aggregation> = HashSet::new();
+
+        for projection in &core.projection {
+            if let SqlProjection::Expr { expr, .. } = projection {
+                let found = self.collect_aggregates_from_expr(expr)?;
+                for agg in found {
+                    aggregates.insert(agg);
+                }
+            }
+        }
+
+        let no_dup = aggregates.drain().collect();
+
+        Ok(no_dup)
     }
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
@@ -56,6 +178,7 @@ impl<'a> Planner<'a> {
         }
 
         // AGGREGATES
+        let aggregates = self.collect_aggregates(&core)?;
 
         // GROUP BY
         if let Some(group_by) = &core.group_by {
@@ -67,7 +190,7 @@ impl<'a> Planner<'a> {
             node = Node::Aggregate { 
                 source: Box::new(node),
                 group_by: keys,
-                aggregates: vec![],
+                aggregates,
             };
         }
 
@@ -113,19 +236,19 @@ impl<'a> Planner<'a> {
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
             Expr::Get { object, name, .. } => {
-                println!("Get {}.({})", object, name);
+                // println!("Get {}.({})", object, name);
                 None
             }
             Expr::FieldPath { head, tail, .. } => {
-                println!(
+                /* println!(
                     "FieldPath {} {}",
                     head,
                     tail.iter().map(|x| x.to_string() + " ").collect::<String>()
-                );
+                ); */
                 None
             }
             Expr::Call { callee, args, .. } => {
-                println!("Call {}({:?})", callee, args);
+                // println!("Call {}({:?})", callee, args);
                 None
             }
             Expr::Select { query, .. } => {
