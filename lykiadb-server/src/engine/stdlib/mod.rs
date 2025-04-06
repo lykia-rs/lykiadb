@@ -196,8 +196,8 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             function: nt_tuple_of,
         },
         Datatype::Unknown,
-        Datatype::Datatype,
-        CallableKind::Aggregator,
+        Datatype::Unknown,
+        CallableKind::Aggregator("avg".to_owned()),
     )));
 
     std

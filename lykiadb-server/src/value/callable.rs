@@ -12,7 +12,7 @@ use string_interner::symbol::SymbolU32;
 #[derive(Debug, Clone, PartialEq)]
 pub enum CallableKind {
     Generic,
-    Aggregator,
+    Aggregator(String),
 }
 
 #[derive(Clone, Debug)]

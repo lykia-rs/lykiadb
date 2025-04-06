@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     engine::{
         error::ExecutionError,
@@ -66,10 +68,9 @@ impl<'a> Planner<'a> {
                 let callee_val = self.interpreter.eval(callee);
 
                 if let Ok(RV::Callable(callable)) = &callee_val {
-                    if callable.kind == CallableKind::Aggregator {
+                    if let CallableKind::Aggregator(agg_name) = &callable.kind  {
                         result.push(Aggregation {
-                            // callable: callable.clone(),
-                            name: "<native_agg>".to_string(),
+                            name: agg_name.clone(),
                             args: args.clone(),
                         });
                     }
@@ -139,16 +140,20 @@ impl<'a> Planner<'a> {
     }
 
     fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
-        let mut aggregates = vec![];
+        let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
         for projection in &core.projection {
             if let SqlProjection::Expr { expr, .. } = projection {
                 let found = self.collect_aggregates_from_expr(expr)?;
-                aggregates.extend(found);
+                for agg in found {
+                    aggregates.insert(agg);
+                }
             }
         }
 
-        Ok(aggregates)
+        let no_dup = aggregates.drain().collect();
+
+        Ok(no_dup)
     }
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {

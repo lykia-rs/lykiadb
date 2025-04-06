@@ -286,7 +286,15 @@ impl Node {
                     .join(", ");
                 let aggregates_description = aggregates
                     .iter()
-                    .map(|aggregate| format!("{}({:?})", aggregate.name, aggregate.args))
+                    .map(|aggregate| {
+                        let args = aggregate
+                            .args
+                            .iter()
+                            .map(|arg| arg.to_string())
+                            .collect::<Vec<String>>()
+                            .join(", ");
+                        format!("{}({})", aggregate.name, args)
+                    })
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(
