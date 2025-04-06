@@ -10,7 +10,7 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::value::RV;
+use crate::{engine::interpreter::Aggregation, value::RV};
 
 pub mod planner;
 mod scope;
@@ -24,15 +24,6 @@ pub enum PlannerError {
         previous: Identifier,
         ident: Identifier,
     },
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Aggregate {
-    Average(Expr),
-    Count(Expr),
-    Max(Expr),
-    Min(Expr),
-    Sum(Expr),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -68,7 +59,7 @@ pub enum Node {
     Aggregate {
         source: Box<Node>,
         group_by: Vec<IntermediateExpr>,
-        aggregates: Vec<Aggregate>,
+        aggregates: Vec<Aggregation>,
     },
 
     Filter {
@@ -295,13 +286,7 @@ impl Node {
                     .join(", ");
                 let aggregates_description = aggregates
                     .iter()
-                    .map(|aggregate| match aggregate {
-                        Aggregate::Average(expr) => format!("avg({})", expr),
-                        Aggregate::Count(expr) => format!("count({})", expr),
-                        Aggregate::Max(expr) => format!("max({})", expr),
-                        Aggregate::Min(expr) => format!("min({})", expr),
-                        Aggregate::Sum(expr) => format!("sum({})", expr),
-                    })
+                    .map(|aggregate| format!("{}({:?})", aggregate.name, aggregate.args))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(

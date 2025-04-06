@@ -9,7 +9,7 @@ use crate::{
 use lykiadb_lang::ast::{
     expr::Expr,
     sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
-    visitor::{Collector, VisitorMut},
+    visitor::VisitorMut,
     Spanned,
 };
 
@@ -19,25 +19,106 @@ pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
 }
 
-impl<'a> Collector<Aggregation, HaltReason> for Planner<'a> {
-    fn take(&mut self, expr: &Expr) -> Result<Vec<Aggregation>, HaltReason> {
+
+impl<'a> Planner<'a> {
+    fn collect_aggregates_from_expr(
+        &mut self,
+        expr: &Expr
+    ) -> Result<Vec<Aggregation>, HaltReason> {
         match expr {
+            Expr::Select { .. }
+            | Expr::Insert { .. }
+            | Expr::Delete { .. }
+            | Expr::Update { .. }
+            | Expr::Variable { .. }
+            | Expr::Literal { .. }
+            | Expr::FieldPath { .. }
+            | Expr::Function { .. }
+            | Expr::Set { .. } => Ok(vec![]),
+            //
+            Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
+                let rleft = self.collect_aggregates_from_expr(left);
+                let rright = self.collect_aggregates_from_expr(right);
+
+                let mut result = vec![];
+                if let Ok(v) = rleft {
+                    result.extend(v);
+                }
+                if let Ok(v) = rright {
+                    result.extend(v);
+                }
+                Ok(result)
+            }
+            //
+            Expr::Grouping { expr, .. }
+            | Expr::Unary { expr, .. }
+            | Expr::Assignment { expr, .. } => {
+                let r = self.collect_aggregates_from_expr(expr);
+                if let Ok(v) = r {
+                    return Ok(v);
+                }
+                Ok(vec![])
+            },
+            //
             Expr::Call { callee, args, .. } => {
+                let mut result: Vec<Aggregation> = vec![];
+                
                 let callee_val = self.interpreter.eval(callee);
+
                 if let Ok(RV::Callable(callable)) = &callee_val {
                     if callable.kind == CallableKind::Aggregator {
-                        return Ok(vec![Aggregation {
-                            callable: callable.clone(),
+                        result.push(Aggregation {
+                            // callable: callable.clone(),
+                            name: "<native_agg>".to_string(),
                             args: args.clone(),
-                        }]);
+                        });
                     }
                 }
                 if callee_val.is_err() {
                     return Err(callee_val.err().unwrap());
                 }
-                Ok(vec![])
+                let rargs: Vec<Aggregation> = args
+                    .iter()
+                    .map(|x| self.collect_aggregates_from_expr(x))
+                    .flat_map(|x| x.unwrap()).collect();
+
+                if rargs.len() > 0 {
+                    return Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::NestedAggregationNotAllowed(expr.get_span()),
+                    )));
+                }
+
+                Ok(result)
             }
-            _ => Ok(vec![])
+            Expr::Between {
+                lower,
+                upper,
+                subject,
+                ..
+            } => {
+                let rlower = self.collect_aggregates_from_expr(lower);
+                let rupper = self.collect_aggregates_from_expr(upper);
+                let rsubject = self.collect_aggregates_from_expr(subject);
+
+                let mut result = vec![];
+                if let Ok(v) = rlower {
+                    result.extend(v);
+                }
+                if let Ok(v) = rupper {
+                    result.extend(v);
+                }
+                if let Ok(v) = rsubject {
+                    result.extend(v);
+                }
+                Ok(result)
+            }
+            Expr::Get { object, .. } => {
+                let robject = self.collect_aggregates_from_expr(object);
+                if let Ok(v) = robject {
+                    return Ok(v);
+                }
+                Ok(vec![])
+            },
         }
     }
 }
@@ -57,20 +138,17 @@ impl<'a> Planner<'a> {
         }
     }
 
-    fn collect_aggregates_from_expr(&mut self, expr: &Expr) -> Result<(), HaltReason> {
-        let agg = self.take(expr)?;
+    fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
+        let mut aggregates = vec![];
 
-        Ok(())
-    }
-
-    fn collect_aggregates(&mut self, core: &SqlSelectCore) -> Result<(), HaltReason> {
         for projection in &core.projection {
             if let SqlProjection::Expr { expr, .. } = projection {
-                self.collect_aggregates_from_expr(expr)?;
+                let found = self.collect_aggregates_from_expr(expr)?;
+                aggregates.extend(found);
             }
         }
 
-        Ok(())
+        Ok(aggregates)
     }
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
@@ -95,7 +173,7 @@ impl<'a> Planner<'a> {
         }
 
         // AGGREGATES
-        self.collect_aggregates(&core)?;
+        let aggregates = self.collect_aggregates(&core)?;
 
         // GROUP BY
         if let Some(group_by) = &core.group_by {
@@ -107,7 +185,7 @@ impl<'a> Planner<'a> {
             node = Node::Aggregate { 
                 source: Box::new(node),
                 group_by: keys,
-                aggregates: vec![],
+                aggregates,
             };
         }
 
