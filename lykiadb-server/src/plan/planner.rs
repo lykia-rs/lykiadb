@@ -21,7 +21,6 @@ pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
 }
 
-
 impl<'a> Planner<'a> {
     fn collect_aggregates_from_expr(
         &mut self,
@@ -139,34 +138,49 @@ impl<'a> Planner<'a> {
         }
     }
 
-    fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
-        let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
-        for projection in &core.projection {
-            if let SqlProjection::Expr { expr, .. } = projection {
-                let found = self.collect_aggregates_from_expr(expr)?;
-                for agg in found {
-                    aggregates.insert(agg);
-                }
-            }
-        }
+    /*
+    
+    The data flow we built using SqlSelectCore is as follows:
 
-        let no_dup = aggregates.drain().collect();
+    +--------+      +---------+      +-----------+      +------------+      +-----------------------+
+    | Source | ---> | Filter  | ---> | Aggregate | ---> | Projection | ---> | Filter                |
+    | (req.) |      | (optl.) |      | (optl.)   |      | (req.)     |      | (for post projection) |
+    +--------+      +---------+      +-----------+      +------------+      +-----------------------+
 
-        Ok(no_dup)
-    }
+    The end result is a computation graph, that can be easily combined with other computation graphs.
+    A typical example is a compound query, where the result of one query is used as a source for another query.
+    The data flow is as follows:
+
+    +---------------+             +---------------+             +---------------+
+    | SqlSelectCore | ----------> | SqlSelectCore | ----------> | SqlSelectCore | 
+    +---------------+   (union)   +---------------+   (except)  +---------------+
+
+    */
+
+    // Source: The data flow starts from a source, which is a collection or a subquery.
+    
+    // Filter: The source is then filtered, and the result is passed to the next node.
+    
+    // Pre-Aggregate: Once the filtering is done, it is time to explore all the aggregates. This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
+
+    // Aggregate and Group By: In order to prepare an aggregate node, we need to check if there are any grouping keys, too. We finally put the information together and create the aggregate node. 
+
+    // Projection: Of course, projection is an essential part of the data flow, and it is required to be done after the aggregate node, for the sake of projecting aggregated data.
+
+    // Post-Filter: After the aggregated data is projected, we can filter the result using the HAVING clause. In earlier stages, we already collected the aggregates from the projection and the having clause. As we already have the aggregates, we can use them to filter the result.
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
 
         let mut parent_scope = Scope::new();
 
-        // FROM/JOIN
+        // Data flow starts from a source, which is a collection or a subquery.
         if let Some(from) = &core.from {
-            node = self.build_from(from, &mut parent_scope)?;
+            node = self.build_source(from, &mut parent_scope)?;
         }
 
-        // WHERE
+        // The source is then filtered, and the result is passed to the next node.
         if let Some(predicate) = &core.r#where {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
                 self.build_expr(predicate.as_ref(), true, false)?;
@@ -177,19 +191,26 @@ impl<'a> Planner<'a> {
             }
         }
 
-        // AGGREGATES
+        // Once the filtering is done, it is time to explore all the aggregates.
+        // This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
         let aggregates = self.collect_aggregates(&core)?;
 
-        // GROUP BY
-        if let Some(group_by) = &core.group_by {
+        // In order to prepare an aggregate node, we need to check if there are any grouping keys, too.
+        let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
                 let (expr, _) = self.build_expr(key, false, true)?;
                 keys.push(expr);
             }
+            keys
+        } else {
+            vec![]
+        };
+
+        if aggregates.len() > 0 || group_by.len() > 0 {
             node = Node::Aggregate { 
                 source: Box::new(node),
-                group_by: keys,
+                group_by,
                 aggregates,
             };
         }
@@ -207,7 +228,18 @@ impl<'a> Planner<'a> {
             };
         }
 
-        // HAVING
+        // After the aggregated data is projected, we can filter the result using the HAVING clause.
+        // In earlier stages, we already collected the aggregates from the projection and the having clause.
+        // As we already have the aggregates, we can use them to filter the result.
+        if core.having.is_some() {
+            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
+                self.build_expr(core.having.as_ref().unwrap(), true, false)?;
+            node = Node::Filter {
+                source: Box::new(node),
+                predicate: expr,
+                subqueries,
+            }
+        }
 
         // COMPOUND
         if let Some(compound) = &core.compound {
@@ -312,7 +344,42 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
-    fn build_from(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
+    // Collects all the aggregates from the projection and the having clause.
+    // The aggregates are stored in a HashSet to avoid duplicates and then returned as a Vec<Aggregation>.
+    // For the time being, we only find aggregates in the projection and the having clause.
+    fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
+        let mut aggregates: HashSet<Aggregation> = HashSet::new();
+
+        for projection in &core.projection {
+            if let SqlProjection::Expr { expr, .. } = projection {
+                let found = self.collect_aggregates_from_expr(expr)?;
+                for agg in found {
+                    aggregates.insert(agg);
+                }
+            }
+        }
+
+        if let Some(expr) = &core.having {
+            let found = self.collect_aggregates_from_expr(expr)?;
+            for agg in found {
+                aggregates.insert(agg);
+            }
+        }
+
+        let no_dup = aggregates.drain().collect();
+
+        Ok(no_dup)
+    }
+
+    
+    // The source can be of following types:
+
+    // - Collection: A collection of data, like a table.
+    // - Expr: An expression that returns a set of data.
+    // - Subquery: A subquery that returns a set of data.
+    // - Join: A join between two or more sources.
+    // - Group: Cartesian product of two or more sources.
+    fn build_source(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
         let mut scope = Scope::new();
 
         let node = match from {
@@ -343,12 +410,12 @@ impl<'a> Planner<'a> {
             }
             SqlFrom::Group { values } => {
                 let mut froms = values.iter();
-                let mut node = self.build_from(froms.next().unwrap(), &mut scope)?;
+                let mut node = self.build_source(froms.next().unwrap(), &mut scope)?;
                 for right in froms {
                     node = Node::Join {
                         left: Box::new(node),
                         join_type: SqlJoinType::Cross,
-                        right: Box::new(self.build_from(right, &mut scope)?),
+                        right: Box::new(self.build_source(right, &mut scope)?),
                         constraint: None,
                     }
                 }
@@ -366,9 +433,9 @@ impl<'a> Planner<'a> {
                     .transpose()?;
 
                 Ok(Node::Join {
-                    left: Box::new(self.build_from(left, &mut scope)?),
+                    left: Box::new(self.build_source(left, &mut scope)?),
                     join_type: join_type.clone(),
-                    right: Box::new(self.build_from(right, &mut scope)?),
+                    right: Box::new(self.build_source(right, &mut scope)?),
                     constraint: constraint.map(|x| x.0),
                 })
             }
