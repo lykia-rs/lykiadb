@@ -134,7 +134,7 @@ impl<'a> Planner<'a> {
                 let plan = Plan::Select(self.build_select(query)?);
                 Ok(plan)
             }
-            _ => panic!("Not implemented yet."),
+            _ => panic!("Bummer."),
         }
     }
 
@@ -152,9 +152,9 @@ impl<'a> Planner<'a> {
     A typical example is a compound query, where the result of one query is used as a source for another query.
     The data flow is as follows:
 
-    +---------------+             +---------------+             +---------------+
-    | SqlSelectCore | ----------> | SqlSelectCore | ----------> | SqlSelectCore | 
-    +---------------+   (union)   +---------------+   (except)  +---------------+
+    +---------------+             +---------------+               +---------------+
+    | SqlSelectCore | ----------> | SqlSelectCore | ------------> | SqlSelectCore | -----> (so on)
+    +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
 
@@ -241,7 +241,8 @@ impl<'a> Planner<'a> {
             }
         }
 
-        // COMPOUND
+        // We recursively build the compound queries (if any).
+        // The result of one query is used as a source for another query.
         if let Some(compound) = &core.compound {
             node = Node::Compound {
                 source: Box::new(node),
