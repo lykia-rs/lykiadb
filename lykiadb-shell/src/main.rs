@@ -1,11 +1,11 @@
 use std::{
     fs::File,
-    io::{stdin, stdout, BufReader, Read, Write},
+    io::{BufReader, Read, Write, stdin, stdout},
 };
 
 use clap::Parser;
 use lykiadb_connect::session::ClientSession;
-use lykiadb_connect::{get_session, report_error, Message, Protocol, Request, Response};
+use lykiadb_connect::{Message, Protocol, Request, Response, get_session, report_error};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

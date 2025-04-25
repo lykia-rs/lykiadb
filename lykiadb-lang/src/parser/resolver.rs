@@ -1,7 +1,7 @@
+use crate::ast::Span;
 use crate::ast::expr::Expr;
 use crate::ast::stmt::Stmt;
 use crate::ast::visitor::VisitorMut;
-use crate::ast::Span;
 use crate::ast::{Identifier, Literal};
 use crate::{Locals, Scopes};
 use rustc_hash::FxHashMap;

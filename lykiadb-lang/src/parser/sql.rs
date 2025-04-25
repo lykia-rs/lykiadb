@@ -1,4 +1,5 @@
 use crate::ast::{
+    Span,
     expr::Expr,
     sql::{
         SqlCollectionIdentifier, SqlCompoundOperator, SqlDelete, SqlDistinct, SqlExpressionSource,
@@ -6,7 +7,6 @@ use crate::ast::{
         SqlProjection, SqlSelect, SqlSelectCompound, SqlSelectCore, SqlSource, SqlUpdate,
         SqlValues,
     },
-    Span,
 };
 
 use super::{ParseError, ParseResult, Parser};

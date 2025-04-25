@@ -133,7 +133,7 @@ impl EnvironmentFrame {
 mod test {
     use std::sync::Arc;
 
-    use string_interner::{backend::StringBackend, symbol::SymbolU32, StringInterner};
+    use string_interner::{StringInterner, backend::StringBackend, symbol::SymbolU32};
 
     use crate::value::RV;
 
@@ -201,8 +201,9 @@ mod test {
     fn test_assign_to_undefined_variable() {
         let env = super::EnvironmentFrame::new(None);
         let mut interner = get_interner();
-        assert!(env
-            .assign("five", interner.get_or_intern("five"), RV::Num(5.0))
-            .is_err());
+        assert!(
+            env.assign("five", interner.get_or_intern("five"), RV::Num(5.0))
+                .is_err()
+        );
     }
 }

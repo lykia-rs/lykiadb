@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter, Result};
 use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
-use lykiadb_lang::{ast::Span, parser::ParseError, tokenizer::scanner::ScanError, LangError};
+use lykiadb_lang::{LangError, ast::Span, parser::ParseError, tokenizer::scanner::ScanError};
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]

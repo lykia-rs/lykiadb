@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
+    Locals, Scopes,
     ast::{expr::Expr, stmt::Stmt},
     tokenizer::scanner::Scanner,
-    Locals, Scopes,
 };
 
-use super::{resolver::Resolver, ParseError, ParseResult, Parser};
+use super::{ParseError, ParseResult, Parser, resolver::Resolver};
 #[derive(Serialize, Deserialize)]
 pub struct Program {
     root: Box<Stmt>,

@@ -182,7 +182,7 @@ mod test {
 
     use crate::{
         util::alloc_shared,
-        value::eval::{eval_binary, RV},
+        value::eval::{RV, eval_binary},
     };
 
     #[test]

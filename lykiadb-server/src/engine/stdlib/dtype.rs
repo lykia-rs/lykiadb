@@ -57,7 +57,7 @@ pub fn nt_tuple_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, Ha
                         message: format!("tuple_of: Unexpected argument '{:?}'", arg),
                     }
                     .into(),
-                ))
+                ));
             }
         }
     }

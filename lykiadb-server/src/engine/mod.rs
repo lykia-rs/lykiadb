@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use self::error::ExecutionError;
-use crate::{util::{alloc_shared, Shared}, value::RV};
+use crate::{
+    util::{Shared, alloc_shared},
+    value::RV,
+};
 use interpreter::{Interpreter, Output};
 use lykiadb_test::TestHandler;
 use tracing::info;
@@ -42,6 +45,12 @@ pub struct RuntimeTester {
     runtime: Runtime,
 }
 
+impl Default for RuntimeTester {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RuntimeTester {
     pub fn new() -> RuntimeTester {
         let out = alloc_shared(Output::new());
@@ -54,7 +63,6 @@ impl RuntimeTester {
 }
 
 impl TestHandler for RuntimeTester {
-
     fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
         assert!(
             case_parts.len() > 1,
