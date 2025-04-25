@@ -18,7 +18,7 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
                     message: format!("json_decode: Unexpected argument '{:?}'", args[0]),
                 }
                 .into(),
-            ))
+            ));
         }
     };
 
@@ -30,7 +30,7 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
                     message: format!("json_decode: Unhandled error '{:?}'", e),
                 }
                 .into(),
-            ))
+            ));
         }
     };
 

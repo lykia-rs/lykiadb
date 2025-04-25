@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{expr::Expr, Identifier};
+use super::{Identifier, expr::Expr};
 
 // Enums
 

@@ -1,8 +1,8 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lykiadb_lang::{
-    parser::{program::Program, resolver::Resolver, Parser},
-    tokenizer::scanner::Scanner,
     Locals, Scopes,
+    parser::{Parser, program::Program, resolver::Resolver},
+    tokenizer::scanner::Scanner,
 };
 use rustc_hash::FxHashMap;
 

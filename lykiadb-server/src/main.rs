@@ -1,8 +1,8 @@
 use lykiadb_server::comm::ServerSession;
 use std::io::Error;
 use tokio::net::TcpListener;
-use tokio_stream::wrappers::TcpListenerStream;
 use tokio_stream::StreamExt as _;
+use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
 
 const ASCII_ART: &str = r"

@@ -1,7 +1,7 @@
 use parser::{
+    ParseError, Parser,
     program::Program,
     resolver::{ResolveError, Resolver},
-    ParseError, Parser,
 };
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

@@ -5,17 +5,17 @@ use crate::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
-    value::{callable::CallableKind, RV},
+    value::{RV, callable::CallableKind},
 };
 
 use lykiadb_lang::ast::{
+    Spanned,
     expr::Expr,
     sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
     visitor::VisitorMut,
-    Spanned,
 };
 
-use super::{scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
+use super::{IntermediateExpr, Node, Plan, PlannerError, scope::Scope};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -24,7 +24,7 @@ pub struct Planner<'a> {
 impl<'a> Planner<'a> {
     fn collect_aggregates_from_expr(
         &mut self,
-        expr: &Expr
+        expr: &Expr,
     ) -> Result<Vec<Aggregation>, HaltReason> {
         match expr {
             Expr::Select { .. }
@@ -59,15 +59,15 @@ impl<'a> Planner<'a> {
                     return Ok(v);
                 }
                 Ok(vec![])
-            },
+            }
             //
             Expr::Call { callee, args, .. } => {
                 let mut result: Vec<Aggregation> = vec![];
-                
+
                 let callee_val = self.interpreter.eval(callee);
 
                 if let Ok(RV::Callable(callable)) = &callee_val {
-                    if let CallableKind::Aggregator(agg_name) = &callable.kind  {
+                    if let CallableKind::Aggregator(agg_name) = &callable.kind {
                         result.push(Aggregation {
                             name: agg_name.clone(),
                             args: args.clone(),
@@ -80,7 +80,8 @@ impl<'a> Planner<'a> {
                 let rargs: Vec<Aggregation> = args
                     .iter()
                     .map(|x| self.collect_aggregates_from_expr(x))
-                    .flat_map(|x| x.unwrap()).collect();
+                    .flat_map(|x| x.unwrap())
+                    .collect();
 
                 if rargs.len() > 0 {
                     return Err(HaltReason::Error(ExecutionError::Plan(
@@ -118,7 +119,7 @@ impl<'a> Planner<'a> {
                     return Ok(v);
                 }
                 Ok(vec![])
-            },
+            }
         }
     }
 }
@@ -138,9 +139,8 @@ impl<'a> Planner<'a> {
         }
     }
 
-
     /*
-    
+
     The data flow we built using SqlSelectCore is as follows:
 
     +--------+      +---------+      +-----------+      +------------+      +-----------------------+
@@ -159,12 +159,12 @@ impl<'a> Planner<'a> {
     */
 
     // Source: The data flow starts from a source, which is a collection or a subquery.
-    
+
     // Filter: The source is then filtered, and the result is passed to the next node.
-    
+
     // Pre-Aggregate: Once the filtering is done, it is time to explore all the aggregates. This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
 
-    // Aggregate and Group By: In order to prepare an aggregate node, we need to check if there are any grouping keys, too. We finally put the information together and create the aggregate node. 
+    // Aggregate and Group By: In order to prepare an aggregate node, we need to check if there are any grouping keys, too. We finally put the information together and create the aggregate node.
 
     // Projection: Of course, projection is an essential part of the data flow, and it is required to be done after the aggregate node, for the sake of projecting aggregated data.
 
@@ -208,7 +208,7 @@ impl<'a> Planner<'a> {
         };
 
         if aggregates.len() > 0 || group_by.len() > 0 {
-            node = Node::Aggregate { 
+            node = Node::Aggregate {
                 source: Box::new(node),
                 group_by,
                 aggregates,
@@ -348,7 +348,7 @@ impl<'a> Planner<'a> {
     // Collects all the aggregates from the projection and the having clause.
     // The aggregates are stored in a HashSet to avoid duplicates and then returned as a Vec<Aggregation>.
     // For the time being, we only find aggregates in the projection and the having clause.
-    fn collect_aggregates(&mut self, core: &SqlSelectCore) ->  Result<Vec<Aggregation>, HaltReason> {
+    fn collect_aggregates(&mut self, core: &SqlSelectCore) -> Result<Vec<Aggregation>, HaltReason> {
         let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
         for projection in &core.projection {
@@ -372,7 +372,6 @@ impl<'a> Planner<'a> {
         Ok(no_dup)
     }
 
-    
     // The source can be of following types:
 
     // - Collection: A collection of data, like a table.
@@ -380,7 +379,11 @@ impl<'a> Planner<'a> {
     // - Subquery: A subquery that returns a set of data.
     // - Join: A join between two or more sources.
     // - Group: Cartesian product of two or more sources.
-    fn build_source(&mut self, from: &SqlFrom, parent_scope: &mut Scope) -> Result<Node, HaltReason> {
+    fn build_source(
+        &mut self,
+        from: &SqlFrom,
+        parent_scope: &mut Scope,
+    ) -> Result<Node, HaltReason> {
         let mut scope = Scope::new();
 
         let node = match from {

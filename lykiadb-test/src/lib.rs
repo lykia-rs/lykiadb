@@ -7,19 +7,14 @@ pub struct TestRunner {
 }
 
 impl TestRunner {
-
     pub fn new(handler_fn: Box<dyn Fn() -> Box<dyn TestHandler>>) -> TestRunner {
-        TestRunner {
-            handler_fn,
-        }
-
+        TestRunner { handler_fn }
     }
 
     pub fn test_file(&mut self, input: &str) {
         let parts: Vec<&str> = input.split("#[").collect();
 
         for part in parts[1..].iter() {
-
             let mut handler = (self.handler_fn)();
 
             let directives_and_input = part.trim();
@@ -54,5 +49,4 @@ impl TestRunner {
             }
         }
     }
-
 }

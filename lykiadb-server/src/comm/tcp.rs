@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use tokio::io::{copy, AsyncReadExt, AsyncWriteExt, BufWriter};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter, copy};
 use tokio::net::TcpStream;
 
 use super::{CommunicationError, Message};

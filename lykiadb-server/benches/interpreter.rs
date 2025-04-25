@@ -3,8 +3,8 @@ use std::{
     io::{BufReader, Read},
 };
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use lykiadb_server::engine::{interpreter::Interpreter, Runtime, RuntimeMode};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use lykiadb_server::engine::{Runtime, RuntimeMode, interpreter::Interpreter};
 
 fn runtime(filename: &str) {
     let file = File::open(filename).unwrap();

@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
 use super::{
+    AstNode, Identifier, Literal, Span, Spanned,
     sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
     stmt::Stmt,
-    AstNode, Identifier, Literal, Span, Spanned,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
@@ -359,9 +359,7 @@ impl Display for Expr {
                 Literal::Undefined => write!(f, "Undefined"),
             },
             Expr::Function {
-                name,
-                parameters,
-                ..
+                name, parameters, ..
             } => {
                 write!(
                     f,
@@ -1087,24 +1085,15 @@ pub mod test {
         let func = Expr::Function {
             name: Some(Identifier::new("test_func", false)),
             parameters: vec![
-                (
-                    Identifier::new("a", false),
-                    None,
-                ),
-                (
-                    Identifier::new("b", false),
-                    None,
-                ),
+                (Identifier::new("a", false), None),
+                (Identifier::new("b", false), None),
             ],
             return_type: None,
             body: Arc::new(vec![]),
             span: Span::default(),
             id: 1,
         };
-        assert_eq!(
-            func.to_string(),
-            "test_func (a, b)"
-        );
+        assert_eq!(func.to_string(), "test_func (a, b)");
     }
 
     #[test]

@@ -1,12 +1,12 @@
 use std::fmt::Display;
 
 use lykiadb_lang::ast::{
+    Identifier, Span,
     expr::Expr,
     sql::{
         SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
         SqlOrdering, SqlProjection,
     },
-    Identifier, Span,
 };
 use serde::{Deserialize, Serialize};
 
@@ -278,7 +278,11 @@ impl Node {
                     Self::NEWLINE
                 )
             }
-            Node::Aggregate { source, group_by, aggregates } => {
+            Node::Aggregate {
+                source,
+                group_by,
+                aggregates,
+            } => {
                 let group_by_description = group_by
                     .iter()
                     .map(|expr| expr.to_string())

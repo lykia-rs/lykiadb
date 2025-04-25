@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::sync::{Arc, RwLock};
 
-use crate::util::alloc_shared;
 use crate::util::Shared;
+use crate::util::alloc_shared;
 use callable::Callable;
 
 pub mod callable;

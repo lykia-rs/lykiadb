@@ -1,3 +1,5 @@
+use super::error::ExecutionError;
+use super::stdlib::stdlib;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
@@ -5,20 +7,18 @@ use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
 use lykiadb_lang::{LangError, SourceProcessor};
+use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use string_interner::StringInterner;
 use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
-use string_interner::StringInterner;
-use pretty_assertions::assert_eq;
-use super::error::ExecutionError;
-use super::stdlib::stdlib;
 
 use crate::plan::planner::Planner;
-use crate::util::{alloc_shared, Shared};
+use crate::util::{Shared, alloc_shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
-use crate::value::{eval::eval_binary, RV};
+use crate::value::{RV, eval::eval_binary};
 
 use std::sync::Arc;
 use std::vec;
