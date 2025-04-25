@@ -107,7 +107,7 @@ impl Scanner<'_> {
             }
         }
 
-        if self.peek(0).to_ascii_lowercase() == 'e' {
+        if self.peek(0).eq_ignore_ascii_case(&'e') {
             raw_str.push(self.advance().1);
 
             if self.peek(0) == '-' || self.peek(0) == '+' {

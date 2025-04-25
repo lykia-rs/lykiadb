@@ -21,7 +21,7 @@ pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
 }
 
-impl<'a> Planner<'a> {
+impl Planner<'_> {
     fn collect_aggregates_from_expr(
         &mut self,
         expr: &Expr,
@@ -83,7 +83,7 @@ impl<'a> Planner<'a> {
                     .flat_map(|x| x.unwrap())
                     .collect();
 
-                if rargs.len() > 0 {
+                if !rargs.is_empty() {
                     return Err(HaltReason::Error(ExecutionError::Plan(
                         PlannerError::NestedAggregationNotAllowed(expr.get_span()),
                     )));
@@ -193,7 +193,7 @@ impl<'a> Planner<'a> {
 
         // Once the filtering is done, it is time to explore all the aggregates.
         // This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
-        let aggregates = self.collect_aggregates(&core)?;
+        let aggregates = self.collect_aggregates(core)?;
 
         // In order to prepare an aggregate node, we need to check if there are any grouping keys, too.
         let group_by = if let Some(group_by) = &core.group_by {
@@ -207,7 +207,7 @@ impl<'a> Planner<'a> {
             vec![]
         };
 
-        if aggregates.len() > 0 || group_by.len() > 0 {
+        if !aggregates.is_empty() || !group_by.is_empty() {
             node = Node::Aggregate {
                 source: Box::new(node),
                 group_by,
@@ -268,11 +268,11 @@ impl<'a> Planner<'a> {
         let mut subqueries: Vec<Node> = vec![];
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
-            Expr::Get { object, name, .. } => {
+            Expr::Get {   .. } => {
                 // println!("Get {}.({})", object, name);
                 None
             }
-            Expr::FieldPath { head, tail, .. } => {
+            Expr::FieldPath {   .. } => {
                 /* println!(
                     "FieldPath {} {}",
                     head,
@@ -280,7 +280,7 @@ impl<'a> Planner<'a> {
                 ); */
                 None
             }
-            Expr::Call { callee, args, .. } => {
+            Expr::Call {   .. } => {
                 // println!("Call {}({:?})", callee, args);
                 None
             }

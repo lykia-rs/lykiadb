@@ -85,11 +85,7 @@ impl RV {
             RV::Bool(true) => Some(1.0),
             RV::Bool(false) => Some(0.0),
             RV::Str(s) => {
-                if let Ok(num) = s.parse::<f64>() {
-                    Some(num)
-                } else {
-                    None
-                }
+                s.parse::<f64>().ok()
             }
             _ => None,
         }

@@ -45,6 +45,12 @@ pub struct RuntimeTester {
     runtime: Runtime,
 }
 
+impl Default for RuntimeTester {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RuntimeTester {
     pub fn new() -> RuntimeTester {
         let out = alloc_shared(Output::new());
