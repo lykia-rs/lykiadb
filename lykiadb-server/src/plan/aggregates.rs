@@ -145,3 +145,111 @@ fn collect_aggregates_from_expr(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lykiadb_lang::ast::{
+        expr::Expr, sql::{SqlProjection, SqlSelectCore}, Identifier, Span
+    };
+
+    fn create_test_interpreter() -> Interpreter {
+        Interpreter::new(None, true)
+    }
+
+    #[test]
+    fn test_collect_aggregates_simple_projection() {
+        let mut interpreter = create_test_interpreter();
+        
+        let avg_call = Expr::Call {
+            callee: Box::new(Expr::Variable { 
+                name: Identifier::new(&"avg", false),
+                span: Span::default(),
+                id: 0,
+            }),
+            args: vec![],
+            span: Span::default(),
+            id: 0,
+        };
+
+        let core = SqlSelectCore {
+            projection: vec![SqlProjection::Expr {
+                expr: Box::new(avg_call),
+                alias: None,
+            }],
+            from: None,
+            group_by: None,
+            having: None,
+            distinct: lykiadb_lang::ast::sql::SqlDistinct::All,
+            r#where: None,
+            compound: None,
+        };
+
+        let result = collect_aggregates(&core, &mut interpreter).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "avg");
+    }
+
+    #[test]
+    fn test_collect_aggregates_having_clause() {
+        let mut interpreter = create_test_interpreter();
+        
+        let avg_call = Expr::Call {
+            callee: Box::new(Expr::Variable { 
+                name: Identifier::new(&"avg", false),
+                span: Span::default(),
+                id: 0,
+            }),
+            args: vec![],
+            span: Span::default(),
+            id: 0,
+        };
+
+        let core = SqlSelectCore {
+            projection: vec![],
+            from: None,
+            group_by: None,
+            distinct: lykiadb_lang::ast::sql::SqlDistinct::All,
+            r#where: None,
+            compound: None,
+            having: Some(Box::new(avg_call)),
+        };
+
+        let result = collect_aggregates(&core, &mut interpreter).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "avg");
+    }
+
+    #[test]
+    fn test_nested_aggregates_not_allowed() {
+        let mut interpreter = create_test_interpreter();
+        
+        let avg_call = Expr::Call {
+            callee: Box::new(Expr::Variable { 
+                name: Identifier::new(&"avg", false),
+                span: Span::default(),
+                id: 0,
+            }),
+            args: vec![],
+            span: Span::default(),
+            id: 0,
+        };
+
+        let outer_avg_call = Expr::Call {
+            callee: Box::new(Expr::Variable { 
+                name: Identifier::new(&"avg", false),
+                span: Span::default(),
+                id: 0,
+            }),
+            args: vec![avg_call],
+            span: Span::default(),
+            id: 0,
+        };
+
+        let result = collect_aggregates_from_expr(&outer_avg_call, &mut interpreter);
+        assert!(matches!(
+            result,
+            Err(HaltReason::Error(ExecutionError::Plan(PlannerError::NestedAggregationNotAllowed(_))))
+        ));
+    }
+}
