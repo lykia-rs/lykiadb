@@ -84,9 +84,7 @@ impl RV {
             RV::Num(value) => Some(*value),
             RV::Bool(true) => Some(1.0),
             RV::Bool(false) => Some(0.0),
-            RV::Str(s) => {
-                s.parse::<f64>().ok()
-            }
+            RV::Str(s) => s.parse::<f64>().ok(),
             _ => None,
         }
     }

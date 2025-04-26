@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{engine::interpreter::Aggregation, value::RV};
 
+mod aggregates;
 pub mod planner;
 mod scope;
 
