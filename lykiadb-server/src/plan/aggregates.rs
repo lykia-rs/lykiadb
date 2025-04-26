@@ -165,7 +165,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new(&"avg", false),
+                name: Identifier::new("avg", false),
                 span: Span::default(),
                 id: 0,
             }),
@@ -198,7 +198,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new(&"avg", false),
+                name: Identifier::new("avg", false),
                 span: Span::default(),
                 id: 0,
             }),
@@ -228,7 +228,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new(&"avg", false),
+                name: Identifier::new("avg", false),
                 span: Span::default(),
                 id: 0,
             }),
@@ -239,7 +239,7 @@ mod tests {
 
         let outer_avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new(&"avg", false),
+                name: Identifier::new("avg", false),
                 span: Span::default(),
                 id: 0,
             }),

@@ -207,8 +207,7 @@ impl Interpreter {
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         let distance = self
             .current_program
-            .as_ref()
-            .map_or(None, |x| x.get_distance(expr));
+            .as_ref().and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(
                 &self.env,
