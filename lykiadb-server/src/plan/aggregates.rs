@@ -20,9 +20,9 @@ use super::PlannerError;
 // The aggregates are stored in a HashSet to avoid duplicates and then
 // returned as a Vec<Aggregation>. For the time being, we only find
 // aggregates in the projection and the having clause.
-pub fn collect_aggregates<'a>(
+pub fn collect_aggregates(
     core: &SqlSelectCore,
-    interpreter: &'a mut Interpreter,
+    interpreter: &mut Interpreter,
 ) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
@@ -47,9 +47,9 @@ pub fn collect_aggregates<'a>(
     Ok(no_dup)
 }
 
-fn collect_aggregates_from_expr<'a>(
+fn collect_aggregates_from_expr(
     expr: &Expr,
-    interpreter: &'a mut Interpreter,
+    interpreter: &mut Interpreter,
 ) -> Result<Vec<Aggregation>, HaltReason> {
     match expr {
         Expr::Select { .. }

@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 
 use crate::{
     engine::{
         error::ExecutionError,
-        interpreter::{Aggregation, HaltReason, Interpreter},
+        interpreter::{HaltReason, Interpreter},
     },
     value::RV,
 };
@@ -250,7 +249,7 @@ impl<'a> Planner<'a> {
 
     // The source can be of following types:
 
-    // - Collection: A collection of data, like a table.
+    // - Collection: A regular db collection.
     // - Expr: An expression that returns a set of data.
     // - Subquery: A subquery that returns a set of data.
     // - Join: A join between two or more sources.
