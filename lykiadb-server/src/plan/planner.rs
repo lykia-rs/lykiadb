@@ -147,28 +147,42 @@ impl<'a> Planner<'a> {
     | Source | ---> | Filter  | ---> | Aggregate | ---> | Projection | ---> | Filter                |
     | (req.) |      | (optl.) |      | (optl.)   |      | (req.)     |      | (for post projection) |
     +--------+      +---------+      +-----------+      +------------+      +-----------------------+
+    */
+    
+    // The end result is a computation graph, that can be easily combined with
+    // other computation graphs. A typical example is a compound query, where
+    // the result of one query is used as a source for another query. The data
+    // flow is as follows:
 
-    The end result is a computation graph, that can be easily combined with other computation graphs.
-    A typical example is a compound query, where the result of one query is used as a source for another query.
-    The data flow is as follows:
-
+    /*
     +---------------+             +---------------+               +---------------+
     | SqlSelectCore | ----------> | SqlSelectCore | ------------> | SqlSelectCore | -----> (so on)
     +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
 
-    // Source: The data flow starts from a source, which is a collection or a subquery.
+    // Source: The data flow starts from a source, which is a collection or a
+    // subquery.
 
-    // Filter: The source is then filtered, and the result is passed to the next node.
+    // Filter: The source is then filtered, and the result is passed to the next
+    // node.
 
-    // Pre-Aggregate: Once the filtering is done, it is time to explore all the aggregates. This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
+    // Pre-Aggregate: Once the filtering is done, it is time to explore all the
+    // aggregates. This is done by collecting all the aggregates from the
+    // expressions in the projection and the having clauses.
 
-    // Aggregate and Group By: In order to prepare an aggregate node, we need to check if there are any grouping keys, too. We finally put the information together and create the aggregate node.
+    // Aggregate and Group By: In order to prepare an aggregate node, we need to
+    // check if there are any grouping keys, too. We finally put the information
+    // together and create the aggregate node.
 
-    // Projection: Of course, projection is an essential part of the data flow, and it is required to be done after the aggregate node, for the sake of projecting aggregated data.
+    // Projection: Of course, projection is an essential part of the data flow,
+    // and it is required to be done after the aggregate node, for the sake of
+    // projecting aggregated data.
 
-    // Post-Filter: After the aggregated data is projected, we can filter the result using the HAVING clause. In earlier stages, we already collected the aggregates from the projection and the having clause. As we already have the aggregates, we can use them to filter the result.
+    // Post-Filter: After the aggregated data is projected, we can filter the
+    // result using the HAVING clause. In earlier stages, we already collected
+    // the aggregates from the projection and the having clause. As we already
+    // have the aggregates, we can use them to filter the result.
 
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
@@ -192,10 +206,12 @@ impl<'a> Planner<'a> {
         }
 
         // Once the filtering is done, it is time to explore all the aggregates.
-        // This is done by collecting all the aggregates from the expressions in the projection and the having clauses.
+        // This is done by collecting all the aggregates from the expressions in
+        // the projection and the having clauses.
         let aggregates = self.collect_aggregates(core)?;
 
-        // In order to prepare an aggregate node, we need to check if there are any grouping keys, too.
+        // In order to prepare an aggregate node, we need to check if there are
+        // any grouping keys, too.
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
@@ -228,9 +244,10 @@ impl<'a> Planner<'a> {
             };
         }
 
-        // After the aggregated data is projected, we can filter the result using the HAVING clause.
-        // In earlier stages, we already collected the aggregates from the projection and the having clause.
-        // As we already have the aggregates, we can use them to filter the result.
+        // After the aggregated data is projected, we can filter the result
+        // using the HAVING clause. In earlier stages, we already collected the
+        // aggregates from the projection and the having clause. As we already
+        // have the aggregates, we can use them to filter the result.
         if core.having.is_some() {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
                 self.build_expr(core.having.as_ref().unwrap(), true, false)?;
@@ -241,8 +258,8 @@ impl<'a> Planner<'a> {
             }
         }
 
-        // We recursively build the compound queries (if any).
-        // The result of one query is used as a source for another query.
+        // We recursively build the compound queries (if any). The result of one
+        // query is used as a source for another query.
         if let Some(compound) = &core.compound {
             node = Node::Compound {
                 source: Box::new(node),
@@ -346,8 +363,9 @@ impl<'a> Planner<'a> {
     }
 
     // Collects all the aggregates from the projection and the having clause.
-    // The aggregates are stored in a HashSet to avoid duplicates and then returned as a Vec<Aggregation>.
-    // For the time being, we only find aggregates in the projection and the having clause.
+    // The aggregates are stored in a HashSet to avoid duplicates and then
+    // returned as a Vec<Aggregation>. For the time being, we only find
+    // aggregates in the projection and the having clause.
     fn collect_aggregates(&mut self, core: &SqlSelectCore) -> Result<Vec<Aggregation>, HaltReason> {
         let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
