@@ -150,7 +150,9 @@ fn collect_aggregates_from_expr(
 mod tests {
     use super::*;
     use lykiadb_lang::ast::{
-        expr::Expr, sql::{SqlProjection, SqlSelectCore}, Identifier, Span
+        Identifier, Span,
+        expr::Expr,
+        sql::{SqlProjection, SqlSelectCore},
     };
 
     fn create_test_interpreter() -> Interpreter {
@@ -160,9 +162,9 @@ mod tests {
     #[test]
     fn test_collect_aggregates_simple_projection() {
         let mut interpreter = create_test_interpreter();
-        
+
         let avg_call = Expr::Call {
-            callee: Box::new(Expr::Variable { 
+            callee: Box::new(Expr::Variable {
                 name: Identifier::new(&"avg", false),
                 span: Span::default(),
                 id: 0,
@@ -193,9 +195,9 @@ mod tests {
     #[test]
     fn test_collect_aggregates_having_clause() {
         let mut interpreter = create_test_interpreter();
-        
+
         let avg_call = Expr::Call {
-            callee: Box::new(Expr::Variable { 
+            callee: Box::new(Expr::Variable {
                 name: Identifier::new(&"avg", false),
                 span: Span::default(),
                 id: 0,
@@ -223,9 +225,9 @@ mod tests {
     #[test]
     fn test_nested_aggregates_not_allowed() {
         let mut interpreter = create_test_interpreter();
-        
+
         let avg_call = Expr::Call {
-            callee: Box::new(Expr::Variable { 
+            callee: Box::new(Expr::Variable {
                 name: Identifier::new(&"avg", false),
                 span: Span::default(),
                 id: 0,
@@ -236,7 +238,7 @@ mod tests {
         };
 
         let outer_avg_call = Expr::Call {
-            callee: Box::new(Expr::Variable { 
+            callee: Box::new(Expr::Variable {
                 name: Identifier::new(&"avg", false),
                 span: Span::default(),
                 id: 0,
@@ -249,7 +251,9 @@ mod tests {
         let result = collect_aggregates_from_expr(&outer_avg_call, &mut interpreter);
         assert!(matches!(
             result,
-            Err(HaltReason::Error(ExecutionError::Plan(PlannerError::NestedAggregationNotAllowed(_))))
+            Err(HaltReason::Error(ExecutionError::Plan(
+                PlannerError::NestedAggregationNotAllowed(_)
+            )))
         ));
     }
 }
