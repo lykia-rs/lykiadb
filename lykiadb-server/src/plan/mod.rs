@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{engine::interpreter::Aggregation, value::RV};
 
+mod aggregates;
 pub mod planner;
 mod scope;
-mod aggregates;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {

@@ -15,7 +15,9 @@ use lykiadb_lang::ast::{
     visitor::VisitorMut,
 };
 
-use super::{aggregates::{collect_aggregates}, scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
+use super::{
+    IntermediateExpr, Node, Plan, PlannerError, aggregates::collect_aggregates, scope::Scope,
+};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -45,7 +47,7 @@ impl<'a> Planner<'a> {
     | (req.) |      | (optl.) |      | (optl.)   |      | (req.)     |      | (for post projection) |
     +--------+      +---------+      +-----------+      +------------+      +-----------------------+
     */
-    
+
     // The end result is a computation graph, that can be easily combined with
     // other computation graphs. A typical example is a compound query, where
     // the result of one query is used as a source for another query. The data
@@ -182,9 +184,9 @@ impl<'a> Planner<'a> {
         let mut subqueries: Vec<Node> = vec![];
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
-            Expr::Get {   .. } => None,
-            Expr::FieldPath {   .. } => None,
-            Expr::Call {   .. } => None,
+            Expr::Get { .. } => None,
+            Expr::FieldPath { .. } => None,
+            Expr::Call { .. } => None,
             Expr::Select { query, .. } => {
                 if !allow_subqueries {
                     return Some(Err(HaltReason::Error(ExecutionError::Plan(

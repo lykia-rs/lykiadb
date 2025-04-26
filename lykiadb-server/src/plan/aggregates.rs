@@ -5,11 +5,13 @@ use crate::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
-    value::{callable::CallableKind, RV},
+    value::{RV, callable::CallableKind},
 };
 
 use lykiadb_lang::ast::{
-    expr::Expr, sql::{SqlProjection, SqlSelectCore}, Spanned
+    Spanned,
+    expr::Expr,
+    sql::{SqlProjection, SqlSelectCore},
 };
 
 use super::PlannerError;
@@ -18,7 +20,10 @@ use super::PlannerError;
 // The aggregates are stored in a HashSet to avoid duplicates and then
 // returned as a Vec<Aggregation>. For the time being, we only find
 // aggregates in the projection and the having clause.
-pub fn collect_aggregates<'a>(core: &SqlSelectCore, interpreter: &'a mut Interpreter,) -> Result<Vec<Aggregation>, HaltReason> {
+pub fn collect_aggregates<'a>(
+    core: &SqlSelectCore,
+    interpreter: &'a mut Interpreter,
+) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
     for projection in &core.projection {
@@ -71,9 +76,7 @@ fn collect_aggregates_from_expr<'a>(
             Ok(result)
         }
         //
-        Expr::Grouping { expr, .. }
-        | Expr::Unary { expr, .. }
-        | Expr::Assignment { expr, .. } => {
+        Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } | Expr::Assignment { expr, .. } => {
             let r = collect_aggregates_from_expr(expr, interpreter);
             if let Ok(v) = r {
                 return Ok(v);
