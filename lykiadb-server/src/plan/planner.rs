@@ -5,7 +5,7 @@ use crate::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
-    value::{RV, callable::CallableKind},
+    value::RV,
 };
 
 use lykiadb_lang::ast::{
@@ -15,113 +15,10 @@ use lykiadb_lang::ast::{
     visitor::VisitorMut,
 };
 
-use super::{IntermediateExpr, Node, Plan, PlannerError, scope::Scope};
+use super::{aggregates::{collect_aggregates}, scope::Scope, IntermediateExpr, Node, Plan, PlannerError};
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
-}
-
-impl Planner<'_> {
-    fn collect_aggregates_from_expr(
-        &mut self,
-        expr: &Expr,
-    ) -> Result<Vec<Aggregation>, HaltReason> {
-        match expr {
-            Expr::Select { .. }
-            | Expr::Insert { .. }
-            | Expr::Delete { .. }
-            | Expr::Update { .. }
-            | Expr::Variable { .. }
-            | Expr::Literal { .. }
-            | Expr::FieldPath { .. }
-            | Expr::Function { .. }
-            | Expr::Set { .. } => Ok(vec![]),
-            //
-            Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
-                let rleft = self.collect_aggregates_from_expr(left);
-                let rright = self.collect_aggregates_from_expr(right);
-
-                let mut result = vec![];
-                if let Ok(v) = rleft {
-                    result.extend(v);
-                }
-                if let Ok(v) = rright {
-                    result.extend(v);
-                }
-                Ok(result)
-            }
-            //
-            Expr::Grouping { expr, .. }
-            | Expr::Unary { expr, .. }
-            | Expr::Assignment { expr, .. } => {
-                let r = self.collect_aggregates_from_expr(expr);
-                if let Ok(v) = r {
-                    return Ok(v);
-                }
-                Ok(vec![])
-            }
-            //
-            Expr::Call { callee, args, .. } => {
-                let mut result: Vec<Aggregation> = vec![];
-
-                let callee_val = self.interpreter.eval(callee);
-
-                if let Ok(RV::Callable(callable)) = &callee_val {
-                    if let CallableKind::Aggregator(agg_name) = &callable.kind {
-                        result.push(Aggregation {
-                            name: agg_name.clone(),
-                            args: args.clone(),
-                        });
-                    }
-                }
-                if callee_val.is_err() {
-                    return Err(callee_val.err().unwrap());
-                }
-                let rargs: Vec<Aggregation> = args
-                    .iter()
-                    .map(|x| self.collect_aggregates_from_expr(x))
-                    .flat_map(|x| x.unwrap())
-                    .collect();
-
-                if !rargs.is_empty() {
-                    return Err(HaltReason::Error(ExecutionError::Plan(
-                        PlannerError::NestedAggregationNotAllowed(expr.get_span()),
-                    )));
-                }
-
-                Ok(result)
-            }
-            Expr::Between {
-                lower,
-                upper,
-                subject,
-                ..
-            } => {
-                let rlower = self.collect_aggregates_from_expr(lower);
-                let rupper = self.collect_aggregates_from_expr(upper);
-                let rsubject = self.collect_aggregates_from_expr(subject);
-
-                let mut result = vec![];
-                if let Ok(v) = rlower {
-                    result.extend(v);
-                }
-                if let Ok(v) = rupper {
-                    result.extend(v);
-                }
-                if let Ok(v) = rsubject {
-                    result.extend(v);
-                }
-                Ok(result)
-            }
-            Expr::Get { object, .. } => {
-                let robject = self.collect_aggregates_from_expr(object);
-                if let Ok(v) = robject {
-                    return Ok(v);
-                }
-                Ok(vec![])
-            }
-        }
-    }
 }
 
 impl<'a> Planner<'a> {
@@ -208,7 +105,7 @@ impl<'a> Planner<'a> {
         // Once the filtering is done, it is time to explore all the aggregates.
         // This is done by collecting all the aggregates from the expressions in
         // the projection and the having clauses.
-        let aggregates = self.collect_aggregates(core)?;
+        let aggregates = collect_aggregates(core, self.interpreter)?;
 
         // In order to prepare an aggregate node, we need to check if there are
         // any grouping keys, too.
@@ -285,22 +182,9 @@ impl<'a> Planner<'a> {
         let mut subqueries: Vec<Node> = vec![];
 
         let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
-            Expr::Get {   .. } => {
-                // println!("Get {}.({})", object, name);
-                None
-            }
-            Expr::FieldPath {   .. } => {
-                /* println!(
-                    "FieldPath {} {}",
-                    head,
-                    tail.iter().map(|x| x.to_string() + " ").collect::<String>()
-                ); */
-                None
-            }
-            Expr::Call {   .. } => {
-                // println!("Call {}({:?})", callee, args);
-                None
-            }
+            Expr::Get {   .. } => None,
+            Expr::FieldPath {   .. } => None,
+            Expr::Call {   .. } => None,
             Expr::Select { query, .. } => {
                 if !allow_subqueries {
                     return Some(Err(HaltReason::Error(ExecutionError::Plan(
@@ -360,34 +244,6 @@ impl<'a> Planner<'a> {
         }
 
         Ok(node)
-    }
-
-    // Collects all the aggregates from the projection and the having clause.
-    // The aggregates are stored in a HashSet to avoid duplicates and then
-    // returned as a Vec<Aggregation>. For the time being, we only find
-    // aggregates in the projection and the having clause.
-    fn collect_aggregates(&mut self, core: &SqlSelectCore) -> Result<Vec<Aggregation>, HaltReason> {
-        let mut aggregates: HashSet<Aggregation> = HashSet::new();
-
-        for projection in &core.projection {
-            if let SqlProjection::Expr { expr, .. } = projection {
-                let found = self.collect_aggregates_from_expr(expr)?;
-                for agg in found {
-                    aggregates.insert(agg);
-                }
-            }
-        }
-
-        if let Some(expr) = &core.having {
-            let found = self.collect_aggregates_from_expr(expr)?;
-            for agg in found {
-                aggregates.insert(agg);
-            }
-        }
-
-        let no_dup = aggregates.drain().collect();
-
-        Ok(no_dup)
     }
 
     // The source can be of following types:

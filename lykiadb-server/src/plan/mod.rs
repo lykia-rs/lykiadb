@@ -14,6 +14,7 @@ use crate::{engine::interpreter::Aggregation, value::RV};
 
 pub mod planner;
 mod scope;
+mod aggregates;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
