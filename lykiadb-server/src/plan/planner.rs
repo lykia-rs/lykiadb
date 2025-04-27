@@ -9,7 +9,7 @@ use crate::{
 use lykiadb_lang::ast::{
     Spanned,
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
+    sql::{SqlProjection, SqlSelect, SqlSelectCore},
     visitor::VisitorMut,
 };
 

@@ -44,7 +44,7 @@ pub fn collect_aggregates(
 
     let mut no_dup: Vec<Aggregation> = aggregates.drain().collect();
 
-    no_dup.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
+    no_dup.sort_by_key(|a| a.to_string());
 
     Ok(no_dup)
 }
