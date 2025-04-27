@@ -612,7 +612,16 @@ pub struct Aggregation {
 
 impl Display for Aggregation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}({})", self.name, self.args.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))
+        write!(
+            f,
+            "{}({})",
+            self.name,
+            self.args
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 

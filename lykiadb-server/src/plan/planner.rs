@@ -14,7 +14,8 @@ use lykiadb_lang::ast::{
 };
 
 use super::{
-    aggregation::collect_aggregates, from::build_from, scope::Scope, IntermediateExpr, Node, Plan, PlannerError
+    IntermediateExpr, Node, Plan, PlannerError, aggregation::collect_aggregates, from::build_from,
+    scope::Scope,
 };
 
 pub struct Planner<'a> {

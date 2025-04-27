@@ -1,12 +1,8 @@
-use crate::engine::{
-        error::ExecutionError,
-        interpreter::HaltReason,
-    };
+use crate::engine::{error::ExecutionError, interpreter::HaltReason};
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
 
-use super::{ planner::Planner, scope::Scope, Node
-};
+use super::{Node, planner::Planner, scope::Scope};
 
 // The source can be of following types:
 
@@ -23,7 +19,6 @@ pub fn build_from(
     let mut scope = Scope::new();
 
     let node = match from {
-
         // SqlSource::* should directly blend in the scope and can be
         // projected. Each source will be accessible by its alias.
         SqlFrom::Source(source) => {
