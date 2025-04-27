@@ -66,7 +66,7 @@ impl<'a> Planner<'a> {
         // Source: The data flow starts from a source, which is a collection or a
         // subquery.
         if let Some(from) = &core.from {
-            node = self.build_source(from, &mut core_scope)?;
+            node = self.build_from(from, &mut core_scope)?;
         }
 
         // Filter: The source is then filtered, and the result is passed to the next
@@ -235,7 +235,7 @@ impl<'a> Planner<'a> {
     // - Subquery: A subquery that returns a set of data.
     // - Join: A join between two or more sources.
     // - Group: Cartesian product of two or more sources.
-    fn build_source(
+    fn build_from(
         &mut self,
         from: &SqlFrom,
         parent_scope: &mut Scope,
@@ -243,6 +243,9 @@ impl<'a> Planner<'a> {
         let mut scope = Scope::new();
 
         let node = match from {
+
+            // SqlSource::* should directly blend in the scope and can be
+            // projected. Each source will be accessible by its alias.
             SqlFrom::Source(source) => {
                 let wrapped = match source {
                     SqlSource::Collection(ident) => Node::Scan {
@@ -255,32 +258,47 @@ impl<'a> Planner<'a> {
                     },
                 };
 
-                if let Err(err) = scope.add_source(source.clone()) {
+                if let Err(err) = scope.add_source(source.alias(), from.clone()) {
                     return Err(HaltReason::Error(ExecutionError::Plan(err)));
                 }
 
                 Ok(wrapped)
             }
+
+            // SqlFrom::Select can be projected with the alias. Downstream
+            // sources will be merged into single source and will be accessible
+            // via the Select's alias.
             SqlFrom::Select { subquery, alias } => {
                 let node = Node::Subquery {
                     source: Box::new(self.build_select(subquery)?),
                     alias: alias.clone(),
                 };
+
+                if let Err(err) = scope.add_source(alias.as_ref().unwrap(), from.clone()) {
+                    return Err(HaltReason::Error(ExecutionError::Plan(err)));
+                }
+
                 Ok(node)
             }
+
+            // SqlFrom::Group scope gets directly merged into the parent scope.
+            // Each source will be accessible by its alias, no merging takes place.
             SqlFrom::Group { values } => {
                 let mut froms = values.iter();
-                let mut node = self.build_source(froms.next().unwrap(), &mut scope)?;
+                let mut node = self.build_from(froms.next().unwrap(), &mut scope)?;
                 for right in froms {
                     node = Node::Join {
                         left: Box::new(node),
                         join_type: SqlJoinType::Cross,
-                        right: Box::new(self.build_source(right, &mut scope)?),
+                        right: Box::new(self.build_from(right, &mut scope)?),
                         constraint: None,
                     }
                 }
                 Ok(node)
             }
+
+            // Similar to SqlFrom::Group, SqlFrom::Join scope gets directly merged into the parent scope.
+            // Each source will be accessible by its alias, no merging takes place.
             SqlFrom::Join {
                 left,
                 join_type,
@@ -293,15 +311,15 @@ impl<'a> Planner<'a> {
                     .transpose()?;
 
                 Ok(Node::Join {
-                    left: Box::new(self.build_source(left, &mut scope)?),
+                    left: Box::new(self.build_from(left, &mut scope)?),
                     join_type: join_type.clone(),
-                    right: Box::new(self.build_source(right, &mut scope)?),
+                    right: Box::new(self.build_from(right, &mut scope)?),
                     constraint: constraint.map(|x| x.0),
                 })
             }
         };
 
-        if let Err(err) = parent_scope.merge(scope) {
+        if let Err(err) = parent_scope.merge(&scope) {
             return Err(HaltReason::Error(ExecutionError::Plan(err)));
         }
 

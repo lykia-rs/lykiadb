@@ -21,10 +21,7 @@ pub enum PlannerError {
     NestedAggregationNotAllowed(Span),
     SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),
-    DuplicateObjectInScope {
-        previous: Identifier,
-        ident: Identifier,
-    },
+    DuplicateObjectInScope(Identifier),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

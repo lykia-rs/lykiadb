@@ -1,38 +1,38 @@
 use std::collections::HashMap;
 
-use lykiadb_lang::ast::{Identifier, sql::SqlSource};
+use lykiadb_lang::ast::{sql::SqlFrom, Identifier};
 
 use super::PlannerError;
 
 #[derive(Debug)]
 pub struct Scope {
-    sources: HashMap<Identifier, SqlSource>,
+    from: HashMap<Identifier, SqlFrom>,
+    // aggregates: Vec<Expr>,
 }
 
 impl Scope {
     pub fn new() -> Scope {
         Scope {
-            sources: HashMap::new(),
+            from: HashMap::new(),
         }
     }
 
-    pub fn add_source(&mut self, source: SqlSource) -> Result<(), PlannerError> {
-        if self.sources.contains_key(source.alias()) {
-            let previous = self.sources.get(source.alias()).unwrap();
-            return Err(PlannerError::DuplicateObjectInScope {
-                previous: previous.alias().clone(),
-                ident: source.alias().clone(),
-            });
+    pub fn add_source(&mut self, alias: &Identifier, source: SqlFrom) -> Result<(), PlannerError> {
+        if self.from.contains_key(alias) {
+            return Err(PlannerError::DuplicateObjectInScope(alias.clone()));
         }
 
-        self.sources.insert(source.alias().clone(), source);
+        self.from.insert(alias.clone(), source);
 
         Ok(())
     }
 
-    pub fn merge(&mut self, other: Scope) -> Result<(), PlannerError> {
-        for (_, source) in other.sources {
-            self.add_source(source.clone())?;
+    pub fn merge(&mut self, other: &Scope) -> Result<(), PlannerError> {
+        for (alias, source) in &other.from {
+            if self.from.contains_key(alias) {
+                return Err(PlannerError::DuplicateObjectInScope(alias.clone()));
+            }
+            self.from.insert(alias.clone(), source.clone());
         }
 
         Ok(())
