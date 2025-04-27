@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{engine::interpreter::Aggregation, value::RV};
 
-mod aggregates;
+mod aggregation;
+mod from;
 pub mod planner;
 mod scope;
 
@@ -21,10 +22,7 @@ pub enum PlannerError {
     NestedAggregationNotAllowed(Span),
     SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),
-    DuplicateObjectInScope {
-        previous: Identifier,
-        ident: Identifier,
-    },
+    DuplicateObjectInScope(Identifier),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

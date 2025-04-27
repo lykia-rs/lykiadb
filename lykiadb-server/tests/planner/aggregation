@@ -40,7 +40,7 @@ SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating +
 ---
 - order [(yr, Asc)]
   - project [publisher_id as publisher_id, release_year as yr, avg(rating) as avg_rating, avg((rating Add Num(1.0))) as avg_rating_plus]
-    - aggregate [group_by=[release_year, publisher_id], aggregates=[avg(rating), avg((rating Add Num(1.0)))]]
+    - aggregate [group_by=[release_year, publisher_id], aggregates=[avg((rating Add Num(1.0))), avg(rating)]]
       - scan [books as b]
 
 

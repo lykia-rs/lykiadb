@@ -20,6 +20,7 @@ use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{RV, eval::eval_binary};
 
+use std::fmt::Display;
 use std::sync::Arc;
 use std::vec;
 
@@ -207,7 +208,8 @@ impl Interpreter {
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         let distance = self
             .current_program
-            .as_ref().and_then(|x| x.get_distance(expr));
+            .as_ref()
+            .and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(
                 &self.env,
@@ -606,6 +608,21 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 pub struct Aggregation {
     pub name: String,
     pub args: Vec<Expr>,
+}
+
+impl Display for Aggregation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({})",
+            self.name,
+            self.args
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
 }
 
 #[derive(Clone)]

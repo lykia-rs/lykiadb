@@ -9,12 +9,13 @@ use crate::{
 use lykiadb_lang::ast::{
     Spanned,
     expr::Expr,
-    sql::{SqlFrom, SqlJoinType, SqlProjection, SqlSelect, SqlSelectCore, SqlSource},
+    sql::{SqlProjection, SqlSelect, SqlSelectCore},
     visitor::VisitorMut,
 };
 
 use super::{
-    IntermediateExpr, Node, Plan, PlannerError, aggregates::collect_aggregates, scope::Scope,
+    IntermediateExpr, Node, Plan, PlannerError, aggregation::collect_aggregates, from::build_from,
+    scope::Scope,
 };
 
 pub struct Planner<'a> {
@@ -61,12 +62,12 @@ impl<'a> Planner<'a> {
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
 
-        let mut parent_scope = Scope::new();
+        let mut core_scope = Scope::new();
 
         // Source: The data flow starts from a source, which is a collection or a
         // subquery.
         if let Some(from) = &core.from {
-            node = self.build_source(from, &mut parent_scope)?;
+            node = build_from(self, from, &mut core_scope)?;
         }
 
         // Filter: The source is then filtered, and the result is passed to the next
@@ -123,7 +124,6 @@ impl<'a> Planner<'a> {
             };
         }
 
-
         // PostProjection-Filter: After the aggregated data is projected, we can filter the
         // result using the HAVING clause. In earlier stages, we already collected
         // the aggregates from the projection and the having clause. As we already
@@ -154,7 +154,7 @@ impl<'a> Planner<'a> {
         self.interpreter.visit_expr(expr)
     }
 
-    fn build_expr(
+    pub fn build_expr(
         &mut self,
         expr: &Expr,
         allow_subqueries: bool,
@@ -188,7 +188,7 @@ impl<'a> Planner<'a> {
         Ok((IntermediateExpr::Expr { expr: expr.clone() }, subqueries))
     }
 
-    fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+    pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
 
         if let Some(order_by) = &query.order_by {
@@ -227,85 +227,5 @@ impl<'a> Planner<'a> {
         }
 
         Ok(node)
-    }
-
-    // The source can be of following types:
-
-    // - Collection: A regular db collection.
-    // - Expr: An expression that returns a set of data.
-    // - Subquery: A subquery that returns a set of data.
-    // - Join: A join between two or more sources.
-    // - Group: Cartesian product of two or more sources.
-    fn build_source(
-        &mut self,
-        from: &SqlFrom,
-        parent_scope: &mut Scope,
-    ) -> Result<Node, HaltReason> {
-        let mut scope = Scope::new();
-
-        let node = match from {
-            SqlFrom::Source(source) => {
-                let wrapped = match source {
-                    SqlSource::Collection(ident) => Node::Scan {
-                        source: ident.clone(),
-                        filter: None,
-                    },
-                    SqlSource::Expr(expr) => Node::EvalScan {
-                        source: expr.clone(),
-                        filter: None,
-                    },
-                };
-
-                if let Err(err) = scope.add_source(source.clone()) {
-                    return Err(HaltReason::Error(ExecutionError::Plan(err)));
-                }
-
-                Ok(wrapped)
-            }
-            SqlFrom::Select { subquery, alias } => {
-                let node = Node::Subquery {
-                    source: Box::new(self.build_select(subquery)?),
-                    alias: alias.clone(),
-                };
-                Ok(node)
-            }
-            SqlFrom::Group { values } => {
-                let mut froms = values.iter();
-                let mut node = self.build_source(froms.next().unwrap(), &mut scope)?;
-                for right in froms {
-                    node = Node::Join {
-                        left: Box::new(node),
-                        join_type: SqlJoinType::Cross,
-                        right: Box::new(self.build_source(right, &mut scope)?),
-                        constraint: None,
-                    }
-                }
-                Ok(node)
-            }
-            SqlFrom::Join {
-                left,
-                join_type,
-                right,
-                constraint,
-            } => {
-                let constraint = constraint
-                    .as_ref()
-                    .map(|x| self.build_expr(x, false, false))
-                    .transpose()?;
-
-                Ok(Node::Join {
-                    left: Box::new(self.build_source(left, &mut scope)?),
-                    join_type: join_type.clone(),
-                    right: Box::new(self.build_source(right, &mut scope)?),
-                    constraint: constraint.map(|x| x.0),
-                })
-            }
-        };
-
-        if let Err(err) = parent_scope.merge(scope) {
-            return Err(HaltReason::Error(ExecutionError::Plan(err)));
-        }
-
-        node
     }
 }

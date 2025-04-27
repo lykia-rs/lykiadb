@@ -114,7 +114,7 @@ pub fn report_error(
                 span,
             );
         }
-        ExecutionError::Plan(PlannerError::DuplicateObjectInScope { previous, .. }) => {
+        ExecutionError::Plan(PlannerError::DuplicateObjectInScope(previous)) => {
             print(
                 "Duplicate object in scope",
                 &format!("Object {} is already defined in the scope.", previous.name),
@@ -292,10 +292,9 @@ mod tests {
     #[test]
     fn test_planner_duplicate_object() {
         let source = "Select * from users, users;";
-        let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope {
-            previous: Identifier::new("users", false),
-            ident: Identifier::new("users", false),
-        });
+        let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope(Identifier::new(
+            "users", false,
+        )));
 
         let output = capture_error_output("test.txt", source, error);
         assert!(output.contains("Duplicate object in scope"));
