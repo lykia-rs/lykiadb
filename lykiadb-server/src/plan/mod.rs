@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{engine::interpreter::Aggregation, value::RV};
 
-mod aggregates;
 pub mod planner;
+mod aggregation;
+mod from;
 mod scope;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
