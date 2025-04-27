@@ -61,12 +61,12 @@ impl<'a> Planner<'a> {
     fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
         let mut node: Node = Node::Nothing;
 
-        let mut parent_scope = Scope::new();
+        let mut core_scope = Scope::new();
 
         // Source: The data flow starts from a source, which is a collection or a
         // subquery.
         if let Some(from) = &core.from {
-            node = self.build_source(from, &mut parent_scope)?;
+            node = self.build_source(from, &mut core_scope)?;
         }
 
         // Filter: The source is then filtered, and the result is passed to the next
@@ -122,7 +122,6 @@ impl<'a> Planner<'a> {
                 fields: core.projection.clone(),
             };
         }
-
 
         // PostProjection-Filter: After the aggregated data is projected, we can filter the
         // result using the HAVING clause. In earlier stages, we already collected

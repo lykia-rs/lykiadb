@@ -16,10 +16,10 @@ use lykiadb_lang::ast::{
 
 use super::PlannerError;
 
-// Collects all the aggregates from the projection and the having clause.
-// The aggregates are stored in a HashSet to avoid duplicates and then
-// returned as a Vec<Aggregation>. For the time being, we only find
-// aggregates in the projection and the having clause.
+/// Collects all the aggregates from the projection and the having clause.
+/// The aggregates are stored in a HashSet to avoid duplicates and then
+/// returned as a Vec<Aggregation>. For the time being, we only find
+/// aggregates in the projection and the having clause.
 pub fn collect_aggregates(
     core: &SqlSelectCore,
     interpreter: &mut Interpreter,
@@ -42,7 +42,9 @@ pub fn collect_aggregates(
         }
     }
 
-    let no_dup = aggregates.drain().collect();
+    let mut no_dup: Vec<Aggregation> = aggregates.drain().collect();
+
+    no_dup.sort_by(|a, b| a.to_string().cmp(&b.to_string()));
 
     Ok(no_dup)
 }
