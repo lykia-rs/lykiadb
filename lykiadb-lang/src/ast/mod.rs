@@ -83,11 +83,20 @@ impl Hash for Literal {
 impl Eq for Literal {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
+pub enum IdentifierKind {
+    #[serde(rename = "IdentifierKind::ForcedVariable")]
+    ForcedVariable,
+    #[serde(rename = "IdentifierKind::Plain")]
+    Plain,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[serde(tag = "@type")]
 #[derivative(Eq, PartialEq, Hash)]
 pub struct Identifier {
     pub name: String,
-    pub dollar: bool,
+    pub kind: IdentifierKind,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
@@ -95,10 +104,10 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub fn new(name: &str, dollar: bool) -> Self {
+    pub fn new(name: &str, kind: IdentifierKind) -> Self {
         Identifier {
             name: name.to_string(),
-            dollar,
+            kind,
             span: Span::default(),
         }
     }

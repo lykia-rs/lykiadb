@@ -27,7 +27,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Plain",
                             "name": "employees"
                           },
                           "namespace": null
@@ -39,7 +39,7 @@ assert_parsing! {
                         "@type": "Expr::FieldPath",
                         "head": {
                           "@type": "Identifier",
-                          "dollar": false,
+                          "kind": "IdentifierKind::Plain",
                           "name": "department_id"
                         },
                         "tail": []
@@ -57,7 +57,7 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "dollar": false,
+                                "kind": "IdentifierKind::Plain",
                                 "name": "salary"
                               },
                               "tail": []
@@ -67,7 +67,7 @@ assert_parsing! {
                             "@type": "Expr::Variable",
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "avg"
                             }
                           }
@@ -108,7 +108,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Plain",
                             "name": "employees"
                           },
                           "namespace": null
@@ -120,7 +120,7 @@ assert_parsing! {
                         "@type": "Expr::FieldPath",
                         "head": {
                           "@type": "Identifier",
-                          "dollar": false,
+                          "kind": "IdentifierKind::Plain",
                           "name": "department_id"
                         },
                         "tail": []
@@ -135,7 +135,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "salary"
                             },
                             "tail": []
@@ -145,7 +145,7 @@ assert_parsing! {
                           "@type": "Expr::Variable",
                           "name": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Plain",
                             "name": "avg"
                           }
                         }
@@ -172,7 +172,7 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "dollar": false,
+                                "kind": "IdentifierKind::Plain",
                                 "name": "salary"
                               },
                               "tail": []
@@ -182,7 +182,7 @@ assert_parsing! {
                             "@type": "Expr::Variable",
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "avg"
                             }
                           }
@@ -223,7 +223,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Plain",
                             "name": "employees"
                           },
                           "namespace": null
@@ -235,7 +235,7 @@ assert_parsing! {
                         "@type": "Expr::FieldPath",
                         "head": {
                           "@type": "Identifier",
-                          "dollar": false,
+                          "kind": "IdentifierKind::Plain",
                           "name": "department_id"
                         },
                         "tail": []
@@ -244,7 +244,7 @@ assert_parsing! {
                         "@type": "Expr::FieldPath",
                         "head": {
                           "@type": "Identifier",
-                          "dollar": false,
+                          "kind": "IdentifierKind::Plain",
                           "name": "job_id"
                         },
                         "tail": []
@@ -259,7 +259,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "salary"
                             },
                             "tail": []
@@ -269,7 +269,7 @@ assert_parsing! {
                           "@type": "Expr::Variable",
                           "name": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Plain",
                             "name": "avg"
                           }
                         }
@@ -296,7 +296,7 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "dollar": false,
+                                "kind": "IdentifierKind::Plain",
                                 "name": "salary"
                               },
                               "tail": []
@@ -306,7 +306,7 @@ assert_parsing! {
                             "@type": "Expr::Variable",
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "avg"
                             }
                           }

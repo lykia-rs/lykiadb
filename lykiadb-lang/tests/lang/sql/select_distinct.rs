@@ -27,7 +27,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "users"
                             },
                             "namespace": null
@@ -44,7 +44,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "surname"
                             },
                             "tail": []
@@ -85,7 +85,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "users"
                             },
                             "namespace": null
@@ -102,7 +102,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "surname"
                             },
                             "tail": []
@@ -143,7 +143,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "users"
                             },
                             "namespace": null
@@ -160,7 +160,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Plain",
                               "name": "surname"
                             },
                             "tail": []

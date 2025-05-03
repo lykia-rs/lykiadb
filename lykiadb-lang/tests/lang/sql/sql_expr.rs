@@ -33,7 +33,7 @@ assert_parsing! {
                         "name": {
                           "@type": "Identifier",
                           "name": "users",
-                          "dollar": false
+                          "kind": "IdentifierKind::Plain"
                         },
                         "alias": null
                       }
@@ -49,7 +49,7 @@ assert_parsing! {
                       "head": {
                         "@type": "Identifier",
                         "name": "id",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "tail": []
                     },
@@ -72,7 +72,7 @@ assert_parsing! {
                                   "head": {
                                     "@type": "Identifier",
                                     "name": "id",
-                                    "dollar": false
+                                    "kind": "IdentifierKind::Plain"
                                   },
                                   "tail": []
                                 },
@@ -88,7 +88,7 @@ assert_parsing! {
                                   "name": {
                                     "@type": "Identifier",
                                     "name": "users",
-                                    "dollar": false
+                                    "kind": "IdentifierKind::Plain"
                                   },
                                   "alias": null
                                 }
@@ -147,7 +147,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -163,7 +163,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -186,7 +186,7 @@ assert_parsing! {
                                 "head": {
                                   "@type": "Identifier",
                                   "name": "id",
-                                  "dollar": false
+                                  "kind": "IdentifierKind::Plain"
                                 },
                                 "tail": []
                               },
@@ -202,7 +202,7 @@ assert_parsing! {
                                 "name": {
                                   "@type": "Identifier",
                                   "name": "users",
-                                  "dollar": false
+                                  "kind": "IdentifierKind::Plain"
                                 },
                                 "alias": null
                               }
@@ -261,7 +261,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -277,7 +277,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -339,7 +339,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -355,7 +355,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -416,7 +416,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -432,7 +432,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -486,7 +486,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -502,7 +502,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -556,7 +556,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -572,7 +572,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },
@@ -626,7 +626,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Plain"
                       },
                       "alias": null
                     }
@@ -642,7 +642,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "dollar": false
+                      "kind": "IdentifierKind::Plain"
                     },
                     "tail": []
                   },

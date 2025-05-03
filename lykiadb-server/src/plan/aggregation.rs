@@ -152,9 +152,7 @@ fn collect_aggregates_from_expr(
 mod tests {
     use super::*;
     use lykiadb_lang::ast::{
-        Identifier, Span,
-        expr::Expr,
-        sql::{SqlProjection, SqlSelectCore},
+        expr::Expr, sql::{SqlProjection, SqlSelectCore}, Identifier, IdentifierKind, Span
     };
 
     fn create_test_interpreter() -> Interpreter {
@@ -167,7 +165,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("avg", false),
+                name: Identifier::new("avg", IdentifierKind::Plain),
                 span: Span::default(),
                 id: 0,
             }),
@@ -200,7 +198,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("avg", false),
+                name: Identifier::new("avg", IdentifierKind::Plain),
                 span: Span::default(),
                 id: 0,
             }),
@@ -230,7 +228,7 @@ mod tests {
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("avg", false),
+                name: Identifier::new("avg", IdentifierKind::Plain),
                 span: Span::default(),
                 id: 0,
             }),
@@ -241,7 +239,7 @@ mod tests {
 
         let outer_avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("avg", false),
+                name: Identifier::new("avg", IdentifierKind::Plain),
                 span: Span::default(),
                 id: 0,
             }),

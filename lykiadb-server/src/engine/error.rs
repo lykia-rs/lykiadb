@@ -147,7 +147,7 @@ mod tests {
 
     use super::*;
     use lykiadb_lang::{
-        ast::{Identifier, Literal},
+        ast::{Identifier, IdentifierKind, Literal},
         kw, sym,
         tokenizer::token::{Keyword, Symbol, Token, TokenType},
     };
@@ -293,7 +293,7 @@ mod tests {
     fn test_planner_duplicate_object() {
         let source = "Select * from users, users;";
         let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope(Identifier::new(
-            "users", false,
+            "users", IdentifierKind::Plain,
         )));
 
         let output = capture_error_output("test.txt", source, error);
