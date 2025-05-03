@@ -24,7 +24,7 @@ assert_parsing! {
                     "@type": "Expr::Variable",
                     "name": {
                       "@type": "Identifier",
-                      "kind": "IdentifierKind::ForcedVariable",
+                      "kind": "IdentifierKind::Variable",
                       "name": "$hello"
                     }
                   }

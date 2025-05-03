@@ -277,9 +277,9 @@ impl Token {
             TokenType::Identifier { dollar } => Some(Identifier {
                 name: self.lexeme.clone().unwrap(),
                 kind: if *dollar {
-                    IdentifierKind::ForcedVariable
+                    IdentifierKind::Variable
                 } else {
-                    IdentifierKind::Plain
+                    IdentifierKind::Symbol
                 },
                 span: self.span,
             }),

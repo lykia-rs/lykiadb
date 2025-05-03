@@ -293,7 +293,7 @@ mod tests {
     fn test_planner_duplicate_object() {
         let source = "Select * from users, users;";
         let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope(Identifier::new(
-            "users", IdentifierKind::Plain,
+            "users", IdentifierKind::Symbol,
         )));
 
         let output = capture_error_output("test.txt", source, error);

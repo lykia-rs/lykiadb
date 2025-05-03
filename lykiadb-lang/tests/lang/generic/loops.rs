@@ -45,7 +45,7 @@ assert_parsing! {
                           "@type": "Expr::Variable",
                           "name": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "print"
                           }
                         }
@@ -70,7 +70,7 @@ assert_parsing! {
                     "@type": "Stmt::Declaration",
                     "dst": {
                       "@type": "Identifier",
-                      "kind": "IdentifierKind::ForcedVariable",
+                      "kind": "IdentifierKind::Variable",
                       "name": "$i"
                     },
                     "expr": {
@@ -93,7 +93,7 @@ assert_parsing! {
                         "@type": "Expr::Variable",
                         "name": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::ForcedVariable",
+                          "kind": "IdentifierKind::Variable",
                           "name": "$i"
                         }
                       },
@@ -114,7 +114,7 @@ assert_parsing! {
                         "@type": "Expr::Assignment",
                         "dst": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::ForcedVariable",
+                          "kind": "IdentifierKind::Variable",
                           "name": "$i"
                         },
                         "expr": {
@@ -123,7 +123,7 @@ assert_parsing! {
                             "@type": "Expr::Variable",
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::ForcedVariable",
+                              "kind": "IdentifierKind::Variable",
                               "name": "$i"
                             }
                           },
@@ -157,7 +157,7 @@ assert_parsing! {
                     "@type": "Stmt::Declaration",
                     "dst": {
                       "@type": "Identifier",
-                      "kind": "IdentifierKind::ForcedVariable",
+                      "kind": "IdentifierKind::Variable",
                       "name": "$i"
                     },
                     "expr": {
@@ -182,7 +182,7 @@ assert_parsing! {
                                 "@type": "Expr::Variable",
                                 "name": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::ForcedVariable",
+                                  "kind": "IdentifierKind::Variable",
                                   "name": "$i"
                                 }
                               }
@@ -191,7 +191,7 @@ assert_parsing! {
                               "@type": "Expr::Variable",
                               "name": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "print"
                               }
                             }
@@ -205,7 +205,7 @@ assert_parsing! {
                         "@type": "Expr::Variable",
                         "name": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::ForcedVariable",
+                          "kind": "IdentifierKind::Variable",
                           "name": "$i"
                         }
                       },
@@ -226,7 +226,7 @@ assert_parsing! {
                         "@type": "Expr::Assignment",
                         "dst": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::ForcedVariable",
+                          "kind": "IdentifierKind::Variable",
                           "name": "$i"
                         },
                         "expr": {
@@ -235,7 +235,7 @@ assert_parsing! {
                             "@type": "Expr::Variable",
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::ForcedVariable",
+                              "kind": "IdentifierKind::Variable",
                               "name": "$i"
                             }
                           },

@@ -27,7 +27,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -76,7 +76,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -86,7 +86,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "admins"
                             },
                             "namespace": null
@@ -134,12 +134,12 @@ assert_parsing! {
                             "@type": "SqlCollectionIdentifier",
                             "alias": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "u"
                             },
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -148,12 +148,12 @@ assert_parsing! {
                             "@type": "SqlCollectionIdentifier",
                             "alias": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "a"
                             },
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "admins"
                             },
                             "namespace": null
@@ -201,7 +201,7 @@ assert_parsing! {
                             "@type": "SqlFrom::Select",
                             "alias": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "u"
                             },
                             "subquery": {
@@ -220,7 +220,7 @@ assert_parsing! {
                                         "alias": null,
                                         "name": {
                                           "@type": "Identifier",
-                                          "kind": "IdentifierKind::Plain",
+                                          "kind": "IdentifierKind::Symbol",
                                           "name": "users"
                                         },
                                         "namespace": null
@@ -284,14 +284,14 @@ assert_parsing! {
                           "@type": "SqlExpressionSource",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "u"
                           },
                           "expr":{
                               "@type": "Expr::Variable",
                               "name": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::ForcedVariable",
+                                  "kind": "IdentifierKind::Variable",
                                   "name": "$users"
                               }
                           }
@@ -339,12 +339,12 @@ assert_parsing! {
                         "@type": "SqlCollectionIdentifier",
                         "alias":  {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::Plain",
+                          "kind": "IdentifierKind::Symbol",
                           "name": "i"
                         },
                         "name": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::Plain",
+                          "kind": "IdentifierKind::Symbol",
                           "name": "items"
                         },
                         "namespace": null
@@ -353,7 +353,7 @@ assert_parsing! {
                         "@type": "SqlExpressionSource",
                         "alias": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::Plain",
+                          "kind": "IdentifierKind::Symbol",
                           "name": "u"
                         },
                         "expr": {

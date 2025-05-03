@@ -33,7 +33,7 @@ assert_parsing! {
                         "name": {
                           "@type": "Identifier",
                           "name": "users",
-                          "kind": "IdentifierKind::Plain"
+                          "kind": "IdentifierKind::Symbol"
                         },
                         "alias": null
                       }
@@ -49,7 +49,7 @@ assert_parsing! {
                       "head": {
                         "@type": "Identifier",
                         "name": "id",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "tail": []
                     },
@@ -72,7 +72,7 @@ assert_parsing! {
                                   "head": {
                                     "@type": "Identifier",
                                     "name": "id",
-                                    "kind": "IdentifierKind::Plain"
+                                    "kind": "IdentifierKind::Symbol"
                                   },
                                   "tail": []
                                 },
@@ -88,7 +88,7 @@ assert_parsing! {
                                   "name": {
                                     "@type": "Identifier",
                                     "name": "users",
-                                    "kind": "IdentifierKind::Plain"
+                                    "kind": "IdentifierKind::Symbol"
                                   },
                                   "alias": null
                                 }
@@ -147,7 +147,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -163,7 +163,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -186,7 +186,7 @@ assert_parsing! {
                                 "head": {
                                   "@type": "Identifier",
                                   "name": "id",
-                                  "kind": "IdentifierKind::Plain"
+                                  "kind": "IdentifierKind::Symbol"
                                 },
                                 "tail": []
                               },
@@ -202,7 +202,7 @@ assert_parsing! {
                                 "name": {
                                   "@type": "Identifier",
                                   "name": "users",
-                                  "kind": "IdentifierKind::Plain"
+                                  "kind": "IdentifierKind::Symbol"
                                 },
                                 "alias": null
                               }
@@ -261,7 +261,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -277,7 +277,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -339,7 +339,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -355,7 +355,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -416,7 +416,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -432,7 +432,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -486,7 +486,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -502,7 +502,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -556,7 +556,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -572,7 +572,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -626,7 +626,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "kind": "IdentifierKind::Plain"
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -642,7 +642,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "kind": "IdentifierKind::Plain"
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },

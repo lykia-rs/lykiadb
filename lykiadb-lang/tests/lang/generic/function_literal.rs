@@ -14,14 +14,14 @@ assert_parsing! {
                   "body": [],
                   "name": {
                     "@type": "Identifier",
-                    "kind": "IdentifierKind::ForcedVariable",
+                    "kind": "IdentifierKind::Variable",
                     "name": "$a"
                   },
                   "parameters": [
                     [
                       {
                         "@type": "Identifier",
-                        "kind": "IdentifierKind::ForcedVariable",
+                        "kind": "IdentifierKind::Variable",
                         "name": "$x"
                       },
                       null
@@ -29,7 +29,7 @@ assert_parsing! {
                     [
                       {
                         "@type": "Identifier",
-                        "kind": "IdentifierKind::ForcedVariable",
+                        "kind": "IdentifierKind::Variable",
                         "name": "$y"
                       },
                       null
@@ -52,7 +52,7 @@ assert_parsing! {
                 "body": [],
                 "name": {
                   "@type": "Identifier",
-                  "kind": "IdentifierKind::ForcedVariable",
+                  "kind": "IdentifierKind::Variable",
                   "name": "$make_counter"
                 },
                 "parameters": [],

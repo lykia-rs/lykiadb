@@ -33,7 +33,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -43,7 +43,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "orders"
                             },
                             "namespace": null
@@ -96,12 +96,12 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "orders"
                               },
                               "tail": [{
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "id"
                               }]
                             },
@@ -112,12 +112,12 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "carts"
                               },
                               "tail": [{
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "order_id"
                               }]
                             }
@@ -133,12 +133,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "id"
                                 }]
                               },
@@ -149,12 +149,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "orders"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "user_id"
                                 }]
                               }
@@ -167,7 +167,7 @@ assert_parsing! {
                               "alias": null,
                               "name": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "users"
                               },
                               "namespace": null
@@ -177,7 +177,7 @@ assert_parsing! {
                               "alias": null,
                               "name": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "orders"
                               },
                               "namespace": null
@@ -188,7 +188,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "order_items"
                             },
                             "namespace": null
@@ -243,12 +243,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "b"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "num"
                                 }]
                               },
@@ -259,12 +259,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "a"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "num"
                                 }]
                               }
@@ -278,12 +278,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "b"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "value"
                                 }]
                               },
@@ -307,7 +307,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "a"
                             },
                             "namespace": null
@@ -317,7 +317,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "b"
                             },
                             "namespace": null
@@ -391,12 +391,12 @@ assert_parsing! {
                             "@type": "SqlCollectionIdentifier",
                             "alias": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "a"
                             },
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "demo"
                             },
                             "namespace": null
@@ -405,12 +405,12 @@ assert_parsing! {
                             "@type": "SqlCollectionIdentifier",
                             "alias": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "b"
                             },
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "demo"
                             },
                             "namespace": null
@@ -425,7 +425,7 @@ assert_parsing! {
                         "@type": "SqlProjection::All",
                         "collection": {
                           "@type": "Identifier",
-                          "kind": "IdentifierKind::Plain",
+                          "kind": "IdentifierKind::Symbol",
                           "name": "a"
                         }
                       }
@@ -470,12 +470,12 @@ assert_parsing! {
                                   "@type": "Expr::FieldPath",
                                   "head": {
                                     "@type": "Identifier",
-                                    "kind": "IdentifierKind::Plain",
+                                    "kind": "IdentifierKind::Symbol",
                                     "name": "c"
                                   },
                                   "tail": [{
                                     "@type": "Identifier",
-                                    "kind": "IdentifierKind::Plain",
+                                    "kind": "IdentifierKind::Symbol",
                                     "name": "id"
                                   }]
                                 },
@@ -486,12 +486,12 @@ assert_parsing! {
                                   "@type": "Expr::FieldPath",
                                   "head": {
                                     "@type": "Identifier",
-                                    "kind": "IdentifierKind::Plain",
+                                    "kind": "IdentifierKind::Symbol",
                                     "name": "d"
                                   },
                                   "tail": [{
                                     "@type": "Identifier",
-                                    "kind": "IdentifierKind::Plain",
+                                    "kind": "IdentifierKind::Symbol",
                                     "name": "id"
                                   }]
                                 }
@@ -503,7 +503,7 @@ assert_parsing! {
                                 "@type": "SqlFrom::Select",
                                 "alias": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "c"
                                 },
                                 "subquery": {
@@ -525,12 +525,12 @@ assert_parsing! {
                                                 "@type": "Expr::FieldPath",
                                                 "head": {
                                                   "@type": "Identifier",
-                                                  "kind": "IdentifierKind::Plain",
+                                                  "kind": "IdentifierKind::Symbol",
                                                   "name": "a"
                                                 },
                                                 "tail": [{
                                                   "@type": "Identifier",
-                                                  "kind": "IdentifierKind::Plain",
+                                                  "kind": "IdentifierKind::Symbol",
                                                   "name": "id"
                                                 }]
                                               },
@@ -541,12 +541,12 @@ assert_parsing! {
                                                 "@type": "Expr::FieldPath",
                                                 "head": {
                                                   "@type": "Identifier",
-                                                  "kind": "IdentifierKind::Plain",
+                                                  "kind": "IdentifierKind::Symbol",
                                                   "name": "b"
                                                 },
                                                 "tail": [{
                                                   "@type": "Identifier",
-                                                  "kind": "IdentifierKind::Plain",
+                                                  "kind": "IdentifierKind::Symbol",
                                                   "name": "id"
                                                 }]
                                               }
@@ -558,12 +558,12 @@ assert_parsing! {
                                               "@type": "SqlCollectionIdentifier",
                                               "alias": {
                                                 "@type": "Identifier",
-                                                "kind": "IdentifierKind::Plain",
+                                                "kind": "IdentifierKind::Symbol",
                                                 "name": "a"
                                               },
                                               "name": {
                                                 "@type": "Identifier",
-                                                "kind": "IdentifierKind::Plain",
+                                                "kind": "IdentifierKind::Symbol",
                                                 "name": "demo"
                                               },
                                               "namespace": null
@@ -572,12 +572,12 @@ assert_parsing! {
                                               "@type": "SqlCollectionIdentifier",
                                               "alias": {
                                                 "@type": "Identifier",
-                                                "kind": "IdentifierKind::Plain",
+                                                "kind": "IdentifierKind::Symbol",
                                                 "name": "b"
                                               },
                                               "name": {
                                                 "@type": "Identifier",
-                                                "kind": "IdentifierKind::Plain",
+                                                "kind": "IdentifierKind::Symbol",
                                                 "name": "demo"
                                               },
                                               "namespace": null
@@ -603,12 +603,12 @@ assert_parsing! {
                                 "@type": "SqlCollectionIdentifier",
                                 "alias": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "d"
                                 },
                                 "name": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "demo"
                                 },
                                 "namespace": null
@@ -663,12 +663,12 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "baskets"
                               },
                               "tail": [{
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "order_id"
                               }]
                             },
@@ -679,12 +679,12 @@ assert_parsing! {
                               "@type": "Expr::FieldPath",
                               "head": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "orders"
                               },
                               "tail": [{
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "id"
                               }]
                             }
@@ -700,12 +700,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "id"
                                 }]
                               },
@@ -716,12 +716,12 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "orders"
                                 },
                                 "tail": [{
                                   "@type": "Identifier",
-                                  "kind": "IdentifierKind::Plain",
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "user_id"
                                 }]
                               }
@@ -734,7 +734,7 @@ assert_parsing! {
                               "alias": null,
                               "name": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "users"
                               },
                               "namespace": null
@@ -744,7 +744,7 @@ assert_parsing! {
                               "alias": null,
                               "name": {
                                 "@type": "Identifier",
-                                "kind": "IdentifierKind::Plain",
+                                "kind": "IdentifierKind::Symbol",
                                 "name": "orders"
                               },
                               "namespace": null
@@ -755,7 +755,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "baskets"
                             },
                             "namespace": null

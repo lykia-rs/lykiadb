@@ -347,7 +347,7 @@ impl ExprParser {
         let expr = self.primary(cparser)?;
 
         if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if name.kind == IdentifierKind::Plain {
+            if name.kind == IdentifierKind::Symbol {
                 let next_tok = &cparser.peek_bw(0).tok_type;
 
                 if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))

@@ -85,10 +85,10 @@ impl Eq for Literal {}
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Eq, PartialEq, Hash)]
 pub enum IdentifierKind {
-    #[serde(rename = "IdentifierKind::ForcedVariable")]
-    ForcedVariable,
-    #[serde(rename = "IdentifierKind::Plain")]
-    Plain,
+    #[serde(rename = "IdentifierKind::Variable")]
+    Variable,
+    #[serde(rename = "IdentifierKind::Symbol")]
+    Symbol,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]

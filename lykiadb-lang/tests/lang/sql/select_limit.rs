@@ -27,7 +27,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "users"
                           },
                           "namespace": null
@@ -86,7 +86,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "users"
                           },
                           "namespace": null
@@ -151,7 +151,7 @@ assert_parsing! {
                           "alias": null,
                           "name": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "users"
                           },
                           "namespace": null

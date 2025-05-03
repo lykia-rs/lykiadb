@@ -27,7 +27,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -77,7 +77,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -91,7 +91,7 @@ assert_parsing! {
                           "@type": "SqlProjection::All",
                           "collection": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "users"
                           }
                         }
@@ -130,7 +130,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -147,7 +147,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "id"
                             },
                             "tail": []
@@ -157,19 +157,19 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "username"
                           },
                           "expr": {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "tail": [{
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "name"
                             }]
                           }
@@ -209,7 +209,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -223,7 +223,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "five"
                           },
                           "expr": {
@@ -238,7 +238,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "some_text"
                           },
                           "expr": {
@@ -284,7 +284,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "kind": "IdentifierKind::Plain",
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -298,7 +298,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "addition"
                           },
                           "expr": {
@@ -326,7 +326,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "division"
                           },
                           "expr": {
@@ -385,7 +385,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "addition"
                           },
                           "expr": {
@@ -413,7 +413,7 @@ assert_parsing! {
                           "@type": "SqlProjection::Expr",
                           "alias": {
                             "@type": "Identifier",
-                            "kind": "IdentifierKind::Plain",
+                            "kind": "IdentifierKind::Symbol",
                             "name": "division"
                           },
                           "expr": {

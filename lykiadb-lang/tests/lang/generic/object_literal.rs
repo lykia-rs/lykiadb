@@ -28,7 +28,7 @@ assert_parsing! {
               "@type": "Stmt::Declaration",
               "dst": {
                 "@type": "Identifier",
-                "kind": "IdentifierKind::ForcedVariable",
+                "kind": "IdentifierKind::Variable",
                 "name": "$obj"
               },
               "expr": {
@@ -82,7 +82,7 @@ assert_parsing! {
               "@type": "Stmt::Declaration",
               "dst": {
                 "@type": "Identifier",
-                "kind": "IdentifierKind::ForcedVariable",
+                "kind": "IdentifierKind::Variable",
                 "name": "$obj"
               },
               "expr": {

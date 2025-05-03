@@ -15,7 +15,7 @@ assert_parsing! {
               "@type": "Stmt::Declaration",
               "dst": {
                 "@type": "Identifier",
-                "kind": "IdentifierKind::ForcedVariable",
+                "kind": "IdentifierKind::Variable",
                 "name": "$result"
               },
               "expr": {
@@ -27,12 +27,12 @@ assert_parsing! {
                     "alias": null,
                     "name": {
                       "@type": "Identifier",
-                      "kind": "IdentifierKind::Plain",
+                      "kind": "IdentifierKind::Symbol",
                       "name": "users"
                     },
                     "namespace": {
                       "@type": "Identifier",
-                      "kind": "IdentifierKind::Plain",
+                      "kind": "IdentifierKind::Symbol",
                       "name": "db"
                     }
                   },
