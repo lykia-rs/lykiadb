@@ -665,5 +665,159 @@ assert_parsing! {
         }
       ]
     }
+  },
+  aggregate_call: {
+    "SELECT avg(id) FROM users;" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::Expr",
+                    "expr": {
+                      "@type": "Expr::Call",
+                      "callee": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "kind": "IdentifierKind::Symbol",
+                          "name": "avg"
+                        }
+                      },
+                      "args": [
+                        {
+                          "@type": "Expr::FieldPath",
+                          "head": {
+                            "@type": "Identifier",
+                            "name": "id",
+                            "kind": "IdentifierKind::Symbol"
+                          },
+                          "tail": []
+                        }
+                      ],
+                    },
+                    "alias": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": null,
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
+  },
+  function_call: {
+    "SELECT * FROM users WHERE id = $hello(50);" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::All",
+                    "collection": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": {
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "IsEqual"
+                  },
+                  "left": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
+                      "@type": "Identifier",
+                      "name": "id",
+                      "kind": "IdentifierKind::Symbol"
+                    },
+                    "tail": []
+                  },
+                  "right": {
+                    "@type": "Expr::Call",
+                    "callee": {
+                      "@type": "Expr::Variable",
+                      "name": {
+                        "@type": "Identifier",
+                        "kind": "IdentifierKind::Variable",
+                        "name": "$hello"
+                      }
+                    },
+                    "args": [
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "50",
+                        "value": {
+                          "Num": 50.0
+                        }
+                      }
+                    ]
+                  }
+                },
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
   }
 }
