@@ -14,14 +14,14 @@ assert_parsing! {
                   "body": [],
                   "name": {
                     "@type": "Identifier",
-                    "dollar": true,
+                    "kind": "IdentifierKind::Variable",
                     "name": "$a"
                   },
                   "parameters": [
                     [
                       {
                         "@type": "Identifier",
-                        "dollar": true,
+                        "kind": "IdentifierKind::Variable",
                         "name": "$x"
                       },
                       null
@@ -29,7 +29,7 @@ assert_parsing! {
                     [
                       {
                         "@type": "Identifier",
-                        "dollar": true,
+                        "kind": "IdentifierKind::Variable",
                         "name": "$y"
                       },
                       null
@@ -52,7 +52,7 @@ assert_parsing! {
                 "body": [],
                 "name": {
                   "@type": "Identifier",
-                  "dollar": true,
+                  "kind": "IdentifierKind::Variable",
                   "name": "$make_counter"
                 },
                 "parameters": [],

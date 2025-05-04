@@ -1,7 +1,7 @@
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{Identifier, Literal, Span};
+use crate::ast::{Identifier, IdentifierKind, Literal, Span};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
@@ -276,7 +276,11 @@ impl Token {
         match &self.tok_type {
             TokenType::Identifier { dollar } => Some(Identifier {
                 name: self.lexeme.clone().unwrap(),
-                dollar: *dollar,
+                kind: if *dollar {
+                    IdentifierKind::Variable
+                } else {
+                    IdentifierKind::Symbol
+                },
                 span: self.span,
             }),
             _ => None,

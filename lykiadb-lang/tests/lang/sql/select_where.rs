@@ -27,7 +27,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -48,7 +48,7 @@ assert_parsing! {
                           "@type": "Expr::FieldPath",
                           "head": {
                             "@type": "Identifier",
-                            "dollar": false,
+                            "kind": "IdentifierKind::Symbol",
                             "name": "id"
                           },
                           "tail": []
@@ -97,7 +97,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -120,7 +120,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "id"
                             },
                             "tail": []
@@ -145,7 +145,7 @@ assert_parsing! {
                             "@type": "Expr::FieldPath",
                             "head": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "name"
                             },
                             "tail": []
@@ -195,7 +195,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -222,7 +222,7 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "id"
                                 },
                                 "tail": []
@@ -247,7 +247,7 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "name"
                                 },
                                 "tail": []
@@ -278,7 +278,7 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "id"
                                 },
                                 "tail": []
@@ -303,7 +303,7 @@ assert_parsing! {
                                 "@type": "Expr::FieldPath",
                                 "head": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "name"
                                 },
                                 "tail": []

@@ -28,7 +28,7 @@ assert_parsing! {
                 "@type": "Stmt::Declaration",
                 "dst": {
                   "@type": "Identifier",
-                  "dollar": true,
+                  "kind": "IdentifierKind::Variable",
                   "name": "$arr"
                 },
                 "expr": {
@@ -50,7 +50,7 @@ assert_parsing! {
                 "@type": "Stmt::Declaration",
                 "dst": {
                   "@type": "Identifier",
-                  "dollar": true,
+                  "kind": "IdentifierKind::Variable",
                   "name": "$arr"
                 },
                 "expr": {
@@ -102,7 +102,7 @@ assert_parsing! {
                 "@type": "Stmt::Declaration",
                 "dst": {
                   "@type": "Identifier",
-                  "dollar": true,
+                  "kind": "IdentifierKind::Variable",
                   "name": "$arr"
                 },
                 "expr": {

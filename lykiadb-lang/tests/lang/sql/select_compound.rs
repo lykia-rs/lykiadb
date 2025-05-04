@@ -31,7 +31,7 @@ assert_parsing! {
                                 "alias": null,
                                 "name": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "namespace": null
@@ -63,7 +63,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -116,7 +116,7 @@ assert_parsing! {
                                 "alias": null,
                                 "name": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "namespace": null
@@ -148,7 +148,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -201,7 +201,7 @@ assert_parsing! {
                                 "alias": null,
                                 "name": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "namespace": null
@@ -233,7 +233,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null
@@ -290,7 +290,7 @@ assert_parsing! {
                                     "alias": null,
                                     "name": {
                                       "@type": "Identifier",
-                                      "dollar": false,
+                                      "kind": "IdentifierKind::Symbol",
                                       "name": "users"
                                     },
                                     "namespace": null
@@ -322,7 +322,7 @@ assert_parsing! {
                                 "alias": null,
                                 "name": {
                                   "@type": "Identifier",
-                                  "dollar": false,
+                                  "kind": "IdentifierKind::Symbol",
                                   "name": "users"
                                 },
                                 "namespace": null
@@ -354,7 +354,7 @@ assert_parsing! {
                             "alias": null,
                             "name": {
                               "@type": "Identifier",
-                              "dollar": false,
+                              "kind": "IdentifierKind::Symbol",
                               "name": "users"
                             },
                             "namespace": null

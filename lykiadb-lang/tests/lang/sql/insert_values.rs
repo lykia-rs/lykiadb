@@ -15,7 +15,7 @@ assert_parsing! {
               "@type": "Stmt::Declaration",
               "dst": {
                 "@type": "Identifier",
-                "dollar": true,
+                "kind": "IdentifierKind::Variable",
                 "name": "$result"
               },
               "expr": {
@@ -27,12 +27,12 @@ assert_parsing! {
                     "alias": null,
                     "name": {
                       "@type": "Identifier",
-                      "dollar": false,
+                      "kind": "IdentifierKind::Symbol",
                       "name": "users"
                     },
                     "namespace": {
                       "@type": "Identifier",
-                      "dollar": false,
+                      "kind": "IdentifierKind::Symbol",
                       "name": "db"
                     }
                   },

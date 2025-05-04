@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::ast::expr::{Expr, Operation, RangeKind, TypeAnnotation};
 use crate::ast::stmt::Stmt;
-use crate::ast::{Literal, Spanned};
+use crate::ast::{IdentifierKind, Literal, Spanned};
 use crate::tokenizer::token::{
     Keyword::*, SqlKeyword::*, Symbol::*, Token, TokenType, TokenType::*,
 };
@@ -347,10 +347,10 @@ impl ExprParser {
         let expr = self.primary(cparser)?;
 
         if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if !name.dollar {
+            if name.kind == IdentifierKind::Symbol {
                 let next_tok = &cparser.peek_bw(0).tok_type;
 
-                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
+                if ((next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && next_tok != &sym!(DoubleColon))
                     && cparser.get_count("in_select_depth") > 0
                 {
                     let head = name.clone();

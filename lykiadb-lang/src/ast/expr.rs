@@ -509,7 +509,7 @@ impl Expr {
 pub mod test {
     use std::collections::HashSet;
 
-    use crate::ast::expr::Expr;
+    use crate::ast::{expr::Expr, IdentifierKind};
 
     use super::*;
 
@@ -519,7 +519,7 @@ pub mod test {
         {
             let simple_exprs = vec![
                 Expr::Variable {
-                    name: Identifier::new("x", false),
+                    name: Identifier::new("x", IdentifierKind::Symbol),
                     span: Span::default(),
                     id: 1,
                 },
@@ -530,13 +530,13 @@ pub mod test {
                     id: 2,
                 },
                 Expr::FieldPath {
-                    head: Identifier::new("user", false),
+                    head: Identifier::new("user", IdentifierKind::Symbol),
                     tail: vec![],
                     span: Span::default(),
                     id: 3,
                 },
                 Expr::Function {
-                    name: Some(Identifier::new("test", false)),
+                    name: Some(Identifier::new("test", IdentifierKind::Symbol)),
                     parameters: vec![],
                     return_type: None,
                     body: Arc::new(vec![]),
@@ -609,7 +609,7 @@ pub mod test {
         {
             let call_expr = Expr::Call {
                 callee: Box::new(Expr::Variable {
-                    name: Identifier::new("test_func", false),
+                    name: Identifier::new("test_func", IdentifierKind::Symbol),
                     span: Span::default(),
                     id: 1,
                 }),
@@ -655,7 +655,7 @@ pub mod test {
                     id: 2,
                 }),
                 subject: Box::new(Expr::Variable {
-                    name: Identifier::new("x", false),
+                    name: Identifier::new("x", IdentifierKind::Symbol),
                     span: Span::default(),
                     id: 3,
                 }),
@@ -676,11 +676,11 @@ pub mod test {
         {
             let get_expr = Expr::Get {
                 object: Box::new(Expr::Variable {
-                    name: Identifier::new("obj", false),
+                    name: Identifier::new("obj", IdentifierKind::Symbol),
                     span: Span::default(),
                     id: 1,
                 }),
-                name: Identifier::new("prop", false),
+                name: Identifier::new("prop", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 2,
             };
@@ -694,11 +694,11 @@ pub mod test {
 
             let set_expr = Expr::Set {
                 object: Box::new(Expr::Variable {
-                    name: Identifier::new("obj", false),
+                    name: Identifier::new("obj", IdentifierKind::Symbol),
                     span: Span::default(),
                     id: 1,
                 }),
-                name: Identifier::new("prop", false),
+                name: Identifier::new("prop", IdentifierKind::Symbol),
                 value: Box::new(Expr::Literal {
                     value: Literal::Num(42.0),
                     raw: "42".to_string(),
@@ -722,7 +722,7 @@ pub mod test {
     fn test_expr_get_id() {
         // Test Variable
         let var_expr = Expr::Variable {
-            name: Identifier::new("test_var", false),
+            name: Identifier::new("test_var", IdentifierKind::Symbol),
             span: Span::default(),
             id: 2,
         };
@@ -756,7 +756,7 @@ pub mod test {
                 id: 6,
             }),
             subject: Box::new(Expr::Variable {
-                name: Identifier::new("x", false),
+                name: Identifier::new("x", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 7,
             }),
@@ -809,7 +809,7 @@ pub mod test {
         // Test Call
         let call_expr = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("test_func", false),
+                name: Identifier::new("test_func", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 15,
             }),
@@ -821,7 +821,7 @@ pub mod test {
 
         // Test FieldPath
         let field_path_expr = Expr::FieldPath {
-            head: Identifier::new("user", false),
+            head: Identifier::new("user", IdentifierKind::Symbol),
             tail: vec![],
             span: Span::default(),
             id: 17,
@@ -835,7 +835,7 @@ pub mod test {
 
         // Test Variable
         let var_expr = Expr::Variable {
-            name: Identifier::new("test_var", false),
+            name: Identifier::new("test_var", IdentifierKind::Symbol),
             span: test_span,
             id: 5,
         };
@@ -865,7 +865,7 @@ pub mod test {
 
         // Test Function
         let func_expr = Expr::Function {
-            name: Some(Identifier::new("test_func", false)),
+            name: Some(Identifier::new("test_func", IdentifierKind::Symbol)),
             parameters: vec![],
             return_type: None,
             body: Arc::new(vec![]),
@@ -889,7 +889,7 @@ pub mod test {
                 id: 11,
             }),
             subject: Box::new(Expr::Variable {
-                name: Identifier::new("x", false),
+                name: Identifier::new("x", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 12,
             }),
@@ -935,7 +935,7 @@ pub mod test {
 
         // Test Assignment
         let assignment_expr = Expr::Assignment {
-            dst: Identifier::new("x", false),
+            dst: Identifier::new("x", IdentifierKind::Symbol),
             expr: Box::new(Expr::Literal {
                 value: Literal::Num(42.0),
                 raw: "42".to_string(),
@@ -970,7 +970,7 @@ pub mod test {
         // Test Call
         let call_expr = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("test_func", false),
+                name: Identifier::new("test_func", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 24,
             }),
@@ -983,11 +983,11 @@ pub mod test {
         // Test Get
         let get_expr = Expr::Get {
             object: Box::new(Expr::Variable {
-                name: Identifier::new("obj", false),
+                name: Identifier::new("obj", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 26,
             }),
-            name: Identifier::new("prop", false),
+            name: Identifier::new("prop", IdentifierKind::Symbol),
             span: test_span,
             id: 27,
         };
@@ -995,8 +995,8 @@ pub mod test {
 
         // Test FieldPath
         let field_path_expr = Expr::FieldPath {
-            head: Identifier::new("user", false),
-            tail: vec![Identifier::new("name", false)],
+            head: Identifier::new("user", IdentifierKind::Symbol),
+            tail: vec![Identifier::new("name", IdentifierKind::Symbol)],
             span: test_span,
             id: 28,
         };
@@ -1005,11 +1005,11 @@ pub mod test {
         // Test Set
         let set_expr = Expr::Set {
             object: Box::new(Expr::Variable {
-                name: Identifier::new("obj", false),
+                name: Identifier::new("obj", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 29,
             }),
-            name: Identifier::new("prop", false),
+            name: Identifier::new("prop", IdentifierKind::Symbol),
             value: Box::new(Expr::Literal {
                 value: Literal::Num(42.0),
                 raw: "42".to_string(),
@@ -1026,7 +1026,7 @@ pub mod test {
     fn test_expr_display() {
         // Test Variable display
         let var_expr = Expr::Variable {
-            name: Identifier::new("test_var", false),
+            name: Identifier::new("test_var", IdentifierKind::Symbol),
             span: Span::default(),
             id: 1,
         };
@@ -1069,10 +1069,10 @@ pub mod test {
     #[test]
     fn test_field_path_display() {
         let field_path = Expr::FieldPath {
-            head: Identifier::new("user", false),
+            head: Identifier::new("user", IdentifierKind::Symbol),
             tail: vec![
-                Identifier::new("address", false),
-                Identifier::new("city", false),
+                Identifier::new("address", IdentifierKind::Symbol),
+                Identifier::new("city", IdentifierKind::Symbol),
             ],
             span: Span::default(),
             id: 1,
@@ -1083,10 +1083,10 @@ pub mod test {
     #[test]
     fn test_function_display() {
         let func = Expr::Function {
-            name: Some(Identifier::new("test_func", false)),
+            name: Some(Identifier::new("test_func", IdentifierKind::Symbol)),
             parameters: vec![
-                (Identifier::new("a", false), None),
-                (Identifier::new("b", false), None),
+                (Identifier::new("a", IdentifierKind::Symbol), None),
+                (Identifier::new("b", IdentifierKind::Symbol), None),
             ],
             return_type: None,
             body: Arc::new(vec![]),
@@ -1112,7 +1112,7 @@ pub mod test {
                 id: 2,
             }),
             subject: Box::new(Expr::Variable {
-                name: Identifier::new("x", false),
+                name: Identifier::new("x", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 3,
             }),
@@ -1127,7 +1127,7 @@ pub mod test {
     fn test_call_display() {
         let call = Expr::Call {
             callee: Box::new(Expr::Variable {
-                name: Identifier::new("test_func", false),
+                name: Identifier::new("test_func", IdentifierKind::Symbol),
                 span: Span::default(),
                 id: 1,
             }),

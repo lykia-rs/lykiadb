@@ -11,7 +11,7 @@ assert_parsing! {
                     "@type": "Stmt::Declaration",
                     "dst": {
                         "@type": "Identifier",
-                        "dollar": true,
+                        "kind": "IdentifierKind::Variable",
                         "name": "$a"
                     },
                     "expr": {
@@ -33,7 +33,7 @@ assert_parsing! {
                         "@type": "Expr::Variable",
                         "name": {
                             "@type": "Identifier",
-                            "dollar": true,
+                            "kind": "IdentifierKind::Variable",
                             "name": "$a"
                         }
                     }

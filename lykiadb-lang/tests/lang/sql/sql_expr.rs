@@ -33,7 +33,7 @@ assert_parsing! {
                         "name": {
                           "@type": "Identifier",
                           "name": "users",
-                          "dollar": false
+                          "kind": "IdentifierKind::Symbol"
                         },
                         "alias": null
                       }
@@ -49,7 +49,7 @@ assert_parsing! {
                       "head": {
                         "@type": "Identifier",
                         "name": "id",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "tail": []
                     },
@@ -72,7 +72,7 @@ assert_parsing! {
                                   "head": {
                                     "@type": "Identifier",
                                     "name": "id",
-                                    "dollar": false
+                                    "kind": "IdentifierKind::Symbol"
                                   },
                                   "tail": []
                                 },
@@ -88,7 +88,7 @@ assert_parsing! {
                                   "name": {
                                     "@type": "Identifier",
                                     "name": "users",
-                                    "dollar": false
+                                    "kind": "IdentifierKind::Symbol"
                                   },
                                   "alias": null
                                 }
@@ -147,7 +147,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -163,7 +163,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -186,7 +186,7 @@ assert_parsing! {
                                 "head": {
                                   "@type": "Identifier",
                                   "name": "id",
-                                  "dollar": false
+                                  "kind": "IdentifierKind::Symbol"
                                 },
                                 "tail": []
                               },
@@ -202,7 +202,7 @@ assert_parsing! {
                                 "name": {
                                   "@type": "Identifier",
                                   "name": "users",
-                                  "dollar": false
+                                  "kind": "IdentifierKind::Symbol"
                                 },
                                 "alias": null
                               }
@@ -261,7 +261,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -277,7 +277,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -339,7 +339,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -355,7 +355,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "id",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -416,7 +416,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -432,7 +432,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -486,7 +486,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -502,7 +502,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "name",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -556,7 +556,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -572,7 +572,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -626,7 +626,7 @@ assert_parsing! {
                       "name": {
                         "@type": "Identifier",
                         "name": "users",
-                        "dollar": false
+                        "kind": "IdentifierKind::Symbol"
                       },
                       "alias": null
                     }
@@ -642,7 +642,7 @@ assert_parsing! {
                     "head": {
                       "@type": "Identifier",
                       "name": "level",
-                      "dollar": false
+                      "kind": "IdentifierKind::Symbol"
                     },
                     "tail": []
                   },
@@ -665,5 +665,250 @@ assert_parsing! {
         }
       ]
     }
+  },
+  aggregate_call: {
+    "SELECT avg(id) FROM users;" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::Expr",
+                    "expr": {
+                      "@type": "Expr::Call",
+                      "callee": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "kind": "IdentifierKind::Symbol",
+                          "name": "avg"
+                        }
+                      },
+                      "args": [
+                        {
+                          "@type": "Expr::FieldPath",
+                          "head": {
+                            "@type": "Identifier",
+                            "name": "id",
+                            "kind": "IdentifierKind::Symbol"
+                          },
+                          "tail": []
+                        }
+                      ],
+                    },
+                    "alias": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": null,
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
+  },
+  function_call: {
+    "SELECT * FROM users WHERE id = $hello(50);" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::All",
+                    "collection": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": {
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "IsEqual"
+                  },
+                  "left": {
+                    "@type": "Expr::FieldPath",
+                    "head": {
+                      "@type": "Identifier",
+                      "name": "id",
+                      "kind": "IdentifierKind::Symbol"
+                    },
+                    "tail": []
+                  },
+                  "right": {
+                    "@type": "Expr::Call",
+                    "callee": {
+                      "@type": "Expr::Variable",
+                      "name": {
+                        "@type": "Identifier",
+                        "kind": "IdentifierKind::Variable",
+                        "name": "$hello"
+                      }
+                    },
+                    "args": [
+                      {
+                        "@type": "Expr::Literal",
+                        "raw": "50",
+                        "value": {
+                          "Num": 50.0
+                        }
+                      }
+                    ]
+                  }
+                },
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
+  },
+  namespace_function_call: {
+    "SELECT * FROM users WHERE math::ceil(score) > 100;" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::All",
+                    "collection": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": {
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "Greater"
+                  },
+                  "left": {
+                    "@type": "Expr::Call",
+                    "args":[{
+                      "@type": "Expr::FieldPath",
+                      "head": {
+                        "@type": "Identifier",
+                        "name": "score",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "tail": []
+                    }],
+                    "callee": {
+                      "@type": "Expr::Get",
+                      "object": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "kind": "IdentifierKind::Symbol",
+                          "name": "math"
+                        }
+                      },
+                      "name": {
+                        "@type": "Identifier",
+                        "kind": "IdentifierKind::Symbol",
+                        "name": "ceil"
+                      }
+                    },
+                  },
+                  "right": {
+                    "@type": "Expr::Literal",
+                    "raw": "100",
+                    "value": {
+                      "Num": 100.0
+                    }
+                  }
+                },
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
   }
+
+
 }
