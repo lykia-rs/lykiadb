@@ -819,5 +819,96 @@ assert_parsing! {
         }
       ]
     }
+  },
+  namespace_function_call: {
+    "SELECT * FROM users WHERE math::ceil(score) > 100;" => {
+      "@type": "Stmt::Program",
+      "body": [
+        {
+          "@type": "Stmt::Expression",
+          "expr": {
+            "@type": "Expr::Select",
+            "query": {
+              "@type": "SqlSelect",
+              "core": {
+                "@type": "SqlSelectCore",
+                "distinct": {
+                  "@type": "SqlDistinct::ImplicitAll"
+                },
+                "projection": [
+                  {
+                    "@type": "SqlProjection::All",
+                    "collection": null
+                  }
+                ],
+                "from": {
+                  "@type": "SqlFrom::Group",
+                  "values": [
+                    {
+                      "@type": "SqlCollectionIdentifier",
+                      "namespace": null,
+                      "name": {
+                        "@type": "Identifier",
+                        "name": "users",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "alias": null
+                    }
+                  ]
+                },
+                "where": {
+                  "@type": "Expr::Binary",
+                  "operation": {
+                    "@type": "Greater"
+                  },
+                  "left": {
+                    "@type": "Expr::Call",
+                    "args":[{
+                      "@type": "Expr::FieldPath",
+                      "head": {
+                        "@type": "Identifier",
+                        "name": "score",
+                        "kind": "IdentifierKind::Symbol"
+                      },
+                      "tail": []
+                    }],
+                    "callee": {
+                      "@type": "Expr::Get",
+                      "object": {
+                        "@type": "Expr::Variable",
+                        "name": {
+                          "@type": "Identifier",
+                          "kind": "IdentifierKind::Symbol",
+                          "name": "math"
+                        }
+                      },
+                      "name": {
+                        "@type": "Identifier",
+                        "kind": "IdentifierKind::Symbol",
+                        "name": "ceil"
+                      }
+                    },
+                  },
+                  "right": {
+                    "@type": "Expr::Literal",
+                    "raw": "100",
+                    "value": {
+                      "Num": 100.0
+                    }
+                  }
+                },
+                "group_by": null,
+                "having": null,
+                "compound": null
+              },
+              "order_by": null,
+              "limit": null
+            }
+          }
+        }
+      ]
+    }
   }
+
+
 }

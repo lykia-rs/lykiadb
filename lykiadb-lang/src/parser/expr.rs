@@ -350,7 +350,7 @@ impl ExprParser {
             if name.kind == IdentifierKind::Symbol {
                 let next_tok = &cparser.peek_bw(0).tok_type;
 
-                if (next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
+                if ((next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen)) && next_tok != &sym!(DoubleColon))
                     && cparser.get_count("in_select_depth") > 0
                 {
                     let head = name.clone();
