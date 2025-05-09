@@ -9,9 +9,7 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    Spanned,
-    expr::Expr,
-    sql::{SqlProjection, SqlSelectCore},
+    expr::Expr, sql::{SqlProjection, SqlSelectCore}, visitor::{ExprReducer, ExprVisitor, ExprVisitorNode}, Spanned
 };
 
 use super::PlannerError;
@@ -26,9 +24,19 @@ pub fn collect_aggregates(
 ) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
+    let mut collector = AggregationCollector {
+        in_call: 0,
+        accumulator: vec![],
+        interpreter,
+    };
+
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(
+        &mut collector,
+    );
+
     for projection in &core.projection {
         if let SqlProjection::Expr { expr, .. } = projection {
-            let found = collect_aggregates_from_expr(expr, interpreter)?;
+            let found = visitor.visit(expr)?;
             for agg in found {
                 aggregates.insert(agg);
             }
@@ -36,7 +44,7 @@ pub fn collect_aggregates(
     }
 
     if let Some(expr) = &core.having {
-        let found = collect_aggregates_from_expr(expr, interpreter)?;
+        let found = visitor.visit(expr)?;
         for agg in found {
             aggregates.insert(agg);
         }
@@ -49,102 +57,48 @@ pub fn collect_aggregates(
     Ok(no_dup)
 }
 
-fn collect_aggregates_from_expr(
-    expr: &Expr,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
-    match expr {
-        Expr::Select { .. }
-        | Expr::Insert { .. }
-        | Expr::Delete { .. }
-        | Expr::Update { .. }
-        | Expr::Variable { .. }
-        | Expr::Literal { .. }
-        | Expr::FieldPath { .. }
-        | Expr::Function { .. }
-        | Expr::Set { .. } => Ok(vec![]),
-        //
-        Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
-            let rleft = collect_aggregates_from_expr(left, interpreter);
-            let rright = collect_aggregates_from_expr(right, interpreter);
+struct AggregationCollector<'a> {
+    in_call: u32,
+    accumulator: Vec<Aggregation>,
+    interpreter: &'a mut Interpreter,
+}
 
-            let mut result = vec![];
-            if let Ok(v) = rleft {
-                result.extend(v);
-            }
-            if let Ok(v) = rright {
-                result.extend(v);
-            }
-            Ok(result)
-        }
-        //
-        Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } | Expr::Assignment { expr, .. } => {
-            let r = collect_aggregates_from_expr(expr, interpreter);
-            if let Ok(v) = r {
-                return Ok(v);
-            }
-            Ok(vec![])
-        }
-        //
-        Expr::Call { callee, args, .. } => {
-            let mut result: Vec<Aggregation> = vec![];
-
-            let callee_val = interpreter.eval(callee);
+impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<(), HaltReason> {
+        if let Expr::Call { callee, args, .. } = expr {
+            let callee_val = self.interpreter.eval(callee);
 
             if let Ok(RV::Callable(callable)) = &callee_val {
                 if let CallableKind::Aggregator(agg_name) = &callable.kind {
-                    result.push(Aggregation {
-                        name: agg_name.clone(),
-                        args: args.clone(),
-                    });
+                    match visit {
+                        ExprVisitorNode::In => {
+                            if self.in_call > 0 {
+                                return Err(HaltReason::Error(ExecutionError::Plan(
+                                    PlannerError::NestedAggregationNotAllowed(expr.get_span()),
+                                )));
+                            }
+                            self.in_call += 1;
+                            self.accumulator.push(Aggregation {
+                                name: agg_name.clone(),
+                                args: args.clone(),
+                            });
+                        }
+                        ExprVisitorNode::Out => {
+                            self.in_call -= 1;
+                        }
+                    }
                 }
             }
-            if callee_val.is_err() {
+            else {
                 return Err(callee_val.err().unwrap());
             }
-            let rargs: Vec<Aggregation> = args
-                .iter()
-                .map(|x| collect_aggregates_from_expr(x, interpreter))
-                .flat_map(|x| x.unwrap())
-                .collect();
-
-            if !rargs.is_empty() {
-                return Err(HaltReason::Error(ExecutionError::Plan(
-                    PlannerError::NestedAggregationNotAllowed(expr.get_span()),
-                )));
-            }
-
-            Ok(result)
         }
-        Expr::Between {
-            lower,
-            upper,
-            subject,
-            ..
-        } => {
-            let rlower = collect_aggregates_from_expr(lower, interpreter);
-            let rupper = collect_aggregates_from_expr(upper, interpreter);
-            let rsubject = collect_aggregates_from_expr(subject, interpreter);
 
-            let mut result = vec![];
-            if let Ok(v) = rlower {
-                result.extend(v);
-            }
-            if let Ok(v) = rupper {
-                result.extend(v);
-            }
-            if let Ok(v) = rsubject {
-                result.extend(v);
-            }
-            Ok(result)
-        }
-        Expr::Get { object, .. } => {
-            let robject = collect_aggregates_from_expr(object, interpreter);
-            if let Ok(v) = robject {
-                return Ok(v);
-            }
-            Ok(vec![])
-        }
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason> {
+        Ok(self.accumulator.clone())
     }
 }
 
@@ -248,7 +202,17 @@ mod tests {
             id: 0,
         };
 
-        let result = collect_aggregates_from_expr(&outer_avg_call, &mut interpreter);
+        let mut collector = AggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+            interpreter: &mut interpreter,
+        };
+    
+        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(
+            &mut collector,
+        );
+
+        let result = visitor.visit(&outer_avg_call);
         assert!(matches!(
             result,
             Err(HaltReason::Error(ExecutionError::Plan(
