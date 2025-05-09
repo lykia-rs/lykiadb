@@ -23,7 +23,7 @@ SELECT avg(1 + avg(id)) as average FROM books b;
 
 ---err
 
-Plan(NestedAggregationNotAllowed(Span { start: 7, end: 23, line: 0, line_end: 0 }))
+Plan(NestedAggregationNotAllowed(Span { start: 15, end: 22, line: 0, line_end: 0 }))
 
 #[name=with_1_aggregate, run=plan]>
 SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating) as avg_rating_dup FROM books b group by release_year, publisher_id order by yr;
