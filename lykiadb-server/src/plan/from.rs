@@ -82,7 +82,7 @@ pub fn build_from(
         } => {
             let constraint = constraint
                 .as_ref()
-                .map(|x| planner.build_expr(x, false, false))
+                .map(|x| planner.build_expr(x, &mut scope, false, false))
                 .transpose()?;
 
             Ok(Node::Join {
