@@ -16,6 +16,7 @@ mod aggregation;
 mod from;
 pub mod planner;
 mod scope;
+mod expr;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {

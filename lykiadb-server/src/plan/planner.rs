@@ -1,21 +1,14 @@
 use crate::{
-    engine::{
-        error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
-    },
+    engine::interpreter::{HaltReason, Interpreter},
     value::RV,
 };
 
 use lykiadb_lang::ast::{
-    Spanned,
-    expr::Expr,
-    sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::VisitorMut,
+    expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}, Spanned
 };
 
 use super::{
-    IntermediateExpr, Node, Plan, PlannerError, aggregation::collect_aggregates, from::build_from,
-    scope::Scope,
+    aggregation::collect_aggregates, expr::SqlExprReducer, from::build_from, scope::Scope, IntermediateExpr, Node, Plan, PlannerError
 };
 
 pub struct Planner<'a> {
@@ -70,11 +63,13 @@ impl<'a> Planner<'a> {
             node = build_from(self, from, &mut core_scope)?;
         }
 
+        println!("CurrentScope\n{:?}", core_scope);
+
         // Filter: The source is then filtered, and the result is passed to the next
         // node.
         if let Some(predicate) = &core.r#where {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(predicate.as_ref(), true, false)?;
+                self.build_expr(predicate.as_ref(), &mut core_scope, true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -93,7 +88,7 @@ impl<'a> Planner<'a> {
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
-                let (expr, _) = self.build_expr(key, false, true)?;
+                let (expr, _) = self.build_expr(key, &mut core_scope, false, true)?;
                 keys.push(expr);
             }
             keys
@@ -115,7 +110,9 @@ impl<'a> Planner<'a> {
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
-                    self.build_expr(expr, false, true)?;
+                    self.build_expr(expr,
+                         &mut core_scope, 
+                         false, true)?;
                 }
             }
             node = Node::Projection {
@@ -130,7 +127,7 @@ impl<'a> Planner<'a> {
         // have the aggregates, we can use them to filter the result.
         if core.having.is_some() {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(core.having.as_ref().unwrap(), true, false)?;
+                self.build_expr(core.having.as_ref().unwrap(), &mut core_scope, true, false)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -157,32 +154,25 @@ impl<'a> Planner<'a> {
     pub fn build_expr(
         &mut self,
         expr: &Expr,
+        scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
-        // TODO(vck): Implement this
+    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {        
+        let mut reducer: SqlExprReducer = SqlExprReducer::new(
+            // self,
+            allow_subqueries,
+        );
 
-        let mut subqueries: Vec<Node> = vec![];
+        let mut visitor = ExprVisitor::<SqlSelect, HaltReason>::new(
+            &mut reducer,
+        );
 
-        let result = expr.walk::<(), HaltReason>(&mut |e: &Expr| match e {
-            Expr::Get { .. } => None,
-            Expr::FieldPath { .. } => None,
-            Expr::Call { .. } => None,
-            Expr::Select { query, .. } => {
-                if !allow_subqueries {
-                    return Some(Err(HaltReason::Error(ExecutionError::Plan(
-                        PlannerError::SubqueryNotAllowed(expr.get_span()),
-                    ))));
-                }
-                let subquery = self.build_select(query);
-                subqueries.push(subquery.unwrap());
-                None
-            }
-            _ => Some(Ok(())),
-        });
+        let selects = visitor.visit(expr)?;
 
-        if let Some(Err(err)) = result {
-            return Err(err);
+        let mut subqueries = vec![];
+
+        for subquery in &selects {
+            subqueries.push(self.build_select(subquery)?);
         }
 
         Ok((IntermediateExpr::Expr { expr: expr.clone() }, subqueries))
@@ -190,12 +180,13 @@ impl<'a> Planner<'a> {
 
     pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
-
+        let mut root_scope = Scope::new();
+        
         if let Some(order_by) = &query.order_by {
             let mut order_key = vec![];
 
             for key in order_by {
-                let (expr, _) = self.build_expr(&key.expr, false, true)?;
+                let (expr, _) = self.build_expr(&key.expr, &mut root_scope, false, true)?;
                 order_key.push((expr, key.ordering.clone()));
             }
 

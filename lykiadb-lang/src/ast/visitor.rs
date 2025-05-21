@@ -19,7 +19,7 @@ pub enum ExprVisitorNode {
 }
 
 pub trait ExprReducer<T, E> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<(), E>;
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, E>;
     fn finalize(&mut self) -> Result<Vec<T>, E>;
 }
 
@@ -44,9 +44,13 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
         self: &mut Self,
         expr: &Expr,
     ) -> Result<(), E> {
-        self.visit_callback.visit(&expr, ExprVisitorNode::In)?;
+        let go = self.visit_callback.visit(&expr, ExprVisitorNode::In)?;
 
-        let r = match expr {
+        if !go {
+            return Ok(());
+        }
+
+        match expr {
             Expr::Select { .. }
             | Expr::Insert { .. }
             | Expr::Delete { .. }
@@ -62,10 +66,7 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
             }
             //
             Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } | Expr::Assignment { expr, .. } => {
-                let r = self._traverse(expr);
-                if let Ok(v) = r {
-                    return Ok(v);
-                }
+                self._traverse(expr)?;
             }
             //
             Expr::Call { callee, args, .. } => {
@@ -108,7 +109,7 @@ mod tests {
     }
 
     impl ExprReducer<Expr, String> for DummyAggregationCollector {
-        fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<(), String> {
+        fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, String> {
             if let Expr::Call { callee, .. } = expr {
                 if let Expr::Variable{ name, .. } = callee.as_ref() {
                     if name.name == "avg" {
@@ -128,7 +129,7 @@ mod tests {
                 }
             }
 
-            Ok(())
+            Ok(true)
         }
 
         fn finalize(&mut self) -> Result<Vec<Expr>, String> {
