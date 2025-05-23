@@ -1,7 +1,6 @@
 use super::{
-    Identifier, IdentifierKind, Literal, Span,
+    Identifier, IdentifierKind, Literal,
     expr::{Expr, Operation, RangeKind},
-    sql::{SqlDelete, SqlInsert, SqlSelect, SqlUpdate},
 };
 use std::sync::Arc;
 

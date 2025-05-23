@@ -10,6 +10,12 @@ pub struct Scope {
     // aggregates: Vec<Expr>,
 }
 
+impl Default for Scope {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Scope {
     pub fn new() -> Scope {
         Scope {

@@ -64,7 +64,7 @@ struct AggregationCollector<'a> {
     interpreter: &'a mut Interpreter,
 }
 
-impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
+impl ExprReducer<Aggregation, HaltReason> for AggregationCollector<'_> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);

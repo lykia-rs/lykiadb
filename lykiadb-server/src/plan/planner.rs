@@ -4,14 +4,13 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    Spanned,
     expr::Expr,
     sql::{SqlProjection, SqlSelect, SqlSelectCore},
     visitor::{ExprVisitor, VisitorMut},
 };
 
 use super::{
-    IntermediateExpr, Node, Plan, PlannerError, aggregation::collect_aggregates,
+    IntermediateExpr, Node, Plan, aggregation::collect_aggregates,
     expr::SqlExprReducer, from::build_from, scope::Scope,
 };
 
