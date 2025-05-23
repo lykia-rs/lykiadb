@@ -9,11 +9,11 @@ use expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
+pub mod builder;
 pub mod expr;
 pub mod sql;
 pub mod stmt;
 pub mod visitor;
-pub mod builder;
 
 pub trait AstNode: Spanned {
     fn get_id(&self) -> usize;
