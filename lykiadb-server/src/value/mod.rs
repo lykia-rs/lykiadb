@@ -128,9 +128,9 @@ impl RV {
 impl Display for RV {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RV::Str(s) => write!(f, "{}", s),
-            RV::Num(n) => write!(f, "{}", n),
-            RV::Bool(b) => write!(f, "{}", b),
+            RV::Str(s) => write!(f, "{s}"),
+            RV::Num(n) => write!(f, "{n}"),
+            RV::Bool(b) => write!(f, "{b}"),
             RV::Undefined => write!(f, "undefined"),
             RV::Array(arr) => {
                 let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
@@ -139,7 +139,7 @@ impl Display for RV {
                     if i != 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", item)?;
+                    write!(f, "{item}")?;
                 }
                 write!(f, "]")
             }
@@ -150,12 +150,12 @@ impl Display for RV {
                     if i != 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}: {}", key, value)?;
+                    write!(f, "{key}: {value}")?;
                 }
                 write!(f, "}}")
             }
             RV::Callable(_) => write!(f, "<Callable>"),
-            RV::Datatype(dtype) => write!(f, "<Datatype, {}>", dtype),
+            RV::Datatype(dtype) => write!(f, "<Datatype, {dtype}>"),
         }
     }
 }

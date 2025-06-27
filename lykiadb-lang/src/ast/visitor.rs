@@ -23,28 +23,19 @@ pub trait ExprReducer<T, E> {
     fn finalize(&mut self) -> Result<Vec<T>, E>;
 }
 
-impl<'a, T, E> ExprVisitor<'a, T, E>{
-
+impl<'a, T, E> ExprVisitor<'a, T, E> {
     pub fn new(visit_callback: &'a mut dyn ExprReducer<T, E>) -> Self {
-        Self {
-            visit_callback,
-        }
+        Self { visit_callback }
     }
 
-    pub fn visit(
-        self: &mut Self,
-        expr: &Expr,
-    ) -> Result<Vec<T>, E> {
+    pub fn visit(&mut self, expr: &Expr) -> Result<Vec<T>, E> {
         self._traverse(expr)?;
 
-        Ok(self.visit_callback.finalize()?)
+        self.visit_callback.finalize()
     }
-    
-    fn _traverse(
-        self: &mut Self,
-        expr: &Expr,
-    ) -> Result<(), E> {
-        let go = self.visit_callback.visit(&expr, ExprVisitorNode::In)?;
+
+    fn _traverse(&mut self, expr: &Expr) -> Result<(), E> {
+        let go = self.visit_callback.visit(expr, ExprVisitorNode::In)?;
 
         if !go {
             return Ok(());
@@ -59,13 +50,15 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
             | Expr::FieldPath { .. }
             | Expr::Function { .. }
             | Expr::Set { .. }
-            | Expr::Variable { .. } => {},
+            | Expr::Variable { .. } => {}
             Expr::Binary { left, right, .. } | Expr::Logical { left, right, .. } => {
                 self._traverse(left)?;
                 self._traverse(right)?;
             }
             //
-            Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } | Expr::Assignment { expr, .. } => {
+            Expr::Grouping { expr, .. }
+            | Expr::Unary { expr, .. }
+            | Expr::Assignment { expr, .. } => {
                 self._traverse(expr)?;
             }
             //
@@ -75,7 +68,6 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
                 for arg in args {
                     self._traverse(arg)?;
                 }
-
             }
             Expr::Between {
                 lower,
@@ -92,17 +84,16 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
             }
         };
 
-        self.visit_callback.visit(&expr, ExprVisitorNode::Out)?;
+        self.visit_callback.visit(expr, ExprVisitorNode::Out)?;
 
         Ok(())
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{expr::Expr, Identifier, IdentifierKind, Span};
+    use crate::ast::{Identifier, IdentifierKind, Span, expr::Expr};
     struct DummyAggregationCollector {
         in_call: u32,
         accumulator: Vec<Expr>,
@@ -111,12 +102,14 @@ mod tests {
     impl ExprReducer<Expr, String> for DummyAggregationCollector {
         fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, String> {
             if let Expr::Call { callee, .. } = expr {
-                if let Expr::Variable{ name, .. } = callee.as_ref() {
+                if let Expr::Variable { name, .. } = callee.as_ref() {
                     if name.name == "avg" {
                         match visit {
                             ExprVisitorNode::In => {
-                                if self.in_call > 0{
-                                    return Err("avg() cannot be called inside another avg()".to_string());
+                                if self.in_call > 0 {
+                                    return Err(
+                                        "avg() cannot be called inside another avg()".to_string()
+                                    );
                                 }
                                 self.in_call += 1;
                                 self.accumulator.push(expr.clone());
@@ -159,11 +152,12 @@ mod tests {
             id: 0,
         };
 
-        let mut agg =  DummyAggregationCollector { in_call: 0, accumulator: vec![] };
+        let mut agg = DummyAggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+        };
 
-        let mut visitor = ExprVisitor::<Expr, String>::new(
-            &mut agg,
-        );
+        let mut visitor = ExprVisitor::<Expr, String>::new(&mut agg);
 
         assert_eq!(
             visitor.visit(&avg_call),
@@ -202,11 +196,12 @@ mod tests {
             id: 0,
         };
 
-        let mut agg =  DummyAggregationCollector { in_call: 0, accumulator: vec![] };
+        let mut agg = DummyAggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+        };
 
-        let mut visitor = ExprVisitor::<Expr, String>::new(
-            &mut agg,
-        );
+        let mut visitor = ExprVisitor::<Expr, String>::new(&mut agg);
 
         assert_eq!(
             visitor.visit(&avg_call),
@@ -244,19 +239,17 @@ mod tests {
                 span: Span::default(),
                 id: 0,
             }),
-            args: vec![
-                avg0.clone(),
-                avg1.clone(),
-            ],
+            args: vec![avg0.clone(), avg1.clone()],
             span: Span::default(),
             id: 0,
         };
 
-        let mut agg =  DummyAggregationCollector { in_call: 0, accumulator: vec![] };
+        let mut agg = DummyAggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+        };
 
-        let mut visitor = ExprVisitor::<Expr, String>::new(
-            &mut agg,
-        );
+        let mut visitor = ExprVisitor::<Expr, String>::new(&mut agg);
 
         assert_eq!(visitor.visit(&sum), Ok(vec![avg0, avg1]));
     }

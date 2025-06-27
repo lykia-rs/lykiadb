@@ -59,7 +59,7 @@ impl EnvironmentFrame {
         self.parent.as_ref().map_or(
             Err(HaltReason::Error(
                 EnvironmentError::Other {
-                    message: format!("Assignment to an undefined variable '{}'", key),
+                    message: format!("Assignment to an undefined variable '{key}'"),
                 }
                 .into(),
             )),
@@ -92,7 +92,7 @@ impl EnvironmentFrame {
         self.parent.as_ref().map_or(
             Err(HaltReason::Error(
                 EnvironmentError::Other {
-                    message: format!("Variable '{}' was not found", key),
+                    message: format!("Variable '{key}' was not found"),
                 }
                 .into(),
             )),
@@ -120,7 +120,7 @@ impl EnvironmentFrame {
             .map_or(
                 Err(HaltReason::Error(
                     EnvironmentError::Other {
-                        message: format!("Variable '{}' was not found", key),
+                        message: format!("Variable '{key}' was not found"),
                     }
                     .into(),
                 )),

@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use crate::{engine::interpreter::Aggregation, value::RV};
 
 mod aggregation;
+mod expr;
 mod from;
 pub mod planner;
 mod scope;
-mod expr;
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
@@ -29,15 +29,15 @@ pub enum PlannerError {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
     Constant(RV),
-    Expr { expr: Expr },
+    Expr { expr: Box<Expr> },
 }
 
 impl Display for IntermediateExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IntermediateExpr::Constant(rv) => write!(f, "{:?}", rv),
+            IntermediateExpr::Constant(rv) => write!(f, "{rv:?}"),
             IntermediateExpr::Expr { expr, .. } => {
-                write!(f, "{}", expr)
+                write!(f, "{expr}")
             }
         }
     }
@@ -120,7 +120,7 @@ pub enum Node {
 impl Display for Plan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Plan::Select(node) => write!(f, "{}", node),
+            Plan::Select(node) => write!(f, "{node}"),
         }
     }
 }
@@ -136,7 +136,7 @@ impl Node {
             Node::Order { source, key } => {
                 let key_description = key
                     .iter()
-                    .map(|(expr, ordering)| format!("({}, {:?})", expr, ordering))
+                    .map(|(expr, ordering)| format!("({expr}, {ordering:?})"))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(
@@ -162,7 +162,7 @@ impl Node {
                             if let Some(alias) = alias {
                                 return format!("{} as {}", expr, alias.name);
                             }
-                            format!("{} as {}", expr, expr)
+                            format!("{expr} as {expr}")
                         }
                     })
                     .collect::<Vec<String>>()
@@ -204,7 +204,7 @@ impl Node {
                 )?;
                 source._fmt_recursive(f, indent + 1)
             }
-            Node::Scan { source, filter } => {
+            Node::Scan { source, .. } => {
                 write!(
                     f,
                     "{}- scan [{} as {}]{}",
@@ -269,7 +269,7 @@ impl Node {
                 left._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
-            Node::EvalScan { source, filter } => {
+            Node::EvalScan { source, .. } => {
                 write!(
                     f,
                     "{}- eval_scan [{}]{}",

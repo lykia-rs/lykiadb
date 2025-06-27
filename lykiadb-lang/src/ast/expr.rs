@@ -341,13 +341,13 @@ impl Display for Expr {
             Expr::Insert { .. } => write!(f, "<SqlInsert>"),
             Expr::Update { .. } => write!(f, "<SqlUpdate>"),
             Expr::Delete { .. } => write!(f, "<SqlDelete>"),
-            Expr::Variable { name, .. } => write!(f, "{}", name),
-            Expr::Grouping { expr, .. } => write!(f, "({})", expr),
+            Expr::Variable { name, .. } => write!(f, "{name}"),
+            Expr::Grouping { expr, .. } => write!(f, "({expr})"),
             Expr::Literal { value, .. } => match value {
-                Literal::Str(s) => write!(f, "Str(\"{}\")", s),
-                Literal::Num(n) => write!(f, "Num({:?})", n),
-                Literal::Bool(b) => write!(f, "{}", b),
-                Literal::Object(o) => write!(f, "Object({:?})", o),
+                Literal::Str(s) => write!(f, "Str(\"{s}\")"),
+                Literal::Num(n) => write!(f, "Num({n:?})"),
+                Literal::Bool(b) => write!(f, "{b}"),
+                Literal::Object(o) => write!(f, "Object({o:?})"),
                 Literal::Array(a) => write!(
                     f,
                     "Array({})",
@@ -395,19 +395,19 @@ impl Display for Expr {
                 right,
                 ..
             } => {
-                write!(f, "({} {:?} {})", left, operation, right)
+                write!(f, "({left} {operation:?} {right})")
             }
             Expr::Unary {
                 operation, expr, ..
-            } => write!(f, "{:?}{}", operation, expr),
-            Expr::Assignment { dst, expr, .. } => write!(f, "{} = {}", dst, expr),
+            } => write!(f, "{operation:?}{expr}"),
+            Expr::Assignment { dst, expr, .. } => write!(f, "{dst} = {expr}"),
             Expr::Logical {
                 left,
                 operation,
                 right,
                 ..
             } => {
-                write!(f, "{} {:?} {}", left, operation, right)
+                write!(f, "{left} {operation:?} {right}")
             }
             Expr::Call { callee, args, .. } => {
                 write!(
@@ -420,14 +420,14 @@ impl Display for Expr {
                         .join(", ")
                 )
             }
-            Expr::Get { object, name, .. } => write!(f, "{}::{}", object, name),
+            Expr::Get { object, name, .. } => write!(f, "{object}::{name}"),
             Expr::FieldPath { head, tail, .. } => {
                 write!(
                     f,
                     "{}{}",
                     head,
                     tail.iter()
-                        .map(|x| format!(".{}", x))
+                        .map(|x| format!(".{x}"))
                         .collect::<Vec<_>>()
                         .join("")
                 )
@@ -437,7 +437,7 @@ impl Display for Expr {
                 name,
                 value,
                 ..
-            } => write!(f, "{}.{} = {}", object, name, value),
+            } => write!(f, "{object}.{name} = {value}"),
         }
     }
 }
@@ -446,7 +446,7 @@ impl Display for Expr {
 pub mod test {
     use std::collections::HashSet;
 
-    use crate::ast::{expr::Expr, IdentifierKind};
+    use crate::ast::{IdentifierKind, expr::Expr};
 
     use super::*;
 

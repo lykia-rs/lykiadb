@@ -9,7 +9,10 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    expr::Expr, sql::{SqlProjection, SqlSelectCore}, visitor::{ExprReducer, ExprVisitor, ExprVisitorNode}, Spanned
+    Spanned,
+    expr::Expr,
+    sql::{SqlProjection, SqlSelectCore},
+    visitor::{ExprReducer, ExprVisitor, ExprVisitorNode},
 };
 
 use super::PlannerError;
@@ -30,9 +33,7 @@ pub fn collect_aggregates(
         interpreter,
     };
 
-    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(
-        &mut collector,
-    );
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
     for projection in &core.projection {
         if let SqlProjection::Expr { expr, .. } = projection {
@@ -88,8 +89,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 return Err(callee_val.err().unwrap());
             }
         }
@@ -106,7 +106,9 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
 mod tests {
     use super::*;
     use lykiadb_lang::ast::{
-        expr::Expr, sql::{SqlProjection, SqlSelectCore}, Identifier, IdentifierKind, Span
+        Identifier, IdentifierKind, Span,
+        expr::Expr,
+        sql::{SqlProjection, SqlSelectCore},
     };
 
     fn create_test_interpreter() -> Interpreter {
@@ -207,10 +209,8 @@ mod tests {
             accumulator: vec![],
             interpreter: &mut interpreter,
         };
-    
-        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(
-            &mut collector,
-        );
+
+        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
         let result = visitor.visit(&outer_avg_call);
         assert!(matches!(
