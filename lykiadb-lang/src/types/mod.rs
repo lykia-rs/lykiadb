@@ -28,15 +28,15 @@ impl Display for Datatype {
                     f,
                     "{}",
                     map.iter()
-                        .map(|(key, value)| { format!("{}: {}", key, value) })
+                        .map(|(key, value)| { format!("{key}: {value}") })
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;
                 write!(f, "}})")
             }
-            Datatype::Array(inner) => write!(f, "dtype::array({})", inner),
+            Datatype::Array(inner) => write!(f, "dtype::array({inner})"),
             Datatype::Callable(input, output) => {
-                write!(f, "dtype::callable({}, {})", input, output)
+                write!(f, "dtype::callable({input}, {output})")
             }
             Datatype::Datatype => write!(f, "dtype::dtype"),
             Datatype::Tuple(inner) => {
@@ -46,7 +46,7 @@ impl Display for Datatype {
                     "{}",
                     inner
                         .iter()
-                        .map(|dtype| format!("{}", dtype))
+                        .map(|dtype| format!("{dtype}"))
                         .collect::<Vec<String>>()
                         .join(", ")
                 )?;

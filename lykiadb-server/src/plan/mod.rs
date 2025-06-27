@@ -35,9 +35,9 @@ pub enum IntermediateExpr {
 impl Display for IntermediateExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IntermediateExpr::Constant(rv) => write!(f, "{:?}", rv),
+            IntermediateExpr::Constant(rv) => write!(f, "{rv:?}"),
             IntermediateExpr::Expr { expr, .. } => {
-                write!(f, "{}", expr)
+                write!(f, "{expr}")
             }
         }
     }
@@ -120,7 +120,7 @@ pub enum Node {
 impl Display for Plan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Plan::Select(node) => write!(f, "{}", node),
+            Plan::Select(node) => write!(f, "{node}"),
         }
     }
 }
@@ -136,7 +136,7 @@ impl Node {
             Node::Order { source, key } => {
                 let key_description = key
                     .iter()
-                    .map(|(expr, ordering)| format!("({}, {:?})", expr, ordering))
+                    .map(|(expr, ordering)| format!("({expr}, {ordering:?})"))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(
@@ -162,7 +162,7 @@ impl Node {
                             if let Some(alias) = alias {
                                 return format!("{} as {}", expr, alias.name);
                             }
-                            format!("{} as {}", expr, expr)
+                            format!("{expr} as {expr}")
                         }
                     })
                     .collect::<Vec<String>>()

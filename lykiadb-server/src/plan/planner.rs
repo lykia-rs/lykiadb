@@ -4,11 +4,11 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}, Spanned
+    expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}
 };
 
 use super::{
-    aggregation::collect_aggregates, expr::SqlExprReducer, from::build_from, scope::Scope, IntermediateExpr, Node, Plan, PlannerError
+    aggregation::collect_aggregates, expr::SqlExprReducer, from::build_from, scope::Scope, IntermediateExpr, Node, Plan
 };
 
 pub struct Planner<'a> {
@@ -63,7 +63,7 @@ impl<'a> Planner<'a> {
             node = build_from(self, from, &mut core_scope)?;
         }
 
-        println!("CurrentScope\n{:?}", core_scope);
+        println!("CurrentScope\n{core_scope:?}");
 
         // Filter: The source is then filtered, and the result is passed to the next
         // node.

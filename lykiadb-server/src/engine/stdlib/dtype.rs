@@ -54,7 +54,7 @@ pub fn nt_tuple_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, Ha
             _ => {
                 return Err(HaltReason::Error(
                     InterpretError::Other {
-                        message: format!("tuple_of: Unexpected argument '{:?}'", arg),
+                        message: format!("tuple_of: Unexpected argument '{arg:?}'"),
                     }
                     .into(),
                 ));

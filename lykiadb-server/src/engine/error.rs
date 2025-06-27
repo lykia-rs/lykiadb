@@ -16,7 +16,7 @@ pub enum ExecutionError {
 
 impl Display for ExecutionError {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -107,8 +107,7 @@ pub fn report_error(
         ExecutionError::Interpret(InterpretError::PropertyNotFound { property, span }) => {
             print(
                 &format!(
-                    "Property {} not found in the evaluated expression",
-                    property
+                    "Property {property} not found in the evaluated expression"
                 ),
                 "Check if that field is present in the expression.",
                 span,

@@ -39,7 +39,7 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer {
                 },
                 Expr::Call { callee, .. } => {
                     // check if the callee resolves
-                    println!("/Expr::Call({:?})/", callee);
+                    println!("/Expr::Call({callee:?})/");
                 },
                 Expr::Select { query, .. } => {
                     if !self.allow_subqueries {

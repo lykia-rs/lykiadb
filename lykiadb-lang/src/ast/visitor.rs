@@ -32,19 +32,19 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
     }
 
     pub fn visit(
-        self: &mut Self,
+        &mut self,
         expr: &Expr,
     ) -> Result<Vec<T>, E> {
         self._traverse(expr)?;
 
-        Ok(self.visit_callback.finalize()?)
+        self.visit_callback.finalize()
     }
     
     fn _traverse(
-        self: &mut Self,
+        &mut self,
         expr: &Expr,
     ) -> Result<(), E> {
-        let go = self.visit_callback.visit(&expr, ExprVisitorNode::In)?;
+        let go = self.visit_callback.visit(expr, ExprVisitorNode::In)?;
 
         if !go {
             return Ok(());
@@ -92,7 +92,7 @@ impl<'a, T, E> ExprVisitor<'a, T, E>{
             }
         };
 
-        self.visit_callback.visit(&expr, ExprVisitorNode::Out)?;
+        self.visit_callback.visit(expr, ExprVisitorNode::Out)?;
 
         Ok(())
     }
