@@ -29,7 +29,7 @@ pub enum PlannerError {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
     Constant(RV),
-    Expr { expr: Expr },
+    Expr { expr: Box<Expr> },
 }
 
 impl Display for IntermediateExpr {
@@ -204,7 +204,7 @@ impl Node {
                 )?;
                 source._fmt_recursive(f, indent + 1)
             }
-            Node::Scan { source, filter } => {
+            Node::Scan { source, .. } => {
                 write!(
                     f,
                     "{}- scan [{} as {}]{}",
@@ -269,7 +269,7 @@ impl Node {
                 left._fmt_recursive(f, indent + 1)?;
                 right._fmt_recursive(f, indent + 1)
             }
-            Node::EvalScan { source, filter } => {
+            Node::EvalScan { source, .. } => {
                 write!(
                     f,
                     "{}- eval_scan [{}]{}",
