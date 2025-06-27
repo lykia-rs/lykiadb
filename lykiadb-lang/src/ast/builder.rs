@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use super::{
-    expr::{Expr, Operation, RangeKind},
     Identifier, IdentifierKind, Literal,
+    expr::{Expr, Operation, RangeKind},
 };
+use std::sync::Arc;
 
 pub struct AstBuilder {}
 
@@ -109,7 +109,8 @@ impl AstBuilder {
     pub fn field_path(&self, head: &str, tail: Vec<&str>) -> Box<Expr> {
         Box::new(Expr::FieldPath {
             head: Identifier::new(head, IdentifierKind::Symbol),
-            tail: tail.into_iter()
+            tail: tail
+                .into_iter()
                 .map(|t| Identifier::new(t, IdentifierKind::Symbol))
                 .collect(),
             span: Default::default(),
@@ -127,7 +128,13 @@ impl AstBuilder {
         })
     }
 
-    pub fn between(&self, subject: Box<Expr>, lower: Box<Expr>, upper: Box<Expr>, kind: RangeKind) -> Box<Expr> {
+    pub fn between(
+        &self,
+        subject: Box<Expr>,
+        lower: Box<Expr>,
+        upper: Box<Expr>,
+        kind: RangeKind,
+    ) -> Box<Expr> {
         Box::new(Expr::Between {
             lower,
             upper,
@@ -138,17 +145,26 @@ impl AstBuilder {
         })
     }
 
-    pub fn function(&self, name: Option<&str>, parameters: Vec<(&str, Option<Box<Expr>>)>, return_type: Option<Box<Expr>>, body: Vec<super::stmt::Stmt>) -> Box<Expr> {
+    pub fn function(
+        &self,
+        name: Option<&str>,
+        parameters: Vec<(&str, Option<Box<Expr>>)>,
+        return_type: Option<Box<Expr>>,
+        body: Vec<super::stmt::Stmt>,
+    ) -> Box<Expr> {
         Box::new(Expr::Function {
             name: name.map(|n| Identifier::new(n, IdentifierKind::Symbol)),
-            parameters: parameters.into_iter()
-                .map(|(name, type_expr)| (
-                    Identifier::new(name, IdentifierKind::Symbol),
-                    type_expr.map(|expr| super::expr::TypeAnnotation {
-                        type_expr: expr,
-                        span: Default::default(),
-                    })
-                ))
+            parameters: parameters
+                .into_iter()
+                .map(|(name, type_expr)| {
+                    (
+                        Identifier::new(name, IdentifierKind::Symbol),
+                        type_expr.map(|expr| super::expr::TypeAnnotation {
+                            type_expr: expr,
+                            span: Default::default(),
+                        }),
+                    )
+                })
                 .collect(),
             return_type: return_type.map(|expr| super::expr::TypeAnnotation {
                 type_expr: expr,
@@ -174,11 +190,7 @@ mod tests {
         assert!(matches!(*var, Expr::Variable { .. }));
 
         // Test binary expression without needing to box manually
-        let binary = b.binary(
-            b.literal_num(1.0),
-            Operation::Add,
-            b.literal_num(2.0)
-        );
+        let binary = b.binary(b.literal_num(1.0), Operation::Add, b.literal_num(2.0));
         assert!(matches!(*binary, Expr::Binary { .. }));
     }
 }

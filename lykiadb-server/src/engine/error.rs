@@ -106,9 +106,7 @@ pub fn report_error(
         }
         ExecutionError::Interpret(InterpretError::PropertyNotFound { property, span }) => {
             print(
-                &format!(
-                    "Property {property} not found in the evaluated expression"
-                ),
+                &format!("Property {property} not found in the evaluated expression"),
                 "Check if that field is present in the expression.",
                 span,
             );
@@ -292,7 +290,8 @@ mod tests {
     fn test_planner_duplicate_object() {
         let source = "Select * from users, users;";
         let error = ExecutionError::Plan(PlannerError::DuplicateObjectInScope(Identifier::new(
-            "users", IdentifierKind::Symbol,
+            "users",
+            IdentifierKind::Symbol,
         )));
 
         let output = capture_error_output("test.txt", source, error);

@@ -446,7 +446,7 @@ impl Display for Expr {
 pub mod test {
     use std::collections::HashSet;
 
-    use crate::ast::{expr::Expr, IdentifierKind};
+    use crate::ast::{IdentifierKind, expr::Expr};
 
     use super::*;
 
