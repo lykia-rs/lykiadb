@@ -5,7 +5,7 @@ use crate::{
 
 pub fn nt_print(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
     for arg in args {
-        print!("{:?} ", arg);
+        print!("{arg:?} ");
     }
     println!();
     Ok(RV::Undefined)

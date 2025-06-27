@@ -10,8 +10,8 @@ use lykiadb_lang::ast::{
 };
 
 use super::{
-    IntermediateExpr, Node, Plan, aggregation::collect_aggregates,
-    expr::SqlExprReducer, from::build_from, scope::Scope,
+    IntermediateExpr, Node, Plan, aggregation::collect_aggregates, expr::SqlExprReducer,
+    from::build_from, scope::Scope,
 };
 
 pub struct Planner<'a> {
@@ -66,7 +66,7 @@ impl<'a> Planner<'a> {
             node = build_from(self, from, &mut core_scope)?;
         }
 
-        println!("CurrentScope\n{:?}", core_scope);
+        println!("CurrentScope\n{core_scope:?}");
 
         // Filter: The source is then filtered, and the result is passed to the next
         // node.
@@ -174,7 +174,12 @@ impl<'a> Planner<'a> {
             subqueries.push(self.build_select(subquery)?);
         }
 
-        Ok((IntermediateExpr::Expr { expr: expr.clone() }, subqueries))
+        Ok((
+            IntermediateExpr::Expr {
+                expr: Box::new(expr.clone()),
+            },
+            subqueries,
+        ))
     }
 
     pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {

@@ -46,7 +46,7 @@ impl SqlParser {
                     return Err(select_inner.err().unwrap());
                 }
 
-                SqlValues::Select(select_inner.unwrap())
+                SqlValues::Select(Box::new(select_inner.unwrap()))
             } else if cparser.match_next(&skw!(Values)) {
                 cparser.expect(&sym!(LeftParen))?;
                 let mut values: Vec<Expr> = vec![];

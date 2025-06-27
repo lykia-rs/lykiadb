@@ -164,7 +164,7 @@ pub enum SqlValues {
     #[serde(rename = "SqlValues::Values")]
     Values { values: Vec<Expr> },
     #[serde(rename = "SqlValues::Select")]
-    Select(SqlSelect),
+    Select(Box<SqlSelect>),
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]

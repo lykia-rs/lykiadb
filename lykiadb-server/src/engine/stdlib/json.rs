@@ -27,7 +27,7 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
         Err(e) => {
             return Err(HaltReason::Error(
                 InterpretError::Other {
-                    message: format!("json_decode: Unhandled error '{:?}'", e),
+                    message: format!("json_decode: Unhandled error '{e:?}'"),
                 }
                 .into(),
             ));

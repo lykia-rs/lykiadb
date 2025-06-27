@@ -436,8 +436,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         InterpretError::Other {
                             message: format!(
                                 //TODO: Maybe with dates and strings too?
-                                "Range can only be created with numbers. {:?} {:?} {:?}",
-                                lower_eval, upper_eval, subject_eval
+                                "Range can only be created with numbers. {lower_eval:?} {upper_eval:?} {subject_eval:?}"
                             ),
                         }
                         .into(),
@@ -472,8 +471,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     Err(HaltReason::Error(
                         InterpretError::Other {
                             message: format!(
-                                "Only objects have properties. {:?} is not an object",
-                                object_eval
+                                "Only objects have properties. {object_eval:?} is not an object"
                             ),
                         }
                         .into(),
@@ -497,8 +495,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     Err(HaltReason::Error(
                         InterpretError::Other {
                             message: format!(
-                                "Only objects have properties. {:?} is not an object",
-                                object_eval
+                                "Only objects have properties. {object_eval:?} is not an object"
                             ),
                         }
                         .into(),
