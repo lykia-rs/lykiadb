@@ -346,30 +346,30 @@ impl ExprParser {
     pub fn call(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         let expr = self.primary(cparser)?;
 
-        if let Expr::Variable { name, span, id } = expr.as_ref() {
-            if name.kind == IdentifierKind::Symbol {
-                let next_tok = &cparser.peek_bw(0).tok_type;
+        if let Expr::Variable { name, span, id } = expr.as_ref()
+            && name.kind == IdentifierKind::Symbol
+        {
+            let next_tok = &cparser.peek_bw(0).tok_type;
 
-                if ((next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
-                    && next_tok != &sym!(DoubleColon))
-                    && cparser.get_count("in_select_depth") > 0
-                {
-                    let head = name.clone();
-                    let mut tail: Vec<crate::ast::Identifier> = vec![];
-                    while cparser.match_next(&sym!(Dot)) {
-                        let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
-                        tail.push(identifier.extract_identifier().unwrap());
-                    }
-                    return Ok(Box::new(Expr::FieldPath {
-                        head,
-                        tail,
-                        span: cparser.get_merged_span(span, &cparser.peek_bw(0).span),
-                        id: *id,
-                    }));
+            if ((next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))
+                && next_tok != &sym!(DoubleColon))
+                && cparser.get_count("in_select_depth") > 0
+            {
+                let head = name.clone();
+                let mut tail: Vec<crate::ast::Identifier> = vec![];
+                while cparser.match_next(&sym!(Dot)) {
+                    let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
+                    tail.push(identifier.extract_identifier().unwrap());
                 }
-
-                return self.expect_get_path(expr, sym!(DoubleColon), cparser);
+                return Ok(Box::new(Expr::FieldPath {
+                    head,
+                    tail,
+                    span: cparser.get_merged_span(span, &cparser.peek_bw(0).span),
+                    id: *id,
+                }));
             }
+
+            return self.expect_get_path(expr, sym!(DoubleColon), cparser);
         }
 
         self.expect_get_path(expr, sym!(Dot), cparser)

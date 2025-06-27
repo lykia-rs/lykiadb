@@ -69,24 +69,24 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
-            if let Ok(RV::Callable(callable)) = &callee_val {
-                if let CallableKind::Aggregator(agg_name) = &callable.kind {
-                    match visit {
-                        ExprVisitorNode::In => {
-                            if self.in_call > 0 {
-                                return Err(HaltReason::Error(ExecutionError::Plan(
-                                    PlannerError::NestedAggregationNotAllowed(expr.get_span()),
-                                )));
-                            }
-                            self.in_call += 1;
-                            self.accumulator.push(Aggregation {
-                                name: agg_name.clone(),
-                                args: args.clone(),
-                            });
+            if let Ok(RV::Callable(callable)) = &callee_val
+                && let CallableKind::Aggregator(agg_name) = &callable.kind
+            {
+                match visit {
+                    ExprVisitorNode::In => {
+                        if self.in_call > 0 {
+                            return Err(HaltReason::Error(ExecutionError::Plan(
+                                PlannerError::NestedAggregationNotAllowed(expr.get_span()),
+                            )));
                         }
-                        ExprVisitorNode::Out => {
-                            self.in_call -= 1;
-                        }
+                        self.in_call += 1;
+                        self.accumulator.push(Aggregation {
+                            name: agg_name.clone(),
+                            args: args.clone(),
+                        });
+                    }
+                    ExprVisitorNode::Out => {
+                        self.in_call -= 1;
                     }
                 }
             } else {

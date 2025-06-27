@@ -174,7 +174,12 @@ impl<'a> Planner<'a> {
             subqueries.push(self.build_select(subquery)?);
         }
 
-        Ok((IntermediateExpr::Expr { expr: Box::new(expr.clone()) }, subqueries))
+        Ok((
+            IntermediateExpr::Expr {
+                expr: Box::new(expr.clone()),
+            },
+            subqueries,
+        ))
     }
 
     pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
