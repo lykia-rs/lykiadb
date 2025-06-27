@@ -101,23 +101,19 @@ mod tests {
 
     impl ExprReducer<Expr, String> for DummyAggregationCollector {
         fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, String> {
-            if let Expr::Call { callee, .. } = expr {
-                if let Expr::Variable { name, .. } = callee.as_ref() {
-                    if name.name == "avg" {
-                        match visit {
-                            ExprVisitorNode::In => {
-                                if self.in_call > 0 {
-                                    return Err(
-                                        "avg() cannot be called inside another avg()".to_string()
-                                    );
-                                }
-                                self.in_call += 1;
-                                self.accumulator.push(expr.clone());
-                            }
-                            ExprVisitorNode::Out => {
-                                self.in_call -= 1;
-                            }
+            if let Expr::Call { callee, .. } = expr && let Expr::Variable { name, .. } = callee.as_ref() && name.name == "avg" {
+                match visit {
+                    ExprVisitorNode::In => {
+                        if self.in_call > 0 {
+                            return Err(
+                                "avg() cannot be called inside another avg()".to_string()
+                            );
                         }
+                        self.in_call += 1;
+                        self.accumulator.push(expr.clone());
+                    }
+                    ExprVisitorNode::Out => {
+                        self.in_call -= 1;
                     }
                 }
             }
