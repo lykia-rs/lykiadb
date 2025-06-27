@@ -346,7 +346,9 @@ impl ExprParser {
     pub fn call(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         let expr = self.primary(cparser)?;
 
-        if let Expr::Variable { name, span, id } = expr.as_ref() && name.kind == IdentifierKind::Symbol {
+        if let Expr::Variable { name, span, id } = expr.as_ref()
+            && name.kind == IdentifierKind::Symbol
+        {
             let next_tok = &cparser.peek_bw(0).tok_type;
 
             if ((next_tok == &sym!(Dot) || next_tok != &sym!(LeftParen))

@@ -94,7 +94,9 @@ impl RV {
     }
 
     pub fn eq_str_num(&self, n: f64) -> bool {
-        if let RV::Str(s) = self && let Ok(num) = s.parse::<f64>() {
+        if let RV::Str(s) = self
+            && let Ok(num) = s.parse::<f64>()
+        {
             return num == n;
         }
         false
