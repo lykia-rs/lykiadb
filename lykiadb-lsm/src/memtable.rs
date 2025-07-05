@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use std::sync::atomic::AtomicUsize;
 use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 
 struct Memtable {
     map: Arc<SkipMap<Bytes, Bytes>>,
@@ -14,7 +14,7 @@ impl Memtable {
         Memtable {
             map: Arc::new(SkipMap::new()),
             id: 0,
-            approximate_size: Arc::new(AtomicUsize::new(0))
+            approximate_size: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -23,17 +23,15 @@ impl Memtable {
     }
 
     pub fn put(&self, key: &[u8], value: &[u8]) {
-        self.map.insert(
-            Bytes::copy_from_slice(key),
-            Bytes::copy_from_slice(value),
-        );
+        self.map
+            .insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
     }
 }
 
 #[cfg(test)]
-mod test{
-    use bytes::Bytes;
+mod test {
     use crate::memtable::Memtable;
+    use bytes::Bytes;
 
     #[test]
     fn test_create() {
@@ -65,7 +63,14 @@ mod test{
     fn test_put_0() {
         let memtable = Memtable::new();
         memtable.put(b"key", b"value");
-        assert_eq!(&memtable.map.get(&Bytes::copy_from_slice(b"key")).unwrap().value()[..], b"value");
+        assert_eq!(
+            &memtable
+                .map
+                .get(&Bytes::copy_from_slice(b"key"))
+                .unwrap()
+                .value()[..],
+            b"value"
+        );
     }
 
     #[test]
@@ -73,6 +78,13 @@ mod test{
         let memtable = Memtable::new();
         memtable.put(b"key", b"value");
         memtable.put(b"key", b"value2");
-        assert_eq!(&memtable.map.get(&Bytes::copy_from_slice(b"key")).unwrap().value()[..], b"value2");
+        assert_eq!(
+            &memtable
+                .map
+                .get(&Bytes::copy_from_slice(b"key"))
+                .unwrap()
+                .value()[..],
+            b"value2"
+        );
     }
 }
