@@ -115,10 +115,10 @@ mod tests {
         entry_offset.write_to(&mut buffer);
         
         assert_eq!(buffer.len(), 4);
-        // Count should be 1
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1);
         // Offset should be 1024
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1024);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1024);
+        // Count should be 1
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -131,16 +131,16 @@ mod tests {
         
         entry_offset.write_to(&mut buffer);
         
-        assert_eq!(buffer.len(), 8); // 2 bytes count + 6 bytes offsets
+        assert_eq!(buffer.len(), 8); // 6 bytes offsets + 2 bytes count
         
-        // Count should be 3
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 3);
         // First offset: 256
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 256);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 256);
         // Second offset: 512
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 512);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 512);
         // Third offset: 1024
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 1024);
+        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 1024);
+        // Count should be 3
+        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 3);
     }
 
     #[test]
@@ -152,12 +152,12 @@ mod tests {
         entry_offset.write_to(&mut buffer);
         
         assert_eq!(buffer.len(), 8);
-        // Count should be 3
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 3);
         // Check each offset
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 100);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 200);
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 300);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 100);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 200);
+        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 300);
+        // Count should be 3
+        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 3);
     }
 
     #[test]
@@ -168,13 +168,13 @@ mod tests {
         let mut buffer = vec![0xFF, 0xFE]; // Pre-existing data
         entry_offset.write_to(&mut buffer);
         
-        assert_eq!(buffer.len(), 6); // 2 existing + 2 count + 2 offset
+        assert_eq!(buffer.len(), 6); // 2 existing + 2 offset + 2 count
         // Pre-existing data should remain
         assert_eq!(buffer[0], 0xFF);
         assert_eq!(buffer[1], 0xFE);
         // New data appended
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 42);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 42);
+        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 1);
     }
 
     #[test]
@@ -186,8 +186,8 @@ mod tests {
         entry_offset.write_to(&mut buffer);
         
         assert_eq!(buffer.len(), 4);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1);
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), DataOffset::MAX);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), DataOffset::MAX);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -199,8 +199,8 @@ mod tests {
         entry_offset.write_to(&mut buffer);
         
         assert_eq!(buffer.len(), 4);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1);
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 0);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 0);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -217,10 +217,10 @@ mod tests {
         entry_offset.write_to(&mut buffer);
         
         assert_eq!(buffer.len(), 10);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 4); // count
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 10);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 20);
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 30);
-        assert_eq!(DataOffset::from_be_bytes([buffer[8], buffer[9]]), 40);
+        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 10);
+        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 20);
+        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 30);
+        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 40);
+        assert_eq!(DataOffset::from_be_bytes([buffer[8], buffer[9]]), 4); // count
     }
 }
