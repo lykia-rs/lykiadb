@@ -1,0 +1,5 @@
+- Iterate through memtable and write to SStable
+- Test SStable
+- Test Block
+- Check Key and Value types
+- Replace hardcoded sizes with constants

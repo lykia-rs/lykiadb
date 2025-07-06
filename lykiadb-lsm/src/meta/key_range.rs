@@ -27,6 +27,9 @@ impl MetaKeyRange {
         self.has_keys = true;
     }
 
+    // ------------------------------------------------------------------------------------
+    // |   key len (u16)   |   min_key (N u8)   |    key len (u16)   |   max_key (N u8)   |
+    // ------------------------------------------------------------------------------------
     pub fn write_to(&self, buffer: &mut Vec<u8>) {
         if self.has_keys {
             buffer.put_u16(self.min_key.len() as u16);

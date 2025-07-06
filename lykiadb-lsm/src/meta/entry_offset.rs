@@ -17,11 +17,14 @@ impl MetaEntryOffset {
         self.offsets.push(offset);
     }
 
+    // ------------------------------------------------------------------
+    // |   offset (u16)   | ... |    offset (u16)   |    length (u16)   |
+    // ------------------------------------------------------------------
     pub fn write_to(&self, buffer: &mut Vec<u8>) {
-        buffer.put_u16(self.offsets.len() as DataOffset);
         for &offset in &self.offsets {
             buffer.put_u16(offset);
         }
+        buffer.put_u16(self.offsets.len() as DataOffset);
     }
 
     pub fn len(&self) -> usize {
