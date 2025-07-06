@@ -1,5 +1,7 @@
-mod summary;
-mod offset_reg;
+mod key_range;
+mod entry_offset;
+mod block_summary;
 
-pub use summary::MetaSummary;
-pub use offset_reg::MetaOffsetReg;
+pub use key_range::MetaKeyRange;
+pub use entry_offset::MetaEntryOffset;
+pub use block_summary::MetaBlockSummary;
