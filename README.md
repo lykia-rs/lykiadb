@@ -34,7 +34,7 @@ Lykia is a document database management system built for educational purposes. T
 - [x] Modular architecture for core and surrounding components
 - [ ] Query planning and binding (in progress)
 - [ ] Query execution
-- [ ] Persistent storage engine
+- [ ] Persistent storage engine (in progress)
 - [ ] Multi-version concurrency control
 
 ## Secondary goals
