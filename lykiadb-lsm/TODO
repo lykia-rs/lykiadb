@@ -3,3 +3,4 @@
 - Test Block
 - Check Key and Value types
 - Replace hardcoded sizes with constants
+- Make sure files are readable from the last fixed number of bytes
