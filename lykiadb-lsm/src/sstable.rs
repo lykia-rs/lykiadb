@@ -1,4 +1,4 @@
-mod writer;
+mod builder;
 
 use std::{path::PathBuf};
 
