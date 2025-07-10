@@ -39,11 +39,11 @@ impl SSTableWriter {
     }
 
     pub fn add(&mut self, key: &[u8], value: &[u8]) {
-        let written = self.current_block.add(key, value, &mut self.buffer);
+        let written = self.current_block.add(key, value);
         if !written {
             self.finalize_block();
             self.current_block = Block::new();
-            self.current_block.add(key, value, &mut self.buffer);
+            self.current_block.add(key, value);
         }
         self.key_range.add(key);
     }
