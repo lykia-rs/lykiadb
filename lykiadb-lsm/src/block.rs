@@ -1,17 +1,17 @@
 use bytes::BufMut;
 use crate::{meta::{MetaEntryOffset, MetaKeyRange}, DataSize};
 
-const MAX_BLOCK_SIZE: usize = 4096;
-
 pub struct Block {
+    max_size: usize,
     buffer: Vec<u8>,
     offsets: MetaEntryOffset,
     pub key_range: MetaKeyRange,
 }
 
 impl Block {
-    pub fn new() -> Self {
+    pub fn new(max_size: usize) -> Self {
         Block {
+            max_size,
             buffer: Vec::new(),
             offsets: MetaEntryOffset::new(None),
             key_range: MetaKeyRange::new(),
@@ -23,7 +23,7 @@ impl Block {
         let value_len = value.len() as DataSize;
         let required_for_data = key_len as usize + value_len as usize + 4;
         let required_for_meta = 2; // Size of new offset
-        if required_for_data + required_for_meta < MAX_BLOCK_SIZE - self.buffer.len() {
+        if required_for_data + required_for_meta + self.len() <= self.max_size {
             self.offsets.add(self.buffer.len() as DataSize);
             self.buffer.put_u16(key_len);
             self.buffer.extend_from_slice(key);
@@ -51,8 +51,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_write_keys_and_finalize_0() {
-        let mut block = Block::new();
+    fn test_write_keys_and_finalize() {
+        let mut block = Block::new(64);
         
         // +10 bytes for key and value
         // +4 bytes for key-val lengths
@@ -92,8 +92,44 @@ mod tests {
     }
 
     #[test]
+    fn test_max_size_constraint() {
+        let mut block = Block::new(64);
+        
+        // +10 bytes for key and value
+        // +4 bytes for key-val lengths
+        // +2 bytes for offsets (with 2 bytes long footer)
+        assert!(block.add(b"key1", b"value1"));
+        assert_eq!(block.len(), 18);
+
+        // +10 bytes for key and value
+        // +4 bytes for key-val lengths
+        // +2 bytes for offsets
+        assert!(block.add(b"key2", b"value2"));
+        assert_eq!(block.len(), 34);
+
+        // +12 bytes for key and value
+        // +4 bytes for key-val lengths
+        // +2 bytes for offsets
+        assert!(block.add(b"key10", b"value20"));
+        assert_eq!(block.len(), 52);
+
+        // +12 bytes for key and value
+        // +4 bytes for key-val lengths
+        // +2 bytes for offsets
+        assert!(block.add(b"key", b"val"));
+        assert_eq!(block.len(), 64);
+
+        // Adding another key should fail due to size constraint
+        assert_eq!(block.add(b"key4", b"val"), false);
+
+        let mut buffer = Vec::new();
+        block.write_to(&mut buffer);
+        assert_eq!(buffer.len(), 64);
+    }
+
+    #[test]
     fn test_write_nothing_and_finalize() {
-        let block = Block::new();
+        let block = Block::new(64);
         
         // No data added, should be just 2 bytes long footer (number of items)
         assert_eq!(block.len(), 2);
