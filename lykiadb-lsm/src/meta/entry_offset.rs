@@ -9,7 +9,7 @@ pub struct MetaEntryOffset {
 impl MetaEntryOffset {
     pub fn new(initial: Option<Vec<DataOffset>>) -> Self {
         MetaEntryOffset {
-            offsets: initial.unwrap_or_else(|| vec![]),
+            offsets: initial.unwrap_or_default(),
         }
     }
 

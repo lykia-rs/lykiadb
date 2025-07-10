@@ -8,6 +8,12 @@ pub struct MetaKeyRange {
     max_key: Key,
 }
 
+impl Default for MetaKeyRange {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetaKeyRange {
     pub fn new() -> Self {
         MetaKeyRange {

@@ -120,7 +120,7 @@ mod tests {
         assert_eq!(block.len(), 64);
 
         // Adding another key should fail due to size constraint
-        assert_eq!(block.add(b"key4", b"val"), false);
+        assert!(!block.add(b"key4", b"val"));
 
         let mut buffer = Vec::new();
         block.write_to(&mut buffer);
