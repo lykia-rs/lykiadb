@@ -105,16 +105,16 @@ mod tests {
         assert_eq!(krange.max_key, b"d");
         assert_eq!(krange.len(), 6); // 1 + 1 + 4 = 6
     }
-    
+
     #[test]
     fn test_add_multiple_keys_random_order() {
         let mut krange = MetaKeyRange::new();
         let keys: &[&[u8]] = &[b"zebra", b"apple", b"dog", b"cat"];
-        
+
         for key in keys {
             krange.add(key);
         }
-        
+
         assert_eq!(krange.min_key, b"apple");
         assert_eq!(krange.max_key, b"zebra");
         assert_eq!(krange.len(), 14); // 5 + 5 + 4 = 14
@@ -151,11 +151,11 @@ mod tests {
     fn test_add_keys_with_different_lengths() {
         let mut krange = MetaKeyRange::new();
         let keys: &[&[u8]] = &[b"a", b"longer_key", b"mid"];
-        
+
         for key in keys {
             krange.add(key);
         }
-        
+
         assert_eq!(krange.min_key, b"a");
         assert_eq!(krange.max_key, b"mid");
         assert_eq!(krange.len(), 8); // 1 + 3 + 4 = 8
@@ -186,16 +186,16 @@ mod tests {
 
         assert!(buffer.is_empty());
     }
-    
+
     #[test]
     fn test_finish_with_keys() {
         let mut krange = MetaKeyRange::new();
         krange.add(b"max");
         krange.add(b"min");
-        
+
         let mut buffer = Vec::new();
         krange.write_to(&mut buffer);
-        
+
         let mut expected = Vec::new();
         expected.extend_from_slice(&(3u16).to_be_bytes()); // min_key length
         expected.extend_from_slice(b"max"); // min_key is "max" 

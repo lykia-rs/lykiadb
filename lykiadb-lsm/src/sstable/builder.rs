@@ -1,7 +1,7 @@
 use bytes::BufMut;
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
-use crate::{block::Block, meta::{MetaBlockSummary}};
+use crate::{block::Block, meta::MetaBlockSummary};
 
 struct SSTableBuilder {
     file_path: PathBuf,
@@ -15,10 +15,10 @@ struct SSTableBuilder {
 
 impl SSTableBuilder {
     pub fn new(file_path: PathBuf, max_block_size: usize) -> Self {
-        SSTableBuilder { 
-            file_path, 
+        SSTableBuilder {
+            file_path,
             max_block_size,
-            buffer: Vec::new(), 
+            buffer: Vec::new(),
             block_summaries: Vec::new(),
             current_block: Block::new(max_block_size),
         }
@@ -41,7 +41,7 @@ impl SSTableBuilder {
         }
     }
 
-    pub fn write(&mut self) -> std::io::Result<()> {  
+    pub fn write(&mut self) -> std::io::Result<()> {
         self.finalize_block();
         let meta_offset = self.buffer.len();
         self.buffer.put_u32(self.block_summaries.len() as u32);
@@ -51,14 +51,5 @@ impl SSTableBuilder {
         self.buffer.put_u32(meta_offset as u32);
         std::fs::write(&self.file_path, &self.buffer)?;
         Ok(())
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_write() {
     }
 }

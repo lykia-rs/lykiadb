@@ -1,8 +1,11 @@
 mod builder;
 
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
-use crate::{block::Block, meta::{MetaEntryOffset, MetaKeyRange}};
+use crate::{
+    block::Block,
+    meta::{MetaEntryOffset, MetaKeyRange},
+};
 
 struct SSTable {
     file_path: PathBuf,

@@ -1,5 +1,5 @@
+use crate::meta::MetaKeyRange;
 use bytes::BufMut;
-use crate::{meta::MetaKeyRange};
 
 pub struct MetaBlockSummary {
     pub offset: u32,

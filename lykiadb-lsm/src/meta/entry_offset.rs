@@ -66,7 +66,7 @@ mod tests {
         entry_offset.add(100);
         entry_offset.add(200);
         entry_offset.add(300);
-        
+
         assert_eq!(entry_offset.offsets.len(), 3);
         assert_eq!(entry_offset.offsets, vec![100, 200, 300]);
         assert_eq!(entry_offset.len(), 8); // count + 3 offsets
@@ -75,18 +75,18 @@ mod tests {
     #[test]
     fn test_size_calculation() {
         let mut entry_offset = MetaEntryOffset::new(None);
-        
+
         // Empty: 2 bytes for count
         assert_eq!(entry_offset.len(), 2);
-        
+
         // One offset: 2 bytes for count + 2 bytes for offset
         entry_offset.add(50);
         assert_eq!(entry_offset.len(), 4);
-        
+
         // Two offsets: 2 bytes for count + 4 bytes for offsets
         entry_offset.add(75);
         assert_eq!(entry_offset.len(), 6);
-        
+
         // Ten offsets: 2 bytes for count + 20 bytes for offsets
         for i in 0..8 {
             entry_offset.add(i * 10);
@@ -98,9 +98,9 @@ mod tests {
     fn test_finish_empty() {
         let entry_offset = MetaEntryOffset::new(None);
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 2);
         // Should contain count of 0
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 0);
@@ -111,9 +111,9 @@ mod tests {
         let mut entry_offset = MetaEntryOffset::new(None);
         entry_offset.add(1024);
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 4);
         // Offset should be 1024
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1024);
@@ -128,11 +128,11 @@ mod tests {
         entry_offset.add(512);
         entry_offset.add(1024);
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 8); // 6 bytes offsets + 2 bytes count
-        
+
         // First offset: 256
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 256);
         // Second offset: 512
@@ -148,9 +148,9 @@ mod tests {
         let initial = vec![100, 200, 300];
         let entry_offset = MetaEntryOffset::new(Some(initial));
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 8);
         // Check each offset
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 100);
@@ -164,10 +164,10 @@ mod tests {
     fn test_finish_appends_to_existing_buffer() {
         let mut entry_offset = MetaEntryOffset::new(None);
         entry_offset.add(42);
-        
+
         let mut buffer = vec![0xFF, 0xFE]; // Pre-existing data
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 6); // 2 existing + 2 offset + 2 count
         // Pre-existing data should remain
         assert_eq!(buffer[0], 0xFF);
@@ -182,11 +182,14 @@ mod tests {
         let mut entry_offset = MetaEntryOffset::new(None);
         entry_offset.add(DataOffset::MAX);
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 4);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), DataOffset::MAX);
+        assert_eq!(
+            DataOffset::from_be_bytes([buffer[0], buffer[1]]),
+            DataOffset::MAX
+        );
         assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
@@ -195,9 +198,9 @@ mod tests {
         let mut entry_offset = MetaEntryOffset::new(None);
         entry_offset.add(0);
         let mut buffer = Vec::new();
-        
+
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 4);
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 0);
         assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
@@ -210,12 +213,12 @@ mod tests {
         let mut entry_offset = MetaEntryOffset::new(Some(initial));
         entry_offset.add(30);
         entry_offset.add(40);
-        
+
         assert_eq!(entry_offset.len(), 10); // 2 + 4*2
-        
+
         let mut buffer = Vec::new();
         entry_offset.write_to(&mut buffer);
-        
+
         assert_eq!(buffer.len(), 10);
         assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 10);
         assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 20);
