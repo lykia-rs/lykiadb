@@ -1,6 +1,6 @@
-use crate::Key;
 use bytes::BufMut;
 
+type Key = Vec<u8>;
 type MetaKeyLen = u16;
 const SIZEOF_META_KEY_LEN: usize = std::mem::size_of::<MetaKeyLen>();
 

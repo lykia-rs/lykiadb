@@ -1,8 +1,8 @@
-use crate::{
-    DataSize,
-    meta::{MetaEntryOffset, MetaKeyRange},
-};
+use crate::meta::{MetaEntryOffset, MetaKeyRange};
 use bytes::BufMut;
+
+type DataOffsetLen = u16;
+const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
 
 pub struct Block {
     max_size: usize,
@@ -22,12 +22,12 @@ impl Block {
     }
 
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
-        let key_len = key.len() as DataSize;
-        let value_len = value.len() as DataSize;
-        let required_for_data = key_len as usize + value_len as usize + 4;
-        let required_for_meta = 2; // Size of new offset
+        let key_len = key.len() as DataOffsetLen;
+        let value_len = value.len() as DataOffsetLen;
+        let required_for_data = key_len as usize + value_len as usize + SIZEOF_DATA_OFFSET_LEN * 2;
+        let required_for_meta = SIZEOF_DATA_OFFSET_LEN; // Size of new offset
         if required_for_data + required_for_meta + self.len() <= self.max_size {
-            self.offsets.add(self.buffer.len() as DataSize);
+            self.offsets.add(self.buffer.len() as DataOffsetLen);
             self.buffer.put_u16(key_len);
             self.buffer.extend_from_slice(key);
             self.buffer.put_u16(value_len);
