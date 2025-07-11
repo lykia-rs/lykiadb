@@ -1,19 +1,20 @@
 use bytes::BufMut;
 
-use crate::{DataOffset, SIZEOF_U16};
+type DataOffsetLen = u16;
+const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
 
 pub struct MetaEntryOffset {
-    offsets: Vec<DataOffset>,
+    offsets: Vec<DataOffsetLen>,
 }
 
 impl MetaEntryOffset {
-    pub fn new(initial: Option<Vec<DataOffset>>) -> Self {
+    pub fn new(initial: Option<Vec<DataOffsetLen>>) -> Self {
         MetaEntryOffset {
             offsets: initial.unwrap_or_default(),
         }
     }
 
-    pub fn add(&mut self, offset: DataOffset) {
+    pub fn add(&mut self, offset: DataOffsetLen) {
         self.offsets.push(offset);
     }
 
@@ -24,11 +25,11 @@ impl MetaEntryOffset {
         for &offset in &self.offsets {
             buffer.put_u16(offset);
         }
-        buffer.put_u16(self.offsets.len() as DataOffset);
+        buffer.put_u16(self.offsets.len() as DataOffsetLen);
     }
 
     pub fn len(&self) -> usize {
-        SIZEOF_U16 + self.offsets.len() * SIZEOF_U16 // 2 bytes for count + 2 bytes for each offset
+        SIZEOF_DATA_OFFSET_LEN + self.offsets.len() * SIZEOF_DATA_OFFSET_LEN // 2 bytes for count + 2 bytes for each offset
     }
 }
 
@@ -103,7 +104,7 @@ mod tests {
 
         assert_eq!(buffer.len(), 2);
         // Should contain count of 0
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 0);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 0);
     }
 
     #[test]
@@ -116,9 +117,9 @@ mod tests {
 
         assert_eq!(buffer.len(), 4);
         // Offset should be 1024
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 1024);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 1024);
         // Count should be 1
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -134,13 +135,13 @@ mod tests {
         assert_eq!(buffer.len(), 8); // 6 bytes offsets + 2 bytes count
 
         // First offset: 256
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 256);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 256);
         // Second offset: 512
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 512);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 512);
         // Third offset: 1024
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 1024);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5]]), 1024);
         // Count should be 3
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 3);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[6], buffer[7]]), 3);
     }
 
     #[test]
@@ -153,11 +154,11 @@ mod tests {
 
         assert_eq!(buffer.len(), 8);
         // Check each offset
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 100);
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 200);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 300);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 100);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 200);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5]]), 300);
         // Count should be 3
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 3);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[6], buffer[7]]), 3);
     }
 
     #[test]
@@ -173,24 +174,24 @@ mod tests {
         assert_eq!(buffer[0], 0xFF);
         assert_eq!(buffer[1], 0xFE);
         // New data appended
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 42);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 1);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 42);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5]]), 1);
     }
 
     #[test]
     fn test_edge_case_max_u16_offset() {
         let mut entry_offset = MetaEntryOffset::new(None);
-        entry_offset.add(DataOffset::MAX);
+        entry_offset.add(DataOffsetLen::MAX);
         let mut buffer = Vec::new();
 
         entry_offset.write_to(&mut buffer);
 
         assert_eq!(buffer.len(), 4);
         assert_eq!(
-            DataOffset::from_be_bytes([buffer[0], buffer[1]]),
-            DataOffset::MAX
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]),
+            DataOffsetLen::MAX
         );
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -202,8 +203,8 @@ mod tests {
         entry_offset.write_to(&mut buffer);
 
         assert_eq!(buffer.len(), 4);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 0);
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 1);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 0);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 1);
     }
 
     #[test]
@@ -220,10 +221,10 @@ mod tests {
         entry_offset.write_to(&mut buffer);
 
         assert_eq!(buffer.len(), 10);
-        assert_eq!(DataOffset::from_be_bytes([buffer[0], buffer[1]]), 10);
-        assert_eq!(DataOffset::from_be_bytes([buffer[2], buffer[3]]), 20);
-        assert_eq!(DataOffset::from_be_bytes([buffer[4], buffer[5]]), 30);
-        assert_eq!(DataOffset::from_be_bytes([buffer[6], buffer[7]]), 40);
-        assert_eq!(DataOffset::from_be_bytes([buffer[8], buffer[9]]), 4); // count
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1]]), 10);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3]]), 20);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5]]), 30);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[6], buffer[7]]), 40);
+        assert_eq!(DataOffsetLen::from_be_bytes([buffer[8], buffer[9]]), 4); // count
     }
 }
