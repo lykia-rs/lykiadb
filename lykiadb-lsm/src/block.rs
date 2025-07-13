@@ -1,8 +1,12 @@
 use crate::meta::{MetaEntryOffset, MetaKeyRange};
 use bytes::BufMut;
 
-type DataOffsetLen = u16;
-const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
+type DataKeyLen = u16;
+type DataValueLen = u32;
+pub type DataOffsetLen = u32;
+const SIZEOF_DATA_KEY_LEN: usize = std::mem::size_of::<DataKeyLen>();
+const SIZEOF_DATA_VALUE_LEN: usize = std::mem::size_of::<DataValueLen>();
+pub const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
 
 pub struct Block {
     max_size: usize,
@@ -22,15 +26,15 @@ impl Block {
     }
 
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
-        let key_len = key.len() as DataOffsetLen;
-        let value_len = value.len() as DataOffsetLen;
-        let required_for_data = key_len as usize + value_len as usize + SIZEOF_DATA_OFFSET_LEN * 2;
+        let key_len = key.len() as DataKeyLen;
+        let value_len = value.len() as DataValueLen;
+        let required_for_data = key_len as usize + value_len as usize + SIZEOF_DATA_KEY_LEN + SIZEOF_DATA_VALUE_LEN;
         let required_for_meta = SIZEOF_DATA_OFFSET_LEN; // Size of new offset
         if required_for_data + required_for_meta + self.len() <= self.max_size {
             self.offsets.add(self.buffer.len() as DataOffsetLen);
             self.buffer.put_u16(key_len);
             self.buffer.extend_from_slice(key);
-            self.buffer.put_u16(value_len);
+            self.buffer.put_u32(value_len);
             self.buffer.extend_from_slice(value);
             self.key_range.add(key);
             return true;
@@ -57,41 +61,41 @@ mod tests {
     fn test_write_keys_and_finalize() {
         let mut block = Block::new(64);
 
-        // +10 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets (with 2 bytes long footer)
-        assert!(block.add(b"key1", b"value1"));
-        assert_eq!(block.len(), 18);
+        // +8 bytes for key and value
+        // +6 bytes for key-val lengths
+        // +4 bytes for offsets (with 4 bytes long footer)
+        assert!(block.add(b"key", b"value"));
+        assert_eq!(block.len(), 22);
 
         // +10 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets
+        // +6 bytes for key-val lengths
+        // +4 bytes for offsets
         assert!(block.add(b"key2", b"value2"));
-        assert_eq!(block.len(), 34);
+        assert_eq!(block.len(), 42);
 
         // +12 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets
+        // +6 bytes for key-val lengths
+        // +4 bytes for offsets
         assert!(block.add(b"key10", b"value20"));
-        assert_eq!(block.len(), 52);
+        assert_eq!(block.len(), 64);
 
         let mut buffer = Vec::new();
         block.write_to(&mut buffer);
-        assert_eq!(buffer.len(), 52);
+        assert_eq!(buffer.len(), 64);
         assert_eq!(
             buffer,
             vec![
-                0, 4, b'k', b'e', b'y', b'1', // key1
-                0, 6, b'v', b'a', b'l', b'u', b'e', b'1', // value1
+                0, 3, b'k', b'e', b'y', // key
+                0, 0, 0, 5, b'v', b'a', b'l', b'u', b'e', // value
                 0, 4, b'k', b'e', b'y', b'2', // key2
-                0, 6, b'v', b'a', b'l', b'u', b'e', b'2', // value2
+                0, 0, 0, 6, b'v', b'a', b'l', b'u', b'e', b'2', // value2
                 0, 5, b'k', b'e', b'y', b'1', b'0', // key10
-                0, 7, b'v', b'a', b'l', b'u', b'e', b'2', b'0', // value20
-                0, 0, // offset for key1
-                0, 14, // offset for key2
-                0, 28, // offset for key10
+                0, 0, 0, 7, b'v', b'a', b'l', b'u', b'e', b'2', b'0', // value20
+                0, 0, 0, 0, // offset for key1
+                0, 0, 0, 14, // offset for key2
+                0, 0, 0, 30, // offset for key10
                 // Footer with offsets count (3)
-                0, 3,
+                0, 0, 0, 3,
             ]
         );
     }
@@ -100,28 +104,22 @@ mod tests {
     fn test_max_size_constraint() {
         let mut block = Block::new(64);
 
-        // +10 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets (with 2 bytes long footer)
-        assert!(block.add(b"key1", b"value1"));
-        assert_eq!(block.len(), 18);
+        // +8 bytes for key and value
+        // +6 bytes for key-val lengths
+        // +4 bytes for offset (+4 bytes long footer)
+        assert!(block.add(b"key", b"value"));
+        assert_eq!(block.len(), 22);
 
         // +10 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets
+        // +6 bytes for key-val lengths
+        // +4 bytes for offset
         assert!(block.add(b"key2", b"value2"));
-        assert_eq!(block.len(), 34);
+        assert_eq!(block.len(), 42);
 
         // +12 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets
+        // +6 bytes for key-val lengths
+        // +4 bytes for offset
         assert!(block.add(b"key10", b"value20"));
-        assert_eq!(block.len(), 52);
-
-        // +12 bytes for key and value
-        // +4 bytes for key-val lengths
-        // +2 bytes for offsets
-        assert!(block.add(b"key", b"val"));
         assert_eq!(block.len(), 64);
 
         // Adding another key should fail due to size constraint
@@ -136,12 +134,12 @@ mod tests {
     fn test_write_nothing_and_finalize() {
         let block = Block::new(64);
 
-        // No data added, should be just 2 bytes long footer (number of items)
-        assert_eq!(block.len(), 2);
+        // No data added, should be just 4 bytes long footer (number of items)
+        assert_eq!(block.len(), 4);
 
         let mut buffer = Vec::new();
         block.write_to(&mut buffer);
-        assert_eq!(buffer.len(), 2);
-        assert_eq!(buffer, vec![0, 0]); // Footer with offsets count (0)
+        assert_eq!(buffer.len(), 4);
+        assert_eq!(buffer, vec![0, 0, 0, 0]); // Footer with offsets count (0)
     }
 }
