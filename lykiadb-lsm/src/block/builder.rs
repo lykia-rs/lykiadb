@@ -1,11 +1,11 @@
 use crate::meta::{MetaEntryOffset, MetaKeyRange};
 use bytes::BufMut;
 
-type DataKeyLen = u16;
-type DataValueLen = u32;
+pub(crate) type DataKeyLen = u16;
+pub(crate) type DataValueLen = u32;
 pub(crate) type DataOffsetLen = u32;
-const SIZEOF_DATA_KEY_LEN: usize = std::mem::size_of::<DataKeyLen>();
-const SIZEOF_DATA_VALUE_LEN: usize = std::mem::size_of::<DataValueLen>();
+pub(crate) const SIZEOF_DATA_KEY_LEN: usize = std::mem::size_of::<DataKeyLen>();
+pub(crate) const SIZEOF_DATA_VALUE_LEN: usize = std::mem::size_of::<DataValueLen>();
 pub(crate) const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
 
 pub(crate) struct BlockBuilder {

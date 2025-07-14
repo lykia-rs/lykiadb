@@ -7,7 +7,7 @@ use crate::{
     sstable::SSTable,
 };
 
-struct SSTableBuilder {
+pub(crate) struct SSTableBuilder {
     file_path: PathBuf,
     max_block_size: usize,
     //
