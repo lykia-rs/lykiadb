@@ -1,7 +1,7 @@
 use bytes::BufMut;
 use std::path::PathBuf;
 
-use crate::{block::{Block, DataOffsetLen}, meta::MetaBlockSummary};
+use crate::{block::{Block, DataOffsetLen}, meta::{MetaBlockSummary}, sstable::SSTable};
 
 struct SSTableBuilder {
     file_path: PathBuf,
@@ -25,6 +25,9 @@ impl SSTableBuilder {
     }
 
     fn finalize_block(&mut self) {
+        if self.current_block.is_empty() {
+            return; // No data to write, skip empty block
+        }
         self.block_summaries.push(MetaBlockSummary {
             offset: self.buffer.len() as DataOffsetLen,
             key_range: self.current_block.key_range.clone(),
@@ -41,8 +44,13 @@ impl SSTableBuilder {
         }
     }
 
-    pub fn write(&mut self) -> std::io::Result<()> {
+    pub fn build(&mut self) -> Result<SSTable, std::io::Error> {
         self.finalize_block();
+
+        if self.block_summaries.is_empty() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "No blocks to write"));
+        }
+
         let meta_offset = self.buffer.len();
         self.buffer.put_u32(self.block_summaries.len() as DataOffsetLen);
         for meta in &self.block_summaries {
@@ -50,13 +58,31 @@ impl SSTableBuilder {
         }
         self.buffer.put_u32(meta_offset as DataOffsetLen);
         std::fs::write(&self.file_path, &self.buffer)?;
-        Ok(())
+
+        Ok(SSTable {
+            file_path: self.file_path.clone(),
+            key_range: self.block_summaries.first()
+                .unwrap().key_range.merge(&self.block_summaries.last()
+                .unwrap().key_range),
+            block_summaries: self.block_summaries.clone()
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::meta::MetaKeyRange;
+
     use super::*;
+
+    #[test]
+    fn test_reject_empty_sstable() {
+        let file_path = PathBuf::from("/tmp/test_empty_sstable");
+        let mut builder = SSTableBuilder::new(file_path.clone(), 64);
+
+        let result = builder.build();
+        assert_eq!(result.err().unwrap().kind(), std::io::ErrorKind::InvalidInput);
+    }
 
     #[test]
     fn test_sstable() {
@@ -69,7 +95,9 @@ mod tests {
 
         builder.add(b"key10", b"value20");
 
-        builder.write().unwrap();
+        let sstable = builder.build().unwrap();
+
+        assert_eq!(sstable.key_range, MetaKeyRange::build(b"key".to_vec(), b"key2".to_vec()));
 
         let buffer = std::fs::read(&file_path).unwrap();
         assert_eq!(buffer, vec![
@@ -118,7 +146,9 @@ mod tests {
         builder.add(b"key8", b"value8");
         builder.add(b"key9", b"value9");
 
-        builder.write().unwrap();
+        let sstable = builder.build().unwrap();
+
+        assert_eq!(sstable.key_range, MetaKeyRange::build(b"key1".to_vec(), b"key9".to_vec()));
 
         let buffer = std::fs::read(&file_path).unwrap();
         assert_eq!(buffer, vec![
@@ -209,7 +239,9 @@ mod tests {
         // Block 5: 1 more key-value pair
         builder.add(b"key9", b"value9");
 
-        builder.write().unwrap();
+        let sstable = builder.build().unwrap();
+
+        assert_eq!(sstable.key_range, MetaKeyRange::build(b"key1".to_vec(), b"key9".to_vec()));
 
         let buffer = std::fs::read(&file_path).unwrap();
         assert_eq!(buffer, vec![

@@ -1,6 +1,7 @@
 use crate::{block::DataOffsetLen, meta::MetaKeyRange};
 use bytes::BufMut;
 
+#[derive(Clone)]
 pub struct MetaBlockSummary {
     pub offset: DataOffsetLen,
     pub key_range: MetaKeyRange,

@@ -4,7 +4,7 @@ type Key = Vec<u8>;
 type MetaKeyLen = u16;
 const SIZEOF_META_KEY_LEN: usize = std::mem::size_of::<MetaKeyLen>();
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MetaKeyRange {
     has_keys: bool,
     min_key: Key,
@@ -24,6 +24,13 @@ impl MetaKeyRange {
             min_key: Vec::new(),
             max_key: Vec::new(),
         }
+    }
+
+    pub fn build(min_key: Key, max_key: Key) -> Self {
+        let mut range = MetaKeyRange::new();
+        range.add(&min_key);
+        range.add(&max_key);
+        range
     }
 
     pub fn add(&mut self, key: &[u8]) {
@@ -54,6 +61,17 @@ impl MetaKeyRange {
         } else {
             0
         }
+    }
+
+    pub fn merge(&self, other: &Self) -> Self {
+        let mut merged = MetaKeyRange::new();
+        if self.has_keys || other.has_keys {
+            merged.add(&self.min_key);
+            merged.add(&self.max_key);
+            merged.add(&other.min_key);
+            merged.add(&other.max_key);
+        }
+        merged
     }
 }
 

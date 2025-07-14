@@ -42,9 +42,13 @@ impl Block {
         false
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.buffer.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         // Key range is not included to block, it is stored separately
-        self.buffer.len() + self.offsets.len() // 2 bytes for key length + 2 bytes for value length
+        self.buffer.len() + self.offsets.len()
     }
 
     pub fn write_to(&self, buffer: &mut Vec<u8>) {

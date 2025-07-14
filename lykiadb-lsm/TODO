@@ -2,5 +2,5 @@ OK  - Test Block
 OK  - Replace hardcoded sizes with constants
 OK  - Check Key and Value types
 OK  - Test SStableBuilder
-- Decode blocks from sstable files
+- Decode SSTable files
 - Iterate through memtable and write to SStable
