@@ -3,9 +3,7 @@ use std::path::PathBuf;
 
 use crate::{block::builder::{DataKeyLen, DataOffsetLen, SIZEOF_DATA_KEY_LEN, SIZEOF_DATA_OFFSET_LEN}, meta::{MetaBlockSummary, MetaKeyRange}, sstable::SSTable};
 
-pub(crate) struct SSTableReader {
-    file_path: PathBuf,
-}
+pub(crate) struct SSTableReader;
 
 impl SSTableReader {
     pub fn read(file_path: &PathBuf) -> Result<SSTable, std::io::Error>  {

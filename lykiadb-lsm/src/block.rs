@@ -1,4 +1,4 @@
-use crate::block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN};
+use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaEntryOffset};
 pub(crate) mod builder;
 
 pub(crate) struct Block {
@@ -25,18 +25,9 @@ impl Block {
             - number_of_entries as usize * SIZEOF_DATA_OFFSET_LEN
             - SIZEOF_DATA_OFFSET_LEN;
 
-        let mut offsets = Vec::with_capacity(number_of_entries as usize);
-
-        for i in 0..number_of_entries {
-            let offset = DataOffsetLen::from_be_bytes(
-                *buffer[(data_ends_at + i as usize * SIZEOF_DATA_OFFSET_LEN)
-                    ..(data_ends_at + (i + 1) as usize * SIZEOF_DATA_OFFSET_LEN)]
-                    .last_chunk::<SIZEOF_DATA_OFFSET_LEN>()
-                    .unwrap(),
-            );
-
-            offsets.push(offset);
-        }
+        let offsets = MetaEntryOffset::from_buffer(
+            &buffer[data_ends_at..buffer.len()-SIZEOF_DATA_OFFSET_LEN],
+        );
 
         Block {
             buffer: buffer[..data_ends_at].to_vec(),

@@ -30,6 +30,13 @@ impl MetaEntryOffset {
     pub fn len(&self) -> usize {
         SIZEOF_DATA_OFFSET_LEN + self.offsets.len() * SIZEOF_DATA_OFFSET_LEN // 4 bytes for count + 4 bytes for each offset
     }
+
+    pub fn from_buffer(buffer: &[u8]) -> Vec<DataOffsetLen> {
+        buffer
+            .chunks_exact(SIZEOF_DATA_OFFSET_LEN)
+            .map(|chunk| DataOffsetLen::from_be_bytes(chunk.try_into().unwrap()))
+            .collect::<Vec<_>>()
+    }
 }
 
 #[cfg(test)]
