@@ -1,6 +1,27 @@
-OK  - Test Block
-OK  - Replace hardcoded sizes with constants
-OK  - Check Key and Value types
-OK  - Test SStableBuilder
-- Decode SSTable files
-- Iterate through memtable and write to SStable
+Memtable
+OK  - Implement memtables based on skiplists
+- Implement freezing memtable logic
+- Implement LSM read path get for memtables
+
+Merge iterator
+- Implement memtable iterator
+- Implement merge iterator
+- Implement LSM read path scan for memtables
+
+Block
+OK  - Implement SST block encoding.
+- Implement SST block decoding and block iterator
+
+SST
+OK  - Implement SST encoding and metadata encoding
+- Implement SST decoding and iterator
+- Block cache
+
+Read path
+- Integrate SST into the LSM read path.
+- Implement LSM read path get with SSTs
+- Implement LSM read path scan with SSTs
+
+Write path
+- Implement the LSM write path with L0 flush
+- Implement the logic to correctly update the LSM state
