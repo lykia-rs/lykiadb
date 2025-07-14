@@ -5,7 +5,7 @@ type MetaKeyLen = u16;
 const SIZEOF_META_KEY_LEN: usize = std::mem::size_of::<MetaKeyLen>();
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct MetaKeyRange {
+pub(crate) struct MetaKeyRange {
     has_keys: bool,
     min_key: Key,
     max_key: Key,

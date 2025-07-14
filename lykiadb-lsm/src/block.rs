@@ -1,7 +1,7 @@
 use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}};
+pub(crate) mod builder;
 
-pub mod builder;
-pub struct Block {
+pub(crate) struct Block {
     buffer: Vec<u8>,
     offsets: Vec<DataOffsetLen>,
 }

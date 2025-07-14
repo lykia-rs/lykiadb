@@ -2,8 +2,7 @@ use bytes::BufMut;
 
 use crate::block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN};
 
-
-pub struct MetaEntryOffset {
+pub(crate) struct MetaEntryOffset {
     offsets: Vec<DataOffsetLen>,
 }
 

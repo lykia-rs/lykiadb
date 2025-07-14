@@ -3,12 +3,12 @@ use bytes::BufMut;
 
 type DataKeyLen = u16;
 type DataValueLen = u32;
-pub type DataOffsetLen = u32;
+pub(crate) type DataOffsetLen = u32;
 const SIZEOF_DATA_KEY_LEN: usize = std::mem::size_of::<DataKeyLen>();
 const SIZEOF_DATA_VALUE_LEN: usize = std::mem::size_of::<DataValueLen>();
-pub const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
+pub(crate) const SIZEOF_DATA_OFFSET_LEN: usize = std::mem::size_of::<DataOffsetLen>();
 
-pub struct BlockBuilder {
+pub(crate) struct BlockBuilder {
     max_size: usize,
     buffer: Vec<u8>,
     offsets: MetaEntryOffset,
