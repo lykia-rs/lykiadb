@@ -14,8 +14,8 @@ OK  - Implement SST block encoding.
 
 SST
 OK  - Implement SST encoding and metadata encoding
+- Implement block cache
 - Implement SST decoding and iterator
-- Block cache
 
 Read path
 - Integrate SST into the LSM read path.

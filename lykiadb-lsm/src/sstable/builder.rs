@@ -1,7 +1,7 @@
 use bytes::BufMut;
 use std::path::PathBuf;
 
-use crate::{block::{Block, DataOffsetLen}, meta::{MetaBlockSummary}, sstable::SSTable};
+use crate::{block::builder::{BlockBuilder, DataOffsetLen}, meta::{MetaBlockSummary}, sstable::SSTable};
 
 struct SSTableBuilder {
     file_path: PathBuf,
@@ -10,7 +10,7 @@ struct SSTableBuilder {
     buffer: Vec<u8>,
     block_summaries: Vec<MetaBlockSummary>,
     //
-    current_block: Block,
+    current_block: BlockBuilder,
 }
 
 impl SSTableBuilder {
@@ -20,7 +20,7 @@ impl SSTableBuilder {
             max_block_size,
             buffer: Vec::new(),
             block_summaries: Vec::new(),
-            current_block: Block::new(max_block_size),
+            current_block: BlockBuilder::new(max_block_size),
         }
     }
 
@@ -39,7 +39,7 @@ impl SSTableBuilder {
         let written = self.current_block.add(key, value);
         if !written {
             self.finalize_block();
-            self.current_block = Block::new(self.max_block_size);
+            self.current_block = BlockBuilder::new(self.max_block_size);
             self.current_block.add(key, value);
         }
     }

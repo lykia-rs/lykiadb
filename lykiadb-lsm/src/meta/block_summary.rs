@@ -1,4 +1,4 @@
-use crate::{block::DataOffsetLen, meta::MetaKeyRange};
+use crate::{block::builder::DataOffsetLen, meta::MetaKeyRange};
 use bytes::BufMut;
 
 #[derive(Clone)]
