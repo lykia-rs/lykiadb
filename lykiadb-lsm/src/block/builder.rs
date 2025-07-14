@@ -28,7 +28,8 @@ impl BlockBuilder {
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> bool {
         let key_len = key.len() as DataKeyLen;
         let value_len = value.len() as DataValueLen;
-        let required_for_data = key_len as usize + value_len as usize + SIZEOF_DATA_KEY_LEN + SIZEOF_DATA_VALUE_LEN;
+        let required_for_data =
+            key_len as usize + value_len as usize + SIZEOF_DATA_KEY_LEN + SIZEOF_DATA_VALUE_LEN;
         let required_for_meta = SIZEOF_DATA_OFFSET_LEN; // Size of new offset
         if required_for_data + required_for_meta + self.len() <= self.max_size {
             self.offsets.add(self.buffer.len() as DataOffsetLen);

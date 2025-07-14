@@ -103,7 +103,10 @@ mod tests {
 
         assert_eq!(buffer.len(), 4);
         // Should contain count of 0
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 0);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            0
+        );
     }
 
     #[test]
@@ -116,9 +119,15 @@ mod tests {
 
         assert_eq!(buffer.len(), 8); // 4 bytes for offset + 4 bytes for count
         // Offset should be 1024
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 1024);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            1024
+        );
         // Count should be 1
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 1);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            1
+        );
     }
 
     #[test]
@@ -134,13 +143,25 @@ mod tests {
         assert_eq!(buffer.len(), 16); // 3 * 4 bytes offsets + 4 bytes count
 
         // First offset: 256
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 256);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            256
+        );
         // Second offset: 512
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 512);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            512
+        );
         // Third offset: 1024
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]), 1024);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]),
+            1024
+        );
         // Count should be 3
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]), 3);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]),
+            3
+        );
     }
 
     #[test]
@@ -153,11 +174,23 @@ mod tests {
 
         assert_eq!(buffer.len(), 16); // 4 + 4 * 3
         // Check each offset
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 100);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 200);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]), 300);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            100
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            200
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]),
+            300
+        );
         // Count should be 3
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]), 3);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]),
+            3
+        );
     }
 
     #[test]
@@ -173,8 +206,14 @@ mod tests {
         assert_eq!(buffer[0], 0xFF);
         assert_eq!(buffer[1], 0xFE);
         // New data appended
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[2], buffer[3], buffer[4], buffer[5]]), 42);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[6], buffer[7], buffer[8], buffer[9]]), 1);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[2], buffer[3], buffer[4], buffer[5]]),
+            42
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[6], buffer[7], buffer[8], buffer[9]]),
+            1
+        );
     }
 
     #[test]
@@ -190,7 +229,10 @@ mod tests {
             DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
             DataOffsetLen::MAX
         );
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 1);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            1
+        );
     }
 
     #[test]
@@ -202,8 +244,14 @@ mod tests {
         entry_offset.write_to(&mut buffer);
 
         assert_eq!(buffer.len(), 8); // 4 + 4
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 0);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 1);
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            0
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            1
+        );
     }
 
     #[test]
@@ -220,10 +268,25 @@ mod tests {
         entry_offset.write_to(&mut buffer);
 
         assert_eq!(buffer.len(), 20);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]), 10);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]), 20);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]), 30);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]), 40);
-        assert_eq!(DataOffsetLen::from_be_bytes([buffer[16], buffer[17], buffer[18], buffer[19]]), 4); // count
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]),
+            10
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[4], buffer[5], buffer[6], buffer[7]]),
+            20
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[8], buffer[9], buffer[10], buffer[11]]),
+            30
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[12], buffer[13], buffer[14], buffer[15]]),
+            40
+        );
+        assert_eq!(
+            DataOffsetLen::from_be_bytes([buffer[16], buffer[17], buffer[18], buffer[19]]),
+            4
+        ); // count
     }
 }

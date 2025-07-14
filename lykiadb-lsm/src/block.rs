@@ -1,4 +1,4 @@
-use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}};
+use crate::block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN};
 pub(crate) mod builder;
 
 pub(crate) struct Block {
@@ -19,16 +19,21 @@ impl Block {
             panic!("Buffer too short to read block summary");
         }
 
-        let number_of_entries = DataOffsetLen::from_be_bytes(*buffer.last_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap());
-        let data_ends_at = buffer.len() - number_of_entries as usize * SIZEOF_DATA_OFFSET_LEN - SIZEOF_DATA_OFFSET_LEN;
+        let number_of_entries =
+            DataOffsetLen::from_be_bytes(*buffer.last_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap());
+        let data_ends_at = buffer.len()
+            - number_of_entries as usize * SIZEOF_DATA_OFFSET_LEN
+            - SIZEOF_DATA_OFFSET_LEN;
 
         let mut offsets = Vec::with_capacity(number_of_entries as usize);
-        
+
         for i in 0..number_of_entries {
-            let offset = DataOffsetLen::from_be_bytes(*buffer[
-                (data_ends_at + i as usize * SIZEOF_DATA_OFFSET_LEN)..
-                (data_ends_at + (i + 1) as usize * SIZEOF_DATA_OFFSET_LEN)
-                ].last_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap());
+            let offset = DataOffsetLen::from_be_bytes(
+                *buffer[(data_ends_at + i as usize * SIZEOF_DATA_OFFSET_LEN)
+                    ..(data_ends_at + (i + 1) as usize * SIZEOF_DATA_OFFSET_LEN)]
+                    .last_chunk::<SIZEOF_DATA_OFFSET_LEN>()
+                    .unwrap(),
+            );
 
             offsets.push(offset);
         }
@@ -61,7 +66,7 @@ mod tests {
             0, 0, 0, 3,
         ];
 
-        let block   = Block::from_buffer(&buffer);
+        let block = Block::from_buffer(&buffer);
         assert_eq!(block.buffer.len(), 48);
         assert_eq!(block.offsets.len(), 3);
         assert_eq!(block.offsets[0], 0);
