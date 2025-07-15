@@ -1,7 +1,7 @@
 
 use std::path::PathBuf;
 
-use crate::{block::builder::{DataKeyLen, DataOffsetLen, SIZEOF_DATA_KEY_LEN, SIZEOF_DATA_OFFSET_LEN}, meta::{MetaBlockSummary, MetaKeyRange}, sstable::SSTable};
+use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaBlockSummary, sstable::SSTable};
 
 pub(crate) struct SSTableReader;
 
@@ -13,32 +13,12 @@ impl SSTableReader {
             panic!("Buffer too short to read table summary");
         }
 
-        // TODO(vck): Refactor the rest
         let data_ends_at =
             DataOffsetLen::from_be_bytes(*buffer.last_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap()) as usize;
 
         let number_of_blocks = DataOffsetLen::from_be_bytes(*buffer[data_ends_at..].first_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap());
 
-        let mut current = data_ends_at + SIZEOF_DATA_OFFSET_LEN;
-
-        let mut block_summaries = Vec::with_capacity(number_of_blocks as usize);
-
-        for _ in 0..number_of_blocks {
-            let start_offset = DataOffsetLen::from_be_bytes(*buffer[current..].first_chunk::<SIZEOF_DATA_OFFSET_LEN>().unwrap());
-            current += SIZEOF_DATA_OFFSET_LEN;
-            let min_key_len = DataKeyLen::from_be_bytes(*buffer[current..].first_chunk::<SIZEOF_DATA_KEY_LEN>().unwrap());
-            current += SIZEOF_DATA_KEY_LEN;
-            let min_key = buffer[current..current + min_key_len as usize].to_vec();
-            current += min_key_len as usize;
-            let max_key_len = DataKeyLen::from_be_bytes(*buffer[current..].first_chunk::<SIZEOF_DATA_KEY_LEN>().unwrap()); 
-            current += SIZEOF_DATA_KEY_LEN;
-            let max_key = buffer[current..current + max_key_len as usize].to_vec();
-            current += max_key_len as usize;
-            block_summaries.push(MetaBlockSummary {
-                offset: start_offset,
-                key_range: MetaKeyRange::build(min_key, max_key)
-            });
-        }
+        let block_summaries = MetaBlockSummary::from_buffer(&buffer[data_ends_at + 4..], number_of_blocks as usize);
 
         Ok(SSTable {
             file_path: file_path.clone(),
