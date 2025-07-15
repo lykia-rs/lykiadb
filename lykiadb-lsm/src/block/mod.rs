@@ -1,5 +1,6 @@
 use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaEntryOffset};
 pub(crate) mod builder;
+pub(crate) mod iterator;
 
 pub(crate) struct Block {
     buffer: Vec<u8>,

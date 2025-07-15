@@ -1,0 +1,1 @@
+pub struct Key<T: AsRef<[u8]>>(T);

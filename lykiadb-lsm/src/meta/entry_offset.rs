@@ -37,6 +37,10 @@ impl MetaEntryOffset {
             .map(|chunk| DataOffsetLen::from_be_bytes(chunk.try_into().unwrap()))
             .collect::<Vec<_>>()
     }
+
+    pub fn to_vec(&self) -> Vec<u32> {
+        self.offsets.clone()
+    }
 }
 
 #[cfg(test)]
