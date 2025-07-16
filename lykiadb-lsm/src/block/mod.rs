@@ -1,4 +1,7 @@
-use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaEntryOffset};
+use crate::{
+    block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN},
+    meta::MetaEntryOffset,
+};
 pub(crate) mod builder;
 pub(crate) mod iterator;
 use bytes::Buf;
@@ -28,16 +31,14 @@ impl Block {
         let mut hi = self.offsets.len();
         let mut cursor = lo;
         while lo < hi {
-            let mid = (hi + lo)/2;
+            let mid = (hi + lo) / 2;
             let mid_key = self.fetch_key_of(mid);
             if key < mid_key {
                 hi = mid
-            }
-            else if key > mid_key {
+            } else if key > mid_key {
                 lo = mid + 1;
                 cursor = lo;
-            }
-            else {
+            } else {
                 cursor = mid;
                 break;
             }
@@ -58,7 +59,7 @@ impl Block {
             - SIZEOF_DATA_OFFSET_LEN;
 
         let offsets = MetaEntryOffset::from_buffer(
-            &buffer[data_ends_at..buffer.len()-SIZEOF_DATA_OFFSET_LEN],
+            &buffer[data_ends_at..buffer.len() - SIZEOF_DATA_OFFSET_LEN],
         );
 
         Block {
@@ -71,8 +72,8 @@ impl Block {
 #[cfg(test)]
 mod tests {
 
-    use crate::build_block;
     use super::*;
+    use crate::build_block;
 
     #[test]
     fn test_from_buffer() {

@@ -3,7 +3,10 @@ use std::{fs::File, os::unix::fs::FileExt, path::PathBuf};
 
 use bytes::Buf;
 
-use crate::{block::builder::{SIZEOF_DATA_OFFSET_LEN}, meta::{MetaBlockSummary, MetaKeyRange}};
+use crate::{
+    block::builder::SIZEOF_DATA_OFFSET_LEN,
+    meta::{MetaBlockSummary, MetaKeyRange},
+};
 #[derive(PartialEq, Debug)]
 struct SSTable {
     handle: FileHandle,
@@ -23,11 +26,15 @@ impl SSTable {
 
         let data_ends_at = size_buffer.get_u32() as usize;
 
-        let mut meta_buffer = &handle.read(data_ends_at, handle.size as usize - data_ends_at - SIZEOF_DATA_OFFSET_LEN)?[..];
+        let mut meta_buffer = &handle.read(
+            data_ends_at,
+            handle.size as usize - data_ends_at - SIZEOF_DATA_OFFSET_LEN,
+        )?[..];
 
         let number_of_blocks = meta_buffer.get_u32() as usize;
 
-        let block_summaries = MetaBlockSummary::from_buffer(&meta_buffer[..], number_of_blocks as usize);
+        let block_summaries =
+            MetaBlockSummary::from_buffer(&meta_buffer[..], number_of_blocks as usize);
 
         Ok(SSTable {
             handle,
@@ -56,20 +63,21 @@ impl FileHandle {
         Ok(FileHandle {
             path: file_path.clone(),
             inner_handle: file,
-            size: size
+            size: size,
         })
     }
 
-    fn read(&self, start: usize, len: usize) -> Result<Vec<u8>, std::io::Error>  {
+    fn read(&self, start: usize, len: usize) -> Result<Vec<u8>, std::io::Error> {
         let mut buf = vec![0; len as usize];
         self.inner_handle.read_exact_at(&mut buf, start as u64)?;
 
         Ok(buf)
     }
 
-    fn read_from_end(&self, bytes: usize) -> Result<Vec<u8>, std::io::Error>  {
+    fn read_from_end(&self, bytes: usize) -> Result<Vec<u8>, std::io::Error> {
         let mut buf = vec![0; bytes as usize];
-        self.inner_handle.read_exact_at(&mut buf, self.size - bytes as u64)?;
+        self.inner_handle
+            .read_exact_at(&mut buf, self.size - bytes as u64)?;
 
         Ok(buf)
     }
@@ -81,15 +89,14 @@ impl PartialEq for FileHandle {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
-    use crate::sstable::{builder::SSTableBuilder, SSTable};
+    use crate::sstable::{SSTable, builder::SSTableBuilder};
 
     #[test]
-    fn test_open(){
+    fn test_open() {
         let file_path = PathBuf::from("/tmp/test_sstable_with_multiple_blocks");
         let mut builder = SSTableBuilder::new(file_path.clone(), 64);
 

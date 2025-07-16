@@ -1,4 +1,7 @@
-use crate::{block::Block, meta::{MetaEntryOffset, MetaKeyRange}};
+use crate::{
+    block::Block,
+    meta::{MetaEntryOffset, MetaKeyRange},
+};
 use bytes::BufMut;
 
 pub(crate) type DataKeyLen = u16;
@@ -187,9 +190,6 @@ mod tests {
             ]
         );
 
-        assert_eq!(
-            block.offsets,
-            vec![0, 14, 30]
-        )
+        assert_eq!(block.offsets, vec![0, 14, 30])
     }
 }

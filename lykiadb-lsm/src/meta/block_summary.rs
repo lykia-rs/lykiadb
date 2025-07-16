@@ -26,10 +26,10 @@ impl MetaBlockSummary {
             let min_key = buffer.copy_to_bytes(min_key_len as usize).to_vec();
             let max_key_len = buffer.get_u16();
             let max_key = buffer.copy_to_bytes(max_key_len as usize).to_vec();
-            
+
             summaries.push(MetaBlockSummary {
                 offset: start_offset,
-                key_range: MetaKeyRange::build(min_key, max_key)
+                key_range: MetaKeyRange::build(min_key, max_key),
             });
         }
 

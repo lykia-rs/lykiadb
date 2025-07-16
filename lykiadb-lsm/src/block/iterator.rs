@@ -2,7 +2,13 @@ use std::sync::Arc;
 
 use bytes::Buf;
 
-use crate::{block::{builder::{SIZEOF_DATA_KEY_LEN, SIZEOF_DATA_VALUE_LEN}, Block}, key::Key};
+use crate::{
+    block::{
+        Block,
+        builder::{SIZEOF_DATA_KEY_LEN, SIZEOF_DATA_VALUE_LEN},
+    },
+    key::Key,
+};
 
 pub(crate) struct BlockIterator {
     block: Arc<Block>,
@@ -49,7 +55,7 @@ impl BlockIterator {
         self.seek_offset(self.block.offsets[idx] as usize);
         self.idx = idx + 1;
     }
-    
+
     fn seek_offset(&mut self, offset: usize) {
         let mut buf = &self.block.buffer[offset as usize..];
         let key_len = buf.get_u16() as usize;
@@ -79,7 +85,7 @@ impl std::iter::Iterator for BlockIterator {
         self._next();
 
         if self.is_valid() {
-            return Some(self.key.clone())
+            return Some(self.key.clone());
         }
 
         None
@@ -103,7 +109,10 @@ mod tests {
             output.push(item.0);
         }
 
-        assert_eq!(output, vec![b"key1".to_vec(), b"key20".to_vec(), b"key300".to_vec()]);
+        assert_eq!(
+            output,
+            vec![b"key1".to_vec(), b"key20".to_vec(), b"key300".to_vec()]
+        );
     }
 
     #[test]
@@ -138,14 +147,10 @@ mod tests {
         iter.seek_key(b"key5000");
         assert_eq!(iter.value(), b"value5000".to_vec());
     }
-    
+
     #[test]
     fn test_seek_closest_key() {
-        let block = build_block![
-            (b"1", b"value1"),
-            (b"3", b"value3"),
-            (b"5", b"value5")
-        ];
+        let block = build_block![(b"1", b"value1"), (b"3", b"value3"), (b"5", b"value5")];
 
         let mut iter = block.into_iter();
 
