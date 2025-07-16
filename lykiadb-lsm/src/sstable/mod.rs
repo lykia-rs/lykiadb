@@ -15,6 +15,14 @@ struct SSTable {
 }
 
 impl SSTable {
+
+    /// Binary search the key
+    pub fn find_block_idx(&self, key: &[u8]) -> usize {
+        self.block_summaries
+            .partition_point(|meta| meta.key_range.min_key.as_slice() <= key)
+            .saturating_sub(1)
+    }
+    
     pub fn open(file_path: &PathBuf) -> Result<SSTable, std::io::Error> {
         let handle = FileHandle::open(file_path)?;
 
@@ -120,5 +128,52 @@ mod tests {
         let read_from_file = SSTable::open(&file_path).unwrap();
 
         assert_eq!(initial, read_from_file);
+    }
+
+
+    #[test]
+    fn test_sstable() {
+        let mut builder = SSTableBuilder::new(PathBuf::from("/tmp/test_sstable_with_multiple_blocks"), 64);
+
+        // 0
+        builder.add(b"key1", b"value1");
+        builder.add(b"key10", b"value10");
+
+        // 1
+        builder.add(b"key11", b"value11");
+        builder.add(b"key12", b"value12");
+
+        // 2
+        builder.add(b"key2", b"value2");
+        builder.add(b"key3", b"value3");
+        builder.add(b"key4", b"value4");
+
+        // 3
+        builder.add(b"key5", b"value5");
+        builder.add(b"key6", b"value6");
+        builder.add(b"key7", b"value7");
+
+        // 4
+        builder.add(b"key8", b"value8");
+        builder.add(b"key9", b"value9");
+
+        let table = builder.build().unwrap();
+
+        assert_eq!(table.find_block_idx(b"key1"), 0);
+        assert_eq!(table.find_block_idx(b"key10"), 0);
+        
+        assert_eq!(table.find_block_idx(b"key11"), 1);
+        assert_eq!(table.find_block_idx(b"key12"), 1);
+        
+        assert_eq!(table.find_block_idx(b"key2"), 2);
+        assert_eq!(table.find_block_idx(b"key3"), 2);
+        assert_eq!(table.find_block_idx(b"key4"), 2);
+        
+        assert_eq!(table.find_block_idx(b"key5"), 3);
+        assert_eq!(table.find_block_idx(b"key6"), 3);
+        assert_eq!(table.find_block_idx(b"key7"), 3);
+
+        assert_eq!(table.find_block_idx(b"key8"), 4);
+        assert_eq!(table.find_block_idx(b"key9"), 4);
     }
 }

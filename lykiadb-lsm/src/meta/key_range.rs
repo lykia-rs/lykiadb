@@ -1,14 +1,14 @@
 use bytes::BufMut;
 
+use crate::block::builder::{DataKeyLen, SIZEOF_DATA_KEY_LEN};
+
 type Key = Vec<u8>;
-type MetaKeyLen = u16;
-const SIZEOF_META_KEY_LEN: usize = std::mem::size_of::<MetaKeyLen>();
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct MetaKeyRange {
     has_keys: bool,
-    min_key: Key,
-    max_key: Key,
+    pub(crate) min_key: Key,
+    pub(crate) max_key: Key,
 }
 
 impl Default for MetaKeyRange {
@@ -48,16 +48,16 @@ impl MetaKeyRange {
     // ------------------------------------------------------------------------------------
     pub fn write_to(&self, buffer: &mut Vec<u8>) {
         if self.has_keys {
-            buffer.put_u16(self.min_key.len() as MetaKeyLen);
+            buffer.put_u16(self.min_key.len() as DataKeyLen);
             buffer.extend_from_slice(&self.min_key);
-            buffer.put_u16(self.max_key.len() as MetaKeyLen);
+            buffer.put_u16(self.max_key.len() as DataKeyLen);
             buffer.extend_from_slice(&self.max_key);
         }
     }
 
     pub fn len(&self) -> usize {
         if self.has_keys {
-            self.min_key.len() + self.max_key.len() + 2 * SIZEOF_META_KEY_LEN
+            self.min_key.len() + self.max_key.len() + 2 * SIZEOF_DATA_KEY_LEN
         } else {
             0
         }
