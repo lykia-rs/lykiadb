@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use crate::{
     block::builder::{BlockBuilder, DataOffsetLen},
     meta::MetaBlockSummary,
-    sstable::SSTable,
+    sstable::{FileHandle, SSTable},
 };
 
 pub(crate) struct SSTableBuilder {
@@ -67,8 +67,10 @@ impl SSTableBuilder {
         self.buffer.put_u32(meta_offset as DataOffsetLen);
         std::fs::write(&self.file_path, &self.buffer)?;
 
+        let handle = FileHandle::open(&self.file_path)?;
+
         Ok(SSTable {
-            file_path: self.file_path.clone(),
+            handle,
             key_range: self
                 .block_summaries
                 .first()
