@@ -10,7 +10,7 @@ Merge iterator
 
 Block
 OK  - Implement SST block encoding.
-- Implement SST block decoding and block iterator
+OK  - Implement SST block decoding and block iterator
 
 SST
 OK  - Implement SST encoding and metadata encoding
@@ -27,4 +27,6 @@ Write path
 - Implement the logic to correctly update the LSM state
 
 POST
-- Optimize Key, KeyVec, KeySlice
+- Revisit Key, KeyVec, KeySlice
+- Revisit buffer allocations
+- I/O Optimizations. Align blocks to 4KB boundary and use direct I/O to bypass the system page cache.

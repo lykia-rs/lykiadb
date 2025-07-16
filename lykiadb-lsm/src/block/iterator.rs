@@ -21,7 +21,6 @@ impl IntoIterator for Block {
 }
 
 impl BlockIterator {
-
     fn new(block: Arc<Block>) -> BlockIterator {
         BlockIterator {
             block,
@@ -68,24 +67,7 @@ impl BlockIterator {
 
     /// Binary search the key
     pub fn seek_key(&mut self, key: &[u8]) {
-        let mut lo = 0;
-        let mut hi = self.block.offsets.len();
-        let mut cursor = lo;
-        while lo < hi {
-            let mid = (hi + lo)/2;
-            let mid_key = self.block.fetch_key_of(mid);
-            if key < mid_key {
-                hi = mid
-            }
-            else if key > mid_key {
-                lo = mid + 1
-            }
-            else {
-                cursor = mid;
-                break;
-            }
-            cursor = lo;
-        }
+        let cursor = self.block.find_key_idx(key);
         self.seek_idx(cursor);
     }
 }
@@ -106,7 +88,7 @@ impl std::iter::Iterator for BlockIterator {
 
 #[cfg(test)]
 mod tests {
-    use crate::{block::builder::BlockBuilder, build_block, key::Key};
+    use crate::{build_block, key::Key};
 
     #[test]
     fn test_into_iter() {

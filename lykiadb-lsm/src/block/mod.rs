@@ -2,7 +2,6 @@ use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaE
 pub(crate) mod builder;
 pub(crate) mod iterator;
 use bytes::Buf;
-
 pub(crate) struct Block {
     buffer: Vec<u8>,
     offsets: Vec<DataOffsetLen>,
@@ -23,9 +22,33 @@ impl Block {
         &buf[..key_len]
     }
 
+    /// Binary search the key
+    pub fn find_key_idx(&self, key: &[u8]) -> usize {
+        let mut lo = 0;
+        let mut hi = self.offsets.len();
+        let mut cursor = lo;
+        while lo < hi {
+            let mid = (hi + lo)/2;
+            let mid_key = self.fetch_key_of(mid);
+            if key < mid_key {
+                hi = mid
+            }
+            else if key > mid_key {
+                lo = mid + 1;
+                cursor = lo;
+            }
+            else {
+                cursor = mid;
+                break;
+            }
+        }
+
+        cursor
+    }
+
     pub fn from_buffer(buffer: &[u8]) -> Self {
         if buffer.len() < SIZEOF_DATA_OFFSET_LEN {
-            panic!("Buffer too short to read block summary");
+            panic!("Buffer is too short to read block summary");
         }
 
         let number_of_entries =
@@ -48,6 +71,7 @@ impl Block {
 #[cfg(test)]
 mod tests {
 
+    use crate::build_block;
     use super::*;
 
     #[test]
@@ -72,5 +96,25 @@ mod tests {
         assert_eq!(block.offsets[0], 0);
         assert_eq!(block.offsets[1], 14);
         assert_eq!(block.offsets[2], 30);
+    }
+
+    #[test]
+    fn test_find_key_idx() {
+        let block = build_block![
+            (b"1", b"value1"),
+            (b"11", b"value11"),
+            (b"13", b"value13"),
+            (b"15", b"value15"),
+            (b"17", b"value17"),
+            (b"3", b"value3"),
+            (b"5", b"value5"),
+            (b"7", b"value7"),
+            (b"9", b"value9")
+        ];
+
+        assert_eq!(block.find_key_idx(b"3"), 5);
+        assert_eq!(block.find_key_idx(b"16"), 4);
+        assert_eq!(block.find_key_idx(b"11"), 1);
+        assert_eq!(block.find_key_idx(b"7"), 7);
     }
 }

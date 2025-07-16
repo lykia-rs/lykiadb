@@ -68,7 +68,7 @@ impl BlockBuilder {
 #[macro_export]
 macro_rules! build_block {
     ( $( ($key:expr, $value:expr) ),* ) => {{
-    let mut builder = BlockBuilder::new(4096);
+    let mut builder = crate::block::builder::BlockBuilder::new(4096);
     $( builder.add($key, $value); )*
         builder.to_block()
     }};
