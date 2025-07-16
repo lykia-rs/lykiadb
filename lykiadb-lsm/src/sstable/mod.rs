@@ -1,18 +1,40 @@
 mod builder;
 use std::{fs::File, os::unix::fs::FileExt, path::PathBuf, sync::Arc};
+use std::fmt::Debug;
 
 use bytes::Buf;
+use moka::sync::Cache;
 
 use crate::{
     block::{builder::SIZEOF_DATA_OFFSET_LEN, Block},
     meta::{MetaBlockSummary, MetaKeyRange},
 };
-#[derive(PartialEq, Debug)]
+
 struct SSTable {
     file_handle: FileHandle,
     data_ends_at: usize,
     key_range: MetaKeyRange,
     block_summaries: Vec<MetaBlockSummary>,
+    block_cache: Option<Cache<usize, Arc<Block>>>
+}
+
+impl PartialEq for SSTable {
+    fn eq(&self, other: &Self) -> bool {
+        self.file_handle == other.file_handle && 
+        self.data_ends_at == other.data_ends_at && 
+        self.key_range == other.key_range && self.block_summaries == other.block_summaries
+    }
+}
+
+impl Debug for SSTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SSTable")
+            .field("file_handle", &self.file_handle)
+            .field("data_ends_at", &self.data_ends_at)
+            .field("key_range", &self.key_range)
+            .field("block_summaries", &self.block_summaries)
+            .finish()
+    }
 }
 
 impl SSTable {
@@ -64,6 +86,7 @@ impl SSTable {
                 .key_range
                 .merge(&block_summaries.last().unwrap().key_range),
             block_summaries,
+            block_cache: None,
         })
     }
 }
@@ -117,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_open() {
-        let file_path = PathBuf::from("/tmp/test_sstable_with_multiple_blocks");
+        let file_path = PathBuf::from("/tmp/test_sstable_open");
         let mut builder = SSTableBuilder::new(file_path.clone(), 64);
 
         // Block 1: 3 key-value pairs (fills the 64-byte block)

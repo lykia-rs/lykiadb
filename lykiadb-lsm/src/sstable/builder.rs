@@ -80,6 +80,7 @@ impl SSTableBuilder {
                 .key_range
                 .merge(&self.block_summaries.last().unwrap().key_range),
             block_summaries: self.block_summaries.clone(),
+            block_cache: None,
         })
     }
 }
