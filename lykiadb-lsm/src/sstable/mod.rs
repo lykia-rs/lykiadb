@@ -132,8 +132,8 @@ mod tests {
 
 
     #[test]
-    fn test_sstable() {
-        let mut builder = SSTableBuilder::new(PathBuf::from("/tmp/test_sstable_with_multiple_blocks"), 64);
+    fn test_sstable_find_idx() {
+        let mut builder = SSTableBuilder::new(PathBuf::from("/tmp/test_sstable_find_idx"), 64);
 
         // 0
         builder.add(b"key1", b"value1");
