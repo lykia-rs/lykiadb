@@ -25,3 +25,6 @@ Read path
 Write path
 - Implement the LSM write path with L0 flush
 - Implement the logic to correctly update the LSM state
+
+POST
+- Optimize Key, KeyVec, KeySlice
