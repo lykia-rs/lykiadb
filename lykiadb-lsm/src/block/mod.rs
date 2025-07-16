@@ -1,6 +1,7 @@
 use crate::{block::builder::{DataOffsetLen, SIZEOF_DATA_OFFSET_LEN}, meta::MetaEntryOffset};
 pub(crate) mod builder;
 pub(crate) mod iterator;
+use bytes::Buf;
 
 pub(crate) struct Block {
     buffer: Vec<u8>,
@@ -13,6 +14,13 @@ impl Block {
             buffer: Vec::new(),
             offsets: Vec::new(),
         }
+    }
+
+    pub fn fetch_key_of(&self, idx: usize) -> &[u8] {
+        let mid_offset = self.offsets[idx] as usize;
+        let mut buf = &self.buffer[mid_offset..];
+        let key_len = buf.get_u16() as usize;
+        &buf[..key_len]
     }
 
     pub fn from_buffer(buffer: &[u8]) -> Self {

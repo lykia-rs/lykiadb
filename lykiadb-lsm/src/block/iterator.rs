@@ -33,7 +33,6 @@ impl BlockIterator {
 
     fn _next(&mut self) {
         self.seek_idx(self.idx);
-        self.idx += 1;
     }
 
     fn is_valid(&self) -> bool {
@@ -49,7 +48,7 @@ impl BlockIterator {
         }
 
         self.seek_offset(self.block.offsets[idx] as usize);
-        self.idx = idx;
+        self.idx = idx + 1;
     }
     
     fn seek_offset(&mut self, offset: usize) {
@@ -65,6 +64,29 @@ impl BlockIterator {
 
     pub fn value(&self) -> Vec<u8> {
         self.block.buffer[self.value_span.0..self.value_span.1].to_vec()
+    }
+
+    /// Binary search the key
+    pub fn seek_key(&mut self, key: &[u8]) {
+        let mut lo = 0;
+        let mut hi = self.block.offsets.len();
+        let mut cursor = lo;
+        while lo < hi {
+            let mid = (hi + lo)/2;
+            let mid_key = self.block.fetch_key_of(mid);
+            if key < mid_key {
+                hi = mid
+            }
+            else if key > mid_key {
+                lo = mid + 1
+            }
+            else {
+                cursor = mid;
+                break;
+            }
+            cursor = lo;
+        }
+        self.seek_idx(cursor);
     }
 }
 
@@ -117,5 +139,75 @@ mod tests {
         assert_eq!(iter.value(), b"value30".to_vec());
         assert_eq!(iter.next().unwrap(), Key(b"key300".to_vec()));
         assert_eq!(iter.value(), b"value500".to_vec());
+    }
+
+    #[test]
+    fn test_seek_key() {
+        let block = build_block![
+            (b"key1", b"value1"),
+            (b"key20", b"value30"),
+            (b"key300", b"value300"),
+            (b"key4000", b"value4000"),
+            (b"key5000", b"value5000"),
+            (b"key600", b"value600")
+        ];
+
+        let mut iter = block.into_iter();
+        iter.seek_key(b"key5000");
+        assert_eq!(iter.value(), b"value5000".to_vec());
+    }
+    
+    #[test]
+    fn test_seek_closest_key() {
+        let block = build_block![
+            (b"1", b"value1"),
+            (b"3", b"value3"),
+            (b"5", b"value5")
+        ];
+
+        let mut iter = block.into_iter();
+
+        iter.seek_key(b"3");
+        assert_eq!(iter.value(), b"value3".to_vec());
+
+        iter.seek_key(b"2");
+        assert_eq!(iter.value(), b"value3".to_vec());
+
+        iter.seek_key(b"4");
+        assert_eq!(iter.value(), b"value5".to_vec());
+
+        iter.seek_key(b"1");
+        assert_eq!(iter.value(), b"value1".to_vec());
+
+        iter.seek_key(b"5");
+        assert_eq!(iter.value(), b"value5".to_vec());
+    }
+
+    #[test]
+    fn test_seek_closest_key_2() {
+        let block = build_block![
+            (b"1", b"value1"),
+            (b"11", b"value11"),
+            (b"13", b"value13"),
+            (b"15", b"value15"),
+            (b"17", b"value17"),
+            (b"3", b"value3"),
+            (b"5", b"value5"),
+            (b"7", b"value7"),
+            (b"9", b"value9")
+        ];
+
+        let mut iter = block.into_iter();
+        iter.seek_key(b"2");
+        assert_eq!(iter.value(), b"value3".to_vec());
+
+        iter.seek_key(b"16");
+        assert_eq!(iter.value(), b"value17".to_vec());
+
+        iter.seek_key(b"11");
+        assert_eq!(iter.value(), b"value11".to_vec());
+
+        iter.seek_key(b"7");
+        assert_eq!(iter.value(), b"value7".to_vec());
     }
 }
