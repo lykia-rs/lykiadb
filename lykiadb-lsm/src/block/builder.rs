@@ -1,4 +1,4 @@
-use crate::meta::{MetaEntryOffset, MetaKeyRange};
+use crate::{block::Block, meta::{MetaEntryOffset, MetaKeyRange}};
 use bytes::BufMut;
 
 pub(crate) type DataKeyLen = u16;
@@ -55,6 +55,13 @@ impl BlockBuilder {
     pub fn write_to(&self, buffer: &mut Vec<u8>) {
         buffer.extend_from_slice(&self.buffer);
         self.offsets.write_to(buffer);
+    }
+
+    pub fn to_block(&self) -> Block {
+        Block {
+            buffer: self.buffer.clone(),
+            offsets: self.offsets.to_vec(),
+        }
     }
 }
 
@@ -146,5 +153,35 @@ mod tests {
         block.write_to(&mut buffer);
         assert_eq!(buffer.len(), 4);
         assert_eq!(buffer, vec![0, 0, 0, 0]); // Footer with offsets count (0)
+    }
+
+    #[test]
+    fn test_as_block() {
+        let mut builder = BlockBuilder::new(64);
+
+        assert!(builder.add(b"key", b"value"));
+
+        assert!(builder.add(b"key2", b"value2"));
+
+        assert!(builder.add(b"key10", b"value20"));
+
+        let block = builder.to_block();
+
+        assert_eq!(
+            block.buffer,
+            vec![
+                0, 3, b'k', b'e', b'y', // key
+                0, 0, 0, 5, b'v', b'a', b'l', b'u', b'e', // value
+                0, 4, b'k', b'e', b'y', b'2', // key2
+                0, 0, 0, 6, b'v', b'a', b'l', b'u', b'e', b'2', // value2
+                0, 5, b'k', b'e', b'y', b'1', b'0', // key10
+                0, 0, 0, 7, b'v', b'a', b'l', b'u', b'e', b'2', b'0', // value20
+            ]
+        );
+
+        assert_eq!(
+            block.offsets,
+            vec![0, 14, 30]
+        )
     }
 }
