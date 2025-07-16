@@ -57,7 +57,7 @@ impl BlockIterator {
     }
 
     fn seek_offset(&mut self, offset: usize) {
-        let mut buf = &self.block.buffer[offset as usize..];
+        let mut buf = &self.block.buffer[offset..];
         let key_len = buf.get_u16() as usize;
         self.key = Key(buf[..key_len].to_vec());
         buf.advance(key_len);

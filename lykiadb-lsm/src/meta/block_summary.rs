@@ -18,7 +18,7 @@ impl MetaBlockSummary {
     }
 
     pub fn from_buffer(mut buffer: &[u8], number_of_blocks: usize) -> Vec<Self> {
-        let mut summaries = Vec::with_capacity(number_of_blocks as usize);
+        let mut summaries = Vec::with_capacity(number_of_blocks);
 
         for _ in 0..number_of_blocks {
             let start_offset = buffer.get_u32();

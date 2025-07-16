@@ -34,7 +34,7 @@ impl SSTable {
         let number_of_blocks = meta_buffer.get_u32() as usize;
 
         let block_summaries =
-            MetaBlockSummary::from_buffer(&meta_buffer[..], number_of_blocks as usize);
+            MetaBlockSummary::from_buffer(meta_buffer, number_of_blocks);
 
         Ok(SSTable {
             handle,
@@ -63,19 +63,19 @@ impl FileHandle {
         Ok(FileHandle {
             path: file_path.clone(),
             inner_handle: file,
-            size: size,
+            size,
         })
     }
 
     fn read(&self, start: usize, len: usize) -> Result<Vec<u8>, std::io::Error> {
-        let mut buf = vec![0; len as usize];
+        let mut buf = vec![0; len];
         self.inner_handle.read_exact_at(&mut buf, start as u64)?;
 
         Ok(buf)
     }
 
     fn read_from_end(&self, bytes: usize) -> Result<Vec<u8>, std::io::Error> {
-        let mut buf = vec![0; bytes as usize];
+        let mut buf = vec![0; bytes];
         self.inner_handle
             .read_exact_at(&mut buf, self.size - bytes as u64)?;
 
