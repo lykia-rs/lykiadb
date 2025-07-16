@@ -27,7 +27,7 @@ impl IntoIterator for Block {
 }
 
 impl BlockIterator {
-    fn new(block: Arc<Block>) -> BlockIterator {
+    pub fn new(block: Arc<Block>) -> BlockIterator {
         BlockIterator {
             block,
             idx: 0,

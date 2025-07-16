@@ -71,7 +71,8 @@ impl SSTableBuilder {
         let handle = FileHandle::open(&self.file_path)?;
 
         Ok(SSTable {
-            handle,
+            file_handle: handle,
+            data_ends_at: meta_offset,
             key_range: self
                 .block_summaries
                 .first()

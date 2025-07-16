@@ -1,15 +1,16 @@
 mod builder;
-use std::{fs::File, os::unix::fs::FileExt, path::PathBuf};
+use std::{fs::File, os::unix::fs::FileExt, path::PathBuf, sync::Arc};
 
 use bytes::Buf;
 
 use crate::{
-    block::builder::SIZEOF_DATA_OFFSET_LEN,
+    block::{builder::SIZEOF_DATA_OFFSET_LEN, Block},
     meta::{MetaBlockSummary, MetaKeyRange},
 };
 #[derive(PartialEq, Debug)]
 struct SSTable {
-    handle: FileHandle,
+    file_handle: FileHandle,
+    data_ends_at: usize,
     key_range: MetaKeyRange,
     block_summaries: Vec<MetaBlockSummary>,
 }
@@ -21,6 +22,16 @@ impl SSTable {
         self.block_summaries
             .partition_point(|meta| meta.key_range.min_key.as_slice() <= key)
             .saturating_sub(1)
+    }
+
+    pub fn read_block(&self, idx: usize) -> Result<Arc<Block>, std::io::Error> {
+        let start_offset = self.block_summaries[idx].offset as usize;
+        let len= self.block_summaries
+            .get(idx + 1)
+            .map_or_else(|| self.data_ends_at, |x| x.offset as usize) - start_offset;
+
+        let buffer = self.file_handle.read(start_offset, len)?;
+        Ok(Arc::from(Block::from_buffer(&buffer)))
     }
     
     pub fn open(file_path: &PathBuf) -> Result<SSTable, std::io::Error> {
@@ -45,7 +56,8 @@ impl SSTable {
             MetaBlockSummary::from_buffer(meta_buffer, number_of_blocks);
 
         Ok(SSTable {
-            handle,
+            file_handle: handle,
+            data_ends_at,
             key_range: block_summaries
                 .first()
                 .unwrap()
@@ -101,7 +113,7 @@ impl PartialEq for FileHandle {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::sstable::{SSTable, builder::SSTableBuilder};
+    use crate::{block::iterator::BlockIterator, sstable::{builder::SSTableBuilder, SSTable}};
 
     #[test]
     fn test_open() {
@@ -129,7 +141,6 @@ mod tests {
 
         assert_eq!(initial, read_from_file);
     }
-
 
     #[test]
     fn test_sstable_find_idx() {
@@ -175,5 +186,53 @@ mod tests {
 
         assert_eq!(table.find_block_idx(b"key8"), 4);
         assert_eq!(table.find_block_idx(b"key9"), 4);
+    }
+
+
+    #[test]
+    fn test_sstable_read_block() {
+        let mut builder = SSTableBuilder::new(PathBuf::from("/tmp/test_sstable_read_block"), 64);
+
+        // 0
+        builder.add(b"key1", b"value1");
+        builder.add(b"key10", b"value10");
+
+        // 1
+        builder.add(b"key11", b"value11");
+        builder.add(b"key12", b"value12");
+
+        // 2
+        builder.add(b"key2", b"value2");
+        builder.add(b"key3", b"value3");
+        builder.add(b"key4", b"value4");
+
+        // 3
+        builder.add(b"key5", b"value5");
+        builder.add(b"key6", b"value6");
+        builder.add(b"key7", b"value7");
+
+        // 4
+        builder.add(b"key8", b"value8");
+        builder.add(b"key9", b"value9");
+
+        let table = builder.build().unwrap();
+
+        let mut first_block_iter = BlockIterator::new(table.read_block(0).unwrap());
+        first_block_iter.seek_key(b"key1");
+        assert_eq!(first_block_iter.value(), b"value1");
+        first_block_iter.seek_key(b"key10");
+        assert_eq!(first_block_iter.value(), b"value10");
+
+
+        let block = table.read_block(2).unwrap();
+        assert_eq!(block.fetch_key_of(0), b"key2");
+        assert_eq!(block.fetch_key_of(1), b"key3");
+        assert_eq!(block.fetch_key_of(2), b"key4");
+
+        let mut last_block_iter = BlockIterator::new(table.read_block(4).unwrap());
+        last_block_iter.seek_key(b"key8");
+        assert_eq!(last_block_iter.value(), b"value8");
+        last_block_iter.seek_key(b"key9");
+        assert_eq!(last_block_iter.value(), b"value9");
     }
 }
