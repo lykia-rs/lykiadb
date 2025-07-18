@@ -1,0 +1,33 @@
+Memtable
+OK  - Implement memtables based on skiplists
+- Implement freezing memtable logic
+- Implement LSM read path get for memtables
+
+Merge iterator
+- Implement memtable iterator
+- Implement merge iterator
+- Implement LSM read path scan for memtables
+
+Block
+OK  - Implement SST block encoding.
+OK  - Implement SST block decoding and block iterator
+
+SST
+OK  - Implement SST encoding and metadata encoding
+- Implement block cache
+OK  - Implement SST decoding
+- Implement iterator
+
+Read path
+- Integrate SST into the LSM read path.
+- Implement LSM read path get with SSTs
+- Implement LSM read path scan with SSTs
+
+Write path
+- Implement the LSM write path with L0 flush
+- Implement the logic to correctly update the LSM state
+
+POST
+- Revisit Key, KeyVec, KeySlice
+- Revisit buffer allocations
+- I/O Optimizations. Align blocks to 4KB boundary and use direct I/O to bypass the system page cache.
