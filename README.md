@@ -30,22 +30,22 @@ Lykia is a document database management system built for educational purposes. T
 ## Primary goals
 
 - [x] Core scripting language + DML/DDL SQL
+- [x] Client and server apps
 - [x] A minimal standard library
-- [x] Modular architecture for core and surrounding components
 - [ ] Query planning and binding (in progress)
 - [ ] Query execution
 - [ ] Persistent storage engine (in progress)
 - [ ] Multi-version concurrency control
 
-## Secondary goals
-
-- [x] Playground app
-
-## Advanced 
+## Phase 2 goals
 
 - [ ] Replication with Raft
 - [ ] JIT execution for expression evaluation
 - [ ] Query optimization
+
+## Non-goals
+
+- LykiaDB is not (and will not be) a production-grade database.
 
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
