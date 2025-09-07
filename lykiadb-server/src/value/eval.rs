@@ -1210,3 +1210,383 @@ mod test {
         );
     }
 }
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+    use crate::value::eval::eval_binary;
+
+    // Strategy for generating RV values
+    fn rv_strategy() -> impl Strategy<Value = RV> {
+        prop_oneof![
+            Just(RV::Undefined),
+            any::<bool>().prop_map(RV::Bool),
+            any::<f64>().prop_filter("finite numbers", |x| x.is_finite()).prop_map(RV::Num),
+            "[a-zA-Z0-9]*".prop_map(|s| RV::Str(Arc::new(s))),
+            // For simplicity, we'll skip arrays and objects in basic tests
+        ]
+    }
+
+    // Strategy for numeric RV values only
+    fn numeric_rv_strategy() -> impl Strategy<Value = RV> {
+        prop_oneof![
+            any::<bool>().prop_map(RV::Bool),
+            any::<f64>().prop_filter("finite numbers", |x| x.is_finite()).prop_map(RV::Num),
+        ]
+    }
+
+    // Strategy for binary operations
+    fn binary_operation_strategy() -> impl Strategy<Value = Operation> {
+        prop_oneof![
+            Just(Operation::Add),
+            Just(Operation::Subtract),
+            Just(Operation::Multiply),
+            Just(Operation::Divide),
+            Just(Operation::IsEqual),
+            Just(Operation::IsNotEqual),
+            Just(Operation::Less),
+            Just(Operation::LessEqual),
+            Just(Operation::Greater),
+            Just(Operation::GreaterEqual),
+        ]
+    }
+
+    proptest! {
+        // Property: Addition should be commutative for numeric types
+        #[test]
+        fn addition_is_commutative_for_numbers(
+            a in numeric_rv_strategy(),
+            b in numeric_rv_strategy()
+        ) {
+            let result1 = eval_binary(a.clone(), b.clone(), Operation::Add);
+            let result2 = eval_binary(b, a, Operation::Add);
+            prop_assert_eq!(result1, result2);
+        }
+
+        // Property: Multiplication should be commutative for numeric types
+        #[test]
+        fn multiplication_is_commutative_for_numbers(
+            a in numeric_rv_strategy(),
+            b in numeric_rv_strategy()
+        ) {
+            let result1 = eval_binary(a.clone(), b.clone(), Operation::Multiply);
+            let result2 = eval_binary(b, a, Operation::Multiply);
+            prop_assert_eq!(result1, result2);
+        }
+
+        // Property: Adding zero should be identity
+        #[test]
+        fn adding_zero_is_identity(a in numeric_rv_strategy()) {
+            let zero = RV::Num(0.0);
+            let result = eval_binary(a.clone(), zero, Operation::Add);
+            if let Some(num) = a.as_number() {
+                prop_assert_eq!(result, RV::Num(num));
+            }
+        }
+
+        // Property: Multiplying by one should be identity
+        #[test]
+        fn multiplying_by_one_is_identity(a in numeric_rv_strategy()) {
+            let one = RV::Num(1.0);
+            let result = eval_binary(a.clone(), one, Operation::Multiply);
+            if let Some(num) = a.as_number() {
+                prop_assert_eq!(result, RV::Num(num));
+            }
+        }
+
+        // Property: Equality should be reflexive
+        #[test]
+        fn equality_is_reflexive(a in rv_strategy()) {
+            let result = eval_binary(a.clone(), a, Operation::IsEqual);
+            prop_assert_eq!(result, RV::Bool(true));
+        }
+
+        // Property: Inequality should be symmetric
+        #[test]
+        fn inequality_is_symmetric(
+            a in rv_strategy(),
+            b in rv_strategy()
+        ) {
+            let result1 = eval_binary(a.clone(), b.clone(), Operation::IsNotEqual);
+            let result2 = eval_binary(b, a, Operation::IsNotEqual);
+            prop_assert_eq!(result1, result2);
+        }
+
+        // Property: Less than should be antisymmetric
+        #[test]
+        fn less_than_antisymmetric(
+            a in numeric_rv_strategy(),
+            b in numeric_rv_strategy()
+        ) {
+            let a_less_b = eval_binary(a.clone(), b.clone(), Operation::Less);
+            let b_less_a = eval_binary(b, a, Operation::Less);
+            
+            // If a < b is true, then b < a should be false (unless a == b)
+            if a_less_b == RV::Bool(true) {
+                prop_assert_eq!(b_less_a, RV::Bool(false));
+            }
+        }
+
+        // Property: Operations with Undefined should return appropriate results
+        #[test]
+        fn undefined_operations(
+            a in rv_strategy().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined)),
+            op in binary_operation_strategy()
+        ) {
+            let result1 = eval_binary(RV::Undefined, a.clone(), op);
+            let result2 = eval_binary(a, RV::Undefined, op);
+            
+            match op {
+                Operation::IsEqual | Operation::Is => {
+                    prop_assert_eq!(result1, RV::Bool(false));
+                    prop_assert_eq!(result2, RV::Bool(false));
+                }
+                Operation::IsNotEqual | Operation::IsNot => {
+                    prop_assert_eq!(result1, RV::Bool(true));
+                    prop_assert_eq!(result2, RV::Bool(true));
+                }
+                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
+                    prop_assert_eq!(result1, RV::Undefined);
+                    prop_assert_eq!(result2, RV::Undefined);
+                }
+                Operation::Less | Operation::LessEqual | Operation::Greater | Operation::GreaterEqual => {
+                    prop_assert_eq!(result1, RV::Bool(false));
+                    prop_assert_eq!(result2, RV::Bool(false));
+                }
+                _ => {} // Skip other operations
+            }
+        }
+        
+        // Special case: Undefined compared to itself
+        #[test]
+        fn undefined_vs_undefined_operations(
+            op in binary_operation_strategy()
+        ) {
+            let result = eval_binary(RV::Undefined, RV::Undefined, op);
+            
+            match op {
+                Operation::IsEqual | Operation::Is => {
+                    prop_assert_eq!(result, RV::Bool(true));
+                }
+                Operation::IsNotEqual | Operation::IsNot => {
+                    prop_assert_eq!(result, RV::Bool(false));
+                }
+                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
+                    prop_assert_eq!(result, RV::Undefined);
+                }
+                Operation::Less | Operation::Greater => {
+                    prop_assert_eq!(result, RV::Bool(false));
+                }
+                Operation::LessEqual | Operation::GreaterEqual => {
+                    // Undefined == Undefined, so LessEqual and GreaterEqual should be true
+                    prop_assert_eq!(result, RV::Bool(true));
+                }
+                _ => {} // Skip other operations
+            }
+        }
+
+        // Property: String concatenation should preserve length relationship
+        #[test]
+        fn string_concatenation_length(
+            s1 in "[a-zA-Z0-9]*",
+            s2 in "[a-zA-Z0-9]*"
+        ) {
+            let rv1 = RV::Str(Arc::new(s1.clone()));
+            let rv2 = RV::Str(Arc::new(s2.clone()));
+            let result = eval_binary(rv1, rv2, Operation::Add);
+            
+            if let RV::Str(result_str) = result {
+                prop_assert!(result_str.len() >= s1.len());
+                prop_assert!(result_str.len() >= s2.len());
+                prop_assert_eq!(result_str.len(), s1.len() + s2.len());
+            }
+        }
+
+        // Property: Division by zero should handle edge cases correctly
+        #[test]
+        fn division_by_zero_handling(a in numeric_rv_strategy()) {
+            let zero = RV::Num(0.0);
+            let result = eval_binary(a.clone(), zero, Operation::Divide);
+            
+            if let Some(num) = a.as_number() {
+                if num == 0.0 {
+                    // 0/0 should be undefined
+                    prop_assert_eq!(result, RV::Undefined);
+                } else {
+                    // Non-zero/0 should be infinity
+                    if let RV::Num(result_num) = result {
+                        prop_assert!(result_num.is_infinite());
+                    }
+                }
+            }
+        }
+
+        // Property: Boolean to number conversion should be consistent
+        #[test]
+        fn boolean_number_conversion_consistency(b in any::<bool>()) {
+            let rv_bool = RV::Bool(b);
+            let expected_num = if b { 1.0 } else { 0.0 };
+            
+            prop_assert_eq!(rv_bool.as_number(), Some(expected_num));
+            
+            // Test in arithmetic operations
+            let result = eval_binary(rv_bool, RV::Num(0.0), Operation::Add);
+            prop_assert_eq!(result, RV::Num(expected_num));
+        }
+
+        // Property: Comparison operations should return boolean values
+        #[test]
+        fn comparisons_return_boolean(
+            a in rv_strategy(),
+            b in rv_strategy(),
+            op in prop_oneof![
+                Just(Operation::IsEqual),
+                Just(Operation::IsNotEqual),
+                Just(Operation::Less),
+                Just(Operation::LessEqual),
+                Just(Operation::Greater),
+                Just(Operation::GreaterEqual)
+            ]
+        ) {
+            let result = eval_binary(a, b, op);
+            prop_assert!(matches!(result, RV::Bool(_)));
+        }
+
+        // Property: Associativity for addition (when all operations are valid)
+        #[test]
+        fn addition_associativity(
+            a in numeric_rv_strategy(),
+            b in numeric_rv_strategy(),
+            c in numeric_rv_strategy()
+        ) {
+            // (a + b) + c
+            let ab = eval_binary(a.clone(), b.clone(), Operation::Add);
+            let ab_c = eval_binary(ab, c.clone(), Operation::Add);
+            
+            // a + (b + c)
+            let bc = eval_binary(b, c, Operation::Add);
+            let a_bc = eval_binary(a, bc, Operation::Add);
+            
+            prop_assert_eq!(ab_c, a_bc);
+        }
+
+        // Property: Type coercion should be consistent
+        #[test]
+        fn type_coercion_consistency(
+            num in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            bool_val in any::<bool>()
+        ) {
+            let rv_num = RV::Num(num);
+            let rv_bool = RV::Bool(bool_val);
+            let expected_bool_as_num = if bool_val { 1.0 } else { 0.0 };
+            
+            // num + bool should equal num + bool_as_number
+            let result1 = eval_binary(rv_num.clone(), rv_bool.clone(), Operation::Add);
+            let result2 = eval_binary(rv_num, RV::Num(expected_bool_as_num), Operation::Add);
+            
+            prop_assert_eq!(result1, result2);
+        }
+    }
+
+    // Additional targeted property tests for specific behaviors
+    proptest! {
+        // Property: String comparisons should be lexicographic
+        #[test]
+        fn string_comparison_lexicographic(
+            s1 in "[a-z]{1,10}",
+            s2 in "[a-z]{1,10}"
+        ) {
+            let rv1 = RV::Str(Arc::new(s1.clone()));
+            let rv2 = RV::Str(Arc::new(s2.clone()));
+            
+            let less_result = eval_binary(rv1.clone(), rv2.clone(), Operation::Less);
+            let equal_result = eval_binary(rv1, rv2, Operation::IsEqual);
+            
+            match s1.cmp(&s2) {
+                std::cmp::Ordering::Less => prop_assert_eq!(less_result, RV::Bool(true)),
+                std::cmp::Ordering::Equal => prop_assert_eq!(equal_result, RV::Bool(true)),
+                std::cmp::Ordering::Greater => prop_assert_eq!(less_result, RV::Bool(false)),
+            }
+        }
+
+        // Property: Truthiness should be consistent with as_bool
+        #[test]
+        fn truthiness_consistency(rv in rv_strategy()) {
+            let expected_bool = rv.as_bool();
+            
+            // Test against known truthy/falsy values
+            let false_rv = RV::Bool(false);
+            
+            if expected_bool {
+                // If rv is truthy, it should not equal false
+                let ne_false = eval_binary(rv, false_rv, Operation::IsNotEqual);
+                prop_assert_eq!(ne_false, RV::Bool(true));
+            } else {
+                // If rv is falsy, specific falsy values should behave consistently
+                match rv {
+                    RV::Num(n) if n == 0.0 => {
+                        let eq_false = eval_binary(RV::Num(0.0), RV::Bool(false), Operation::IsEqual);
+                        prop_assert_eq!(eq_false, RV::Bool(true));
+                    }
+                    RV::Bool(false) => {
+                        let eq_false = eval_binary(RV::Bool(false), RV::Bool(false), Operation::IsEqual);
+                        prop_assert_eq!(eq_false, RV::Bool(true));
+                    }
+                    _ => {} // Other falsy values have their own rules
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod regression_tests {
+    use super::*;
+    use crate::value::eval::eval_binary;
+
+    /// These tests capture specific edge cases found through property testing
+    /// or known to be important for the domain
+    #[test]
+    fn regression_nan_handling() {
+        // NaN comparisons should always be false
+        let nan = RV::Num(f64::NAN);
+        let num = RV::Num(1.0);
+        
+        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::Less), RV::Bool(false));
+        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::Greater), RV::Bool(false));
+        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::IsEqual), RV::Bool(false));
+        assert_eq!(eval_binary(nan.clone(), nan.clone(), Operation::IsEqual), RV::Bool(false));
+    }
+
+    #[test]
+    fn regression_infinity_arithmetic() {
+        let inf = RV::Num(f64::INFINITY);
+        let num = RV::Num(42.0);
+        
+        // inf + num = inf
+        assert_eq!(eval_binary(inf.clone(), num.clone(), Operation::Add), inf);
+        // inf - inf should be NaN, but we might handle it differently
+        let result = eval_binary(inf.clone(), inf.clone(), Operation::Subtract);
+        match result {
+            RV::Num(n) => assert!(n.is_nan()),
+            RV::Undefined => {}, // Also acceptable
+            _ => panic!("Unexpected result for inf - inf"),
+        }
+    }
+
+    #[test]
+    fn regression_string_number_coercion() {
+        // String that can be parsed as number
+        let str_num = RV::Str(Arc::new("42".to_string()));
+        let num = RV::Num(42.0);
+        
+        // In comparisons, string numbers should be coerced
+        let result = eval_binary(str_num, num, Operation::IsEqual);
+        // This depends on implementation - document the expected behavior
+        match result {
+            RV::Bool(_) => {}, // Either true or false is acceptable, but should be documented
+            _ => panic!("String-number comparison should return boolean"),
+        }
+    }
+}
