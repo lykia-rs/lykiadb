@@ -1,11 +1,13 @@
 use std::{
     fs::File,
-    io::{BufReader, Read, Write, stdin, stdout},
+    io::{BufReader, Read, stdout},
 };
 
 use clap::Parser;
 use lykiadb_connect::session::ClientSession;
 use lykiadb_connect::{Message, Protocol, Request, Response, get_session, report_error};
+use rustyline::error::ReadlineError;
+use rustyline::{DefaultEditor};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -19,22 +21,33 @@ struct Shell;
 impl Shell {
     async fn run_repl(&mut self, session: &mut impl ClientSession) {
         println!("REPL mode");
-        let mut line = String::new();
 
+        let mut rl = DefaultEditor::new().unwrap();
         loop {
-            print!("lykia > ");
-            let _ = stdout().flush();
-            stdin().read_line(&mut line).expect("Invalid input");
-            if line.is_empty() || line.trim() == ".exit" {
-                break;
-            }
+            let readline = rl.readline(">> ");
+            match readline {
+                Ok(line) => {
+                    if line.trim() == ".exit" {
+                        break;
+                    }
 
-            let response = session
-                .send_receive(Message::Request(Request::Run(line.to_string())))
-                .await
-                .unwrap();
-            self.handle_response("prompt", &line, response);
-            line.clear();
+                    let response = session
+                        .send_receive(Message::Request(Request::Run(line.to_string())))
+                        .await
+                        .unwrap();
+                    self.handle_response("prompt", &line, response);
+                    
+                    rl.add_history_entry(line.as_str()).unwrap();
+                },
+                Err(ReadlineError::Eof) |
+                Err(ReadlineError::Interrupted) => {
+                    break
+                },
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break
+                }
+            }
         }
     }
 

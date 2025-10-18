@@ -9,3 +9,4 @@ clap = { version = "4.4.6", features = ["derive"] }
 lykiadb-connect = { path = "../lykiadb-connect" }
 serde_json = "1.0.105"
 tokio = { version = "~1.35.1" }
+rustyline = "17.0.1"
