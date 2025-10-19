@@ -27,11 +27,7 @@ pub fn collect_aggregates(
 ) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
-    let mut collector = AggregationCollector {
-        in_call: 0,
-        accumulator: vec![],
-        interpreter,
-    };
+    let mut collector = AggregationCollector::collecting(interpreter);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -58,10 +54,44 @@ pub fn collect_aggregates(
     Ok(no_dup)
 }
 
+pub fn prevent_aggregates_in(
+    expr: &Expr,
+    interpreter: &mut Interpreter,
+) -> Result<Vec<Aggregation>, HaltReason> {
+    let mut collector = AggregationCollector::preventing(interpreter);
+
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+
+    let aggregates = visitor.visit(expr)?;
+
+    Ok(aggregates)
+}
+
 struct AggregationCollector<'a> {
     in_call: u32,
     accumulator: Vec<Aggregation>,
     interpreter: &'a mut Interpreter,
+    is_preventing: bool, 
+}
+
+impl<'a> AggregationCollector<'a> {
+    fn preventing(interpreter: &mut Interpreter) -> AggregationCollector {
+        AggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+            interpreter,
+            is_preventing: true,
+        }
+    }
+
+    fn collecting(interpreter: &mut Interpreter) -> AggregationCollector {
+        AggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+            interpreter,
+            is_preventing: false,
+        }
+    }
 }
 
 impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
@@ -72,6 +102,12 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
             if let Ok(RV::Callable(callable)) = &callee_val
                 && let CallableKind::Aggregator(agg_name) = &callable.kind
             {
+                if self.is_preventing {
+                    return Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::AggregationNotAllowed(expr.get_span(), "".to_string(),
+                    ))));
+                }
+
                 match visit {
                     ExprVisitorNode::In => {
                         if self.in_call > 0 {
@@ -204,11 +240,7 @@ mod tests {
             id: 0,
         };
 
-        let mut collector = AggregationCollector {
-            in_call: 0,
-            accumulator: vec![],
-            interpreter: &mut interpreter,
-        };
+        let mut collector = AggregationCollector::collecting(&mut interpreter);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 

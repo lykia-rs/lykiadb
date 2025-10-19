@@ -1,6 +1,5 @@
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
-    value::RV,
+    engine::interpreter::{HaltReason, Interpreter}, plan::aggregation::prevent_aggregates_in, value::RV
 };
 
 use lykiadb_lang::ast::{
@@ -91,7 +90,7 @@ impl<'a> Planner<'a> {
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
-                let (expr, _) = self.build_expr(key, &mut core_scope, false, true)?;
+                let (expr, _) = self.build_expr(key, &mut core_scope, false, false)?;
                 keys.push(expr);
             }
             keys
@@ -128,7 +127,7 @@ impl<'a> Planner<'a> {
         // have the aggregates, we can use them to filter the result.
         if core.having.is_some() {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(core.having.as_ref().unwrap(), &mut core_scope, true, false)?;
+                self.build_expr(core.having.as_ref().unwrap(), &mut core_scope, true, true)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -159,9 +158,15 @@ impl<'a> Planner<'a> {
         allow_subqueries: bool,
         allow_aggregates: bool,
     ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+
+        if !allow_aggregates {
+            prevent_aggregates_in(expr, self.interpreter)?;
+        }
+
         let mut reducer: SqlExprReducer = SqlExprReducer::new(
             // self,
             allow_subqueries,
+            scope,
         );
 
         let mut visitor = ExprVisitor::<SqlSelect, HaltReason>::new(&mut reducer);

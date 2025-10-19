@@ -21,6 +21,7 @@ mod scope;
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
     NestedAggregationNotAllowed(Span),
+    AggregationNotAllowed(Span, String),
     SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),
     DuplicateObjectInScope(Identifier),

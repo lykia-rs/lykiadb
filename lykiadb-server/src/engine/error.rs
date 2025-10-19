@@ -132,6 +132,13 @@ pub fn report_error(
                 span,
             );
         }
+        ExecutionError::Plan(PlannerError::AggregationNotAllowed(span, context)) => {
+            print(
+                &format!("Aggregation not allowed in {context}"),
+                    "Remove aggregation.",
+                span,
+            );
+        }
         ExecutionError::Environment(EnvironmentError::Other { message })
         | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());

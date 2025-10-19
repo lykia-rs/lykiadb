@@ -1,0 +1,11 @@
+# planning
+- Wrap-up select
+
+# planning.constraints
+OK  - Disallow aggregates when dictated
+- Expression processing
+    - Scope check
+    - Environment presence check
+
+# planning.scope
+- Scope building
