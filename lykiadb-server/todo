@@ -3,9 +3,15 @@
 
 # planning.constraints
 OK  - Disallow aggregates when dictated
+- Aggregation detector
+    - Context check
+    - Ignore non-aggregate functions
 - Expression processing
     - Scope check
     - Environment presence check
+        - Check all the functions and variables
+        - Overlaps with aggregation caller eval
 
 # planning.scope
 - Scope building
+- Input collections and structure
