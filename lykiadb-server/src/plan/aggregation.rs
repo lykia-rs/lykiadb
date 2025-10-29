@@ -4,7 +4,9 @@ use crate::{
     engine::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
-    }, plan::planner::InClause, value::{callable::CallableKind, RV}
+    },
+    plan::planner::InClause,
+    value::{RV, callable::CallableKind},
 };
 
 use lykiadb_lang::ast::{
@@ -26,7 +28,7 @@ pub fn collect_aggregates(
 ) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
-    let mut collector = AggregationCollector::collecting(interpreter , InClause::Projection);
+    let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -39,7 +41,7 @@ pub fn collect_aggregates(
         }
     }
 
-    collector = AggregationCollector::collecting(interpreter , InClause::Having);
+    collector = AggregationCollector::collecting(interpreter, InClause::Having);
 
     visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -111,8 +113,11 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
             {
                 if self.is_preventing {
                     return Err(HaltReason::Error(ExecutionError::Plan(
-                        PlannerError::AggregationNotAllowed(expr.get_span(), self.in_clause.to_string(),
-                    ))));
+                        PlannerError::AggregationNotAllowed(
+                            expr.get_span(),
+                            self.in_clause.to_string(),
+                        ),
+                    )));
                 }
 
                 match visit {
@@ -247,7 +252,8 @@ mod tests {
             id: 0,
         };
 
-        let mut collector = AggregationCollector::collecting(&mut interpreter, InClause::Projection);
+        let mut collector =
+            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -275,7 +281,8 @@ mod tests {
             id: 0,
         };
 
-        let mut collector = AggregationCollector::collecting(&mut interpreter, InClause::Projection);
+        let mut collector =
+            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 

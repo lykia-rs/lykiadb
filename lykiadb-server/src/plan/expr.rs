@@ -1,4 +1,7 @@
-use crate::{engine::{error::ExecutionError, interpreter::HaltReason}, plan::scope::Scope};
+use crate::{
+    engine::{error::ExecutionError, interpreter::HaltReason},
+    plan::scope::Scope,
+};
 
 use lykiadb_lang::ast::{
     Spanned,
@@ -35,7 +38,11 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
                 }
                 Expr::FieldPath { head, tail, .. } => {
                     // check if the head resolves
-                    println!("/Is Expr::FieldPath(head={:?}) path_valid={:?}/", head.name, self.scope.is_path_valid(head, tail));
+                    println!(
+                        "/Is Expr::FieldPath(head={:?}) path_valid={:?}/",
+                        head.name,
+                        self.scope.is_path_valid(head, tail)
+                    );
                 }
                 Expr::Call { callee, .. } => {
                     // check if the callee resolves

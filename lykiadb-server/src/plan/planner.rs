@@ -1,11 +1,17 @@
 use crate::{
-    engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, plan::{aggregation::prevent_aggregates_in, PlannerError}, value::RV
+    engine::{
+        error::ExecutionError,
+        interpreter::{HaltReason, Interpreter},
+    },
+    plan::{PlannerError, aggregation::prevent_aggregates_in},
+    value::RV,
 };
 
 use lykiadb_lang::ast::{
+    Spanned,
     expr::Expr,
     sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::{ExprVisitor, VisitorMut}, Spanned,
+    visitor::{ExprVisitor, VisitorMut},
 };
 
 use super::{
@@ -90,8 +96,13 @@ impl<'a> Planner<'a> {
         // Filter: The source is then filtered, and the result is passed to the next
         // node.
         if let Some(predicate) = &core.r#where {
-            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(predicate.as_ref(), InClause::Where, &mut core_scope, true, false)?;
+            let (expr, subqueries): (IntermediateExpr, Vec<Node>) = self.build_expr(
+                predicate.as_ref(),
+                InClause::Where,
+                &mut core_scope,
+                true,
+                false,
+            )?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -110,7 +121,8 @@ impl<'a> Planner<'a> {
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
-                let (expr, _) = self.build_expr(key, InClause::GroupBy, &mut core_scope, false, false)?;
+                let (expr, _) =
+                    self.build_expr(key, InClause::GroupBy, &mut core_scope, false, false)?;
                 keys.push(expr);
             }
             keys
@@ -184,7 +196,6 @@ impl<'a> Planner<'a> {
         allow_subqueries: bool,
         allow_aggregates: bool,
     ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
-
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, self.interpreter)?;
         }
@@ -221,7 +232,8 @@ impl<'a> Planner<'a> {
             let mut order_key = vec![];
 
             for key in order_by {
-                let (expr, _) = self.build_expr(&key.expr, InClause::OrderBy, &mut root_scope, false, true)?;
+                let (expr, _) =
+                    self.build_expr(&key.expr, InClause::OrderBy, &mut root_scope, false, true)?;
                 order_key.push((expr, key.ordering.clone()));
             }
 
