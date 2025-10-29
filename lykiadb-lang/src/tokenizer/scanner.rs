@@ -15,37 +15,6 @@ pub struct Scanner<'a> {
     line: u32,
 }
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ScanError {
-    #[error("Unexpected character at {span:?}")]
-    UnexpectedCharacter { span: Span },
-    #[error("Unterminated string at {span:?}")]
-    UnterminatedString { span: Span },
-    #[error("Malformed number literal at {span:?}")]
-    MalformedNumberLiteral { span: Span },
-}
-
-impl From<ScanError> for StandardError {
-    fn from(value: ScanError) -> Self {
-        let hint = match value {
-            ScanError::UnexpectedCharacter { .. } => 
-                "Remove the unexpected character or check the syntax",
-            ScanError::UnterminatedString { .. } => 
-                "Add a closing quote to terminate the string",
-            ScanError::MalformedNumberLiteral { .. } => 
-                "Fix the number format (e.g., ensure proper decimal or exponent notation)",
-        };
-
-        let sp = (match &value {
-            ScanError::UnexpectedCharacter { span } => *span,
-            ScanError::UnterminatedString { span } => *span,
-            ScanError::MalformedNumberLiteral { span } => *span,
-        }).into();
-
-        StandardError::new(&value.to_string(), hint, Some(sp))
-    }
-}
-
 impl Scanner<'_> {
     pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
         let mut scanner = Scanner {
@@ -426,6 +395,37 @@ impl Scanner<'_> {
         }
 
         Ok(tokens)
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ScanError {
+    #[error("Unexpected character at {span:?}")]
+    UnexpectedCharacter { span: Span },
+    #[error("Unterminated string at {span:?}")]
+    UnterminatedString { span: Span },
+    #[error("Malformed number literal at {span:?}")]
+    MalformedNumberLiteral { span: Span },
+}
+
+impl From<ScanError> for StandardError {
+    fn from(value: ScanError) -> Self {
+        let hint = match value {
+            ScanError::UnexpectedCharacter { .. } => 
+                "Remove the unexpected character or check the syntax",
+            ScanError::UnterminatedString { .. } => 
+                "Add a closing quote to terminate the string",
+            ScanError::MalformedNumberLiteral { .. } => 
+                "Fix the number format (e.g., ensure proper decimal or exponent notation)",
+        };
+
+        let sp = (match &value {
+            ScanError::UnexpectedCharacter { span } => *span,
+            ScanError::UnterminatedString { span } => *span,
+            ScanError::MalformedNumberLiteral { span } => *span,
+        }).into();
+
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
 

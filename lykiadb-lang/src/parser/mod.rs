@@ -18,42 +18,6 @@ mod stmt;
 pub mod program;
 pub mod resolver;
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ParseError {
-    #[error("Unexpected token {token:?}")]
-    UnexpectedToken { token: Token },
-    #[error("Missing token. Expected {expected:?} after {token:?}")]
-    MissingToken { token: Token, expected: TokenType },
-    #[error("Invalid assignment target {left:?}")]
-    InvalidAssignmentTarget { left: Token },
-    #[error("No tokens to parse")]
-    NoTokens,
-}
-
-impl From<ParseError> for StandardError {
-    fn from(value: ParseError) -> Self {
-        let hint = match value {
-            ParseError::UnexpectedToken { .. } => 
-                "Check the syntax and ensure tokens are in the correct order",
-            ParseError::MissingToken { .. } => 
-                "Add the required token or check for syntax errors",
-            ParseError::InvalidAssignmentTarget { .. } => 
-                "Ensure the left side of assignment is a valid variable or identifier",
-            ParseError::NoTokens => 
-                "Provide valid input to parse",
-        };
-
-        let sp = (match &value {
-            ParseError::UnexpectedToken { token } => token.span,
-            ParseError::MissingToken { token, .. } => token.span,
-            ParseError::InvalidAssignmentTarget { left } => left.span,
-            ParseError::NoTokens => Span::default(), // No span available
-        }).into();
-
-        StandardError::new(&value.to_string(), hint, Some(sp))
-    }
-}
-
 type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser<'a> {
@@ -266,5 +230,41 @@ impl<'a> Parser<'a> {
         let left_span = &left.get_span();
         let right_span = &right.get_span();
         left_span.merge(right_span)
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ParseError {
+    #[error("Unexpected token {token:?}")]
+    UnexpectedToken { token: Token },
+    #[error("Missing token. Expected {expected:?} after {token:?}")]
+    MissingToken { token: Token, expected: TokenType },
+    #[error("Invalid assignment target {left:?}")]
+    InvalidAssignmentTarget { left: Token },
+    #[error("No tokens to parse")]
+    NoTokens,
+}
+
+impl From<ParseError> for StandardError {
+    fn from(value: ParseError) -> Self {
+        let hint = match value {
+            ParseError::UnexpectedToken { .. } => 
+                "Check the syntax and ensure tokens are in the correct order",
+            ParseError::MissingToken { .. } => 
+                "Add the required token or check for syntax errors",
+            ParseError::InvalidAssignmentTarget { .. } => 
+                "Ensure the left side of assignment is a valid variable or identifier",
+            ParseError::NoTokens => 
+                "Provide valid input to parse",
+        };
+
+        let sp = (match &value {
+            ParseError::UnexpectedToken { token } => token.span,
+            ParseError::MissingToken { token, .. } => token.span,
+            ParseError::InvalidAssignmentTarget { left } => left.span,
+            ParseError::NoTokens => Span::default(), // No span available
+        }).into();
+
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }

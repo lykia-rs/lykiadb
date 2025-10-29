@@ -12,18 +12,6 @@ pub struct EnvironmentFrame {
     pub parent: Option<Arc<EnvironmentFrame>>,
 }
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum EnvironmentError {
-    /*AssignmentToUndefined {
-        token: Token,
-    },
-    VariableNotFound {
-        token: Token,
-    },*/
-    #[error("{message}")]
-    Other { message: String },
-}
-
 macro_rules! to_ancestor {
     ($init:expr, $distance:expr) => {{
         let mut env = $init;
@@ -32,26 +20,6 @@ macro_rules! to_ancestor {
         }
         env
     }};
-}
-
-impl From<EnvironmentError> for ExecutionError {
-    fn from(err: EnvironmentError) -> Self {
-        ExecutionError::Environment(err)
-    }
-}
-
-impl From<EnvironmentError> for StandardError {
-    fn from(value: EnvironmentError) -> Self {
-        let hint = match value {
-            EnvironmentError::Other { .. } => 
-                "Check variable names and scope declarations",
-        };
-
-        // EnvironmentError doesn't have span information currently
-        let sp = Some(lykiadb_common::error::Span::default());
-
-        StandardError::new(&value.to_string(), &hint, sp)
-    }
 }
 
 impl EnvironmentFrame {
@@ -142,6 +110,38 @@ impl EnvironmentFrame {
                 )),
                 |v| Ok(v.clone()),
             )
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum EnvironmentError {
+    /*AssignmentToUndefined {
+        token: Token,
+    },
+    VariableNotFound {
+        token: Token,
+    },*/
+    #[error("{message}")]
+    Other { message: String },
+}
+
+impl From<EnvironmentError> for ExecutionError {
+    fn from(err: EnvironmentError) -> Self {
+        ExecutionError::Environment(err)
+    }
+}
+
+impl From<EnvironmentError> for StandardError {
+    fn from(value: EnvironmentError) -> Self {
+        let hint = match value {
+            EnvironmentError::Other { .. } => 
+                "Check variable names and scope declarations",
+        };
+
+        // EnvironmentError doesn't have span information currently
+        let sp = Some(lykiadb_common::error::Span::default());
+
+        StandardError::new(&value.to_string(), &hint, sp)
     }
 }
 

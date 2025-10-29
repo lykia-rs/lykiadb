@@ -16,27 +16,6 @@ pub struct Resolver<'a> {
     program: &'a Program,
 }
 
-#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ResolveError {
-    #[error("{message} at {span:?}")]
-    GenericError { span: Span, message: String },
-}
-
-impl From<ResolveError> for StandardError {
-    fn from(value: ResolveError) -> Self {
-        let hint = match value {
-            ResolveError::GenericError { .. } => 
-                "Check variable declarations and scope usage",
-        };
-
-        let sp = (match &value {
-            ResolveError::GenericError { span, .. } => *span,
-        }).into();
-
-        StandardError::new(&value.to_string(), hint, Some(sp))
-    }
-}
-
 impl<'a> Resolver<'a> {
     pub fn resolve(&mut self) -> Result<(Scopes, Locals), ResolveError> {
         self.visit_stmt(&self.program.get_root())?;
@@ -253,5 +232,26 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
             }
         };
         Ok(())
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ResolveError {
+    #[error("{message} at {span:?}")]
+    GenericError { span: Span, message: String },
+}
+
+impl From<ResolveError> for StandardError {
+    fn from(value: ResolveError) -> Self {
+        let hint = match value {
+            ResolveError::GenericError { .. } => 
+                "Check variable declarations and scope usage",
+        };
+
+        let sp = (match &value {
+            ResolveError::GenericError { span, .. } => *span,
+        }).into();
+
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
