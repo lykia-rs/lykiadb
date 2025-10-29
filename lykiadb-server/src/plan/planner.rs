@@ -276,11 +276,11 @@ mod build_expr_tests {
         sql::{SqlSelect, SqlSelectCore, SqlProjection, SqlDistinct},
     };
     use crate::{
-        engine::interpreter::Interpreter,
+        engine::interpreter::{Interpreter, HaltReason},
         plan::{
             planner::{Planner, InClause},
             scope::Scope,
-            IntermediateExpr,
+            IntermediateExpr, Node,
         },
     };
 
@@ -377,6 +377,24 @@ mod build_expr_tests {
         }
     }
 
+    fn assert_build_expr_result(
+        result: Result<(IntermediateExpr, Vec<Node>), HaltReason>,
+        expected_expr: &Expr,
+        expected_subquery_count: usize,
+    ) {
+        assert!(result.is_ok());
+        let (intermediate_expr, subqueries) = result.unwrap();
+        
+        match intermediate_expr {
+            IntermediateExpr::Expr { expr: boxed_expr } => {
+                assert_eq!(*boxed_expr, *expected_expr);
+            }
+            _ => panic!("Expected IntermediateExpr::Expr"),
+        }
+        
+        assert_eq!(subqueries.len(), expected_subquery_count);
+    }
+
     #[test]
     fn test_build_expr_simple_literal() {
         let mut planner = create_test_planner();
@@ -391,19 +409,8 @@ mod build_expr_tests {
             false,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        // Should return the original expression wrapped in IntermediateExpr::Expr
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        // Should have no subqueries for a simple literal
-        assert!(subqueries.is_empty());
+        // Use helper function to assert standard expectations
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -420,17 +427,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -447,17 +444,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -474,17 +461,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -501,17 +478,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -528,18 +495,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        // Should have one subquery node
-        assert_eq!(subqueries.len(), 1);
+        assert_build_expr_result(result, &expr, 1);
     }
 
     #[test]
@@ -585,17 +541,7 @@ mod build_expr_tests {
                 true,
             );
 
-            assert!(result.is_ok(), "Failed for InClause");
-            let (intermediate_expr, subqueries) = result.unwrap();
-            
-            match intermediate_expr {
-                IntermediateExpr::Expr { expr: boxed_expr } => {
-                    assert_eq!(*boxed_expr, expr);
-                }
-                _ => panic!("Expected IntermediateExpr::Expr"),
-            }
-            
-            assert!(subqueries.is_empty());
+            assert_build_expr_result(result, &expr, 0);
         }
     }
 
@@ -627,17 +573,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -665,18 +601,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        // Should have two subquery nodes
-        assert_eq!(subqueries.len(), 2);
+        assert_build_expr_result(result, &expr, 2);
     }
 
     #[test]
@@ -696,17 +621,7 @@ mod build_expr_tests {
         );
 
         // Should still succeed as the method returns the expression regardless of scope validation
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -725,17 +640,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -758,17 +663,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 
     #[test]
@@ -793,16 +688,6 @@ mod build_expr_tests {
             true,
         );
 
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, expr);
-            }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert!(subqueries.is_empty());
+        assert_build_expr_result(result, &expr, 0);
     }
 }
