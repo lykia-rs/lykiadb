@@ -68,3 +68,13 @@ SELECT avg(rating) FROM books HAVING anything > 10;
   - project [avg(rating) as avg(rating)]
     - aggregate [group_by=[], aggregates=[avg(rating)]]
       - scan [books as books]
+
+
+#[name=aggregations_with_regular_functions, run=plan]>
+SELECT avg(rating), capitalize("id=" + id) as id_label FROM books group by id;
+
+---
+
+- project [avg(rating) as avg(rating), capitalize((Str("id=") Add id)) as id_label]
+  - aggregate [group_by=[id], aggregates=[avg(rating)]]
+    - scan [books as books]
