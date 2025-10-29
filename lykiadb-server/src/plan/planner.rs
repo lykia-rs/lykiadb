@@ -105,7 +105,7 @@ impl<'a> Planner<'a> {
         } else if let Some(having) = &core.having {
             // Fail fast if there is a HAVING clause without aggregation.
             return Err(HaltReason::Error(ExecutionError::Plan(
-                PlannerError::HavingWithoutAggregateNotAllowed(having.get_span()),
+                PlannerError::HavingWithoutAggregationNotAllowed(having.get_span()),
             )));
         }
 
