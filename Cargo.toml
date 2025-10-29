@@ -1,6 +1,6 @@
 [workspace]
 resolver= "2"
-members = ["lykiadb-server", "lykiadb-shell", "lykiadb-lang", "lykiadb-connect", "lykiadb-test", "lykiadb-lsm"]
+members = ["lykiadb-server", "lykiadb-shell", "lykiadb-lang", "lykiadb-common", "lykiadb-lsm"]
 edition = "2024"
 rust-version = "1.88"
 

@@ -5,15 +5,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bytes = "1.5.0"
-bson = { version = "2.9.0" }
-bumpalo = "3.12.2"
 lykiadb-lang = { path = "../lykiadb-lang" }
-phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
-ariadne = { version = "0.4.1", features = ["auto-color"] }
 tokio = { version = "~1.35.1", features = [
     "macros",
     "rt",
@@ -29,8 +24,8 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 string-interner = "0.18.0"
 pretty_assertions = "1.4.1"
-lykiadb-test = { path = "../lykiadb-test" }
-derivative = "2.2.0"
+lykiadb-common = { path = "../lykiadb-common" }
+thiserror = "1.0"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }

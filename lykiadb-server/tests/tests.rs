@@ -4,7 +4,7 @@ mod planner {
     test_each_file! {
         in "lykiadb-server/tests/planner" => {
             |input| {
-                lykiadb_test::TestRunner::new(Box::new(|| Box::new(RuntimeTester::new()))).test_file(input)
+                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(RuntimeTester::new()))).test_file(input)
             }
         }
     }
@@ -17,7 +17,7 @@ mod interpreter {
     test_each_file! {
         in "lykiadb-server/tests/interpreter" => {
             |input| {
-                lykiadb_test::TestRunner::new(Box::new(|| Box::new(RuntimeTester::new()))).test_file(input)
+                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(RuntimeTester::new()))).test_file(input)
             }
         }
     }

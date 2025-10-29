@@ -1,5 +1,6 @@
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
+use lykiadb_common::error::StandardError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
@@ -23,26 +24,6 @@ use crate::value::{RV, eval::eval_binary};
 use std::fmt::Display;
 use std::sync::Arc;
 use std::vec;
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum InterpretError {
-    NotCallable { span: Span },
-    UnexpectedStatement { span: Span },
-    PropertyNotFound { span: Span, property: String },
-    Other { message: String }, // TODO(vck): Refactor this
-}
-
-impl From<InterpretError> for ExecutionError {
-    fn from(err: InterpretError) -> Self {
-        ExecutionError::Interpret(err)
-    }
-}
-
-impl From<LangError> for ExecutionError {
-    fn from(err: LangError) -> Self {
-        ExecutionError::Lang(err)
-    }
-}
 
 #[derive(Debug)]
 pub enum HaltReason {
@@ -675,5 +656,53 @@ impl Stateful for Output {
             self.push(item.clone());
         }
         Ok(RV::Undefined)
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum InterpretError {
+    #[error("Expression is not callable at {span:?}")]
+    NotCallable { span: Span },
+    #[error("Unexpected statement at {span:?}")]
+    UnexpectedStatement { span: Span },
+    #[error("Property '{property}' not found at {span:?}")]
+    PropertyNotFound { span: Span, property: String },
+    #[error("{message}")]
+    Other { message: String }, // TODO(vck): Refactor this
+}
+
+impl From<InterpretError> for StandardError {
+    fn from(value: InterpretError) -> Self {
+        let hint = match value {
+            InterpretError::NotCallable { .. } => 
+                "Ensure the expression evaluates to a callable function",
+            InterpretError::UnexpectedStatement { .. } => 
+                "Check if the statement is used in the correct context",
+            InterpretError::PropertyNotFound { .. } => 
+                "Verify the property name exists on the object",
+            InterpretError::Other { .. } => 
+                "Review the error details for specific guidance",
+        };
+
+        let sp = (match &value {
+            InterpretError::NotCallable { span } => *span,
+            InterpretError::UnexpectedStatement { span } => *span,
+            InterpretError::PropertyNotFound { span, .. } => *span,
+            InterpretError::Other { .. } => Span::default(), // No span available
+        }).into();
+
+        StandardError::new(&value.to_string(), &hint, Some(sp))
+    }
+}
+
+impl From<LangError> for ExecutionError {
+    fn from(err: LangError) -> Self {
+        ExecutionError::Lang(err)
+    }
+}
+
+impl From<InterpretError> for ExecutionError {
+    fn from(err: InterpretError) -> Self {
+        ExecutionError::Interpret(err)
     }
 }

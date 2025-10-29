@@ -4,6 +4,7 @@ use crate::ast::stmt::Stmt;
 use crate::ast::visitor::VisitorMut;
 use crate::ast::{Identifier, Literal};
 use crate::{Locals, Scopes};
+use lykiadb_common::error::StandardError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +14,6 @@ pub struct Resolver<'a> {
     scopes: Scopes,
     locals: Locals,
     program: &'a Program,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ResolveError {
-    GenericError { span: Span, message: String },
 }
 
 impl<'a> Resolver<'a> {
@@ -236,5 +232,26 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
             }
         };
         Ok(())
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum ResolveError {
+    #[error("{message} at {span:?}")]
+    GenericError { span: Span, message: String },
+}
+
+impl From<ResolveError> for StandardError {
+    fn from(value: ResolveError) -> Self {
+        let hint = match value {
+            ResolveError::GenericError { .. } => 
+                "Check variable declarations and scope usage",
+        };
+
+        let sp = (match &value {
+            ResolveError::GenericError { span, .. } => *span,
+        }).into();
+
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }

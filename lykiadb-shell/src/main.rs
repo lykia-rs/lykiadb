@@ -4,8 +4,7 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_connect::session::ClientSession;
-use lykiadb_connect::{Message, Protocol, Request, Response, get_session, report_error};
+use lykiadb_common::comm::{Message, Request, Response, client::{Protocol, get_session, ClientSession}};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor};
 
@@ -73,7 +72,11 @@ impl Shell {
                 println!("{}", serde_json::to_string_pretty(&value).unwrap())
             }
             Message::Response(Response::Error(err)) => {
-                report_error(filename, content, err.clone(), &mut stdout())
+                err.report(
+                    filename,
+                    content,
+                    &mut stdout(),
+                );
             }
             _ => panic!(""),
         }
