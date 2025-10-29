@@ -4,8 +4,7 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_connect::session::ClientSession;
-use lykiadb_connect::{Message, Protocol, Request, Response, get_session};
+use lykiadb_common::comm::{Message, Request, Response, client::{Protocol, get_session, ClientSession}};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor};
 
