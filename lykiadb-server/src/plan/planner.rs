@@ -324,7 +324,7 @@ mod tests {
     fn create_string_expr(value: &str) -> Expr {
         Expr::Literal {
             value: Literal::Str(Arc::new(value.to_string())),
-            raw: format!("\"{}\"", value),
+            raw: format!("\"{value}\""),
             span: Span::default(),
             id: 0,
         }

@@ -45,6 +45,6 @@ impl Scope {
     }
 
     pub fn is_path_valid(&self, head: &Identifier, tail: &[Identifier]) -> bool {
-        self.from.get(&head).is_some()
+        self.from.get(head).is_some()
     }
 }

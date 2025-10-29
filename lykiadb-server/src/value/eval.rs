@@ -1829,9 +1829,7 @@ mod regression_tests {
                 // For extremely large numbers, floating-point arithmetic is inherently imprecise
                 assert!(
                     relative_error < 1e-13 || diff < 1e280,
-                    "Relative error {} or absolute difference {} is larger than expected for floating-point arithmetic at this scale",
-                    relative_error,
-                    diff
+                    "Relative error {relative_error} or absolute difference {diff} is larger than expected for floating-point arithmetic at this scale"
                 );
             }
             _ => panic!("Expected numeric results for addition operations"),
@@ -1856,10 +1854,7 @@ mod regression_tests {
                 // The original failure showed a difference of ~3e-8, which is expected for this magnitude
                 assert!(
                     diff < 1e-6,
-                    "Subtraction precision loss should be small: original={}, result={}, diff={}",
-                    original,
-                    result,
-                    diff
+                    "Subtraction precision loss should be small: original={original}, result={result}, diff={diff}"
                 );
             }
             _ => panic!("Expected numeric results"),
@@ -1883,10 +1878,7 @@ mod regression_tests {
                 // This case showed a difference of ~1e-10, which is within expected floating-point precision
                 assert!(
                     diff < 1e-9,
-                    "Subtraction precision loss should be within floating-point epsilon: original={}, result={}, diff={}",
-                    original,
-                    result,
-                    diff
+                    "Subtraction precision loss should be within floating-point epsilon: original={original}, result={result}, diff={diff}"
                 );
             }
             _ => panic!("Expected numeric results"),
@@ -1918,11 +1910,7 @@ mod regression_tests {
 
                 assert!(
                     relative_error < 1e-12 || diff < 1e-100,
-                    "Addition associativity failed for tiny numbers: left={}, right={}, diff={}, rel_err={}",
-                    left,
-                    right,
-                    diff,
-                    relative_error
+                    "Addition associativity failed for tiny numbers: left={left}, right={right}, diff={diff}, rel_err={relative_error}"
                 );
             }
             _ => panic!("Expected numeric results"),
@@ -1945,10 +1933,7 @@ mod regression_tests {
                 // This case showed a difference of ~3e-11, demonstrating precision limits
                 assert!(
                     diff < 1e-8,
-                    "Subtraction precision with negative numbers: original={}, result={}, diff={}",
-                    original,
-                    result,
-                    diff
+                    "Subtraction precision with negative numbers: original={original}, result={result}, diff={diff}"
                 );
             }
             _ => panic!("Expected numeric results"),

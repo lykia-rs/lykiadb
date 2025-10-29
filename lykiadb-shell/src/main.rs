@@ -43,7 +43,7 @@ impl Shell {
                 }
                 Err(ReadlineError::Eof) | Err(ReadlineError::Interrupted) => break,
                 Err(err) => {
-                    println!("Error: {:?}", err);
+                    println!("Error: {err:?}");
                     break;
                 }
             }

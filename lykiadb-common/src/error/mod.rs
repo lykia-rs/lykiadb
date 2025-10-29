@@ -22,7 +22,7 @@ impl StandardError {
             message: message.to_owned(),
             hint: hint.to_owned(),
             error_code: "000".to_owned(),
-            span: span.clone(),
+            span,
         }
     }
 
