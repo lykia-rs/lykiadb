@@ -317,16 +317,16 @@ impl Display for Node {
 
 #[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum PlannerError {
-    #[error("Nested aggregation is not allowed at {0:?}")]
+    #[error("Nested aggregation is not allowed")]
     NestedAggregationNotAllowed(Span),
     
-    #[error("Mixing aggregation and non-aggregation columns is not allowed at {0:?}: {1}")]
+    #[error("Aggregation is not allowed in {1}")]
     AggregationNotAllowed(Span, String),
-    
-    #[error("HAVING clause without aggregation is not allowed at {0:?}")]
+
+    #[error("HAVING clause without aggregation is not allowed")]
     HavingWithoutAggregationNotAllowed(Span),
-    
-    #[error("Subquery not allowed at {0:?}")]
+
+    #[error("Subquery not allowed in this context")]
     SubqueryNotAllowed(Span),
     
     #[error("Object '{0}' not found in scope")]
@@ -342,15 +342,15 @@ impl From<PlannerError> for StandardError {
             PlannerError::NestedAggregationNotAllowed(_) => 
                 "Remove the nested aggregation",
             PlannerError::AggregationNotAllowed(_, _) => 
-                "Either aggregate all selected columns or none",
+                "Remove aggregation",
             PlannerError::HavingWithoutAggregationNotAllowed(_) => 
                 "Add aggregation or remove HAVING clause",
             PlannerError::SubqueryNotAllowed(_) => 
-                "Subqueries are not allowed in this context",
+                "Remove subquery",
             PlannerError::ObjectNotFoundInScope(_) => 
                 "Check if the object is properly defined in scope",
             PlannerError::DuplicateObjectInScope(_) => 
-                "Object is already defined in the scope",
+                "Make sure object names are unique within the same scope",
         };
 
         let sp = (match &value {
