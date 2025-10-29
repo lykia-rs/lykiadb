@@ -5,6 +5,7 @@ use crate::sym;
 use crate::tokenizer::token::Symbol::*;
 use crate::tokenizer::token::TokenType::{Eof, Identifier};
 use crate::tokenizer::token::*;
+use lykiadb_common::error::StandardError;
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 use std::sync::Arc;
@@ -14,11 +15,44 @@ pub struct Scanner<'a> {
     line: u32,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ScanError {
+    #[error("Unexpected character at {span:?}")]
     UnexpectedCharacter { span: Span },
+    #[error("Unterminated string at {span:?}")]
     UnterminatedString { span: Span },
+    #[error("Malformed number literal at {span:?}")]
     MalformedNumberLiteral { span: Span },
+}
+
+fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
+    Some(lykiadb_common::error::Span {
+        start: span.start,
+        end: span.end,
+        line: span.line,
+        line_end: span.line_end,
+    })
+}
+
+impl From<ScanError> for StandardError {
+    fn from(value: ScanError) -> Self {
+        let hint = match value {
+            ScanError::UnexpectedCharacter { .. } => 
+                "Remove the unexpected character or check the syntax",
+            ScanError::UnterminatedString { .. } => 
+                "Add a closing quote to terminate the string",
+            ScanError::MalformedNumberLiteral { .. } => 
+                "Fix the number format (e.g., ensure proper decimal or exponent notation)",
+        };
+
+        let sp = to_error_span(match &value {
+            ScanError::UnexpectedCharacter { span } => *span,
+            ScanError::UnterminatedString { span } => *span,
+            ScanError::MalformedNumberLiteral { span } => *span,
+        });
+
+        StandardError::new(&value.to_string(), hint, sp)
+    }
 }
 
 impl Scanner<'_> {

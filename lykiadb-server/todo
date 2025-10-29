@@ -1,6 +1,7 @@
 # generic 
+OK  - Global error contract
+OK  - thiserror transition
 - Test builders/factories
-- Global error contract
 
 # planning
 - Select
@@ -26,6 +27,4 @@
 
 # planning.aggregation
 - Aggregation detector
-    OK  - Refactor collector
-    OK  - Ignore non-aggregate functions when visiting the calls
     - Context check (?)

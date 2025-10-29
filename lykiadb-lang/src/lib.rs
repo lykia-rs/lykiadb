@@ -39,6 +39,16 @@ impl From<ResolveError> for LangError {
     }
 }
 
+impl From<LangError> for lykiadb_common::error::StandardError {
+    fn from(value: LangError) -> Self {
+        match value {
+            LangError::Parse(parse_error) => parse_error.into(),
+            LangError::Scan(scan_error) => scan_error.into(),
+            LangError::Resolve(resolve_error) => resolve_error.into(),
+        }
+    }
+}
+
 pub struct SourceProcessor {
     scopes: Scopes,
     locals: Locals,

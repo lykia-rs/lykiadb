@@ -1,4 +1,6 @@
-use crate::engine::{error::ExecutionError, interpreter::HaltReason};
+use crate::engine::{error::{ExecutionError, to_error_span}, interpreter::HaltReason};
+use lykiadb_common::error::StandardError;
+use lykiadb_lang::ast::Span;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
@@ -11,7 +13,7 @@ pub struct EnvironmentFrame {
     pub parent: Option<Arc<EnvironmentFrame>>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum EnvironmentError {
     /*AssignmentToUndefined {
         token: Token,
@@ -19,6 +21,7 @@ pub enum EnvironmentError {
     VariableNotFound {
         token: Token,
     },*/
+    #[error("{message}")]
     Other { message: String },
 }
 
@@ -35,6 +38,20 @@ macro_rules! to_ancestor {
 impl From<EnvironmentError> for ExecutionError {
     fn from(err: EnvironmentError) -> Self {
         ExecutionError::Environment(err)
+    }
+}
+
+impl From<EnvironmentError> for StandardError {
+    fn from(value: EnvironmentError) -> Self {
+        let hint = match value {
+            EnvironmentError::Other { .. } => 
+                "Check variable names and scope declarations",
+        };
+
+        // EnvironmentError doesn't have span information currently
+        let sp = to_error_span(Span::default());
+
+        StandardError::new(&value.to_string(), &hint, sp)
     }
 }
 

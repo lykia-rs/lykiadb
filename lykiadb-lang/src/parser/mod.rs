@@ -5,6 +5,7 @@ use crate::ast::expr::Expr;
 use crate::ast::{Span, Spanned};
 use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
+use lykiadb_common::error::StandardError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use sql::SqlParser;
@@ -17,12 +18,49 @@ mod stmt;
 pub mod program;
 pub mod resolver;
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ParseError {
+    #[error("Unexpected token {token:?}")]
     UnexpectedToken { token: Token },
+    #[error("Missing token. Expected {expected:?} after {token:?}")]
     MissingToken { token: Token, expected: TokenType },
+    #[error("Invalid assignment target {left:?}")]
     InvalidAssignmentTarget { left: Token },
+    #[error("No tokens to parse")]
     NoTokens,
+}
+
+fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
+    Some(lykiadb_common::error::Span {
+        start: span.start,
+        end: span.end,
+        line: span.line,
+        line_end: span.line_end,
+    })
+}
+
+impl From<ParseError> for StandardError {
+    fn from(value: ParseError) -> Self {
+        let hint = match value {
+            ParseError::UnexpectedToken { .. } => 
+                "Check the syntax and ensure tokens are in the correct order",
+            ParseError::MissingToken { .. } => 
+                "Add the required token or check for syntax errors",
+            ParseError::InvalidAssignmentTarget { .. } => 
+                "Ensure the left side of assignment is a valid variable or identifier",
+            ParseError::NoTokens => 
+                "Provide valid input to parse",
+        };
+
+        let sp = to_error_span(match &value {
+            ParseError::UnexpectedToken { token } => token.span,
+            ParseError::MissingToken { token, .. } => token.span,
+            ParseError::InvalidAssignmentTarget { left } => left.span,
+            ParseError::NoTokens => Span::default(), // No span available
+        });
+
+        StandardError::new(&value.to_string(), hint, sp)
+    }
 }
 
 type ParseResult<T> = Result<T, ParseError>;
