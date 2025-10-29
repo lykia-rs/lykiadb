@@ -35,3 +35,13 @@ SELECT 5 + 5 as ten FROM books;
 
 - project [(Num(5.0) Add Num(5.0)) as ten]
   - scan [books as books]
+
+
+#[name=function_call, run=plan]>
+
+SELECT capitalize("str") as json_str_title FROM books;
+
+---
+
+- project [capitalize(Str("str")) as json_str_title]
+  - scan [books as books]

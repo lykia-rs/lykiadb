@@ -137,8 +137,6 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         self.in_call -= 1;
                     }
                 }
-            } else {
-                return Err(callee_val.err().unwrap());
             }
         }
 
