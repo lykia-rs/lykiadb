@@ -1,0 +1,13 @@
+#[name=nested_aggregate_not_allowed, run=plan]>
+SELECT avg(1 + avg(id)) as average FROM books b;
+
+---err
+
+Plan(NestedAggregationNotAllowed(Span { start: 15, end: 22, line: 0, line_end: 0 }))
+
+#[name=aggregate_in_group_by_not_allowed, run=plan]>
+SELECT id FROM books b group by avg(id);
+
+---err
+
+Plan(AggregationNotAllowed(Span { start: 32, end: 39, line: 0, line_end: 0 }, ""))

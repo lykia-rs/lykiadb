@@ -1,17 +1,24 @@
 # planning
-- Wrap-up select
+- Select
+- Insert
+- Update
+- Delete
+
+# planning.general
+- Always add projection
 
 # planning.constraints
-OK  - Disallow aggregates when dictated
 - Aggregation detector
     - Context check
     - Ignore non-aggregate functions
 - Expression processing
-    - Scope check
     - Environment presence check
         - Check all the functions and variables
         - Overlaps with aggregation caller eval
 
 # planning.scope
+- Input collections and projected fields flow
+- Path check (if a path is valid)
+- Identifier check (if an identifier is valid)
 - Scope building
-- Input collections and structure
+- Scope merging
