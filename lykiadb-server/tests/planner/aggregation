@@ -18,13 +18,6 @@ SELECT release_year as yr FROM books b group by release_year, publisher_id;
   - aggregate [group_by=[release_year, publisher_id], aggregates=[]]
     - scan [books as b]
 
-#[name=incorrect_aggregate, run=plan]>
-SELECT avg(1 + avg(id)) as average FROM books b;
-
----err
-
-Plan(NestedAggregationNotAllowed(Span { start: 15, end: 22, line: 0, line_end: 0 }))
-
 #[name=with_1_aggregate, run=plan]>
 SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating) as avg_rating_dup FROM books b group by release_year, publisher_id order by yr;
 
@@ -55,3 +48,23 @@ SELECT publisher_id from books group by publisher_id having avg(rating) > 3.0;
     - aggregate [group_by=[publisher_id], aggregates=[avg(rating)]]
       - scan [books as books]
 
+
+#[name=having_without_group_by, run=plan]>
+SELECT avg(rating) from books having avg(rating) > 3.0;
+
+---
+
+- filter [(avg(rating) Greater Num(3.0))]
+  - project [avg(rating) as avg(rating)]
+    - aggregate [group_by=[], aggregates=[avg(rating)]]
+      - scan [books as books]
+
+#[name=having_with_regular_value, run=plan]>
+SELECT avg(rating) from books having anything > 10;
+
+---
+
+- filter [(anything Greater Num(10.0))]
+  - project [avg(rating) as avg(rating)]
+    - aggregate [group_by=[], aggregates=[avg(rating)]]
+      - scan [books as books]

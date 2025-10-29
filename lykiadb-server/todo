@@ -1,0 +1,28 @@
+# planning
+- Select
+- Insert
+- Update
+- Delete
+
+# planning.expressions
+- Environment presence check
+    - Check all the functions and variables
+    - Overlaps with aggregation caller eval
+
+# planning.aggregation
+- Aggregation detector
+    OK  - Refactor collector
+    - Context check
+    - Ignore non-aggregate functions
+
+# planning.order_by
+- Order by has to be outside of select core
+
+# planning.scope-binding
+- Input collections and projected fields flow
+- Path check (if a path is valid)
+- Identifier check (if an identifier is valid)
+- Scope building
+- Scope merging
+- Always add projection
+- Output fields should be tracked and managed

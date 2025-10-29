@@ -1,9 +1,14 @@
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
+    engine::{
+        error::ExecutionError,
+        interpreter::{HaltReason, Interpreter},
+    },
+    plan::{PlannerError, aggregation::prevent_aggregates_in},
     value::RV,
 };
 
 use lykiadb_lang::ast::{
+    Spanned,
     expr::Expr,
     sql::{SqlProjection, SqlSelect, SqlSelectCore},
     visitor::{ExprVisitor, VisitorMut},
@@ -13,6 +18,28 @@ use super::{
     IntermediateExpr, Node, Plan, aggregation::collect_aggregates, expr::SqlExprReducer,
     from::build_from, scope::Scope,
 };
+
+pub enum InClause {
+    Where,
+    Projection,
+    Having,
+    GroupBy,
+    OrderBy,
+    JoinOn,
+}
+
+impl ToString for InClause {
+    fn to_string(&self) -> String {
+        match self {
+            InClause::Where => "WHERE".to_string(),
+            InClause::Projection => "SELECT".to_string(),
+            InClause::Having => "HAVING".to_string(),
+            InClause::GroupBy => "GROUP BY".to_string(),
+            InClause::OrderBy => "ORDER BY".to_string(),
+            InClause::JoinOn => "JOIN ON".to_string(),
+        }
+    }
+}
 
 pub struct Planner<'a> {
     interpreter: &'a mut Interpreter,
@@ -66,13 +93,16 @@ impl<'a> Planner<'a> {
             node = build_from(self, from, &mut core_scope)?;
         }
 
-        println!("CurrentScope\n{core_scope:?}");
-
         // Filter: The source is then filtered, and the result is passed to the next
         // node.
         if let Some(predicate) = &core.r#where {
-            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(predicate.as_ref(), &mut core_scope, true, false)?;
+            let (expr, subqueries): (IntermediateExpr, Vec<Node>) = self.build_expr(
+                predicate.as_ref(),
+                InClause::Where,
+                &mut core_scope,
+                true,
+                false,
+            )?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -91,7 +121,8 @@ impl<'a> Planner<'a> {
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
-                let (expr, _) = self.build_expr(key, &mut core_scope, false, true)?;
+                let (expr, _) =
+                    self.build_expr(key, InClause::GroupBy, &mut core_scope, false, false)?;
                 keys.push(expr);
             }
             keys
@@ -105,6 +136,11 @@ impl<'a> Planner<'a> {
                 group_by,
                 aggregates,
             };
+        } else if let Some(having) = &core.having {
+            // Fail fast if there is a HAVING clause without aggregation.
+            return Err(HaltReason::Error(ExecutionError::Plan(
+                PlannerError::HavingWithoutAggregationNotAllowed(having.get_span()),
+            )));
         }
 
         // Projection: Of course, projection is an essential part of the data flow,
@@ -113,7 +149,7 @@ impl<'a> Planner<'a> {
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
-                    self.build_expr(expr, &mut core_scope, false, true)?;
+                    self.build_expr(expr, InClause::Projection, &mut core_scope, false, true)?;
                 }
             }
             node = Node::Projection {
@@ -126,9 +162,9 @@ impl<'a> Planner<'a> {
         // result using the HAVING clause. In earlier stages, we already collected
         // the aggregates from the projection and the having clause. As we already
         // have the aggregates, we can use them to filter the result.
-        if core.having.is_some() {
+        if let Some(having) = &core.having {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(core.having.as_ref().unwrap(), &mut core_scope, true, false)?;
+                self.build_expr(having, InClause::Having, &mut core_scope, true, true)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,
@@ -155,13 +191,19 @@ impl<'a> Planner<'a> {
     pub fn build_expr(
         &mut self,
         expr: &Expr,
+        in_clause: InClause,
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
     ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+        if !allow_aggregates {
+            prevent_aggregates_in(expr, in_clause, self.interpreter)?;
+        }
+
         let mut reducer: SqlExprReducer = SqlExprReducer::new(
             // self,
             allow_subqueries,
+            scope,
         );
 
         let mut visitor = ExprVisitor::<SqlSelect, HaltReason>::new(&mut reducer);
@@ -190,7 +232,8 @@ impl<'a> Planner<'a> {
             let mut order_key = vec![];
 
             for key in order_by {
-                let (expr, _) = self.build_expr(&key.expr, &mut root_scope, false, true)?;
+                let (expr, _) =
+                    self.build_expr(&key.expr, InClause::OrderBy, &mut root_scope, false, true)?;
                 order_key.push((expr, key.ordering.clone()));
             }
 

@@ -1,4 +1,7 @@
-use crate::engine::{error::ExecutionError, interpreter::HaltReason};
+use crate::{
+    engine::{error::ExecutionError, interpreter::HaltReason},
+    plan::scope::Scope,
+};
 
 use lykiadb_lang::ast::{
     Spanned,
@@ -9,21 +12,23 @@ use lykiadb_lang::ast::{
 
 use super::PlannerError;
 
-pub struct SqlExprReducer {
+pub struct SqlExprReducer<'a> {
     subqueries: Vec<SqlSelect>,
     allow_subqueries: bool,
+    scope: &'a Scope,
 }
 
-impl<'a> SqlExprReducer {
-    pub fn new(allow_subqueries: bool) -> Self {
+impl<'a> SqlExprReducer<'a> {
+    pub fn new(allow_subqueries: bool, scope: &'a Scope) -> Self {
         Self {
             subqueries: vec![],
             allow_subqueries,
+            scope,
         }
     }
 }
 
-impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer {
+impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
@@ -31,9 +36,13 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer {
                     // check if the reference resolves
                     println!("/Expr::Get({:?} of {:?})/", name.name, object);
                 }
-                Expr::FieldPath { head, .. } => {
+                Expr::FieldPath { head, tail, .. } => {
                     // check if the head resolves
-                    println!("/Expr::FieldPath(head={:?})/", head.name);
+                    println!(
+                        "/Is Expr::FieldPath(head={:?}) path_valid={:?}/",
+                        head.name,
+                        self.scope.is_path_valid(head, tail)
+                    );
                 }
                 Expr::Call { callee, .. } => {
                     // check if the callee resolves

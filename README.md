@@ -47,6 +47,12 @@ Lykia is a document database management system built for educational purposes. T
 ## Getting Started
 To use Lykia, you can download the latest release from the GitHub releases page.
 
+Developing via client:
+
+```shell
+cargo run-script dev-client
+```
+
 Run the server:
 
 ```shell

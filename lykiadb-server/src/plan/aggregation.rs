@@ -5,6 +5,7 @@ use crate::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
+    plan::planner::InClause,
     value::{RV, callable::CallableKind},
 };
 
@@ -27,11 +28,7 @@ pub fn collect_aggregates(
 ) -> Result<Vec<Aggregation>, HaltReason> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
-    let mut collector = AggregationCollector {
-        in_call: 0,
-        accumulator: vec![],
-        interpreter,
-    };
+    let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -43,6 +40,10 @@ pub fn collect_aggregates(
             }
         }
     }
+
+    collector = AggregationCollector::collecting(interpreter, InClause::Having);
+
+    visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
     if let Some(expr) = &core.having {
         let found = visitor.visit(expr)?;
@@ -58,10 +59,48 @@ pub fn collect_aggregates(
     Ok(no_dup)
 }
 
+pub fn prevent_aggregates_in(
+    expr: &Expr,
+    in_clause: InClause,
+    interpreter: &mut Interpreter,
+) -> Result<Vec<Aggregation>, HaltReason> {
+    let mut collector = AggregationCollector::preventing(interpreter, in_clause);
+
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+
+    let aggregates = visitor.visit(expr)?;
+
+    Ok(aggregates)
+}
+
 struct AggregationCollector<'a> {
     in_call: u32,
     accumulator: Vec<Aggregation>,
     interpreter: &'a mut Interpreter,
+    is_preventing: bool,
+    in_clause: InClause,
+}
+
+impl<'a> AggregationCollector<'a> {
+    fn preventing(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+        AggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+            interpreter,
+            is_preventing: true,
+            in_clause,
+        }
+    }
+
+    fn collecting(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+        AggregationCollector {
+            in_call: 0,
+            accumulator: vec![],
+            interpreter,
+            is_preventing: false,
+            in_clause,
+        }
+    }
 }
 
 impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
@@ -72,6 +111,15 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
             if let Ok(RV::Callable(callable)) = &callee_val
                 && let CallableKind::Aggregator(agg_name) = &callable.kind
             {
+                if self.is_preventing {
+                    return Err(HaltReason::Error(ExecutionError::Plan(
+                        PlannerError::AggregationNotAllowed(
+                            expr.get_span(),
+                            self.in_clause.to_string(),
+                        ),
+                    )));
+                }
+
                 match visit {
                     ExprVisitorNode::In => {
                         if self.in_call > 0 {
@@ -98,7 +146,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
     }
 
     fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason> {
-        Ok(self.accumulator.clone())
+        Ok(self.accumulator.drain(..).collect())
     }
 }
 
@@ -204,11 +252,8 @@ mod tests {
             id: 0,
         };
 
-        let mut collector = AggregationCollector {
-            in_call: 0,
-            accumulator: vec![],
-            interpreter: &mut interpreter,
-        };
+        let mut collector =
+            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -219,5 +264,34 @@ mod tests {
                 PlannerError::NestedAggregationNotAllowed(_)
             )))
         ));
+    }
+
+    #[test]
+    fn test_aggregation_should_be_drained_after_each_visit() {
+        let mut interpreter = create_test_interpreter();
+
+        let avg_call = Expr::Call {
+            callee: Box::new(Expr::Variable {
+                name: Identifier::new("avg", IdentifierKind::Symbol),
+                span: Span::default(),
+                id: 0,
+            }),
+            args: vec![],
+            span: Span::default(),
+            id: 0,
+        };
+
+        let mut collector =
+            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
+
+        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+
+        let result1 = visitor.visit(&avg_call).unwrap();
+        assert_eq!(result1.len(), 1);
+        assert_eq!(result1[0].name, "avg");
+
+        let result2 = visitor.visit(&avg_call).unwrap();
+        assert_eq!(result2.len(), 1);
+        assert_eq!(result2[0].name, "avg");
     }
 }
