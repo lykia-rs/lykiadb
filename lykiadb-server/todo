@@ -10,9 +10,8 @@
     - Overlaps with aggregation caller eval
 
 # planning.aggregation
-OK  - Having should not work if no aggregation is present
 - Aggregation detector
-    - Refactor collector
+    OK  - Refactor collector
     - Context check
     - Ignore non-aggregate functions
 
