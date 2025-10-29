@@ -1,6 +1,6 @@
 #[name=single, run=plan]>
 
-SELECT id FROM books b group by id;
+SELECT id FROM books b GROUP BY id;
 
 ---
 
@@ -10,7 +10,7 @@ SELECT id FROM books b group by id;
 
 #[name=multiple, run=plan]>
 
-SELECT release_year as yr FROM books b group by release_year, publisher_id;
+SELECT release_year AS yr FROM books b GROUP BY release_year, publisher_id;
 
 ---
 
@@ -19,7 +19,7 @@ SELECT release_year as yr FROM books b group by release_year, publisher_id;
     - scan [books as b]
 
 #[name=with_1_aggregate, run=plan]>
-SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating) as avg_rating_dup FROM books b group by release_year, publisher_id order by yr;
+SELECT publisher_id, release_year AS yr, avg(rating) AS avg_rating, avg(rating) AS avg_rating_dup FROM books b GROUP BY release_year, publisher_id ORDER BY yr;
 
 ---
 - order [(yr, Asc)]
@@ -28,7 +28,7 @@ SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating) 
       - scan [books as b]
 
 #[name=with_2_aggregates, run=plan]>
-SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating + 1) as avg_rating_plus FROM books b group by release_year, publisher_id order by yr;
+SELECT publisher_id, release_year AS yr, avg(rating) AS avg_rating, avg(rating + 1) AS avg_rating_plus FROM books b GROUP BY release_year, publisher_id ORDER BY yr;
 
 ---
 - order [(yr, Asc)]
@@ -39,7 +39,7 @@ SELECT publisher_id, release_year as yr, avg(rating) as avg_rating, avg(rating +
 
 #[name=having, run=plan]>
 
-SELECT publisher_id from books group by publisher_id having avg(rating) > 3.0;
+SELECT publisher_id FROM books GROUP BY publisher_id HAVING avg(rating) > 3.0;
 
 ---
 
@@ -50,7 +50,7 @@ SELECT publisher_id from books group by publisher_id having avg(rating) > 3.0;
 
 
 #[name=having_without_group_by, run=plan]>
-SELECT avg(rating) from books having avg(rating) > 3.0;
+SELECT avg(rating) FROM books HAVING avg(rating) > 3.0;
 
 ---
 
@@ -60,7 +60,7 @@ SELECT avg(rating) from books having avg(rating) > 3.0;
       - scan [books as books]
 
 #[name=having_with_regular_value, run=plan]>
-SELECT avg(rating) from books having anything > 10;
+SELECT avg(rating) FROM books HAVING anything > 10;
 
 ---
 
