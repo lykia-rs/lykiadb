@@ -18,6 +18,21 @@ pub struct StandardErrorImpl {
     pub span: Option<Span>,
 }
 
+impl StandardErrorImpl {
+    pub fn new(
+        message: &str,
+        hint: &str,
+        span: Option<Span>,
+    ) -> Self {
+        StandardErrorImpl {
+            message: message.to_owned(),
+            hint: hint.to_owned(),
+            error_code: "000".to_owned(),
+            span: span.clone(),
+        }
+    }
+}
+
 impl StandardError for StandardErrorImpl {
     fn get_message(&self) -> String {
         self.message.clone()
