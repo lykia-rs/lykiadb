@@ -319,7 +319,7 @@ impl Display for Node {
 pub enum PlannerError {
     #[error("Nested aggregation is not allowed")]
     NestedAggregationNotAllowed(Span),
-    
+
     #[error("Aggregation is not allowed in {1}")]
     AggregationNotAllowed(Span, String),
 
@@ -328,10 +328,10 @@ pub enum PlannerError {
 
     #[error("Subquery not allowed in this context")]
     SubqueryNotAllowed(Span),
-    
+
     #[error("Object '{0}' not found in scope")]
     ObjectNotFoundInScope(Identifier),
-    
+
     #[error("Duplicate object '{0}' in scope")]
     DuplicateObjectInScope(Identifier),
 }
@@ -339,29 +339,21 @@ pub enum PlannerError {
 impl From<PlannerError> for StandardError {
     fn from(value: PlannerError) -> Self {
         let (hint, sp) = match &value {
-            PlannerError::NestedAggregationNotAllowed(span) => (
-                "Remove the nested aggregation",
-                *span
-            ),
-            PlannerError::AggregationNotAllowed(span, _) => (
-                "Remove aggregation",
-                *span
-            ),
-            PlannerError::HavingWithoutAggregationNotAllowed(span) => (
-                "Add aggregation or remove HAVING clause",
-                *span
-            ),
-            PlannerError::SubqueryNotAllowed(span) => (
-                "Remove subquery",
-                *span
-            ),
+            PlannerError::NestedAggregationNotAllowed(span) => {
+                ("Remove the nested aggregation", *span)
+            }
+            PlannerError::AggregationNotAllowed(span, _) => ("Remove aggregation", *span),
+            PlannerError::HavingWithoutAggregationNotAllowed(span) => {
+                ("Add aggregation or remove HAVING clause", *span)
+            }
+            PlannerError::SubqueryNotAllowed(span) => ("Remove subquery", *span),
             PlannerError::ObjectNotFoundInScope(ident) => (
                 "Check if the object is properly defined in scope",
-                ident.span
+                ident.span,
             ),
             PlannerError::DuplicateObjectInScope(ident) => (
                 "Make sure object names are unique within the same scope",
-                ident.span
+                ident.span,
             ),
         };
 

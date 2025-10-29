@@ -676,19 +676,18 @@ impl From<InterpretError> for StandardError {
         let (hint, sp) = match &value {
             InterpretError::NotCallable { span } => (
                 "Ensure the expression evaluates to a callable function",
-                *span
+                *span,
             ),
             InterpretError::UnexpectedStatement { span } => (
                 "Check if the statement is used in the correct context",
-                *span
+                *span,
             ),
-            InterpretError::PropertyNotFound { span, .. } => (
-                "Verify the property name exists on the object",
-                *span
-            ),
+            InterpretError::PropertyNotFound { span, .. } => {
+                ("Verify the property name exists on the object", *span)
+            }
             InterpretError::Other { .. } => (
                 "Review the error details for specific guidance",
-                Span::default()
+                Span::default(),
             ),
         };
 

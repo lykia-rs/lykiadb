@@ -411,17 +411,15 @@ pub enum ScanError {
 impl From<ScanError> for StandardError {
     fn from(value: ScanError) -> Self {
         let (hint, sp) = match &value {
-            ScanError::UnexpectedCharacter { span } => (
-                "Remove the unexpected character or check the syntax",
-                *span
-            ),
-            ScanError::UnterminatedString { span } => (
-                "Add a closing quote to terminate the string",
-                *span
-            ),
+            ScanError::UnexpectedCharacter { span } => {
+                ("Remove the unexpected character or check the syntax", *span)
+            }
+            ScanError::UnterminatedString { span } => {
+                ("Add a closing quote to terminate the string", *span)
+            }
             ScanError::MalformedNumberLiteral { span } => (
                 "Fix the number format (e.g., ensure proper decimal or exponent notation)",
-                *span
+                *span,
             ),
         };
 

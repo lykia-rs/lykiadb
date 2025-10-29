@@ -4,9 +4,12 @@ use std::{
 };
 
 use clap::Parser;
-use lykiadb_common::comm::{Message, Request, Response, client::{Protocol, get_session, ClientSession}};
+use lykiadb_common::comm::{
+    Message, Request, Response,
+    client::{ClientSession, Protocol, get_session},
+};
+use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
-use rustyline::{DefaultEditor};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -35,16 +38,13 @@ impl Shell {
                         .await
                         .unwrap();
                     self.handle_response("prompt", &line, response);
-                    
+
                     rl.add_history_entry(line.as_str()).unwrap();
-                },
-                Err(ReadlineError::Eof) |
-                Err(ReadlineError::Interrupted) => {
-                    break
-                },
+                }
+                Err(ReadlineError::Eof) | Err(ReadlineError::Interrupted) => break,
                 Err(err) => {
                     println!("Error: {:?}", err);
-                    break
+                    break;
                 }
             }
         }
@@ -72,11 +72,7 @@ impl Shell {
                 println!("{}", serde_json::to_string_pretty(&value).unwrap())
             }
             Message::Response(Response::Error(err)) => {
-                err.report(
-                    filename,
-                    content,
-                    &mut stdout(),
-                );
+                err.report(filename, content, &mut stdout());
             }
             _ => panic!(""),
         }

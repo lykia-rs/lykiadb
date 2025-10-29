@@ -1,12 +1,12 @@
 mod builder;
-use std::{fs::File, os::unix::fs::FileExt, path::PathBuf, sync::Arc};
 use std::fmt::Debug;
+use std::{fs::File, os::unix::fs::FileExt, path::PathBuf, sync::Arc};
 
 use bytes::Buf;
 use moka::sync::Cache;
 
 use crate::{
-    block::{builder::SIZEOF_DATA_OFFSET_LEN, Block},
+    block::{Block, builder::SIZEOF_DATA_OFFSET_LEN},
     meta::{MetaBlockSummary, MetaKeyRange},
 };
 
@@ -15,14 +15,15 @@ struct SSTable {
     data_ends_at: usize,
     key_range: MetaKeyRange,
     block_summaries: Vec<MetaBlockSummary>,
-    block_cache: Option<Cache<usize, Arc<Block>>>
+    block_cache: Option<Cache<usize, Arc<Block>>>,
 }
 
 impl PartialEq for SSTable {
     fn eq(&self, other: &Self) -> bool {
-        self.file_handle == other.file_handle && 
-        self.data_ends_at == other.data_ends_at && 
-        self.key_range == other.key_range && self.block_summaries == other.block_summaries
+        self.file_handle == other.file_handle
+            && self.data_ends_at == other.data_ends_at
+            && self.key_range == other.key_range
+            && self.block_summaries == other.block_summaries
     }
 }
 
@@ -38,7 +39,6 @@ impl Debug for SSTable {
 }
 
 impl SSTable {
-
     /// Binary search the key
     pub fn find_block_idx(&self, key: &[u8]) -> usize {
         self.block_summaries
@@ -48,14 +48,16 @@ impl SSTable {
 
     pub fn read_block(&self, idx: usize) -> Result<Arc<Block>, std::io::Error> {
         let start_offset = self.block_summaries[idx].offset as usize;
-        let len= self.block_summaries
+        let len = self
+            .block_summaries
             .get(idx + 1)
-            .map_or_else(|| self.data_ends_at, |x| x.offset as usize) - start_offset;
+            .map_or_else(|| self.data_ends_at, |x| x.offset as usize)
+            - start_offset;
 
         let buffer = self.file_handle.read(start_offset, len)?;
         Ok(Arc::from(Block::from_buffer(&buffer)))
     }
-    
+
     pub fn open(file_path: &PathBuf) -> Result<SSTable, std::io::Error> {
         let handle = FileHandle::open(file_path)?;
 
@@ -74,8 +76,7 @@ impl SSTable {
 
         let number_of_blocks = meta_buffer.get_u32() as usize;
 
-        let block_summaries =
-            MetaBlockSummary::from_buffer(meta_buffer, number_of_blocks);
+        let block_summaries = MetaBlockSummary::from_buffer(meta_buffer, number_of_blocks);
 
         Ok(SSTable {
             file_handle: handle,
@@ -136,7 +137,10 @@ impl PartialEq for FileHandle {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::{block::iterator::BlockIterator, sstable::{builder::SSTableBuilder, SSTable}};
+    use crate::{
+        block::iterator::BlockIterator,
+        sstable::{SSTable, builder::SSTableBuilder},
+    };
 
     #[test]
     fn test_open() {
@@ -195,14 +199,14 @@ mod tests {
 
         assert_eq!(table.find_block_idx(b"key1"), 0);
         assert_eq!(table.find_block_idx(b"key10"), 0);
-        
+
         assert_eq!(table.find_block_idx(b"key11"), 1);
         assert_eq!(table.find_block_idx(b"key12"), 1);
-        
+
         assert_eq!(table.find_block_idx(b"key2"), 2);
         assert_eq!(table.find_block_idx(b"key3"), 2);
         assert_eq!(table.find_block_idx(b"key4"), 2);
-        
+
         assert_eq!(table.find_block_idx(b"key5"), 3);
         assert_eq!(table.find_block_idx(b"key6"), 3);
         assert_eq!(table.find_block_idx(b"key7"), 3);
@@ -210,7 +214,6 @@ mod tests {
         assert_eq!(table.find_block_idx(b"key8"), 4);
         assert_eq!(table.find_block_idx(b"key9"), 4);
     }
-
 
     #[test]
     fn test_sstable_read_block() {
@@ -245,7 +248,6 @@ mod tests {
         assert_eq!(first_block_iter.value(), b"value1");
         first_block_iter.seek_key(b"key10");
         assert_eq!(first_block_iter.value(), b"value10");
-
 
         let block = table.read_block(2).unwrap();
         assert_eq!(block.fetch_key_of(0), b"key2");

@@ -17,11 +17,7 @@ pub struct StandardError {
 }
 
 impl StandardError {
-    pub fn new(
-        message: &str,
-        hint: &str,
-        span: Option<Span>,
-    ) -> Self {
+    pub fn new(message: &str, hint: &str, span: Option<Span>) -> Self {
         StandardError {
             message: message.to_owned(),
             hint: hint.to_owned(),
@@ -30,12 +26,7 @@ impl StandardError {
         }
     }
 
-    pub fn report(
-        &self,
-        source_name: &str,
-        source: &str,
-        mut writer: impl std::io::Write,
-    ) {
+    pub fn report(&self, source_name: &str, source: &str, mut writer: impl std::io::Write) {
         use ariadne::{Color, Label, Report, ReportKind, Source};
 
         // Generate & choose some colours for each of our elements
@@ -56,11 +47,7 @@ impl StandardError {
         };
 
         print(
-            &format!(
-                "[{}] {}",
-                &self.error_code.as_str(),
-                &self.message.as_str()
-            ),
+            &format!("[{}] {}", &self.error_code.as_str(), &self.message.as_str()),
             self.hint.as_str(),
             self.span.unwrap(),
         );

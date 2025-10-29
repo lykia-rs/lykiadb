@@ -1,5 +1,5 @@
-pub mod tcp;
 pub mod client;
+pub mod tcp;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

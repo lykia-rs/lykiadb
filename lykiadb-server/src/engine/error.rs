@@ -22,21 +22,17 @@ impl Display for ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn generalize(
-        self,
-    ) -> StandardError {
+    pub fn generalize(self) -> StandardError {
         match self {
             ExecutionError::Lang(lang_error) => lang_error.into(),
             ExecutionError::Interpret(interpret_error) => interpret_error.into(),
             ExecutionError::Plan(planner_error) => planner_error.into(),
             ExecutionError::Environment(env_error) => env_error.into(),
-            _ => {
-                StandardError::new(
-                    "Unknown error",
-                    "An unknown error has occurred.",
-                    Some(lykiadb_common::error::Span::default()),
-                )
-            }
+            _ => StandardError::new(
+                "Unknown error",
+                "An unknown error has occurred.",
+                Some(lykiadb_common::error::Span::default()),
+            ),
         }
     }
 }

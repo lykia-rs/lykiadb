@@ -87,7 +87,10 @@ impl<'a> Planner<'a> {
 
         let selects = visitor.visit(expr)?;
 
-        let subqueries = selects.into_iter().map(|select| self.build_select(&select)).collect::<Result<Vec<Node>, HaltReason>>()?;
+        let subqueries = selects
+            .into_iter()
+            .map(|select| self.build_select(&select))
+            .collect::<Result<Vec<Node>, HaltReason>>()?;
 
         Ok((
             IntermediateExpr::Expr {
@@ -222,7 +225,6 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
-
     pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
         let mut node: Node = self.build_select_core(&query.core)?;
         let mut root_scope = Scope::new();
@@ -269,20 +271,20 @@ impl<'a> Planner<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use crate::{
+        engine::interpreter::Interpreter,
+        plan::{
+            IntermediateExpr,
+            planner::{InClause, Planner},
+            scope::Scope,
+        },
+    };
     use lykiadb_lang::ast::{
         Identifier, IdentifierKind, Literal, Span,
         expr::{Expr, Operation},
-        sql::{SqlSelect, SqlSelectCore, SqlProjection, SqlDistinct},
+        sql::{SqlDistinct, SqlProjection, SqlSelect, SqlSelectCore},
     };
-    use crate::{
-        engine::interpreter::{Interpreter},
-        plan::{
-            planner::{Planner, InClause},
-            scope::Scope,
-            IntermediateExpr,
-        },
-    };
+    use std::sync::Arc;
 
     /// Helper function to create a test planner instance
     fn create_test_planner() -> Planner<'static> {
@@ -346,11 +348,14 @@ mod tests {
                 kind: IdentifierKind::Variable,
                 span: Span::default(),
             },
-            tail: tail.into_iter().map(|t| Identifier {
-                name: t.to_string(),
-                kind: IdentifierKind::Variable,
-                span: Span::default(),
-            }).collect(),
+            tail: tail
+                .into_iter()
+                .map(|t| Identifier {
+                    name: t.to_string(),
+                    kind: IdentifierKind::Variable,
+                    span: Span::default(),
+                })
+                .collect(),
             span: Span::default(),
             id: 0,
         }
@@ -382,14 +387,14 @@ mod tests {
         ($result:expr, $expected_expr:expr, $expected_subquery_count:expr) => {
             assert!($result.is_ok());
             let (intermediate_expr, subqueries) = $result.unwrap();
-            
+
             match intermediate_expr {
                 IntermediateExpr::Expr { expr: boxed_expr } => {
                     assert_eq!(*boxed_expr, *$expected_expr);
                 }
                 _ => panic!("Expected IntermediateExpr::Expr"),
             }
-            
+
             assert_eq!(subqueries.len(), $expected_subquery_count);
         };
     }
@@ -400,13 +405,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_number_expr(42.0);
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            false,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, false, false);
 
         // Use helper function to assert standard expectations
         assert_build_expr_result!(result, &expr, 0);
@@ -418,13 +417,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_string_expr("hello");
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -435,13 +428,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_identifier_expr("user_id");
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            false,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, false, false);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -452,13 +439,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_field_path_expr("user", vec!["name"]);
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -469,13 +450,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_call_expr("upper", vec![create_string_expr("hello")]);
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -486,13 +461,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_subquery_expr();
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            true,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, true, false);
 
         assert_build_expr_result!(result, &expr, 1);
     }
@@ -503,13 +472,7 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_subquery_expr();
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            false,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, false, false);
 
         // Should return an error because subqueries are not allowed
         assert!(result.is_err());
@@ -532,13 +495,7 @@ mod tests {
         ];
 
         for in_clause in in_clauses {
-            let result = planner.build_expr(
-                &expr,
-                in_clause,
-                &mut scope,
-                false,
-                true,
-            );
+            let result = planner.build_expr(&expr, in_clause, &mut scope, false, true);
 
             assert_build_expr_result!(result, &expr, 0);
         }
@@ -548,11 +505,14 @@ mod tests {
     fn test_build_expr_complex_expression() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         // Create a complex expression: upper(user.name) + " - " + user.id
         let expr = Expr::Binary {
             left: Box::new(Expr::Binary {
-                left: Box::new(create_call_expr("upper", vec![create_field_path_expr("user", vec!["name"])])),
+                left: Box::new(create_call_expr(
+                    "upper",
+                    vec![create_field_path_expr("user", vec!["name"])],
+                )),
                 operation: Operation::Add,
                 right: Box::new(create_string_expr(" - ")),
                 span: Span::default(),
@@ -564,13 +524,7 @@ mod tests {
             id: 0,
         };
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -579,11 +533,11 @@ mod tests {
     fn test_build_expr_nested_subqueries() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         // Create an expression with multiple subqueries
         let subquery1 = create_subquery_expr();
         let subquery2 = create_subquery_expr();
-        
+
         let expr = Expr::Binary {
             left: Box::new(subquery1),
             operation: Operation::And,
@@ -592,13 +546,7 @@ mod tests {
             id: 0,
         };
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            true,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, true, false);
 
         assert_build_expr_result!(result, &expr, 2);
     }
@@ -607,17 +555,11 @@ mod tests {
     fn test_build_expr_scope_validation() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         // Test that the scope is passed correctly to SqlExprReducer
         let expr = create_field_path_expr("nonexistent_table", vec!["column"]);
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            false,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, false, false);
 
         // Should still succeed as the method returns the expression regardless of scope validation
         assert_build_expr_result!(result, &expr, 0);
@@ -627,17 +569,11 @@ mod tests {
     fn test_build_expr_aggregate_function_allowed() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         // Create an aggregate function call like AVG(*)
         let expr = create_call_expr("avg", vec![create_identifier_expr("*")]);
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -646,7 +582,7 @@ mod tests {
     fn test_build_expr_boolean_literal() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         let expr = Expr::Literal {
             raw: "true".to_string(),
             value: Literal::Bool(true),
@@ -654,13 +590,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Where,
-            &mut scope,
-            false,
-            false,
-        );
+        let result = planner.build_expr(&expr, InClause::Where, &mut scope, false, false);
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -669,23 +599,17 @@ mod tests {
     fn test_build_expr_nested_function_calls() {
         let mut planner = create_test_planner();
         let mut scope = create_test_scope();
-        
+
         // Create nested function calls: upper(trim(user.name))
         let expr = create_call_expr(
-            "upper", 
+            "upper",
             vec![create_call_expr(
-                "trim", 
-                vec![create_field_path_expr("user", vec!["name"])]
-            )]
+                "trim",
+                vec![create_field_path_expr("user", vec!["name"])],
+            )],
         );
 
-        let result = planner.build_expr(
-            &expr,
-            InClause::Projection,
-            &mut scope,
-            false,
-            true,
-        );
+        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
     }

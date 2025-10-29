@@ -136,7 +136,7 @@ impl From<EnvironmentError> for StandardError {
         let (hint, sp) = match &value {
             EnvironmentError::Other { .. } => (
                 "Check variable names and scope declarations",
-                lykiadb_common::error::Span::default()
+                lykiadb_common::error::Span::default(),
             ),
         };
 

@@ -250,20 +250,17 @@ impl From<ParseError> for StandardError {
         let (hint, sp) = match &value {
             ParseError::UnexpectedToken { token } => (
                 "Check the syntax and ensure tokens are in the correct order",
-                token.span
+                token.span,
             ),
             ParseError::MissingToken { token, .. } => (
                 "Add the required token or check for syntax errors",
-                token.span
+                token.span,
             ),
             ParseError::InvalidAssignmentTarget { left } => (
                 "Ensure the left side of assignment is a valid variable or identifier",
-                left.span
+                left.span,
             ),
-            ParseError::NoTokens => (
-                "Provide valid input to parse",
-                Span::default()
-            ),
+            ParseError::NoTokens => ("Provide valid input to parse", Span::default()),
         };
 
         StandardError::new(&value.to_string(), hint, Some(sp.into()))

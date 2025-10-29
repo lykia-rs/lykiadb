@@ -1,7 +1,7 @@
 use tokio::net::TcpStream;
 
-use crate::comm::{CommunicationError, Message, Request};
 use crate::comm::tcp::TcpConnection;
+use crate::comm::{CommunicationError, Message, Request};
 
 pub(crate) struct TcpClientSession {
     conn: TcpConnection,

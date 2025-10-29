@@ -1214,15 +1214,17 @@ mod test {
 #[cfg(test)]
 mod property_tests {
     use super::*;
-    use proptest::prelude::*;
     use crate::value::eval::eval_binary;
+    use proptest::prelude::*;
 
     // Strategy for generating RV values
     fn rv_strategy() -> impl Strategy<Value = RV> {
         prop_oneof![
             Just(RV::Undefined),
             any::<bool>().prop_map(RV::Bool),
-            any::<f64>().prop_filter("finite numbers", |x| x.is_finite()).prop_map(RV::Num),
+            any::<f64>()
+                .prop_filter("finite numbers", |x| x.is_finite())
+                .prop_map(RV::Num),
             "[a-zA-Z0-9]*".prop_map(|s| RV::Str(Arc::new(s))),
             // For simplicity, we'll skip arrays and objects in basic tests
         ]
@@ -1232,7 +1234,9 @@ mod property_tests {
     fn numeric_rv_strategy() -> impl Strategy<Value = RV> {
         prop_oneof![
             any::<bool>().prop_map(RV::Bool),
-            any::<f64>().prop_filter("finite numbers", |x| x.is_finite()).prop_map(RV::Num),
+            any::<f64>()
+                .prop_filter("finite numbers", |x| x.is_finite())
+                .prop_map(RV::Num),
         ]
     }
 
@@ -1321,7 +1325,7 @@ mod property_tests {
         ) {
             let a_less_b = eval_binary(a.clone(), b.clone(), Operation::Less);
             let b_less_a = eval_binary(b, a, Operation::Less);
-            
+
             // If a < b is true, then b < a should be false (unless a == b)
             if a_less_b == RV::Bool(true) {
                 prop_assert_eq!(b_less_a, RV::Bool(false));
@@ -1336,7 +1340,7 @@ mod property_tests {
         ) {
             let result1 = eval_binary(RV::Undefined, a.clone(), op);
             let result2 = eval_binary(a, RV::Undefined, op);
-            
+
             match op {
                 Operation::IsEqual | Operation::Is => {
                     prop_assert_eq!(result1, RV::Bool(false));
@@ -1357,14 +1361,14 @@ mod property_tests {
                 _ => {} // Skip other operations
             }
         }
-        
+
         // Special case: Undefined compared to itself
         #[test]
         fn undefined_vs_undefined_operations(
             op in binary_operation_strategy()
         ) {
             let result = eval_binary(RV::Undefined, RV::Undefined, op);
-            
+
             match op {
                 Operation::IsEqual | Operation::Is => {
                     prop_assert_eq!(result, RV::Bool(true));
@@ -1395,7 +1399,7 @@ mod property_tests {
             let rv1 = RV::Str(Arc::new(s1.clone()));
             let rv2 = RV::Str(Arc::new(s2.clone()));
             let result = eval_binary(rv1, rv2, Operation::Add);
-            
+
             if let RV::Str(result_str) = result {
                 prop_assert!(result_str.len() >= s1.len());
                 prop_assert!(result_str.len() >= s2.len());
@@ -1408,7 +1412,7 @@ mod property_tests {
         fn division_by_zero_handling(a in numeric_rv_strategy()) {
             let zero = RV::Num(0.0);
             let result = eval_binary(a.clone(), zero, Operation::Divide);
-            
+
             if let Some(num) = a.as_number() {
                 if num == 0.0 {
                     // 0/0 should be undefined
@@ -1427,9 +1431,9 @@ mod property_tests {
         fn boolean_number_conversion_consistency(b in any::<bool>()) {
             let rv_bool = RV::Bool(b);
             let expected_num = if b { 1.0 } else { 0.0 };
-            
+
             prop_assert_eq!(rv_bool.as_number(), Some(expected_num));
-            
+
             // Test in arithmetic operations
             let result = eval_binary(rv_bool, RV::Num(0.0), Operation::Add);
             prop_assert_eq!(result, RV::Num(expected_num));
@@ -1466,11 +1470,11 @@ mod property_tests {
             let rv_num = RV::Num(num);
             let rv_bool = RV::Bool(bool_val);
             let expected_bool_as_num = if bool_val { 1.0 } else { 0.0 };
-            
+
             // num + bool should equal num + bool_as_number
             let result1 = eval_binary(rv_num.clone(), rv_bool.clone(), Operation::Add);
             let result2 = eval_binary(rv_num, RV::Num(expected_bool_as_num), Operation::Add);
-            
+
             prop_assert_eq!(result1, result2);
         }
     }
@@ -1485,10 +1489,10 @@ mod property_tests {
         ) {
             let rv1 = RV::Str(Arc::new(s1.clone()));
             let rv2 = RV::Str(Arc::new(s2.clone()));
-            
+
             let less_result = eval_binary(rv1.clone(), rv2.clone(), Operation::Less);
             let equal_result = eval_binary(rv1, rv2, Operation::IsEqual);
-            
+
             match s1.cmp(&s2) {
                 std::cmp::Ordering::Less => prop_assert_eq!(less_result, RV::Bool(true)),
                 std::cmp::Ordering::Equal => prop_assert_eq!(equal_result, RV::Bool(true)),
@@ -1500,10 +1504,10 @@ mod property_tests {
         #[test]
         fn truthiness_consistency(rv in rv_strategy()) {
             let expected_bool = rv.as_bool();
-            
+
             // Test against known truthy/falsy values
             let false_rv = RV::Bool(false);
-            
+
             if expected_bool {
                 // If rv is truthy, it should not equal false
                 let ne_false = eval_binary(rv, false_rv, Operation::IsNotEqual);
@@ -1533,7 +1537,7 @@ mod property_tests {
             let rv1 = RV::Str(Arc::new(s1.clone()));
             let rv2 = RV::Str(Arc::new(s2.clone()));
             let result = eval_binary(rv1, rv2, Operation::Add);
-            
+
             if let RV::Str(result_str) = result {
                 prop_assert_eq!(result_str.len(), s1.len() + s2.len());
                 prop_assert!(result_str.starts_with(&s1));
@@ -1561,7 +1565,7 @@ mod property_tests {
             ]
         ) {
             let result = eval_binary(a.clone(), b.clone(), op);
-            
+
             // Very small numbers should still produce finite results
             if let RV::Num(n) = result {
                 prop_assert!(n.is_finite() || n == 0.0, "Tiny number operations should remain finite: {}", n);
@@ -1584,11 +1588,11 @@ mod property_tests {
         ) {
             let str_rv = RV::Str(Arc::new(s.clone()));
             let num_rv = RV::Num(42.0);
-            
+
             // Test comparison operations
             let eq_result = eval_binary(str_rv.clone(), num_rv.clone(), Operation::IsEqual);
             let lt_result = eval_binary(str_rv.clone(), num_rv.clone(), Operation::Less);
-            
+
             // These should always produce boolean results
             prop_assert!(matches!(eq_result, RV::Bool(_)), "String-number equality should return boolean");
             prop_assert!(matches!(lt_result, RV::Bool(_)), "String-number comparison should return boolean");
@@ -1608,12 +1612,12 @@ mod property_tests {
             let rv_num = RV::Num(num);
             let rv_bool = RV::Bool(bool_val);
             let bool_as_num = RV::Num(if bool_val { 1.0 } else { 0.0 });
-            
+
             // num op bool should equal num op bool_as_num
             let mixed_result = eval_binary(rv_num.clone(), rv_bool, op);
             let pure_num_result = eval_binary(rv_num, bool_as_num, op);
-            
-            prop_assert_eq!(mixed_result, pure_num_result, 
+
+            prop_assert_eq!(mixed_result, pure_num_result,
                 "Mixed type arithmetic should be consistent with explicit conversion");
         }
 
@@ -1624,10 +1628,10 @@ mod property_tests {
             divisor in (-1e-100..1e-100_f64).prop_filter("non-zero", |x| *x != 0.0)
         ) {
             let result = eval_binary(RV::Num(dividend), RV::Num(divisor), Operation::Divide);
-            
+
             if let RV::Num(n) = result {
                 // Division by tiny numbers should produce large finite numbers or infinity
-                prop_assert!(n.is_finite() || n.is_infinite(), 
+                prop_assert!(n.is_finite() || n.is_infinite(),
                     "Division by tiny numbers should produce finite or infinite results: {}", n);
             }
         }
@@ -1640,10 +1644,10 @@ mod property_tests {
         ) {
             let str_rv = RV::Str(Arc::new(s.clone()));
             let num_rv = RV::Num(num);
-            
+
             let result1 = eval_binary(str_rv.clone(), num_rv.clone(), Operation::Add);
             let result2 = eval_binary(num_rv, str_rv, Operation::Add);
-            
+
             if let (RV::Str(s1), RV::Str(s2)) = (result1, result2) {
                 prop_assert!(s1.contains(&s), "String concatenation should preserve original string");
                 prop_assert!(s2.contains(&s), "String concatenation should preserve original string");
@@ -1664,7 +1668,7 @@ mod property_tests {
             let a_lt_b = eval_binary(a.clone(), b.clone(), Operation::Less);
             let b_lt_c = eval_binary(b, c.clone(), Operation::Less);
             let a_lt_c = eval_binary(a, c, Operation::Less);
-            
+
             // If a < b and b < c, then a < c (transitivity)
             if a_lt_b == RV::Bool(true) && b_lt_c == RV::Bool(true) {
                 prop_assert_eq!(a_lt_c, RV::Bool(true), "Less-than should be transitive");
@@ -1680,15 +1684,15 @@ mod property_tests {
             // (a + b) - b should equal a
             let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
             let difference = eval_binary(sum, b, Operation::Subtract);
-            
+
             if let (RV::Num(original), RV::Num(result)) = (a, difference) {
                 let diff = (original - result).abs();
                 // Use a more generous tolerance that accounts for the inherent limitations of floating-point arithmetic
                 // The tolerance needs to scale with the magnitude of the numbers involved
                 let scale = original.abs().max(1.0);
                 let tolerance = f64::EPSILON * scale * 100.0; // More generous multiplier
-                prop_assert!(diff <= tolerance, 
-                    "Subtraction should be inverse of addition within floating-point precision: {} vs {}, diff: {}, tolerance: {}", 
+                prop_assert!(diff <= tolerance,
+                    "Subtraction should be inverse of addition within floating-point precision: {} vs {}, diff: {}, tolerance: {}",
                     original, result, diff, tolerance);
             }
         }
@@ -1701,7 +1705,7 @@ mod property_tests {
             let zero = RV::Num(0.0);
             let result1 = eval_binary(a.clone(), zero.clone(), Operation::Multiply);
             let result2 = eval_binary(zero, a, Operation::Multiply);
-            
+
             prop_assert_eq!(result1, RV::Num(0.0), "Multiplication by zero should yield zero");
             prop_assert_eq!(result2, RV::Num(0.0), "Multiplication by zero should yield zero");
         }
@@ -1713,10 +1717,10 @@ mod property_tests {
         ) {
             let empty_str = RV::Str(Arc::new("".to_string()));
             let non_empty_str = RV::Str(Arc::new(s.clone()));
-            
+
             let empty_lt_nonempty = eval_binary(empty_str.clone(), non_empty_str.clone(), Operation::Less);
             let nonempty_gt_empty = eval_binary(non_empty_str, empty_str, Operation::Greater);
-            
+
             if !s.is_empty() {
                 prop_assert_eq!(empty_lt_nonempty, RV::Bool(true), "Empty string should be less than non-empty");
                 prop_assert_eq!(nonempty_gt_empty, RV::Bool(true), "Non-empty string should be greater than empty");
@@ -1737,25 +1741,37 @@ mod regression_tests {
         // NaN comparisons should always be false
         let nan = RV::Num(f64::NAN);
         let num = RV::Num(1.0);
-        
-        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::Less), RV::Bool(false));
-        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::Greater), RV::Bool(false));
-        assert_eq!(eval_binary(nan.clone(), num.clone(), Operation::IsEqual), RV::Bool(false));
-        assert_eq!(eval_binary(nan.clone(), nan.clone(), Operation::IsEqual), RV::Bool(false));
+
+        assert_eq!(
+            eval_binary(nan.clone(), num.clone(), Operation::Less),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(nan.clone(), num.clone(), Operation::Greater),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(nan.clone(), num.clone(), Operation::IsEqual),
+            RV::Bool(false)
+        );
+        assert_eq!(
+            eval_binary(nan.clone(), nan.clone(), Operation::IsEqual),
+            RV::Bool(false)
+        );
     }
 
     #[test]
     fn regression_infinity_arithmetic() {
         let inf = RV::Num(f64::INFINITY);
         let num = RV::Num(42.0);
-        
+
         // inf + num = inf
         assert_eq!(eval_binary(inf.clone(), num.clone(), Operation::Add), inf);
         // inf - inf should be NaN, but we might handle it differently
         let result = eval_binary(inf.clone(), inf.clone(), Operation::Subtract);
         match result {
             RV::Num(n) => assert!(n.is_nan()),
-            RV::Undefined => {}, // Also acceptable
+            RV::Undefined => {} // Also acceptable
             _ => panic!("Unexpected result for inf - inf"),
         }
     }
@@ -1765,12 +1781,12 @@ mod regression_tests {
         // String that can be parsed as number
         let str_num = RV::Str(Arc::new("42".to_string()));
         let num = RV::Num(42.0);
-        
+
         // In comparisons, string numbers should be coerced
         let result = eval_binary(str_num, num, Operation::IsEqual);
         // This depends on implementation - document the expected behavior
         match result {
-            RV::Bool(_) => {}, // Either true or false is acceptable, but should be documented
+            RV::Bool(_) => {} // Either true or false is acceptable, but should be documented
             _ => panic!("String-number comparison should return boolean"),
         }
     }
@@ -1783,15 +1799,15 @@ mod regression_tests {
         let a = RV::Num(3.471971265526436e290);
         let b = RV::Num(1.1414671723104438e295);
         let c = RV::Num(-1.563421480094111e295);
-        
+
         // (a + b) + c
         let ab = eval_binary(a.clone(), b.clone(), Operation::Add);
         let ab_c = eval_binary(ab, c.clone(), Operation::Add);
-        
+
         // a + (b + c)
         let bc = eval_binary(b, c, Operation::Add);
         let a_bc = eval_binary(a, bc, Operation::Add);
-        
+
         // These should be approximately equal but may not be exactly equal due to floating-point precision
         match (ab_c, a_bc) {
             (RV::Num(left), RV::Num(right)) => {
@@ -1799,7 +1815,7 @@ mod regression_tests {
                 let diff = (left - right).abs();
                 let max_val = left.abs().max(right.abs());
                 let relative_error = if max_val > 0.0 { diff / max_val } else { 0.0 };
-                
+
                 // For numbers this large (~1e295), we expect some precision loss
                 // The original failure showed a difference of ~5e279, which is significant but expected
                 // for floating-point arithmetic at this scale
@@ -1808,12 +1824,15 @@ mod regression_tests {
                 // println!("  Right result: {}", right);
                 // println!("  Absolute diff: {}", diff);
                 // println!("  Relative error: {}", relative_error);
-                
+
                 // This test documents the behavior rather than asserting exact equality
                 // For extremely large numbers, floating-point arithmetic is inherently imprecise
-                assert!(relative_error < 1e-13 || diff < 1e280, 
-                    "Relative error {} or absolute difference {} is larger than expected for floating-point arithmetic at this scale", 
-                    relative_error, diff);
+                assert!(
+                    relative_error < 1e-13 || diff < 1e280,
+                    "Relative error {} or absolute difference {} is larger than expected for floating-point arithmetic at this scale",
+                    relative_error,
+                    diff
+                );
             }
             _ => panic!("Expected numeric results for addition operations"),
         }
@@ -1826,18 +1845,22 @@ mod regression_tests {
         // The issue: (a + b) - b should equal a, but floating-point precision causes small differences
         let a = RV::Num(239305169.8616219);
         let b = RV::Num(-4330652516.771584);
-        
+
         // (a + b) - b should equal a
         let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
         let difference = eval_binary(sum, b, Operation::Subtract);
-        
+
         match (a, difference) {
             (RV::Num(original), RV::Num(result)) => {
                 let diff = (original - result).abs();
                 // The original failure showed a difference of ~3e-8, which is expected for this magnitude
-                assert!(diff < 1e-6, 
-                    "Subtraction precision loss should be small: original={}, result={}, diff={}", 
-                    original, result, diff);
+                assert!(
+                    diff < 1e-6,
+                    "Subtraction precision loss should be small: original={}, result={}, diff={}",
+                    original,
+                    result,
+                    diff
+                );
             }
             _ => panic!("Expected numeric results"),
         }
@@ -1849,18 +1872,22 @@ mod regression_tests {
         // Shows that even "medium" sized numbers can have precision issues
         let a = RV::Num(776327.478839819);
         let b = RV::Num(333251.5209597033);
-        
+
         // (a + b) - b should equal a
         let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
         let difference = eval_binary(sum, b, Operation::Subtract);
-        
+
         match (a, difference) {
             (RV::Num(original), RV::Num(result)) => {
                 let diff = (original - result).abs();
                 // This case showed a difference of ~1e-10, which is within expected floating-point precision
-                assert!(diff < 1e-9, 
-                    "Subtraction precision loss should be within floating-point epsilon: original={}, result={}, diff={}", 
-                    original, result, diff);
+                assert!(
+                    diff < 1e-9,
+                    "Subtraction precision loss should be within floating-point epsilon: original={}, result={}, diff={}",
+                    original,
+                    result,
+                    diff
+                );
             }
             _ => panic!("Expected numeric results"),
         }
@@ -1873,14 +1900,14 @@ mod regression_tests {
         let a = RV::Num(-8.856050288210175e-102);
         let b = RV::Num(5.003750612076637e-88);
         let c = RV::Num(-5.226269442637776e-88);
-        
+
         // (a + b) + c vs a + (b + c)
         let ab = eval_binary(a.clone(), b.clone(), Operation::Add);
         let ab_c = eval_binary(ab, c.clone(), Operation::Add);
-        
+
         let bc = eval_binary(b, c, Operation::Add);
         let a_bc = eval_binary(a, bc, Operation::Add);
-        
+
         match (ab_c, a_bc) {
             (RV::Num(left), RV::Num(right)) => {
                 let diff = (left - right).abs();
@@ -1888,10 +1915,15 @@ mod regression_tests {
                 // This documents that associativity can fail even at very small scales
                 let max_val = left.abs().max(right.abs());
                 let relative_error = if max_val > 0.0 { diff / max_val } else { 0.0 };
-                
-                assert!(relative_error < 1e-12 || diff < 1e-100, 
-                    "Addition associativity failed for tiny numbers: left={}, right={}, diff={}, rel_err={}", 
-                    left, right, diff, relative_error);
+
+                assert!(
+                    relative_error < 1e-12 || diff < 1e-100,
+                    "Addition associativity failed for tiny numbers: left={}, right={}, diff={}, rel_err={}",
+                    left,
+                    right,
+                    diff,
+                    relative_error
+                );
             }
             _ => panic!("Expected numeric results"),
         }
@@ -1903,17 +1935,21 @@ mod regression_tests {
         // Shows precision issues with negative numbers and subtraction
         let a = RV::Num(-13542.264609919892);
         let b = RV::Num(751876.9370472291);
-        
+
         let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
         let difference = eval_binary(sum, b, Operation::Subtract);
-        
+
         match (a, difference) {
             (RV::Num(original), RV::Num(result)) => {
                 let diff = (original - result).abs();
                 // This case showed a difference of ~3e-11, demonstrating precision limits
-                assert!(diff < 1e-8, 
-                    "Subtraction precision with negative numbers: original={}, result={}, diff={}", 
-                    original, result, diff);
+                assert!(
+                    diff < 1e-8,
+                    "Subtraction precision with negative numbers: original={}, result={}, diff={}",
+                    original,
+                    result,
+                    diff
+                );
             }
             _ => panic!("Expected numeric results"),
         }
