@@ -6,7 +6,7 @@ use crate::{
     value::RV,
 };
 use interpreter::{Interpreter, Output};
-use lykiadb_test::TestHandler;
+use lykiadb_common::TestHandler;
 use tracing::info;
 
 pub mod error;

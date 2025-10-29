@@ -1,6 +1,6 @@
 [package]
 authors = ["Vedat Can Keklik <vcankeklik@gmail.com>"]
-name = "lykiadb-test"
+name = "lykiadb-common"
 version = "0.1.0"
 edition = "2024"
 
