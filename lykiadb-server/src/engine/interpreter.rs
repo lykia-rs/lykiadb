@@ -1,4 +1,4 @@
-use super::error::{ExecutionError, to_error_span};
+use super::error::ExecutionError;
 use super::stdlib::stdlib;
 use lykiadb_common::error::StandardError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -50,14 +50,14 @@ impl From<InterpretError> for StandardError {
                 "Review the error details for specific guidance",
         };
 
-        let sp = to_error_span(match &value {
+        let sp = (match &value {
             InterpretError::NotCallable { span } => *span,
             InterpretError::UnexpectedStatement { span } => *span,
             InterpretError::PropertyNotFound { span, .. } => *span,
             InterpretError::Other { .. } => Span::default(), // No span available
-        });
+        }).into();
 
-        StandardError::new(&value.to_string(), &hint, sp)
+        StandardError::new(&value.to_string(), &hint, Some(sp))
     }
 }
 

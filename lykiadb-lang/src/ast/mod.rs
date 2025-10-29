@@ -27,6 +27,17 @@ pub struct Span {
     pub line_end: u32,
 }
 
+impl From<Span> for lykiadb_common::error::Span {
+    fn from(value: Span) -> Self {
+        lykiadb_common::error::Span {
+            start: value.start,
+            end: value.end,
+            line: value.line,
+            line_end: value.line_end,
+        }
+    }
+}
+
 pub trait Spanned {
     fn get_span(&self) -> Span;
 }

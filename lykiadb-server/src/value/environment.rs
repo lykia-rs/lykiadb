@@ -1,6 +1,5 @@
-use crate::engine::{error::{ExecutionError, to_error_span}, interpreter::HaltReason};
+use crate::engine::{error::ExecutionError, interpreter::HaltReason};
 use lykiadb_common::error::StandardError;
-use lykiadb_lang::ast::Span;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
@@ -49,7 +48,7 @@ impl From<EnvironmentError> for StandardError {
         };
 
         // EnvironmentError doesn't have span information currently
-        let sp = to_error_span(Span::default());
+        let sp = Some(lykiadb_common::error::Span::default());
 
         StandardError::new(&value.to_string(), &hint, sp)
     }

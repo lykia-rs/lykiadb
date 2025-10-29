@@ -11,7 +11,7 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{engine::{error::to_error_span, interpreter::Aggregation}, value::RV};
+use crate::{engine::interpreter::Aggregation, value::RV};
 
 mod aggregation;
 mod expr;
@@ -353,15 +353,15 @@ impl From<PlannerError> for StandardError {
                 "Object is already defined in the scope",
         };
 
-        let sp = to_error_span(match &value {
+        let sp = (match &value {
             PlannerError::NestedAggregationNotAllowed(span) => *span,
             PlannerError::AggregationNotAllowed(span, _) => *span,
             PlannerError::HavingWithoutAggregationNotAllowed(span) => *span,
             PlannerError::SubqueryNotAllowed(span) => *span,
             PlannerError::ObjectNotFoundInScope(ident) => ident.span,
             PlannerError::DuplicateObjectInScope(ident) => ident.span,
-        });
+        }).into();
 
-        StandardError::new(&value.to_string(), &hint, sp)
+        StandardError::new(&value.to_string(), &hint, Some(sp))
     }
 }

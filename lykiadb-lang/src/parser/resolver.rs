@@ -22,15 +22,6 @@ pub enum ResolveError {
     GenericError { span: Span, message: String },
 }
 
-fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
-    Some(lykiadb_common::error::Span {
-        start: span.start,
-        end: span.end,
-        line: span.line,
-        line_end: span.line_end,
-    })
-}
-
 impl From<ResolveError> for StandardError {
     fn from(value: ResolveError) -> Self {
         let hint = match value {
@@ -38,11 +29,11 @@ impl From<ResolveError> for StandardError {
                 "Check variable declarations and scope usage",
         };
 
-        let sp = to_error_span(match &value {
+        let sp = (match &value {
             ResolveError::GenericError { span, .. } => *span,
-        });
+        }).into();
 
-        StandardError::new(&value.to_string(), hint, sp)
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
 

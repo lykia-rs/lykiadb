@@ -4,7 +4,7 @@ use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
 use lykiadb_common::error::StandardError;
-use lykiadb_lang::{LangError, ast::Span, parser::ParseError, tokenizer::scanner::ScanError};
+use lykiadb_lang::LangError;
 use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
@@ -21,15 +21,6 @@ impl Display for ExecutionError {
     }
 }
 
-pub fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
-    Some(lykiadb_common::error::Span {
-        start: span.start,
-        end: span.end,
-        line: span.line,
-        line_end: span.line_end,
-    })
-}
-
 impl ExecutionError {
     pub fn generalize(
         self,
@@ -43,7 +34,7 @@ impl ExecutionError {
                 StandardError::new(
                     "Unknown error",
                     "An unknown error has occurred.",
-                    to_error_span(Span::default()),
+                    Some(lykiadb_common::error::Span::default()),
                 )
             }
         }

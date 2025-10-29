@@ -25,15 +25,6 @@ pub enum ScanError {
     MalformedNumberLiteral { span: Span },
 }
 
-fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
-    Some(lykiadb_common::error::Span {
-        start: span.start,
-        end: span.end,
-        line: span.line,
-        line_end: span.line_end,
-    })
-}
-
 impl From<ScanError> for StandardError {
     fn from(value: ScanError) -> Self {
         let hint = match value {
@@ -45,13 +36,13 @@ impl From<ScanError> for StandardError {
                 "Fix the number format (e.g., ensure proper decimal or exponent notation)",
         };
 
-        let sp = to_error_span(match &value {
+        let sp = (match &value {
             ScanError::UnexpectedCharacter { span } => *span,
             ScanError::UnterminatedString { span } => *span,
             ScanError::MalformedNumberLiteral { span } => *span,
-        });
+        }).into();
 
-        StandardError::new(&value.to_string(), hint, sp)
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
 

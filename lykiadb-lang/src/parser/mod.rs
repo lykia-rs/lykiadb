@@ -30,15 +30,6 @@ pub enum ParseError {
     NoTokens,
 }
 
-fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
-    Some(lykiadb_common::error::Span {
-        start: span.start,
-        end: span.end,
-        line: span.line,
-        line_end: span.line_end,
-    })
-}
-
 impl From<ParseError> for StandardError {
     fn from(value: ParseError) -> Self {
         let hint = match value {
@@ -52,14 +43,14 @@ impl From<ParseError> for StandardError {
                 "Provide valid input to parse",
         };
 
-        let sp = to_error_span(match &value {
+        let sp = (match &value {
             ParseError::UnexpectedToken { token } => token.span,
             ParseError::MissingToken { token, .. } => token.span,
             ParseError::InvalidAssignmentTarget { left } => left.span,
             ParseError::NoTokens => Span::default(), // No span available
-        });
+        }).into();
 
-        StandardError::new(&value.to_string(), hint, sp)
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
 
