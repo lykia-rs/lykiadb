@@ -268,7 +268,7 @@ impl<'a> Planner<'a> {
 }
 
 #[cfg(test)]
-mod build_expr_tests {
+mod tests {
     use std::sync::Arc;
     use lykiadb_lang::ast::{
         Identifier, IdentifierKind, Literal, Span,
@@ -276,11 +276,11 @@ mod build_expr_tests {
         sql::{SqlSelect, SqlSelectCore, SqlProjection, SqlDistinct},
     };
     use crate::{
-        engine::interpreter::{Interpreter, HaltReason},
+        engine::interpreter::{Interpreter},
         plan::{
             planner::{Planner, InClause},
             scope::Scope,
-            IntermediateExpr, Node,
+            IntermediateExpr,
         },
     };
 
@@ -377,22 +377,21 @@ mod build_expr_tests {
         }
     }
 
-    fn assert_build_expr_result(
-        result: Result<(IntermediateExpr, Vec<Node>), HaltReason>,
-        expected_expr: &Expr,
-        expected_subquery_count: usize,
-    ) {
-        assert!(result.is_ok());
-        let (intermediate_expr, subqueries) = result.unwrap();
-        
-        match intermediate_expr {
-            IntermediateExpr::Expr { expr: boxed_expr } => {
-                assert_eq!(*boxed_expr, *expected_expr);
+    // Helper macro to assert the result of build_expr
+    macro_rules! assert_build_expr_result {
+        ($result:expr, $expected_expr:expr, $expected_subquery_count:expr) => {
+            assert!($result.is_ok());
+            let (intermediate_expr, subqueries) = $result.unwrap();
+            
+            match intermediate_expr {
+                IntermediateExpr::Expr { expr: boxed_expr } => {
+                    assert_eq!(*boxed_expr, *$expected_expr);
+                }
+                _ => panic!("Expected IntermediateExpr::Expr"),
             }
-            _ => panic!("Expected IntermediateExpr::Expr"),
-        }
-        
-        assert_eq!(subqueries.len(), expected_subquery_count);
+            
+            assert_eq!(subqueries.len(), $expected_subquery_count);
+        };
     }
 
     #[test]
@@ -410,7 +409,7 @@ mod build_expr_tests {
         );
 
         // Use helper function to assert standard expectations
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -427,7 +426,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -444,7 +443,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -461,7 +460,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -478,7 +477,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -495,7 +494,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert_build_expr_result(result, &expr, 1);
+        assert_build_expr_result!(result, &expr, 1);
     }
 
     #[test]
@@ -541,7 +540,7 @@ mod build_expr_tests {
                 true,
             );
 
-            assert_build_expr_result(result, &expr, 0);
+            assert_build_expr_result!(result, &expr, 0);
         }
     }
 
@@ -573,7 +572,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -601,7 +600,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert_build_expr_result(result, &expr, 2);
+        assert_build_expr_result!(result, &expr, 2);
     }
 
     #[test]
@@ -621,7 +620,7 @@ mod build_expr_tests {
         );
 
         // Should still succeed as the method returns the expression regardless of scope validation
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -640,7 +639,7 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -663,7 +662,7 @@ mod build_expr_tests {
             false,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 
     #[test]
@@ -688,6 +687,6 @@ mod build_expr_tests {
             true,
         );
 
-        assert_build_expr_result(result, &expr, 0);
+        assert_build_expr_result!(result, &expr, 0);
     }
 }
