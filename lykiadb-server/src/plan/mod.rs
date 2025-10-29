@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use lykiadb_common::error::StandardError;
 use lykiadb_lang::ast::{
     Identifier, Span,
     expr::Expr,
@@ -10,23 +11,13 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{engine::interpreter::Aggregation, value::RV};
+use crate::{engine::{error::to_error_span, interpreter::Aggregation}, value::RV};
 
 mod aggregation;
 mod expr;
 mod from;
 pub mod planner;
 mod scope;
-
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum PlannerError {
-    NestedAggregationNotAllowed(Span),
-    AggregationNotAllowed(Span, String),
-    HavingWithoutAggregationNotAllowed(Span),
-    SubqueryNotAllowed(Span),
-    ObjectNotFoundInScope(Identifier),
-    DuplicateObjectInScope(Identifier),
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
@@ -321,5 +312,56 @@ impl Node {
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._fmt_recursive(f, 0)
+    }
+}
+
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum PlannerError {
+    #[error("Nested aggregation is not allowed at {0:?}")]
+    NestedAggregationNotAllowed(Span),
+    
+    #[error("Mixing aggregation and non-aggregation columns is not allowed at {0:?}: {1}")]
+    AggregationNotAllowed(Span, String),
+    
+    #[error("HAVING clause without aggregation is not allowed at {0:?}")]
+    HavingWithoutAggregationNotAllowed(Span),
+    
+    #[error("Subquery not allowed at {0:?}")]
+    SubqueryNotAllowed(Span),
+    
+    #[error("Object '{0}' not found in scope")]
+    ObjectNotFoundInScope(Identifier),
+    
+    #[error("Duplicate object '{0}' in scope")]
+    DuplicateObjectInScope(Identifier),
+}
+
+impl From<PlannerError> for StandardError {
+    fn from(value: PlannerError) -> Self {
+        let hint = match value {
+            PlannerError::NestedAggregationNotAllowed(_) => 
+                "Remove the nested aggregation",
+            PlannerError::AggregationNotAllowed(_, _) => 
+                "Either aggregate all selected columns or none",
+            PlannerError::HavingWithoutAggregationNotAllowed(_) => 
+                "Add aggregation or remove HAVING clause",
+            PlannerError::SubqueryNotAllowed(_) => 
+                "Subqueries are not allowed in this context",
+            PlannerError::ObjectNotFoundInScope(_) => 
+                "Check if the object is properly defined in scope",
+            PlannerError::DuplicateObjectInScope(_) => 
+                "Object is already defined in the scope",
+        };
+
+        let sp = to_error_span(match &value {
+            PlannerError::NestedAggregationNotAllowed(span) => *span,
+            PlannerError::AggregationNotAllowed(span, _) => *span,
+            PlannerError::HavingWithoutAggregationNotAllowed(span) => *span,
+            PlannerError::SubqueryNotAllowed(span) => *span,
+            PlannerError::ObjectNotFoundInScope(ident) => ident.span,
+            PlannerError::DuplicateObjectInScope(ident) => ident.span,
+        });
+
+        StandardError::new(&value.to_string(), &hint, sp)
     }
 }

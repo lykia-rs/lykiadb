@@ -21,7 +21,7 @@ impl Display for ExecutionError {
     }
 }
 
-fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
+pub fn to_error_span(span: Span) -> Option<lykiadb_common::error::Span> {
     Some(lykiadb_common::error::Span {
         start: span.start,
         end: span.end,
@@ -100,41 +100,7 @@ impl ExecutionError {
                     to_error_span(span),
                 )
             }
-            ExecutionError::Plan(PlannerError::DuplicateObjectInScope(previous)) => {
-                StandardError::new(
-                    "Duplicate object in scope",
-                    &format!("Object {} is already defined in the scope.", previous.name),
-                    to_error_span(previous.span),
-                )
-            }
-            ExecutionError::Plan(PlannerError::SubqueryNotAllowed(span)) => {
-                StandardError::new(
-                    "Subquery not allowed",
-                    "Subqueries are not allowed in this context.",
-                    to_error_span(span),
-                )
-            }
-            ExecutionError::Plan(PlannerError::NestedAggregationNotAllowed(span)) => {
-                StandardError::new(
-                    "Aggregate function cannot be nested inside another aggregate function",
-                    "Remove inner aggregation.",
-                    to_error_span(span),
-                )
-            }
-            ExecutionError::Plan(PlannerError::AggregationNotAllowed(span, context)) => {
-                StandardError::new(
-                    &format!("Aggregation not allowed in {context}"),
-                        "Remove aggregation.",
-                    to_error_span(span),
-                )
-            }
-            ExecutionError::Plan(PlannerError::HavingWithoutAggregationNotAllowed(span)) => {
-                StandardError::new(
-                    "HAVING clause without aggregation is not allowed",
-                    "Add aggregation or remove HAVING clause.",
-                    to_error_span(span),
-                )
-            }
+            ExecutionError::Plan(planner_error) => planner_error.into(),
             ExecutionError::Environment(EnvironmentError::Other { message })
             | ExecutionError::Interpret(InterpretError::Other { message }) => {
                 StandardError::new(&message, "", to_error_span(Span::default()))
