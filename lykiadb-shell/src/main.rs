@@ -73,7 +73,7 @@ impl Shell {
                 println!("{}", serde_json::to_string_pretty(&value).unwrap())
             }
             Message::Response(Response::Error(err)) => {
-                report_error(filename, content, err.clone(), &mut stdout())
+                report_error(filename, content, Box::new(err.clone()), &mut stdout())
             }
             _ => panic!(""),
         }

@@ -7,7 +7,7 @@ edition = "2024"
 [dependencies]
 bson = { version = "2.9.0" }
 clap = { version = "4.4.6", features = ["derive"] }
-lykiadb-server = { path = "../lykiadb-server" }
+lykiadb-common = { path = "../lykiadb-common" }
 serde_json = "1.0.105"
 tokio = { version = "~1.35.1" }
 bytes = "1.5.0"
