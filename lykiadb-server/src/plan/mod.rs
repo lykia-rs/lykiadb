@@ -338,30 +338,33 @@ pub enum PlannerError {
 
 impl From<PlannerError> for StandardError {
     fn from(value: PlannerError) -> Self {
-        let hint = match value {
-            PlannerError::NestedAggregationNotAllowed(_) => 
+        let (hint, sp) = match &value {
+            PlannerError::NestedAggregationNotAllowed(span) => (
                 "Remove the nested aggregation",
-            PlannerError::AggregationNotAllowed(_, _) => 
+                *span
+            ),
+            PlannerError::AggregationNotAllowed(span, _) => (
                 "Remove aggregation",
-            PlannerError::HavingWithoutAggregationNotAllowed(_) => 
+                *span
+            ),
+            PlannerError::HavingWithoutAggregationNotAllowed(span) => (
                 "Add aggregation or remove HAVING clause",
-            PlannerError::SubqueryNotAllowed(_) => 
+                *span
+            ),
+            PlannerError::SubqueryNotAllowed(span) => (
                 "Remove subquery",
-            PlannerError::ObjectNotFoundInScope(_) => 
+                *span
+            ),
+            PlannerError::ObjectNotFoundInScope(ident) => (
                 "Check if the object is properly defined in scope",
-            PlannerError::DuplicateObjectInScope(_) => 
+                ident.span
+            ),
+            PlannerError::DuplicateObjectInScope(ident) => (
                 "Make sure object names are unique within the same scope",
+                ident.span
+            ),
         };
 
-        let sp = (match &value {
-            PlannerError::NestedAggregationNotAllowed(span) => *span,
-            PlannerError::AggregationNotAllowed(span, _) => *span,
-            PlannerError::HavingWithoutAggregationNotAllowed(span) => *span,
-            PlannerError::SubqueryNotAllowed(span) => *span,
-            PlannerError::ObjectNotFoundInScope(ident) => ident.span,
-            PlannerError::DuplicateObjectInScope(ident) => ident.span,
-        }).into();
-
-        StandardError::new(&value.to_string(), &hint, Some(sp))
+        StandardError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

@@ -243,15 +243,13 @@ pub enum ResolveError {
 
 impl From<ResolveError> for StandardError {
     fn from(value: ResolveError) -> Self {
-        let hint = match value {
-            ResolveError::GenericError { .. } => 
+        let (hint, sp) = match &value {
+            ResolveError::GenericError { span, .. } => (
                 "Check variable declarations and scope usage",
+                *span
+            ),
         };
 
-        let sp = (match &value {
-            ResolveError::GenericError { span, .. } => *span,
-        }).into();
-
-        StandardError::new(&value.to_string(), hint, Some(sp))
+        StandardError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

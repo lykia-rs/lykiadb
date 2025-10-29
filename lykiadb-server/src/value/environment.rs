@@ -133,15 +133,14 @@ impl From<EnvironmentError> for ExecutionError {
 
 impl From<EnvironmentError> for StandardError {
     fn from(value: EnvironmentError) -> Self {
-        let hint = match value {
-            EnvironmentError::Other { .. } => 
+        let (hint, sp) = match &value {
+            EnvironmentError::Other { .. } => (
                 "Check variable names and scope declarations",
+                lykiadb_common::error::Span::default()
+            ),
         };
 
-        // EnvironmentError doesn't have span information currently
-        let sp = Some(lykiadb_common::error::Span::default());
-
-        StandardError::new(&value.to_string(), &hint, sp)
+        StandardError::new(&value.to_string(), hint, Some(sp))
     }
 }
 

@@ -247,24 +247,25 @@ pub enum ParseError {
 
 impl From<ParseError> for StandardError {
     fn from(value: ParseError) -> Self {
-        let hint = match value {
-            ParseError::UnexpectedToken { .. } => 
+        let (hint, sp) = match &value {
+            ParseError::UnexpectedToken { token } => (
                 "Check the syntax and ensure tokens are in the correct order",
-            ParseError::MissingToken { .. } => 
+                token.span
+            ),
+            ParseError::MissingToken { token, .. } => (
                 "Add the required token or check for syntax errors",
-            ParseError::InvalidAssignmentTarget { .. } => 
+                token.span
+            ),
+            ParseError::InvalidAssignmentTarget { left } => (
                 "Ensure the left side of assignment is a valid variable or identifier",
-            ParseError::NoTokens => 
+                left.span
+            ),
+            ParseError::NoTokens => (
                 "Provide valid input to parse",
+                Span::default()
+            ),
         };
 
-        let sp = (match &value {
-            ParseError::UnexpectedToken { token } => token.span,
-            ParseError::MissingToken { token, .. } => token.span,
-            ParseError::InvalidAssignmentTarget { left } => left.span,
-            ParseError::NoTokens => Span::default(), // No span available
-        }).into();
-
-        StandardError::new(&value.to_string(), hint, Some(sp))
+        StandardError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

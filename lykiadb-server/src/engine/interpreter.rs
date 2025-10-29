@@ -673,25 +673,26 @@ pub enum InterpretError {
 
 impl From<InterpretError> for StandardError {
     fn from(value: InterpretError) -> Self {
-        let hint = match value {
-            InterpretError::NotCallable { .. } => 
+        let (hint, sp) = match &value {
+            InterpretError::NotCallable { span } => (
                 "Ensure the expression evaluates to a callable function",
-            InterpretError::UnexpectedStatement { .. } => 
+                *span
+            ),
+            InterpretError::UnexpectedStatement { span } => (
                 "Check if the statement is used in the correct context",
-            InterpretError::PropertyNotFound { .. } => 
+                *span
+            ),
+            InterpretError::PropertyNotFound { span, .. } => (
                 "Verify the property name exists on the object",
-            InterpretError::Other { .. } => 
+                *span
+            ),
+            InterpretError::Other { .. } => (
                 "Review the error details for specific guidance",
+                Span::default()
+            ),
         };
 
-        let sp = (match &value {
-            InterpretError::NotCallable { span } => *span,
-            InterpretError::UnexpectedStatement { span } => *span,
-            InterpretError::PropertyNotFound { span, .. } => *span,
-            InterpretError::Other { .. } => Span::default(), // No span available
-        }).into();
-
-        StandardError::new(&value.to_string(), &hint, Some(sp))
+        StandardError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }
 

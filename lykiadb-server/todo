@@ -1,5 +1,6 @@
 # generic
 - Test builders/factories
+- Error codes
 
 # planning
 - Select
@@ -26,3 +27,7 @@
 # planning.aggregation
 - Aggregation detector
     - Context check (?)
+
+# execution
+- Map subquery expressions to selects
+    - Expr tree nodes are used to represent subqueries
