@@ -1,11 +1,11 @@
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter}, plan::aggregation::prevent_aggregates_in, value::RV
+    engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, plan::{aggregation::prevent_aggregates_in, PlannerError}, value::RV
 };
 
 use lykiadb_lang::ast::{
     expr::Expr,
     sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::{ExprVisitor, VisitorMut},
+    visitor::{ExprVisitor, VisitorMut}, Spanned,
 };
 
 use super::{
@@ -65,8 +65,6 @@ impl<'a> Planner<'a> {
             node = build_from(self, from, &mut core_scope)?;
         }
 
-        println!("CurrentScope\n{core_scope:?}");
-
         // Filter: The source is then filtered, and the result is passed to the next
         // node.
         if let Some(predicate) = &core.r#where {
@@ -104,6 +102,11 @@ impl<'a> Planner<'a> {
                 group_by,
                 aggregates,
             };
+        } else if let Some(having) = &core.having {
+            // Fail fast if there is a HAVING clause without aggregation.
+            return Err(HaltReason::Error(ExecutionError::Plan(
+                PlannerError::HavingWithoutAggregateNotAllowed(having.get_span()),
+            )));
         }
 
         // Projection: Of course, projection is an essential part of the data flow,
@@ -125,9 +128,9 @@ impl<'a> Planner<'a> {
         // result using the HAVING clause. In earlier stages, we already collected
         // the aggregates from the projection and the having clause. As we already
         // have the aggregates, we can use them to filter the result.
-        if core.having.is_some() {
+        if let Some(having) = &core.having {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(core.having.as_ref().unwrap(), &mut core_scope, true, true)?;
+                self.build_expr(having, &mut core_scope, true, true)?;
             node = Node::Filter {
                 source: Box::new(node),
                 predicate: expr,

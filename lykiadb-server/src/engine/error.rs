@@ -139,6 +139,13 @@ pub fn report_error(
                 span,
             );
         }
+        ExecutionError::Plan(PlannerError::HavingWithoutAggregateNotAllowed(span)) => {
+            print(
+                "HAVING clause without aggregation is not allowed",
+                "Add aggregation or remove HAVING clause.",
+                span,
+            );
+        }
         ExecutionError::Environment(EnvironmentError::Other { message })
         | ExecutionError::Interpret(InterpretError::Other { message }) => {
             print(&message, "", Span::default());

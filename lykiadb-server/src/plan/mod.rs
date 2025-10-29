@@ -22,6 +22,7 @@ mod scope;
 pub enum PlannerError {
     NestedAggregationNotAllowed(Span),
     AggregationNotAllowed(Span, String),
+    HavingWithoutAggregateNotAllowed(Span),
     SubqueryNotAllowed(Span),
     ObjectNotFoundInScope(Identifier),
     DuplicateObjectInScope(Identifier),

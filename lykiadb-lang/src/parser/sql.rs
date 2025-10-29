@@ -279,7 +279,7 @@ impl SqlParser {
         let from = self.sql_select_from(cparser)?;
         let r#where = self.sql_select_where(cparser)?;
         let group_by = self.sql_select_group_by(cparser)?;
-        let having = if group_by.is_some() && cparser.match_next(&skw!(Having)) {
+        let having = if cparser.match_next(&skw!(Having)) {
             Some(cparser.consume_expr()?)
         } else {
             None

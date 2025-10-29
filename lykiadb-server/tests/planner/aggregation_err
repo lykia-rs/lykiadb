@@ -11,3 +11,10 @@ SELECT id FROM books b group by avg(id);
 ---err
 
 Plan(AggregationNotAllowed(Span { start: 32, end: 39, line: 0, line_end: 0 }, ""))
+
+#[name=having_without_aggregate_not_allowed, run=plan]>
+SELECT publisher_id from books having release_year > 2000;
+
+---err
+
+Plan(HavingWithoutAggregateNotAllowed(Span { start: 38, end: 57, line: 0, line_end: 0 }))

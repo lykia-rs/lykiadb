@@ -48,3 +48,23 @@ SELECT publisher_id from books group by publisher_id having avg(rating) > 3.0;
     - aggregate [group_by=[publisher_id], aggregates=[avg(rating)]]
       - scan [books as books]
 
+
+#[name=having_without_group_by, run=plan]>
+SELECT avg(rating) from books having avg(rating) > 3.0;
+
+---
+
+- filter [(avg(rating) Greater Num(3.0))]
+  - project [avg(rating) as avg(rating)]
+    - aggregate [group_by=[], aggregates=[avg(rating)]]
+      - scan [books as books]
+
+#[name=having_with_regular_value, run=plan]>
+SELECT avg(rating) from books having anything > 10;
+
+---
+
+- filter [(anything Greater Num(10.0))]
+  - project [avg(rating) as avg(rating)]
+    - aggregate [group_by=[], aggregates=[avg(rating)]]
+      - scan [books as books]
