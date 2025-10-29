@@ -8,45 +8,61 @@ pub struct Span {
     pub line_end: u32,
 }
 
-pub trait StandardError {
-    fn get_message(&self) -> String;
-    fn get_hint(&self) -> String;
-    fn get_error_code(&self) -> String;
-    fn get_span(&self) -> Option<Span>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StandardError {
+    pub message: String,
+    pub hint: String,
+    pub error_code: String,
+    pub span: Option<Span>,
 }
 
-pub fn report_error(
-    source_name: &str,
-    source: &str,
-    error: Box<dyn StandardError>,
-    mut writer: impl std::io::Write,
-) {
-    use ariadne::{Color, Label, Report, ReportKind, Source};
+impl StandardError {
+    pub fn new(
+        message: &str,
+        hint: &str,
+        span: Option<Span>,
+    ) -> Self {
+        StandardError {
+            message: message.to_owned(),
+            hint: hint.to_owned(),
+            error_code: "000".to_owned(),
+            span: span.clone(),
+        }
+    }
 
-    // Generate & choose some colours for each of our elements
-    let out = Color::Fixed(81);
+    pub fn report(
+        &self,
+        source_name: &str,
+        source: &str,
+        mut writer: impl std::io::Write,
+    ) {
+        use ariadne::{Color, Label, Report, ReportKind, Source};
 
-    let mut print = |message: &str, hint: &str, span: Span| {
-        Report::build(ReportKind::Error, source_name, 12)
-            .with_code(3)
-            .with_message(format!("{} at line {}", message, span.line + 1))
-            .with_label(
-                Label::new((source_name, span.start..span.end))
-                    .with_message(hint)
-                    .with_color(out),
-            )
-            .finish()
-            .write((source_name, Source::from(&source)), &mut writer)
-            .unwrap();
-    };
+        // Generate & choose some colours for each of our elements
+        let out = Color::Fixed(81);
 
-    print(
-        &format!(
-            "[{}] {}",
-            &error.get_error_code().as_str(),
-            &error.get_message().as_str()
-        ),
-        error.get_hint().as_str(),
-        error.get_span().unwrap(),
-    );
+        let mut print = |message: &str, hint: &str, span: Span| {
+            Report::build(ReportKind::Error, source_name, 12)
+                .with_code(3)
+                .with_message(format!("{} at line {}", message, span.line + 1))
+                .with_label(
+                    Label::new((source_name, span.start..span.end))
+                        .with_message(hint)
+                        .with_color(out),
+                )
+                .finish()
+                .write((source_name, Source::from(&source)), &mut writer)
+                .unwrap();
+        };
+
+        print(
+            &format!(
+                "[{}] {}",
+                &self.error_code.as_str(),
+                &self.message.as_str()
+            ),
+            self.hint.as_str(),
+            self.span.unwrap(),
+        );
+    }
 }
