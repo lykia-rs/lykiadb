@@ -15,7 +15,7 @@ mod stdlib;
 
 pub struct Runtime {
     mode: RuntimeMode,
-    interpreter: Interpreter,
+    interpreter: Interpreter<StdVal>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -25,7 +25,7 @@ pub enum RuntimeMode {
 }
 
 impl Runtime {
-    pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
+    pub fn new(mode: RuntimeMode, interpreter: Interpreter<StdVal>) -> Runtime {
         Runtime { mode, interpreter }
     }
 

@@ -75,6 +75,12 @@ pub trait Value:
     /// Convert to callable if possible
     fn as_callable(&self) -> Option<&Callable<Self>>;
 
+    /// Convert to datatype if possible
+    fn as_datatype(&self) -> Option<&Datatype>;
+
+    /// Convert to object if possible
+    fn as_object(&self) -> Option<&Self::Object>;
+
     /// Logical NOT operation
     fn not(&self) -> Self {
         Self::boolean(!self.as_bool())

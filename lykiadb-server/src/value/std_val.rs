@@ -81,6 +81,20 @@ impl Value for StdVal {
             _ => None,
         }
     }
+
+    fn as_datatype(&self) -> Option<&Datatype> {
+        match self {
+            StdVal::Datatype(dt) => Some(dt),
+            _ => None,
+        }
+    }
+
+    fn as_object(&self) -> Option<&<StdVal as Value>::Object> {
+        match self {
+            StdVal::Object(obj) => Some(obj),
+            _ => None,
+        }
+    }
     
     fn is_in(&self, other: &Self) -> Self {
         self.is_in(other)

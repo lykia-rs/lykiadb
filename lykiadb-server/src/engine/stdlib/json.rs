@@ -1,28 +1,26 @@
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    value::StdVal,
+    value::Value,
 };
 use serde_json::json;
-use std::sync::Arc;
 
-pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[StdVal]) -> Result<StdVal, HaltReason> {
-    Ok(StdVal::Str(Arc::new(json!(args[0]).to_string())))
+pub fn nt_json_encode<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> Result<V, HaltReason<V>> {
+    Ok(V::string(json!(args[0]).to_string()))
 }
 
-pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[StdVal]) -> Result<StdVal, HaltReason> {
-    let json_str = match &args[0] {
-        StdVal::Str(s) => s,
-        _ => {
-            return Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: format!("json_decode: Unexpected argument '{:?}'", args[0]),
-                }
-                .into(),
-            ));
-        }
+pub fn nt_json_decode<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> Result<V, HaltReason<V>> {
+    let json_str = if let Some(s) = args[0].as_string() {
+        s
+    } else {
+        return Err(HaltReason::Error(
+            InterpretError::Other {
+                message: format!("json_decode: Unexpected argument '{:?}'", args[0]),
+            }
+            .into(),
+        ));
     };
 
-    let parsed: StdVal = match serde_json::from_str(json_str) {
+    let parsed: V = match serde_json::from_str(&json_str) {
         Ok(v) => v,
         Err(e) => {
             return Err(HaltReason::Error(
@@ -42,11 +40,12 @@ mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
     use crate::util::alloc_shared;
+    use crate::value::StdVal;
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    fn setup() -> Interpreter {
-        Interpreter::new(Some(alloc_shared(Output::new())), true)
+    fn setup() -> Interpreter<StdVal> {
+        Interpreter::<StdVal>::new(Some(alloc_shared(Output::new())), true)
     }
 
     #[test]

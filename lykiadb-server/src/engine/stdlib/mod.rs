@@ -3,10 +3,9 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    util::{Shared, alloc_shared},
+    util::Shared,
     value::{
-        StdVal,
-        callable::{Callable, CallableKind, Function},
+         Value, callable::{Callable, CallableKind, Function}
     },
 };
 
@@ -26,7 +25,7 @@ pub mod json;
 pub mod out;
 pub mod time;
 
-pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
+pub fn stdlib<V: Value>(out: Option<Shared<Output>>) -> FxHashMap<String, V> {
     let mut std = FxHashMap::default();
 
     let mut benchmark_namespace = FxHashMap::default();
@@ -37,7 +36,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     benchmark_namespace.insert(
         "fib".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda { function: nt_fib },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Num,
@@ -47,7 +46,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     json_namespace.insert(
         "stringify".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_json_encode,
             },
@@ -59,7 +58,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     json_namespace.insert(
         "parse".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_json_decode,
             },
@@ -72,7 +71,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     time_namespace.insert(
         "clock".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda { function: nt_clock },
             Datatype::Unit,
             Datatype::Num,
@@ -82,7 +81,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     io_namespace.insert(
         "print".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda { function: nt_print },
             Datatype::Unknown,
             Datatype::Unit,
@@ -92,7 +91,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     dtype_namespace.insert(
         "of_".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda { function: nt_of },
             Datatype::Unknown,
             Datatype::Datatype,
@@ -100,17 +99,17 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
         )),
     );
 
-    dtype_namespace.insert("str".to_owned(), StdVal::Datatype(Datatype::Str));
+    dtype_namespace.insert("str".to_owned(), V::datatype(Datatype::Str));
 
-    dtype_namespace.insert("num".to_owned(), StdVal::Datatype(Datatype::Num));
+    dtype_namespace.insert("num".to_owned(), V::datatype(Datatype::Num));
 
-    dtype_namespace.insert("bool".to_owned(), StdVal::Datatype(Datatype::Bool));
+    dtype_namespace.insert("bool".to_owned(), V::datatype(Datatype::Bool));
 
-    dtype_namespace.insert("unit".to_owned(), StdVal::Datatype(Datatype::Unit));
+    dtype_namespace.insert("unit".to_owned(), V::datatype(Datatype::Unit));
 
     dtype_namespace.insert(
         "array".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_array_of,
             },
@@ -122,7 +121,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     dtype_namespace.insert(
         "object".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_object_of,
             },
@@ -134,7 +133,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     dtype_namespace.insert(
         "callable".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_callable_of,
             },
@@ -146,7 +145,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
     dtype_namespace.insert(
         "tuple".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_tuple_of,
             },
@@ -156,16 +155,16 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
         )),
     );
 
-    dtype_namespace.insert("dtype".to_owned(), StdVal::Datatype(Datatype::Datatype));
+    dtype_namespace.insert("dtype".to_owned(), V::datatype(Datatype::Datatype));
 
-    dtype_namespace.insert("none".to_owned(), StdVal::Datatype(Datatype::None));
+    dtype_namespace.insert("none".to_owned(), V::datatype(Datatype::None));
 
     if out.is_some() {
         let mut test_namespace = FxHashMap::default();
 
         test_namespace.insert(
             "out".to_owned(),
-            StdVal::Callable(Callable::new(
+            V::callable(Callable::new(
                 Function::Stateful(out.unwrap().clone()),
                 Datatype::Unit,
                 Datatype::Unit,
@@ -175,25 +174,25 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, StdVal> {
 
         std.insert(
             "test_utils".to_owned(),
-            StdVal::Object(alloc_shared(test_namespace)),
+            V::object(test_namespace),
         );
     }
 
     std.insert(
         "Benchmark".to_owned(),
-        StdVal::Object(alloc_shared(benchmark_namespace)),
+        V::object(benchmark_namespace),
     );
-    std.insert("json".to_owned(), StdVal::Object(alloc_shared(json_namespace)));
-    std.insert("time".to_owned(), StdVal::Object(alloc_shared(time_namespace)));
-    std.insert("io".to_owned(), StdVal::Object(alloc_shared(io_namespace)));
+    std.insert("json".to_owned(), V::object(json_namespace));
+    std.insert("time".to_owned(), V::object(time_namespace));
+    std.insert("io".to_owned(), V::object(io_namespace));
     std.insert(
         "dtype".to_owned(),
-        StdVal::Object(alloc_shared(dtype_namespace)),
+        V::object(dtype_namespace),
     );
 
     std.insert(
         "avg".to_owned(),
-        StdVal::Callable(Callable::new(
+        V::callable(Callable::new(
             Function::Lambda {
                 function: nt_tuple_of,
             },
