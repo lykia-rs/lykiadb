@@ -16,19 +16,20 @@ use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
-use crate::util::{Shared, alloc_shared};
+use crate::util::Shared;
+use crate::value::Value;
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
-use crate::value::{StdVal, eval::eval_binary};
+use crate::value::eval::eval_binary;
 
 use std::fmt::Display;
 use std::sync::Arc;
 use std::vec;
 
 #[derive(Debug)]
-pub enum HaltReason {
+pub enum HaltReason<V: Value> {
     Error(ExecutionError),
-    Return(StdVal),
+    Return(V),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -110,30 +111,30 @@ impl LoopStack {
     }
 }
 
-pub struct Interpreter {
-    env: Arc<EnvironmentFrame>,
-    root_env: Arc<EnvironmentFrame>,
+pub struct Interpreter<V: Value> {
+    env: Arc<EnvironmentFrame<V>>,
+    root_env: Arc<EnvironmentFrame<V>>,
     current_program: Option<Arc<Program>>,
     //
     loop_stack: LoopStack,
     source_processor: SourceProcessor,
-    output: Option<Shared<Output>>,
+    output: Option<Shared<Output<V>>>,
     //
     interner: StringInterner<StringBackend<SymbolU32>>,
 }
 
-impl Interpreter {
-    pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
-        let root_env = Arc::new(EnvironmentFrame::new(None));
+impl<V: Value> Interpreter<V> {
+    pub fn new(out: Option<Shared<Output<V>>>, with_stdlib: bool) -> Interpreter<V> {
+        let root_env = Arc::new(EnvironmentFrame::<V>::new(None));
         let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
-            let native_fns = stdlib(out.clone());
+            let native_fns = stdlib::<V>(out.clone());
 
             for (name, value) in native_fns {
                 root_env.define(interner.get_or_intern(name), value);
             }
         }
-        Interpreter {
+        Interpreter::<V> {
             env: root_env.clone(),
             root_env,
             loop_stack: LoopStack::new(),
@@ -144,11 +145,11 @@ impl Interpreter {
         }
     }
 
-    pub fn eval(&mut self, e: &Expr) -> Result<StdVal, HaltReason> {
+    pub fn eval(&mut self, e: &Expr) -> Result<V, HaltReason<V>> {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<StdVal, ExecutionError> {
+    pub fn interpret(&mut self, source: &str) -> Result<V, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
         self.current_program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -163,14 +164,14 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<StdVal, HaltReason> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<V, HaltReason<V>> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
-                return Ok(StdVal::Num(-num));
+                return Ok(V::number(-num));
             }
-            Ok(StdVal::Undefined)
+            Ok(V::undefined())
         } else {
-            Ok(StdVal::Bool(!self.visit_expr(expr)?.as_bool()))
+            Ok(V::boolean(!self.visit_expr(expr)?.as_bool()))
         }
     }
 
@@ -179,14 +180,14 @@ impl Interpreter {
         lexpr: &Expr,
         rexpr: &Expr,
         operation: Operation,
-    ) -> Result<StdVal, HaltReason> {
+    ) -> Result<V, HaltReason<V>> {
         let left_eval = self.visit_expr(lexpr)?;
         let right_eval = self.visit_expr(rexpr)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<StdVal, HaltReason> {
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<V, HaltReason<V>> {
         let distance = self
             .current_program
             .as_ref()
@@ -206,10 +207,10 @@ impl Interpreter {
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<Stmt>,
-        closure: Arc<EnvironmentFrame>,
+        closure: Arc<EnvironmentFrame<V>>,
         parameters: &[SymbolU32],
-        arguments: &[StdVal],
-    ) -> Result<StdVal, HaltReason> {
+        arguments: &[V],
+    ) -> Result<V, HaltReason<V>> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, param) in parameters.iter().enumerate() {
@@ -223,11 +224,11 @@ impl Interpreter {
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Arc<EnvironmentFrame>,
-    ) -> Result<StdVal, HaltReason> {
+        env_opt: Arc<EnvironmentFrame<V>>,
+    ) -> Result<V, HaltReason<V>> {
         let previous = std::mem::replace(&mut self.env, env_opt);
 
-        let mut ret = Ok(StdVal::Undefined);
+        let mut ret = Ok(V::undefined());
 
         for statement in statements {
             ret = self.visit_stmt(statement);
@@ -241,29 +242,29 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> StdVal {
+    fn literal_to_rv(&mut self, literal: &Literal) -> V {
         match literal {
-            Literal::Str(s) => StdVal::Str(Arc::clone(s)),
-            Literal::Num(n) => StdVal::Num(*n),
-            Literal::Bool(b) => StdVal::Bool(*b),
-            Literal::Undefined => StdVal::Undefined,
+            Literal::Str(s) => V::string(s.as_ref().to_owned()),
+            Literal::Num(n) => V::number(*n),
+            Literal::Bool(b) => V::boolean(*b),
+            Literal::Undefined => V::undefined(),
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(v).unwrap());
                 }
-                StdVal::Object(alloc_shared(new_map))
+                V::object(new_map)
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
-                StdVal::Array(alloc_shared(collected))
+                V::array(collected)
             }
         }
     }
 }
 
-impl VisitorMut<StdVal, HaltReason> for Interpreter {
-    fn visit_expr(&mut self, e: &Expr) -> Result<StdVal, HaltReason> {
+impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
+    fn visit_expr(&mut self, e: &Expr) -> Result<V, HaltReason<V>> {
         match e {
             Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
@@ -288,10 +289,10 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
                 {
-                    return Ok(StdVal::Bool(is_true));
+                    return Ok(V::boolean(is_true));
                 }
 
-                Ok(StdVal::Bool(self.visit_expr(right)?.as_bool()))
+                Ok(V::boolean(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
                 let distance = self.current_program.as_ref().unwrap().get_distance(e);
@@ -319,8 +320,8 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
             Expr::Call { callee, args, .. } => {
                 let eval = self.visit_expr(callee)?;
 
-                if let StdVal::Callable(callable) = eval {
-                    let mut args_evaluated: Vec<StdVal> = vec![];
+                if let Some(callable) = eval.as_callable() {
+                    let mut args_evaluated: Vec<V> = vec![];
 
                     for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(arg)?);
@@ -370,7 +371,7 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                 };
 
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
-                let callable = StdVal::Callable(Callable::new(
+                let callable = V::callable(Callable::new(
                     fun,
                     Datatype::Unit,
                     Datatype::Unit,
@@ -398,18 +399,18 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                 let upper_eval = self.visit_expr(upper)?;
                 let subject_eval = self.visit_expr(subject)?;
 
-                if let (StdVal::Num(lower_num), StdVal::Num(upper_num), StdVal::Num(subject_num)) =
-                    (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
+                if let (Some(lower_num), Some(upper_num), Some(subject_num)) =
+                    (lower_eval.as_number(), upper_eval.as_number(), subject_eval.as_number())
                 {
                     let min_num = lower_num.min(upper_num);
                     let max_num = lower_num.max(upper_num);
 
                     match kind {
                         RangeKind::Between => {
-                            Ok(StdVal::Bool(min_num <= subject_num && subject_num <= max_num))
+                            Ok(V::boolean(min_num <= subject_num && subject_num <= max_num))
                         }
                         RangeKind::NotBetween => {
-                            Ok(StdVal::Bool(min_num > subject_num || subject_num > max_num))
+                            Ok(V::boolean(min_num > subject_num || subject_num > max_num))
                         }
                     }
                 } else {
@@ -434,7 +435,7 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                 object, name, span, ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let StdVal::Object(map) = object_eval {
+                if let Some(map) = object_eval.as_object() {
                     let cloned = map.clone();
                     let borrowed = cloned.read().unwrap();
                     let v = borrowed.get(&name.name.clone());
@@ -492,18 +493,18 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                 if let Some(out) = &self.output {
                     out.write()
                         .unwrap()
-                        .push(StdVal::Str(Arc::new(plan.to_string().trim().to_string())));
+                        .push(V::string(plan.to_string().trim().to_string()));
                 }
-                Ok(StdVal::Undefined)
+                Ok(V::undefined())
             }
         }
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<StdVal, HaltReason> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<V, HaltReason<V>> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
-            return Ok(StdVal::Undefined);
+            return Ok(V::undefined());
         }
 
         match s {
@@ -575,10 +576,10 @@ impl VisitorMut<StdVal, HaltReason> for Interpreter {
                     let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
-                return Err(HaltReason::Return(StdVal::Undefined));
+                return Err(HaltReason::Return(V::undefined()));
             }
         }
-        Ok(StdVal::Undefined)
+        Ok(V::undefined())
     }
 }
 
@@ -604,18 +605,18 @@ impl Display for Aggregation {
 }
 
 #[derive(Clone)]
-pub struct Output {
-    out: Vec<StdVal>,
+pub struct Output<V: Value> {
+    out: Vec<V>,
 }
 
-impl Default for Output {
+impl<V: Value> Default for Output<V> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Output {
-    pub fn new() -> Output {
+impl<V: Value> Output<V> {
+    pub fn new() -> Output<V> {
         Output { out: Vec::new() }
     }
 
@@ -623,15 +624,15 @@ impl Output {
         self.out.clear();
     }
 
-    pub fn push(&mut self, rv: StdVal) {
+    pub fn push(&mut self, rv: V) {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: Vec<StdVal>) {
+    pub fn expect(&mut self, rv: Vec<V>) {
         if rv.len() == 1 {
             if let Some(first) = rv.first() {
                 assert_eq!(
-                    self.out.first().unwrap_or(&StdVal::Undefined).to_string(),
+                    self.out.first().unwrap_or(&V::undefined()).to_string(),
                     first.to_string()
                 );
             }
@@ -650,12 +651,12 @@ impl Output {
     }
 }
 
-impl Stateful for Output {
-    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[StdVal]) -> Result<StdVal, HaltReason> {
-        for item in rv {
+impl<V: Value> Stateful<V> for Output<V> {
+    fn call(&mut self, _interpreter: &mut Interpreter<V>, vals: &[V]) -> Result<V, HaltReason<V>> {
+        for item in vals {
             self.push(item.clone());
         }
-        Ok(StdVal::Undefined)
+        Ok(V::undefined())
     }
 }
 
