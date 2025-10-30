@@ -1,6 +1,6 @@
 use crate::{
     engine::{error::ExecutionError, interpreter::HaltReason},
-    plan::scope::Scope,
+    plan::scope::Scope, value::Value,
 };
 
 use lykiadb_lang::ast::{
@@ -28,8 +28,8 @@ impl<'a> SqlExprReducer<'a> {
     }
 }
 
-impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
+impl<'a, V: Value> ExprReducer<SqlSelect, HaltReason<V>> for SqlExprReducer<'a> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<V>> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
                 Expr::Get { object, name, .. } => {
@@ -64,7 +64,7 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason> {
+    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason<V>> {
         Ok(self.subqueries.clone())
     }
 }

@@ -18,7 +18,7 @@ pub enum StdVal {
     Bool(bool),
     Object(Shared<FxHashMap<String, StdVal>>),
     Array(Shared<Vec<StdVal>>),
-    Callable(Callable),
+    Callable(Callable<StdVal>),
     Datatype(Datatype),
     Undefined,
 }
@@ -26,7 +26,10 @@ pub enum StdVal {
 impl Value for StdVal {
     type Array = Shared<Vec<StdVal>>;
     type Object = Shared<FxHashMap<String, StdVal>>;
-    type Callable = Callable;
+
+    fn datatype(dt: Datatype) -> Self {
+        StdVal::Datatype(dt)
+    }
 
     fn string(s: String) -> Self {
         StdVal::Str(Arc::new(s))
@@ -40,15 +43,15 @@ impl Value for StdVal {
         StdVal::Bool(b)
     }
 
-    fn array(arr: <StdVal as Value>::Array) -> Self {
-        StdVal::Array(arr)
+    fn array(arr: Vec<StdVal>) -> Self {
+        StdVal::Array(alloc_shared(arr))
     }
 
-    fn object(obj: <StdVal as Value>::Object) -> Self {
-        StdVal::Object(obj)
+    fn object(obj: FxHashMap<String, StdVal>) -> Self {
+        StdVal::Object(alloc_shared(obj))
     }
 
-    fn callable(c: <StdVal as Value>::Callable) -> Self {
+    fn callable(c: Callable<Self>) -> Self {
         StdVal::Callable(c)
     }
 
@@ -70,6 +73,13 @@ impl Value for StdVal {
     
     fn as_string(&self) -> Option<String> {
         self.as_string()
+    }
+
+    fn as_callable(&self) -> Option<&Callable<Self>> {
+        match self {
+            StdVal::Callable(c) => Some(c),
+            _ => None,
+        }
     }
     
     fn is_in(&self, other: &Self) -> Self {

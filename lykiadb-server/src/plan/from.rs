@@ -1,6 +1,6 @@
 use crate::{
     engine::{error::ExecutionError, interpreter::HaltReason},
-    plan::planner::InClause,
+    plan::planner::InClause, value::Value,
 };
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
@@ -14,11 +14,11 @@ use super::{Node, planner::Planner, scope::Scope};
 // - Subquery: A subquery that returns a set of data.
 // - Join: A join between two or more sources.
 // - Group: Cartesian product of two or more sources.
-pub fn build_from(
-    planner: &mut Planner,
+pub fn build_from<V: Value>(
+    planner: &mut Planner<V>,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-) -> Result<Node, HaltReason> {
+) -> Result<Node, HaltReason<V>> {
     let mut scope = Scope::new();
 
     let node = match from {

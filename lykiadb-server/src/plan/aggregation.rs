@@ -6,7 +6,7 @@ use crate::{
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
     plan::planner::InClause,
-    value::{StdVal, callable::CallableKind},
+    value::{StdVal, Value, callable::CallableKind},
 };
 
 use lykiadb_lang::ast::{
@@ -22,15 +22,15 @@ use super::PlannerError;
 /// The aggregates are stored in a HashSet to avoid duplicates and then
 /// returned as a Vec<Aggregation>. For the time being, we only find
 /// aggregates in the projection and the having clause.
-pub fn collect_aggregates(
+pub fn collect_aggregates<V: Value>(
     core: &SqlSelectCore,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
+    interpreter: &mut Interpreter<V>,
+) -> Result<Vec<Aggregation>, HaltReason<V>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
     let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
 
-    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason<V>>::new(&mut collector);
 
     for projection in &core.projection {
         if let SqlProjection::Expr { expr, .. } = projection {
@@ -43,7 +43,7 @@ pub fn collect_aggregates(
 
     collector = AggregationCollector::collecting(interpreter, InClause::Having);
 
-    visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+    visitor = ExprVisitor::<Aggregation, HaltReason<V>>::new(&mut collector);
 
     if let Some(expr) = &core.having {
         let found = visitor.visit(expr)?;
@@ -59,30 +59,30 @@ pub fn collect_aggregates(
     Ok(no_dup)
 }
 
-pub fn prevent_aggregates_in(
+pub fn prevent_aggregates_in<V: Value>(
     expr: &Expr,
     in_clause: InClause,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
+    interpreter: &mut Interpreter<V>,
+) -> Result<Vec<Aggregation>, HaltReason<V>> {
     let mut collector = AggregationCollector::preventing(interpreter, in_clause);
 
-    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+    let mut visitor = ExprVisitor::<Aggregation, HaltReason<V>>::new(&mut collector);
 
     let aggregates = visitor.visit(expr)?;
 
     Ok(aggregates)
 }
 
-struct AggregationCollector<'a> {
+struct AggregationCollector<'a, V: Value> {
     in_call: u32,
     accumulator: Vec<Aggregation>,
-    interpreter: &'a mut Interpreter,
+    interpreter: &'a mut Interpreter<V>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
-impl<'a> AggregationCollector<'a> {
-    fn preventing(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+impl<'a, V: Value> AggregationCollector<'a, V> {
+    fn preventing(interpreter: &'a mut Interpreter<V>, in_clause: InClause) -> AggregationCollector<'a, V> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -92,7 +92,7 @@ impl<'a> AggregationCollector<'a> {
         }
     }
 
-    fn collecting(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+    fn collecting(interpreter: &'a mut Interpreter<V>, in_clause: InClause) -> AggregationCollector<'a, V> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -103,12 +103,12 @@ impl<'a> AggregationCollector<'a> {
     }
 }
 
-impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
+impl<'a, V: Value> ExprReducer<Aggregation, HaltReason<V>> for AggregationCollector<'a, V> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<V>> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
-            if let Ok(StdVal::Callable(callable)) = &callee_val
+            if let Some(callable) = callee_val.unwrap_or(V::undefined()).as_callable()
                 && let CallableKind::Aggregator(agg_name) = &callable.kind
             {
                 if self.is_preventing {
@@ -143,7 +143,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason> {
+    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason<V>> {
         Ok(self.accumulator.drain(..).collect())
     }
 }
@@ -157,8 +157,8 @@ mod tests {
         sql::{SqlProjection, SqlSelectCore},
     };
 
-    fn create_test_interpreter() -> Interpreter {
-        Interpreter::new(None, true)
+    fn create_test_interpreter() -> Interpreter<StdVal> {
+        Interpreter::<StdVal>::new(None, true)
     }
 
     #[test]
@@ -253,7 +253,7 @@ mod tests {
         let mut collector =
             AggregationCollector::collecting(&mut interpreter, InClause::Projection);
 
-        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+        let mut visitor = ExprVisitor::<Aggregation, HaltReason<StdVal>>::new(&mut collector);
 
         let result = visitor.visit(&outer_avg_call);
         assert!(matches!(
@@ -282,7 +282,7 @@ mod tests {
         let mut collector =
             AggregationCollector::collecting(&mut interpreter, InClause::Projection);
 
-        let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+        let mut visitor = ExprVisitor::<Aggregation, HaltReason<StdVal>>::new(&mut collector);
 
         let result1 = visitor.visit(&avg_call).unwrap();
         assert_eq!(result1.len(), 1);

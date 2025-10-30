@@ -1,8 +1,7 @@
-use super::StdVal;
 use super::environment::EnvironmentFrame;
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
-    util::Shared,
+    util::Shared, value::Value,
 };
 use lykiadb_lang::{ast::stmt::Stmt, types::Datatype};
 use std::fmt::{Debug, Display, Formatter};
@@ -16,16 +15,16 @@ pub enum CallableKind {
 }
 
 #[derive(Clone, Debug)]
-pub struct Callable {
+pub struct Callable<V: Value> {
     pub kind: CallableKind,
-    pub function: Arc<Function>,
+    pub function: Arc<Function<V>>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
 
-impl Callable {
+impl<V: Value> Callable<V> {
     pub fn new(
-        function: Function,
+        function: Function<V>,
         input_type: Datatype,
         return_type: Datatype,
         call_type: CallableKind,
@@ -38,7 +37,7 @@ impl Callable {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[StdVal]) -> Result<StdVal, HaltReason> {
+    pub fn call(&self, interpreter: &mut Interpreter<V>, arguments: &[V]) -> Result<V, HaltReason<V>> {
         match self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
@@ -52,25 +51,25 @@ impl Callable {
     }
 }
 
-pub trait Stateful {
-    fn call(&mut self, interpreter: &mut Interpreter, rv: &[StdVal]) -> Result<StdVal, HaltReason>;
+pub trait Stateful<V: Value> {
+    fn call(&mut self, interpreter: &mut Interpreter<V>, rv: &[V]) -> Result<V, HaltReason<V>>;
 }
 
 #[derive(Clone)]
-pub enum Function {
+pub enum Function<V: Value> {
     Lambda {
-        function: fn(&mut Interpreter, &[StdVal]) -> Result<StdVal, HaltReason>,
+        function: fn(&mut Interpreter<V>, &[V]) -> Result<V, HaltReason<V>>,
     },
-    Stateful(Shared<dyn Stateful + Send + Sync>),
+    Stateful(Shared<dyn Stateful<V> + Send + Sync>),
     UserDefined {
         name: SymbolU32,
         parameters: Vec<SymbolU32>,
-        closure: Arc<EnvironmentFrame>,
+        closure: Arc<EnvironmentFrame<V>>,
         body: Arc<Vec<Stmt>>,
     },
 }
 
-impl Function {
+impl<V: Value> Function<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
@@ -79,13 +78,13 @@ impl Function {
     }
 }
 
-impl Debug for Function {
+impl<V: Value> Debug for Function<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }
 }
 
-impl Display for Function {
+impl<V: Value> Display for Function<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }

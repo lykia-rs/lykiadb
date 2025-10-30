@@ -3,6 +3,7 @@ pub mod environment;
 pub mod eval;
 
 pub mod std_val;
+use rustc_hash::FxHashMap;
 pub use std_val::*;
 
 use lykiadb_lang::types::Datatype;
@@ -10,6 +11,8 @@ use std::fmt::{Debug, Display};
 use std::cmp::Ordering;
 use std::ops::{Add, Sub, Mul, Div};
 use serde::{Serialize, Deserialize};
+
+use crate::value::callable::Callable;
 
 pub trait Value: 
     Clone + 
@@ -29,13 +32,13 @@ pub trait Value:
 {
     /// Associated type for storing arrays of values
     type Array: Clone + Debug;
-    
+
     /// Associated type for storing object/map values
     type Object: Clone + Debug;
-    
-    /// Associated type for callable functions
-    type Callable: Clone + Debug;
-    
+
+    /// Create a datatype value
+    fn datatype(dt: Datatype) -> Self;
+
     /// Create a string value
     fn string(s: String) -> Self;
     
@@ -46,13 +49,13 @@ pub trait Value:
     fn boolean(b: bool) -> Self;
     
     /// Create an array value
-    fn array(arr: Self::Array) -> Self;
+    fn array(arr: Vec<Self>) -> Self;
     
     /// Create an object value
-    fn object(obj: Self::Object) -> Self;
+    fn object(obj: FxHashMap<String, Self>) -> Self;
     
     /// Create a callable value
-    fn callable(c: Self::Callable) -> Self;
+    fn callable(c: Callable<Self>) -> Self;
     
     /// Create an undefined/null value
     fn undefined() -> Self;
@@ -68,7 +71,10 @@ pub trait Value:
     
     /// Convert to string representation
     fn as_string(&self) -> Option<String>;
-    
+
+    /// Convert to callable if possible
+    fn as_callable(&self) -> Option<&Callable<Self>>;
+
     /// Logical NOT operation
     fn not(&self) -> Self {
         Self::boolean(!self.as_bool())

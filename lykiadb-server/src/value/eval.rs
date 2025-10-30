@@ -1,8 +1,9 @@
-use super::StdVal;
+use crate::value::Value;
+
 use lykiadb_lang::ast::expr::Operation;
 
 #[inline(always)]
-pub fn eval_binary(left_eval: StdVal, right_eval: StdVal, operation: Operation) -> StdVal {
+pub fn eval_binary<V: Value>(left_eval: V, right_eval: V, operation: Operation) -> V {
     /*
         TODO(vck):
             - Add support for object operations
@@ -10,12 +11,12 @@ pub fn eval_binary(left_eval: StdVal, right_eval: StdVal, operation: Operation) 
             - Add support for function operations
     */
     match operation {
-        Operation::Is | Operation::IsEqual => StdVal::Bool(left_eval == right_eval),
-        Operation::IsNot | Operation::IsNotEqual => StdVal::Bool(left_eval != right_eval),
-        Operation::Less => StdVal::Bool(left_eval < right_eval),
-        Operation::LessEqual => StdVal::Bool(left_eval <= right_eval),
-        Operation::Greater => StdVal::Bool(left_eval > right_eval),
-        Operation::GreaterEqual => StdVal::Bool(left_eval >= right_eval),
+        Operation::Is | Operation::IsEqual => V::boolean(left_eval == right_eval),
+        Operation::IsNot | Operation::IsNotEqual => V::boolean(left_eval != right_eval),
+        Operation::Less => V::boolean(left_eval < right_eval),
+        Operation::LessEqual => V::boolean(left_eval <= right_eval),
+        Operation::Greater => V::boolean(left_eval > right_eval),
+        Operation::GreaterEqual => V::boolean(left_eval >= right_eval),
         Operation::Add => left_eval + right_eval,
         Operation::Subtract => left_eval - right_eval,
         Operation::Multiply => left_eval * right_eval,
@@ -27,7 +28,7 @@ pub fn eval_binary(left_eval: StdVal, right_eval: StdVal, operation: Operation) 
            Operation::Like
            Operation::NotLike
         */
-        _ => StdVal::Undefined,
+        _ => V::undefined(),
     }
 }
 
@@ -40,7 +41,8 @@ mod test {
 
     use crate::{
         util::alloc_shared,
-        value::eval::{StdVal, eval_binary},
+        value::eval::{eval_binary},
+        value::StdVal
     };
 
     #[test]
@@ -1074,7 +1076,7 @@ mod property_tests {
     use std::sync::Arc;
 
     use super::*;
-    use crate::value::eval::eval_binary;
+    use crate::value::{StdVal, eval::eval_binary};
     use proptest::prelude::*;
 
     // Strategy for generating RV values
@@ -1594,7 +1596,7 @@ mod regression_tests {
     use std::sync::Arc;
 
     use super::*;
-    use crate::value::eval::eval_binary;
+    use crate::value::{StdVal, eval::eval_binary};
 
     /// These tests capture specific edge cases found through property testing
     /// or known to be important for the domain

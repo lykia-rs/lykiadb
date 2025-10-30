@@ -1,15 +1,13 @@
-use crate::engine::{error::ExecutionError, interpreter::HaltReason};
+use crate::{engine::{error::ExecutionError, interpreter::HaltReason}, value::Value};
 use lykiadb_common::error::StandardError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use string_interner::symbol::SymbolU32;
-
-use super::StdVal;
 #[derive(Debug)]
-pub struct EnvironmentFrame {
-    map: RwLock<FxHashMap<SymbolU32, StdVal>>,
-    pub parent: Option<Arc<EnvironmentFrame>>,
+pub struct EnvironmentFrame<V> {
+    map: RwLock<FxHashMap<SymbolU32, V>>,
+    pub parent: Option<Arc<EnvironmentFrame<V>>>,
 }
 
 macro_rules! to_ancestor {
@@ -22,19 +20,19 @@ macro_rules! to_ancestor {
     }};
 }
 
-impl EnvironmentFrame {
-    pub fn new(parent: Option<Arc<EnvironmentFrame>>) -> EnvironmentFrame {
+impl<V: Value> EnvironmentFrame<V> {
+    pub fn new(parent: Option<Arc<EnvironmentFrame<V>>>) -> EnvironmentFrame<V> {
         EnvironmentFrame {
             parent,
             map: RwLock::new(FxHashMap::default()),
         }
     }
 
-    pub fn define(&self, name: SymbolU32, value: StdVal) {
+    pub fn define(&self, name: SymbolU32, value: V) {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(&self, key: &str, key_sym: SymbolU32, value: StdVal) -> Result<bool, HaltReason> {
+    pub fn assign(&self, key: &str, key_sym: SymbolU32, value: V) -> Result<bool, HaltReason<V>> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
@@ -52,12 +50,12 @@ impl EnvironmentFrame {
     }
 
     pub fn assign_at(
-        env: &Arc<EnvironmentFrame>,
+        env: &Arc<EnvironmentFrame<V>>,
         distance: usize,
         key: &str,
         key_sym: SymbolU32,
-        value: StdVal,
-    ) -> Result<bool, HaltReason> {
+        value: V,
+    ) -> Result<bool, HaltReason<V>> {
         if distance == 0 {
             return env.assign(key, key_sym, value);
         }
@@ -67,7 +65,7 @@ impl EnvironmentFrame {
         to_ancestor!(env, distance).assign(key, key_sym, value)
     }
 
-    pub fn read(&self, key: &str, key_sym: &SymbolU32) -> Result<StdVal, HaltReason> {
+    pub fn read(&self, key: &str, key_sym: &SymbolU32) -> Result<V, HaltReason<V>> {
         let guard = self.map.read().unwrap();
         if let Some(value) = guard.get(key_sym) {
             // TODO(vck): Remove clone
@@ -85,11 +83,11 @@ impl EnvironmentFrame {
     }
 
     pub fn read_at(
-        env: &Arc<EnvironmentFrame>,
+        env: &Arc<EnvironmentFrame<V>>,
         distance: usize,
         key: &str,
         key_sym: &SymbolU32,
-    ) -> Result<StdVal, HaltReason> {
+    ) -> Result<V, HaltReason<V>> {
         if distance == 0 {
             return env.read(key, key_sym);
         }
@@ -207,7 +205,7 @@ mod test {
 
     #[test]
     fn test_read_undefined_variable() {
-        let env = super::EnvironmentFrame::new(None);
+        let env = super::EnvironmentFrame::<StdVal>::new(None);
         let mut interner = get_interner();
         assert!(env.read("five", &interner.get_or_intern("five")).is_err());
     }

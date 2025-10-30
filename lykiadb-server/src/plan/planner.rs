@@ -4,7 +4,7 @@ use crate::{
         interpreter::{HaltReason, Interpreter},
     },
     plan::{PlannerError, aggregation::prevent_aggregates_in},
-    value::StdVal,
+    value::Value,
 };
 
 use lykiadb_lang::ast::{
@@ -42,16 +42,16 @@ impl ToString for InClause {
     }
 }
 
-pub struct Planner<'a> {
-    interpreter: &'a mut Interpreter,
+pub struct Planner<'a, V: Value> {
+    interpreter: &'a mut Interpreter<V>,
 }
 
-impl<'a> Planner<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> Planner<'a> {
+impl<'a, V: Value> Planner<'a, V> {
+    pub fn new(interpreter: &'a mut Interpreter<V>) -> Planner<'a, V> {
         Planner { interpreter }
     }
 
-    pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
+    pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason<V>> {
         match expr {
             Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query)?);
@@ -61,7 +61,7 @@ impl<'a> Planner<'a> {
         }
     }
 
-    fn eval_constant(&mut self, expr: &Expr) -> Result<StdVal, HaltReason> {
+    fn eval_constant(&mut self, expr: &Expr) -> Result<V, HaltReason<V>> {
         self.interpreter.visit_expr(expr)
     }
 
@@ -72,7 +72,7 @@ impl<'a> Planner<'a> {
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason<V>> {
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, self.interpreter)?;
         }
@@ -83,14 +83,14 @@ impl<'a> Planner<'a> {
             scope,
         );
 
-        let mut visitor = ExprVisitor::<SqlSelect, HaltReason>::new(&mut reducer);
+        let mut visitor = ExprVisitor::<SqlSelect, HaltReason<V>>::new(&mut reducer);
 
         let selects = visitor.visit(expr)?;
 
         let subqueries = selects
             .into_iter()
             .map(|select| self.build_select(&select))
-            .collect::<Result<Vec<Node>, HaltReason>>()?;
+            .collect::<Result<Vec<Node>, HaltReason<V>>>()?;
 
         Ok((
             IntermediateExpr::Expr {
@@ -102,7 +102,7 @@ impl<'a> Planner<'a> {
 }
 
 // Select planner
-impl<'a> Planner<'a> {
+impl<'a, V: Value> Planner<'a, V> {
     /*
 
     The data flow we built using SqlSelectCore is as follows:
@@ -124,7 +124,7 @@ impl<'a> Planner<'a> {
     +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
-    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
+    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason<V>> {
         let mut node: Node = Node::Nothing;
 
         let mut core_scope = Scope::new();
@@ -225,7 +225,7 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
-    pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
+    pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason<V>> {
         let mut node: Node = self.build_select_core(&query.core)?;
         let mut root_scope = Scope::new();
 
@@ -277,7 +277,7 @@ mod tests {
             IntermediateExpr,
             planner::{InClause, Planner},
             scope::Scope,
-        },
+        }, value::StdVal,
     };
     use lykiadb_lang::ast::{
         Identifier, IdentifierKind, Literal, Span,
@@ -287,7 +287,7 @@ mod tests {
     use std::sync::Arc;
 
     /// Helper function to create a test planner instance
-    fn create_test_planner() -> Planner<'static> {
+    fn create_test_planner() -> Planner<'static, StdVal> {
         let interpreter = Box::leak(Box::new(Interpreter::new(None, false)));
         Planner::new(interpreter)
     }
