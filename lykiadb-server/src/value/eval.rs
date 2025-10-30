@@ -1,147 +1,5 @@
 use super::StdVal;
 use lykiadb_lang::ast::expr::Operation;
-use std::ops;
-use std::sync::Arc;
-
-impl PartialEq for StdVal {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (StdVal::Array(_), StdVal::Array(_)) | (StdVal::Object(_), StdVal::Object(_)) => false,
-            (StdVal::Undefined, StdVal::Undefined) => true,
-            //
-            (StdVal::Undefined, _) | (_, StdVal::Undefined) => false,
-            //
-            (StdVal::Str(a), StdVal::Str(b)) => a == b,
-            (StdVal::Num(a), StdVal::Num(b)) => a == b,
-            (StdVal::Bool(a), StdVal::Bool(b)) => a == b,
-            //
-            (StdVal::Str(_), StdVal::Num(b)) => self.eq_str_num(*b),
-            (StdVal::Num(a), StdVal::Str(_)) => other.eq_str_num(*a),
-            //
-            (StdVal::Str(_), StdVal::Bool(b)) => self.eq_any_bool(*b),
-            (StdVal::Bool(a), StdVal::Str(_)) => other.eq_any_bool(*a),
-            //
-            (StdVal::Num(_), StdVal::Bool(b)) => self.eq_any_bool(*b),
-            (StdVal::Bool(a), StdVal::Num(_)) => other.eq_any_bool(*a),
-            //
-            (StdVal::Datatype(a), StdVal::Datatype(b)) => a == b,
-            //
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd for StdVal {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (self, other) {
-            (StdVal::Array(_), StdVal::Array(_)) | (StdVal::Object(_), StdVal::Object(_)) => None,
-            (StdVal::Undefined, StdVal::Undefined) => Some(std::cmp::Ordering::Equal),
-            //
-            (StdVal::Undefined, _) | (_, StdVal::Undefined) => None,
-            //
-            (StdVal::Str(a), StdVal::Str(b)) => Some(a.cmp(b)),
-            (StdVal::Num(a), StdVal::Num(b)) => a.partial_cmp(b),
-            (StdVal::Bool(a), StdVal::Bool(b)) => a.partial_cmp(b),
-            //
-            (StdVal::Str(a), StdVal::Num(b)) => {
-                if let Ok(num) = a.parse::<f64>() {
-                    return num.partial_cmp(b);
-                }
-                None
-            }
-            (StdVal::Num(a), StdVal::Str(b)) => {
-                if let Ok(num) = b.parse::<f64>() {
-                    return a.partial_cmp(&num);
-                }
-                None
-            }
-            //
-            (StdVal::Str(_), StdVal::Bool(b)) => self.partial_cmp_str_bool(*b),
-            (StdVal::Bool(a), StdVal::Str(_)) => other.partial_cmp_str_bool(*a),
-            //
-            (StdVal::Num(num), StdVal::Bool(b)) => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
-            (StdVal::Bool(b), StdVal::Num(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
-            //
-            _ => None,
-        }
-    }
-}
-
-impl ops::Add for StdVal {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            //
-            (StdVal::Bool(_), StdVal::Bool(_)) | (StdVal::Num(_), StdVal::Bool(_)) | (StdVal::Bool(_), StdVal::Num(_)) => {
-                StdVal::Num(self.as_number().unwrap() + rhs.as_number().unwrap())
-            }
-
-            (StdVal::Num(l), StdVal::Num(r)) => StdVal::Num(l + r),
-            //
-            (StdVal::Str(l), StdVal::Str(r)) => StdVal::Str(Arc::new(l.to_string() + &r.to_string())),
-            //
-            (StdVal::Str(s), StdVal::Num(num)) => StdVal::Str(Arc::new(s.to_string() + &num.to_string())),
-            (StdVal::Num(num), StdVal::Str(s)) => StdVal::Str(Arc::new(num.to_string() + &s.to_string())),
-            //
-            (StdVal::Str(s), StdVal::Bool(bool)) => StdVal::Str(Arc::new(s.to_string() + &bool.to_string())),
-            (StdVal::Bool(bool), StdVal::Str(s)) => StdVal::Str(Arc::new(bool.to_string() + &s.to_string())),
-            //
-            (_, _) => StdVal::Undefined,
-        }
-    }
-}
-
-impl ops::Sub for StdVal {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (StdVal::Undefined, _) | (_, StdVal::Undefined) => StdVal::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| StdVal::Num(a - b))
-                .unwrap_or(StdVal::Undefined),
-        }
-    }
-}
-
-impl ops::Mul for StdVal {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (StdVal::Undefined, _) | (_, StdVal::Undefined) => StdVal::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| StdVal::Num(a * b))
-                .unwrap_or(StdVal::Undefined),
-        }
-    }
-}
-
-impl ops::Div for StdVal {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (StdVal::Undefined, _) | (_, StdVal::Undefined) => StdVal::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| {
-                    if a == 0.0 && b == 0.0 {
-                        StdVal::Undefined
-                    } else {
-                        StdVal::Num(a / b)
-                    }
-                })
-                .unwrap_or(StdVal::Undefined),
-        }
-    }
-}
 
 #[inline(always)]
 pub fn eval_binary(left_eval: StdVal, right_eval: StdVal, operation: Operation) -> StdVal {
@@ -1213,6 +1071,8 @@ mod test {
 
 #[cfg(test)]
 mod property_tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::value::eval::eval_binary;
     use proptest::prelude::*;
@@ -1731,6 +1591,8 @@ mod property_tests {
 
 #[cfg(test)]
 mod regression_tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::value::eval::eval_binary;
 
