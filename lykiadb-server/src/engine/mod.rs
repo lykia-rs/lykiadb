@@ -11,6 +11,7 @@ use tracing::info;
 
 pub mod error;
 pub mod interpreter;
+pub mod interpreter_integration;
 mod stdlib;
 
 pub struct Runtime {
