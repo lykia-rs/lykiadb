@@ -39,7 +39,7 @@ mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
     use crate::util::alloc_shared;
-    use crate::value::StdVal;
+    use crate::value::{StdVal, ValueObject, ValueObjectWrapper};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
@@ -85,7 +85,7 @@ mod tests {
         let mut map = FxHashMap::default();
         map.insert("key".to_string(), StdVal::Num(123.0));
         map.insert("msg".to_string(), StdVal::Str(Arc::new("value".to_string())));
-        let object_rv = StdVal::Object(alloc_shared(map));
+        let object_rv = StdVal::Object(ValueObjectWrapper::from_map(map));
 
         assert_eq!(
             nt_json_encode(&mut interpreter, &[object_rv]).unwrap(),
@@ -148,12 +148,11 @@ mod tests {
         .unwrap();
 
         if let StdVal::Object(obj) = object_result {
-            let obj = obj.read().unwrap();
             assert_eq!(obj.len(), 2);
-            assert_eq!(obj.get("key").unwrap(), &StdVal::Num(123.0));
+            assert_eq!(obj.get("key").unwrap(), StdVal::Num(123.0));
             assert_eq!(
                 obj.get("msg").unwrap(),
-                &StdVal::Str(Arc::new("value".to_string()))
+                StdVal::Str(Arc::new("value".to_string()))
             );
         } else {
             panic!("Expected object result");

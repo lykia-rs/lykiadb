@@ -17,7 +17,7 @@ use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::Value;
+use crate::value::{Value, ValueObject};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::eval::eval_binary;
@@ -435,10 +435,9 @@ impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
                 object, name, span, ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let Some(map) = object_eval.as_object() {
-                    let cloned = map.clone();
-                    let borrowed = cloned.read().unwrap();
-                    let v = borrowed.get(&name.name.clone());
+                if object_eval.is_object() {
+                    let map = object_eval.as_object().unwrap();
+                    let v = map.get(&name.name.clone());
                     if let Some(v) = v {
                         return Ok(v.clone());
                     }
@@ -467,11 +466,10 @@ impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
                 ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let StdVal::Object(map) = object_eval {
+                if object_eval.is_object() {
+                    let mut map = object_eval.as_object().unwrap();
                     let evaluated = self.visit_expr(value)?;
-                    // TODO(vck): Set should really set the value
-                    let mut borrowed = map.write().unwrap();
-                    borrowed.insert(name.name.to_string(), evaluated.clone());
+                    map.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(

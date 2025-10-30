@@ -37,12 +37,10 @@ mod test {
     use std::sync::Arc;
 
     use lykiadb_lang::ast::expr::Operation;
-    use rustc_hash::FxHashMap;
 
     use crate::{
         util::alloc_shared,
-        value::eval::{eval_binary},
-        value::StdVal
+        value::{StdVal, ValueObject, ValueObjectWrapper, eval::eval_binary}
     };
 
     #[test]
@@ -61,7 +59,7 @@ mod test {
         assert!((StdVal::Str(Arc::new("true".to_owned()))).as_bool());
         assert!((StdVal::Str(Arc::new("foo".to_owned()))).as_bool());
         assert!((StdVal::Array(alloc_shared(vec![]))).as_bool());
-        assert!((StdVal::Object(alloc_shared(FxHashMap::default()))).as_bool());
+        assert!((StdVal::Object(ValueObjectWrapper::new())).as_bool());
     }
 
     #[test]

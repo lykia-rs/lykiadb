@@ -35,7 +35,7 @@ pub trait Value:
     type Array: Clone + Debug;
 
     /// Associated type for storing object/map values
-    type Object: Clone + Debug;
+    type Object: Clone + Debug + ValueObject<Self>;
 
     /// Create a datatype value
     fn datatype(dt: Datatype) -> Self;
@@ -80,7 +80,12 @@ pub trait Value:
     fn as_datatype(&self) -> Option<&Datatype>;
 
     /// Convert to object if possible
-    fn as_object(&self) -> Option<&Self::Object>;
+    fn as_object(&self) -> Option<Self::Object>;
+
+    /// Is object
+    fn is_object(&self) -> bool {
+        matches!(self.get_type(), Datatype::Object(_))
+    }
 
     /// Logical NOT operation
     fn not(&self) -> Self {
@@ -125,6 +130,10 @@ pub trait ValueArray<V: Value>: Clone + Debug {
 
 /// Trait for object operations
 pub trait ValueObject<V: Value>: Clone + Debug {
+    fn new() -> Self;
+
+    fn from_map(map: FxHashMap<String, V>) -> Self;
+
     /// Get the number of key-value pairs
     fn len(&self) -> usize;
     
@@ -134,16 +143,19 @@ pub trait ValueObject<V: Value>: Clone + Debug {
     }
     
     /// Get value by key
-    fn get(&self, key: &str) -> Option<&V>;
+    fn get(&self, key: &str) -> Option<V>;
+
+    /// Insert key-value pair
+    fn insert(&mut self, key: String, value: V);
     
     /// Check if object contains a key
     fn contains_key(&self, key: &str) -> bool;
-    
-    /// Iterate over keys
-    fn keys(&self) -> Box<dyn Iterator<Item = &str> + '_>;
-    
-    /// Iterate over key-value pairs
-    fn iter(&self) -> Box<dyn Iterator<Item = (&str, &V)> + '_>;
+
+    /// Get keys iterator
+    fn keys(&self) -> Box<dyn Iterator<Item = String> + '_>;
+
+    /// Get iterator
+    fn iter(&self) -> Box<dyn Iterator<Item = (String, V)> + '_>;
 }
 
 /// Trait for callable operations

@@ -9,14 +9,14 @@ use std::ops;
 use crate::util::Shared;
 use crate::util::alloc_shared;
 use crate::value::callable::Callable;
-use crate::value::Value;
+use crate::value::{Value, ValueObject};
 
 #[derive(Debug, Clone)]
 pub enum StdVal {
     Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Object(Shared<FxHashMap<String, StdVal>>),
+    Object(ValueObjectWrapper),
     Array(Shared<Vec<StdVal>>),
     Callable(Callable<StdVal>),
     Datatype(Datatype),
@@ -25,7 +25,7 @@ pub enum StdVal {
 
 impl Value for StdVal {
     type Array = Shared<Vec<StdVal>>;
-    type Object = Shared<FxHashMap<String, StdVal>>;
+    type Object = ValueObjectWrapper;
 
     fn datatype(dt: Datatype) -> Self {
         StdVal::Datatype(dt)
@@ -48,7 +48,7 @@ impl Value for StdVal {
     }
 
     fn object(obj: FxHashMap<String, StdVal>) -> Self {
-        StdVal::Object(alloc_shared(obj))
+        StdVal::Object(ValueObjectWrapper::from_map(obj))
     }
 
     fn callable(c: Callable<Self>) -> Self {
@@ -89,9 +89,9 @@ impl Value for StdVal {
         }
     }
 
-    fn as_object(&self) -> Option<&<StdVal as Value>::Object> {
+    fn as_object(&self) -> Option<<StdVal as Value>::Object> {
         match self {
-            StdVal::Object(obj) => Some(obj),
+            StdVal::Object(obj) => Some(obj.clone()),
             _ => None,
         }
     }
@@ -125,13 +125,12 @@ impl StdVal {
             StdVal::Num(_) => Datatype::Num,
             StdVal::Bool(_) => Datatype::Bool,
             StdVal::Object(obj) => {
-                let obj: &FxHashMap<String, StdVal> = &obj.read().unwrap();
                 if obj.is_empty() {
                     return Datatype::None;
                 }
                 let mut object = FxHashMap::default();
                 for key in obj.keys() {
-                    let datatype = obj.get(key).unwrap().get_type();
+                    let datatype = obj.get(&key).unwrap().get_type();
                     object.insert(key.to_string(), datatype);
                 }
                 Datatype::Object(object)
@@ -207,7 +206,7 @@ impl StdVal {
             (StdVal::Str(lhs), StdVal::Str(rhs)) => StdVal::Bool(rhs.contains(lhs.as_str())),
             (lhs, StdVal::Array(rhs)) => StdVal::Bool(rhs.read().unwrap().contains(lhs)),
             (StdVal::Str(key), StdVal::Object(map)) => {
-                StdVal::Bool(map.read().unwrap().contains_key(key.as_str()))
+                StdVal::Bool(map.contains_key(key.as_str()))
             }
             _ => StdVal::Bool(false),
         }
@@ -377,7 +376,6 @@ impl Display for StdVal {
                 write!(f, "]")
             }
             StdVal::Object(obj) => {
-                let obj = (obj as &RwLock<FxHashMap<String, StdVal>>).read().unwrap();
                 write!(f, "{{")?;
                 for (i, (key, value)) in obj.iter().enumerate() {
                     if i != 0 {
@@ -413,9 +411,8 @@ impl Serialize for StdVal {
             }
             StdVal::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj as &RwLock<FxHashMap<String, StdVal>>).read().unwrap();
-                for (key, value) in arr.iter() {
-                    map.serialize_entry(key, value)?;
+                for (key, value) in obj.iter() {
+                    map.serialize_entry(&key, &value)?;
                 }
                 map.end()
             }
@@ -446,12 +443,66 @@ impl<'de> Deserialize<'de> for StdVal {
                 for (key, value) in obj {
                     map.insert(key, serde_json::from_value(value).unwrap());
                 }
-                Ok(StdVal::Object(alloc_shared(map)))
+                Ok(StdVal::Object(ValueObjectWrapper::from_map(map)))
             }
             serde_json::Value::Null => Ok(StdVal::Undefined),
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ValueObjectWrapper{
+    inner: Shared<FxHashMap<String, StdVal>>,
+}
+
+impl ValueObject<StdVal> for ValueObjectWrapper {
+    fn new() -> Self {
+        ValueObjectWrapper {
+            inner: alloc_shared(FxHashMap::default()),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.inner.read().unwrap().len()
+    }
+
+    fn get(&self, key: &str) -> Option<StdVal> {
+        let r = self.inner.read().unwrap();
+        let cloned = r.get(key).unwrap().clone();
+        Some(cloned)
+    }
+
+    fn insert(&mut self, key: String, value: StdVal) {
+        self.inner.write().unwrap().insert(key, value);
+    }
+
+    fn contains_key(&self, key: &str) -> bool {
+        self.inner.read().unwrap().contains_key(key)
+    }
+
+    fn keys(&self) -> Box<dyn Iterator<Item = String> + '_> {
+        let keys = self.inner.read().unwrap().keys().cloned().collect::<Vec<_>>();
+        Box::new(keys.into_iter())
+    }
+
+    fn from_map(map: FxHashMap<String, StdVal>) -> Self {
+        ValueObjectWrapper {
+            inner: alloc_shared(map),
+        }
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = (String, StdVal)> + '_> {
+        let items = self
+            .inner
+            .read()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect::<Vec<_>>();
+        Box::new(items.into_iter())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -479,7 +530,7 @@ mod tests {
 
         // Test collections
         let empty_array = StdVal::Array(alloc_shared(Vec::new()));
-        let empty_object = StdVal::Object(alloc_shared(FxHashMap::default()));
+        let empty_object = StdVal::Object(ValueObjectWrapper::new());
         assert!(empty_array.as_bool());
         assert!(empty_object.as_bool());
     }
@@ -508,7 +559,7 @@ mod tests {
         assert_eq!(StdVal::Undefined.as_number(), None);
         assert_eq!(StdVal::Array(alloc_shared(Vec::new())).as_number(), None);
         assert_eq!(
-            StdVal::Object(alloc_shared(FxHashMap::default())).as_number(),
+            StdVal::Object(ValueObjectWrapper::new()).as_number(),
             None
         );
     }
@@ -537,7 +588,7 @@ mod tests {
         // Test object key contains
         let mut map = FxHashMap::default();
         map.insert("key".to_string(), StdVal::Num(1.0));
-        let object = StdVal::Object(alloc_shared(map));
+        let object = StdVal::Object(ValueObjectWrapper::from_map(map));
 
         assert_eq!(
             StdVal::Str(Arc::new("key".to_string())).is_in(&object),
@@ -576,6 +627,6 @@ mod tests {
 
         let mut map = FxHashMap::default();
         map.insert("key".to_string(), StdVal::Num(42.0));
-        assert_eq!(StdVal::Object(alloc_shared(map)).to_string(), "{key: 42}");
+        assert_eq!(StdVal::Object(ValueObjectWrapper::from_map(map)).to_string(), "{key: 42}");
     }
 }

@@ -2,6 +2,12 @@
 - Test builders/factories
 - Error codes
 
+# value-abstraction
+- wrap array type
+- wrap object type
+    - return references from maps, not cloned values
+    - revisit getters/setters
+
 # planning
 - Select
 - Insert
