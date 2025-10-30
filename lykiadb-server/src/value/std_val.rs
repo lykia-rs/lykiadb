@@ -89,9 +89,9 @@ impl Value for StdVal {
         }
     }
 
-    fn as_object(&self) -> Option<<StdVal as Value>::Object> {
-        match self {
-            StdVal::Object(obj) => Some(obj.clone()),
+    fn as_object(&mut self) -> Option<&mut <StdVal as Value>::Object> {
+        match *self {
+            StdVal::Object(ref mut obj) => Some(obj),
             _ => None,
         }
     }

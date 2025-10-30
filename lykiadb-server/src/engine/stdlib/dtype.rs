@@ -56,11 +56,11 @@ pub fn nt_tuple_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> R
     Ok(V::datatype(Datatype::Tuple(inner)))
 }
 
-fn object_rec<V: Value>(inner: &V::Object) -> Result<Datatype, HaltReason<V>> {
+fn object_rec<V: Value>(inner: &mut V::Object) -> Result<Datatype, HaltReason<V>> {
     let mut type_map: FxHashMap<String, Datatype> = FxHashMap::default();
     for (key, value) in inner.iter() {
-        if let Some(object_inner) = value.as_object() {
-            type_map.insert(key.clone(), object_rec(&object_inner)?);
+        if let Some(mut object_inner) = value.clone().as_object().cloned() {
+            type_map.insert(key.clone(), object_rec(&mut object_inner)?);
         } else if let Some(rvdt) = value.as_datatype() {
             type_map.insert(key.clone(), rvdt.clone());
         }
@@ -69,8 +69,8 @@ fn object_rec<V: Value>(inner: &V::Object) -> Result<Datatype, HaltReason<V>> {
 }
 
 pub fn nt_object_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> Result<V, HaltReason<V>> {
-    if let Some(inner) = args[0].as_object() {
-        Ok(V::datatype(object_rec(&inner)?))
+    if let Some(mut inner) = args[0].clone().as_object().cloned() {
+        Ok(V::datatype(object_rec(&mut inner)?))
     } else {
         Err(HaltReason::Error(
             InterpretError::Other {

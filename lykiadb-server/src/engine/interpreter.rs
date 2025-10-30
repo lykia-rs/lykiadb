@@ -434,7 +434,7 @@ impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
             Expr::Get {
                 object, name, span, ..
             } => {
-                let object_eval = self.visit_expr(object)?;
+                let mut object_eval = self.visit_expr(object)?;
                 if object_eval.is_object() {
                     let map = object_eval.as_object().unwrap();
                     let v = map.get(&name.name.clone());
@@ -465,9 +465,9 @@ impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
                 value,
                 ..
             } => {
-                let object_eval = self.visit_expr(object)?;
+                let mut object_eval = self.visit_expr(object)?;
                 if object_eval.is_object() {
-                    let mut map = object_eval.as_object().unwrap();
+                    let map = object_eval.as_object().unwrap();
                     let evaluated = self.visit_expr(value)?;
                     map.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)

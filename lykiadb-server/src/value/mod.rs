@@ -80,7 +80,7 @@ pub trait Value:
     fn as_datatype(&self) -> Option<&Datatype>;
 
     /// Convert to object if possible
-    fn as_object(&self) -> Option<Self::Object>;
+    fn as_object(&mut self) -> Option<&mut Self::Object>;
 
     /// Is object
     fn is_object(&self) -> bool;
