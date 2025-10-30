@@ -19,7 +19,7 @@ use crate::plan::planner::Planner;
 use crate::util::{Shared, alloc_shared};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
-use crate::value::{RV, eval::eval_binary};
+use crate::value::{StdVal, eval::eval_binary};
 
 use std::fmt::Display;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ use std::vec;
 #[derive(Debug)]
 pub enum HaltReason {
     Error(ExecutionError),
-    Return(RV),
+    Return(StdVal),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -144,11 +144,11 @@ impl Interpreter {
         }
     }
 
-    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+    pub fn eval(&mut self, e: &Expr) -> Result<StdVal, HaltReason> {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+    pub fn interpret(&mut self, source: &str) -> Result<StdVal, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
         self.current_program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -163,14 +163,14 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV, HaltReason> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<StdVal, HaltReason> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
-                return Ok(RV::Num(-num));
+                return Ok(StdVal::Num(-num));
             }
-            Ok(RV::Undefined)
+            Ok(StdVal::Undefined)
         } else {
-            Ok(RV::Bool(!self.visit_expr(expr)?.as_bool()))
+            Ok(StdVal::Bool(!self.visit_expr(expr)?.as_bool()))
         }
     }
 
@@ -179,14 +179,14 @@ impl Interpreter {
         lexpr: &Expr,
         rexpr: &Expr,
         operation: Operation,
-    ) -> Result<RV, HaltReason> {
+    ) -> Result<StdVal, HaltReason> {
         let left_eval = self.visit_expr(lexpr)?;
         let right_eval = self.visit_expr(rexpr)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<StdVal, HaltReason> {
         let distance = self
             .current_program
             .as_ref()
@@ -208,8 +208,8 @@ impl Interpreter {
         statements: &Vec<Stmt>,
         closure: Arc<EnvironmentFrame>,
         parameters: &[SymbolU32],
-        arguments: &[RV],
-    ) -> Result<RV, HaltReason> {
+        arguments: &[StdVal],
+    ) -> Result<StdVal, HaltReason> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, param) in parameters.iter().enumerate() {
@@ -224,10 +224,10 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         env_opt: Arc<EnvironmentFrame>,
-    ) -> Result<RV, HaltReason> {
+    ) -> Result<StdVal, HaltReason> {
         let previous = std::mem::replace(&mut self.env, env_opt);
 
-        let mut ret = Ok(RV::Undefined);
+        let mut ret = Ok(StdVal::Undefined);
 
         for statement in statements {
             ret = self.visit_stmt(statement);
@@ -241,29 +241,29 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> RV {
+    fn literal_to_rv(&mut self, literal: &Literal) -> StdVal {
         match literal {
-            Literal::Str(s) => RV::Str(Arc::clone(s)),
-            Literal::Num(n) => RV::Num(*n),
-            Literal::Bool(b) => RV::Bool(*b),
-            Literal::Undefined => RV::Undefined,
+            Literal::Str(s) => StdVal::Str(Arc::clone(s)),
+            Literal::Num(n) => StdVal::Num(*n),
+            Literal::Bool(b) => StdVal::Bool(*b),
+            Literal::Undefined => StdVal::Undefined,
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(v).unwrap());
                 }
-                RV::Object(alloc_shared(new_map))
+                StdVal::Object(alloc_shared(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
-                RV::Array(alloc_shared(collected))
+                StdVal::Array(alloc_shared(collected))
             }
         }
     }
 }
 
-impl VisitorMut<RV, HaltReason> for Interpreter {
-    fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+impl VisitorMut<StdVal, HaltReason> for Interpreter {
+    fn visit_expr(&mut self, e: &Expr) -> Result<StdVal, HaltReason> {
         match e {
             Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
@@ -288,10 +288,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
                 {
-                    return Ok(RV::Bool(is_true));
+                    return Ok(StdVal::Bool(is_true));
                 }
 
-                Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
+                Ok(StdVal::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
                 let distance = self.current_program.as_ref().unwrap().get_distance(e);
@@ -319,8 +319,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Call { callee, args, .. } => {
                 let eval = self.visit_expr(callee)?;
 
-                if let RV::Callable(callable) = eval {
-                    let mut args_evaluated: Vec<RV> = vec![];
+                if let StdVal::Callable(callable) = eval {
+                    let mut args_evaluated: Vec<StdVal> = vec![];
 
                     for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(arg)?);
@@ -370,7 +370,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 };
 
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
-                let callable = RV::Callable(Callable::new(
+                let callable = StdVal::Callable(Callable::new(
                     fun,
                     Datatype::Unit,
                     Datatype::Unit,
@@ -398,7 +398,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let upper_eval = self.visit_expr(upper)?;
                 let subject_eval = self.visit_expr(subject)?;
 
-                if let (RV::Num(lower_num), RV::Num(upper_num), RV::Num(subject_num)) =
+                if let (StdVal::Num(lower_num), StdVal::Num(upper_num), StdVal::Num(subject_num)) =
                     (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
                 {
                     let min_num = lower_num.min(upper_num);
@@ -406,10 +406,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                     match kind {
                         RangeKind::Between => {
-                            Ok(RV::Bool(min_num <= subject_num && subject_num <= max_num))
+                            Ok(StdVal::Bool(min_num <= subject_num && subject_num <= max_num))
                         }
                         RangeKind::NotBetween => {
-                            Ok(RV::Bool(min_num > subject_num || subject_num > max_num))
+                            Ok(StdVal::Bool(min_num > subject_num || subject_num > max_num))
                         }
                     }
                 } else {
@@ -434,7 +434,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 object, name, span, ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let RV::Object(map) = object_eval {
+                if let StdVal::Object(map) = object_eval {
                     let cloned = map.clone();
                     let borrowed = cloned.read().unwrap();
                     let v = borrowed.get(&name.name.clone());
@@ -466,7 +466,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let RV::Object(map) = object_eval {
+                if let StdVal::Object(map) = object_eval {
                     let evaluated = self.visit_expr(value)?;
                     // TODO(vck): Set should really set the value
                     let mut borrowed = map.write().unwrap();
@@ -492,18 +492,18 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if let Some(out) = &self.output {
                     out.write()
                         .unwrap()
-                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                        .push(StdVal::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
-                Ok(RV::Undefined)
+                Ok(StdVal::Undefined)
             }
         }
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<StdVal, HaltReason> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
-            return Ok(RV::Undefined);
+            return Ok(StdVal::Undefined);
         }
 
         match s {
@@ -575,10 +575,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     let ret = self.visit_expr(expr.as_ref().unwrap())?;
                     return Err(HaltReason::Return(ret));
                 }
-                return Err(HaltReason::Return(RV::Undefined));
+                return Err(HaltReason::Return(StdVal::Undefined));
             }
         }
-        Ok(RV::Undefined)
+        Ok(StdVal::Undefined)
     }
 }
 
@@ -605,7 +605,7 @@ impl Display for Aggregation {
 
 #[derive(Clone)]
 pub struct Output {
-    out: Vec<RV>,
+    out: Vec<StdVal>,
 }
 
 impl Default for Output {
@@ -623,15 +623,15 @@ impl Output {
         self.out.clear();
     }
 
-    pub fn push(&mut self, rv: RV) {
+    pub fn push(&mut self, rv: StdVal) {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: Vec<RV>) {
+    pub fn expect(&mut self, rv: Vec<StdVal>) {
         if rv.len() == 1 {
             if let Some(first) = rv.first() {
                 assert_eq!(
-                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
+                    self.out.first().unwrap_or(&StdVal::Undefined).to_string(),
                     first.to_string()
                 );
             }
@@ -651,11 +651,11 @@ impl Output {
 }
 
 impl Stateful for Output {
-    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
+    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[StdVal]) -> Result<StdVal, HaltReason> {
         for item in rv {
             self.push(item.clone());
         }
-        Ok(RV::Undefined)
+        Ok(StdVal::Undefined)
     }
 }
 

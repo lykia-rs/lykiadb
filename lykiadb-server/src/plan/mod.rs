@@ -11,7 +11,7 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{engine::interpreter::Aggregation, value::RV};
+use crate::{engine::interpreter::Aggregation, value::StdVal};
 
 mod aggregation;
 mod expr;
@@ -21,7 +21,7 @@ mod scope;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr {
-    Constant(RV),
+    Constant(StdVal),
     Expr { expr: Box<Expr> },
 }
 

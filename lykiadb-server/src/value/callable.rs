@@ -1,4 +1,4 @@
-use super::RV;
+use super::StdVal;
 use super::environment::EnvironmentFrame;
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
@@ -38,7 +38,7 @@ impl Callable {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
+    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[StdVal]) -> Result<StdVal, HaltReason> {
         match self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, arguments),
@@ -53,13 +53,13 @@ impl Callable {
 }
 
 pub trait Stateful {
-    fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
+    fn call(&mut self, interpreter: &mut Interpreter, rv: &[StdVal]) -> Result<StdVal, HaltReason>;
 }
 
 #[derive(Clone)]
 pub enum Function {
     Lambda {
-        function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
+        function: fn(&mut Interpreter, &[StdVal]) -> Result<StdVal, HaltReason>,
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {

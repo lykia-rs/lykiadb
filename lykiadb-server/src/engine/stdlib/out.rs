@@ -1,12 +1,12 @@
 use crate::{
     engine::interpreter::{HaltReason, Interpreter},
-    value::RV,
+    value::StdVal,
 };
 
-pub fn nt_print(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_print(_interpreter: &mut Interpreter, args: &[StdVal]) -> Result<StdVal, HaltReason> {
     for arg in args {
         print!("{arg:?} ");
     }
     println!();
-    Ok(RV::Undefined)
+    Ok(StdVal::Undefined)
 }

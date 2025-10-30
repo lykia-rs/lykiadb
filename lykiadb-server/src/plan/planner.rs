@@ -4,7 +4,7 @@ use crate::{
         interpreter::{HaltReason, Interpreter},
     },
     plan::{PlannerError, aggregation::prevent_aggregates_in},
-    value::RV,
+    value::StdVal,
 };
 
 use lykiadb_lang::ast::{
@@ -61,7 +61,7 @@ impl<'a> Planner<'a> {
         }
     }
 
-    fn eval_constant(&mut self, expr: &Expr) -> Result<RV, HaltReason> {
+    fn eval_constant(&mut self, expr: &Expr) -> Result<StdVal, HaltReason> {
         self.interpreter.visit_expr(expr)
     }
 

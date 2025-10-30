@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use self::error::ExecutionError;
 use crate::{
     util::{Shared, alloc_shared},
-    value::RV,
+    value::StdVal,
 };
 use interpreter::{Interpreter, Output};
 use lykiadb_common::testing::TestHandler;
@@ -29,7 +29,7 @@ impl Runtime {
         Runtime { mode, interpreter }
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+    pub fn interpret(&mut self, source: &str) -> Result<StdVal, ExecutionError> {
         let out = self.interpreter.interpret(source);
 
         if self.mode == RuntimeMode::Repl {
@@ -98,7 +98,7 @@ impl TestHandler for RuntimeTester {
                 self.out
                     .write()
                     .unwrap()
-                    .expect(vec![RV::Str(Arc::new(part.to_string()))]);
+                    .expect(vec![StdVal::Str(Arc::new(part.to_string()))]);
             } else {
                 self.out
                     .write()

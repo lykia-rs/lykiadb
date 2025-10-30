@@ -1,6 +1,6 @@
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    value::RV,
+    value::StdVal,
 };
 
 fn _calculate(n: f64) -> f64 {
@@ -10,9 +10,9 @@ fn _calculate(n: f64) -> f64 {
     _calculate(n - 1.) + _calculate(n - 2.)
 }
 
-pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
-    if let RV::Num(n) = args[0] {
-        return Ok(RV::Num(_calculate(n)));
+pub fn nt_fib(_interpreter: &mut Interpreter, args: &[StdVal]) -> Result<StdVal, HaltReason> {
+    if let StdVal::Num(n) = args[0] {
+        return Ok(StdVal::Num(_calculate(n)));
     }
     Err(HaltReason::Error(
         InterpretError::Other {
@@ -32,36 +32,36 @@ mod tests {
 
         // Test first few Fibonacci numbers
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(0.0)]).unwrap(),
-            RV::Num(0.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(0.0)]).unwrap(),
+            StdVal::Num(0.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(1.0)]).unwrap(),
-            RV::Num(1.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(1.0)]).unwrap(),
+            StdVal::Num(1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(2.0)]).unwrap(),
-            RV::Num(1.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(2.0)]).unwrap(),
+            StdVal::Num(1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(3.0)]).unwrap(),
-            RV::Num(2.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(3.0)]).unwrap(),
+            StdVal::Num(2.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(4.0)]).unwrap(),
-            RV::Num(3.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(4.0)]).unwrap(),
+            StdVal::Num(3.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(5.0)]).unwrap(),
-            RV::Num(5.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(5.0)]).unwrap(),
+            StdVal::Num(5.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(6.0)]).unwrap(),
-            RV::Num(8.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(6.0)]).unwrap(),
+            StdVal::Num(8.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(7.0)]).unwrap(),
-            RV::Num(13.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(7.0)]).unwrap(),
+            StdVal::Num(13.0)
         );
     }
 
@@ -70,7 +70,7 @@ mod tests {
         let mut interpreter = Interpreter::new(None, true);
 
         // Test with non-numeric input
-        let result = nt_fib(&mut interpreter, &[RV::Bool(true)]);
+        let result = nt_fib(&mut interpreter, &[StdVal::Bool(true)]);
         assert!(result.is_err());
 
         let err = result.unwrap_err();
@@ -88,12 +88,12 @@ mod tests {
 
         // Negative numbers should return themselves as per implementation
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(-1.0)]).unwrap(),
-            RV::Num(-1.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(-1.0)]).unwrap(),
+            StdVal::Num(-1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(-5.0)]).unwrap(),
-            RV::Num(-5.0)
+            nt_fib(&mut interpreter, &[StdVal::Num(-5.0)]).unwrap(),
+            StdVal::Num(-5.0)
         );
     }
 }

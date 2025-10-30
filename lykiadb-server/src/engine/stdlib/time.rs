@@ -1,12 +1,12 @@
 use crate::engine::interpreter::{HaltReason, Interpreter};
-use crate::value::RV;
+use crate::value::StdVal;
 use std::time;
 
-pub fn nt_clock(_interpreter: &mut Interpreter, _args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_clock(_interpreter: &mut Interpreter, _args: &[StdVal]) -> Result<StdVal, HaltReason> {
     if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
-        return Ok(RV::Num(n.as_secs_f64()));
+        return Ok(StdVal::Num(n.as_secs_f64()));
     }
-    Ok(RV::Undefined)
+    Ok(StdVal::Undefined)
 }
 #[cfg(test)]
 mod tests {
@@ -27,7 +27,7 @@ mod tests {
         assert!(result.is_ok());
 
         let clock = result.unwrap();
-        if let RV::Num(_) = clock {
+        if let StdVal::Num(_) = clock {
             // Clock function returns a number
         } else {
             panic!("Expected number result from clock function");

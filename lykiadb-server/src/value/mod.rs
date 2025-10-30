@@ -14,34 +14,34 @@ pub mod environment;
 pub mod eval;
 
 #[derive(Debug, Clone)]
-pub enum RV {
+pub enum StdVal {
     Str(Arc<String>),
     Num(f64),
     Bool(bool),
-    Object(Shared<FxHashMap<String, RV>>),
-    Array(Shared<Vec<RV>>),
+    Object(Shared<FxHashMap<String, StdVal>>),
+    Array(Shared<Vec<StdVal>>),
     Callable(Callable),
     Datatype(Datatype),
     Undefined,
 }
 
-impl From<RV> for Datatype {
-    fn from(rv: RV) -> Self {
+impl From<StdVal> for Datatype {
+    fn from(rv: StdVal) -> Self {
         match rv {
-            RV::Datatype(t) => t,
+            StdVal::Datatype(t) => t,
             _ => Datatype::None,
         }
     }
 }
 
-impl RV {
+impl StdVal {
     pub fn get_type(&self) -> Datatype {
         match &self {
-            RV::Str(_) => Datatype::Str,
-            RV::Num(_) => Datatype::Num,
-            RV::Bool(_) => Datatype::Bool,
-            RV::Object(obj) => {
-                let obj: &FxHashMap<String, RV> = &obj.read().unwrap();
+            StdVal::Str(_) => Datatype::Str,
+            StdVal::Num(_) => Datatype::Num,
+            StdVal::Bool(_) => Datatype::Bool,
+            StdVal::Object(obj) => {
+                let obj: &FxHashMap<String, StdVal> = &obj.read().unwrap();
                 if obj.is_empty() {
                     return Datatype::None;
                 }
@@ -52,39 +52,39 @@ impl RV {
                 }
                 Datatype::Object(object)
             }
-            RV::Array(arr) => {
-                let arr: &[RV] = &arr.read().unwrap();
+            StdVal::Array(arr) => {
+                let arr: &[StdVal] = &arr.read().unwrap();
                 if arr.is_empty() {
                     return Datatype::Array(Box::from(Datatype::None));
                 }
                 Datatype::Array(Box::from(arr[0].get_type()))
             }
-            RV::Callable(c) => {
+            StdVal::Callable(c) => {
                 let input = Box::from(c.parameter_types.clone());
                 let output = Box::from(c.return_type.clone());
                 Datatype::Callable(input, output)
             }
-            RV::Datatype(_) => Datatype::Datatype,
-            RV::Undefined => Datatype::None,
+            StdVal::Datatype(_) => Datatype::Datatype,
+            StdVal::Undefined => Datatype::None,
         }
     }
 
     pub fn as_bool(&self) -> bool {
         match &self {
-            RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
-            RV::Str(value) => !value.is_empty(),
-            RV::Bool(value) => *value,
-            RV::Undefined => false,
+            StdVal::Num(value) => !value.is_nan() && value.abs() > 0.0,
+            StdVal::Str(value) => !value.is_empty(),
+            StdVal::Bool(value) => *value,
+            StdVal::Undefined => false,
             _ => true,
         }
     }
 
     pub fn as_number(&self) -> Option<f64> {
         match self {
-            RV::Num(value) => Some(*value),
-            RV::Bool(true) => Some(1.0),
-            RV::Bool(false) => Some(0.0),
-            RV::Str(s) => s.parse::<f64>().ok(),
+            StdVal::Num(value) => Some(*value),
+            StdVal::Bool(true) => Some(1.0),
+            StdVal::Bool(false) => Some(0.0),
+            StdVal::Str(s) => s.parse::<f64>().ok(),
             _ => None,
         }
     }
@@ -94,7 +94,7 @@ impl RV {
     }
 
     pub fn eq_str_num(&self, n: f64) -> bool {
-        if let RV::Str(s) = self
+        if let StdVal::Str(s) = self
             && let Ok(num) = s.parse::<f64>()
         {
             return num == n;
@@ -109,31 +109,31 @@ impl RV {
         self.as_bool().partial_cmp(&other)
     }
 
-    pub fn is_in(&self, other: &RV) -> RV {
+    pub fn is_in(&self, other: &StdVal) -> StdVal {
         match (self, other) {
-            (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
-            (lhs, RV::Array(rhs)) => RV::Bool(rhs.read().unwrap().contains(lhs)),
-            (RV::Str(key), RV::Object(map)) => {
-                RV::Bool(map.read().unwrap().contains_key(key.as_str()))
+            (StdVal::Str(lhs), StdVal::Str(rhs)) => StdVal::Bool(rhs.contains(lhs.as_str())),
+            (lhs, StdVal::Array(rhs)) => StdVal::Bool(rhs.read().unwrap().contains(lhs)),
+            (StdVal::Str(key), StdVal::Object(map)) => {
+                StdVal::Bool(map.read().unwrap().contains_key(key.as_str()))
             }
-            _ => RV::Bool(false),
+            _ => StdVal::Bool(false),
         }
     }
 
-    pub fn not(&self) -> RV {
-        RV::Bool(!self.as_bool())
+    pub fn not(&self) -> StdVal {
+        StdVal::Bool(!self.as_bool())
     }
 }
 
-impl Display for RV {
+impl Display for StdVal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RV::Str(s) => write!(f, "{s}"),
-            RV::Num(n) => write!(f, "{n}"),
-            RV::Bool(b) => write!(f, "{b}"),
-            RV::Undefined => write!(f, "undefined"),
-            RV::Array(arr) => {
-                let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
+            StdVal::Str(s) => write!(f, "{s}"),
+            StdVal::Num(n) => write!(f, "{n}"),
+            StdVal::Bool(b) => write!(f, "{b}"),
+            StdVal::Undefined => write!(f, "undefined"),
+            StdVal::Array(arr) => {
+                let arr = (arr as &RwLock<Vec<StdVal>>).read().unwrap();
                 write!(f, "[")?;
                 for (i, item) in arr.iter().enumerate() {
                     if i != 0 {
@@ -143,8 +143,8 @@ impl Display for RV {
                 }
                 write!(f, "]")
             }
-            RV::Object(obj) => {
-                let obj = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+            StdVal::Object(obj) => {
+                let obj = (obj as &RwLock<FxHashMap<String, StdVal>>).read().unwrap();
                 write!(f, "{{")?;
                 for (i, (key, value)) in obj.iter().enumerate() {
                     if i != 0 {
@@ -154,33 +154,33 @@ impl Display for RV {
                 }
                 write!(f, "}}")
             }
-            RV::Callable(_) => write!(f, "<Callable>"),
-            RV::Datatype(dtype) => write!(f, "<Datatype, {dtype}>"),
+            StdVal::Callable(_) => write!(f, "<Callable>"),
+            StdVal::Datatype(dtype) => write!(f, "<Datatype, {dtype}>"),
         }
     }
 }
 
-impl Serialize for RV {
+impl Serialize for StdVal {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match self {
-            RV::Str(s) => serializer.serialize_str(s),
-            RV::Num(n) => serializer.serialize_f64(*n),
-            RV::Bool(b) => serializer.serialize_bool(*b),
-            RV::Undefined => serializer.serialize_none(),
-            RV::Array(arr) => {
+            StdVal::Str(s) => serializer.serialize_str(s),
+            StdVal::Num(n) => serializer.serialize_f64(*n),
+            StdVal::Bool(b) => serializer.serialize_bool(*b),
+            StdVal::Undefined => serializer.serialize_none(),
+            StdVal::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
-                let arr = (arr as &RwLock<Vec<RV>>).read().unwrap();
+                let arr = (arr as &RwLock<Vec<StdVal>>).read().unwrap();
                 for item in arr.iter() {
                     seq.serialize_element(&item)?;
                 }
                 seq.end()
             }
-            RV::Object(obj) => {
+            StdVal::Object(obj) => {
                 let mut map = serializer.serialize_map(None).unwrap();
-                let arr = (obj as &RwLock<FxHashMap<String, RV>>).read().unwrap();
+                let arr = (obj as &RwLock<FxHashMap<String, StdVal>>).read().unwrap();
                 for (key, value) in arr.iter() {
                     map.serialize_entry(key, value)?;
                 }
@@ -191,31 +191,31 @@ impl Serialize for RV {
     }
 }
 
-impl<'de> Deserialize<'de> for RV {
+impl<'de> Deserialize<'de> for StdVal {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let value = serde_json::Value::deserialize(deserializer)?;
         match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
-            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
-            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
+            serde_json::Value::String(s) => Ok(StdVal::Str(Arc::new(s))),
+            serde_json::Value::Number(n) => Ok(StdVal::Num(n.as_f64().unwrap())),
+            serde_json::Value::Bool(b) => Ok(StdVal::Bool(b)),
             serde_json::Value::Array(arr) => {
                 let mut vec = vec![];
                 for item in arr {
                     vec.push(serde_json::from_value(item).unwrap());
                 }
-                Ok(RV::Array(alloc_shared(vec)))
+                Ok(StdVal::Array(alloc_shared(vec)))
             }
             serde_json::Value::Object(obj) => {
                 let mut map = FxHashMap::default();
                 for (key, value) in obj {
                     map.insert(key, serde_json::from_value(value).unwrap());
                 }
-                Ok(RV::Object(alloc_shared(map)))
+                Ok(StdVal::Object(alloc_shared(map)))
             }
-            serde_json::Value::Null => Ok(RV::Undefined),
+            serde_json::Value::Null => Ok(StdVal::Undefined),
         }
     }
 }
@@ -228,25 +228,25 @@ mod tests {
     #[test]
     fn test_rv_as_bool() {
         // Test numeric values
-        assert!(!RV::Num(0.0).as_bool());
-        assert!(RV::Num(1.0).as_bool());
-        assert!(RV::Num(-1.0).as_bool());
-        assert!(!RV::Num(f64::NAN).as_bool());
+        assert!(!StdVal::Num(0.0).as_bool());
+        assert!(StdVal::Num(1.0).as_bool());
+        assert!(StdVal::Num(-1.0).as_bool());
+        assert!(!StdVal::Num(f64::NAN).as_bool());
 
         // Test strings
-        assert!(!RV::Str(Arc::new("".to_string())).as_bool());
-        assert!(RV::Str(Arc::new("hello".to_string())).as_bool());
+        assert!(!StdVal::Str(Arc::new("".to_string())).as_bool());
+        assert!(StdVal::Str(Arc::new("hello".to_string())).as_bool());
 
         // Test booleans
-        assert!(RV::Bool(true).as_bool());
-        assert!(!RV::Bool(false).as_bool());
+        assert!(StdVal::Bool(true).as_bool());
+        assert!(!StdVal::Bool(false).as_bool());
 
         // Test special values
-        assert!(!RV::Undefined.as_bool());
+        assert!(!StdVal::Undefined.as_bool());
 
         // Test collections
-        let empty_array = RV::Array(alloc_shared(Vec::new()));
-        let empty_object = RV::Object(alloc_shared(FxHashMap::default()));
+        let empty_array = StdVal::Array(alloc_shared(Vec::new()));
+        let empty_object = StdVal::Object(alloc_shared(FxHashMap::default()));
         assert!(empty_array.as_bool());
         assert!(empty_object.as_bool());
     }
@@ -254,28 +254,28 @@ mod tests {
     #[test]
     fn test_rv_as_number() {
         // Test numeric values
-        assert_eq!(RV::Num(42.0).as_number(), Some(42.0));
-        assert_eq!(RV::Num(-42.0).as_number(), Some(-42.0));
-        assert_eq!(RV::Num(0.0).as_number(), Some(0.0));
+        assert_eq!(StdVal::Num(42.0).as_number(), Some(42.0));
+        assert_eq!(StdVal::Num(-42.0).as_number(), Some(-42.0));
+        assert_eq!(StdVal::Num(0.0).as_number(), Some(0.0));
 
         // Test booleans
-        assert_eq!(RV::Bool(true).as_number(), Some(1.0));
-        assert_eq!(RV::Bool(false).as_number(), Some(0.0));
+        assert_eq!(StdVal::Bool(true).as_number(), Some(1.0));
+        assert_eq!(StdVal::Bool(false).as_number(), Some(0.0));
 
         // Test strings
-        assert_eq!(RV::Str(Arc::new("42".to_string())).as_number(), Some(42.0));
+        assert_eq!(StdVal::Str(Arc::new("42".to_string())).as_number(), Some(42.0));
         assert_eq!(
-            RV::Str(Arc::new("-42".to_string())).as_number(),
+            StdVal::Str(Arc::new("-42".to_string())).as_number(),
             Some(-42.0)
         );
-        assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_number(), None);
-        assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
+        assert_eq!(StdVal::Str(Arc::new("invalid".to_string())).as_number(), None);
+        assert_eq!(StdVal::Str(Arc::new("".to_string())).as_number(), None);
 
         // Test other types
-        assert_eq!(RV::Undefined.as_number(), None);
-        assert_eq!(RV::Array(alloc_shared(Vec::new())).as_number(), None);
+        assert_eq!(StdVal::Undefined.as_number(), None);
+        assert_eq!(StdVal::Array(alloc_shared(Vec::new())).as_number(), None);
         assert_eq!(
-            RV::Object(alloc_shared(FxHashMap::default())).as_number(),
+            StdVal::Object(alloc_shared(FxHashMap::default())).as_number(),
             None
         );
     }
@@ -283,66 +283,66 @@ mod tests {
     #[test]
     fn test_rv_is_in() {
         // Test string contains
-        let haystack = RV::Str(Arc::new("hello world".to_string()));
-        let needle = RV::Str(Arc::new("world".to_string()));
-        assert_eq!(needle.is_in(&haystack), RV::Bool(true));
+        let haystack = StdVal::Str(Arc::new("hello world".to_string()));
+        let needle = StdVal::Str(Arc::new("world".to_string()));
+        assert_eq!(needle.is_in(&haystack), StdVal::Bool(true));
 
-        let not_found = RV::Str(Arc::new("xyz".to_string()));
-        assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
+        let not_found = StdVal::Str(Arc::new("xyz".to_string()));
+        assert_eq!(not_found.is_in(&haystack), StdVal::Bool(false));
 
         // Test array contains
-        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
-        let array = RV::Array(alloc_shared(arr));
+        let arr = vec![StdVal::Num(1.0), StdVal::Str(Arc::new("test".to_string()))];
+        let array = StdVal::Array(alloc_shared(arr));
 
-        assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
-        assert_eq!(RV::Num(2.0).is_in(&array), RV::Bool(false));
+        assert_eq!(StdVal::Num(1.0).is_in(&array), StdVal::Bool(true));
+        assert_eq!(StdVal::Num(2.0).is_in(&array), StdVal::Bool(false));
         assert_eq!(
-            RV::Str(Arc::new("test".to_string())).is_in(&array),
-            RV::Bool(true)
+            StdVal::Str(Arc::new("test".to_string())).is_in(&array),
+            StdVal::Bool(true)
         );
 
         // Test object key contains
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(1.0));
-        let object = RV::Object(alloc_shared(map));
+        map.insert("key".to_string(), StdVal::Num(1.0));
+        let object = StdVal::Object(alloc_shared(map));
 
         assert_eq!(
-            RV::Str(Arc::new("key".to_string())).is_in(&object),
-            RV::Bool(true)
+            StdVal::Str(Arc::new("key".to_string())).is_in(&object),
+            StdVal::Bool(true)
         );
         assert_eq!(
-            RV::Str(Arc::new("missing".to_string())).is_in(&object),
-            RV::Bool(false)
+            StdVal::Str(Arc::new("missing".to_string())).is_in(&object),
+            StdVal::Bool(false)
         );
     }
 
     #[test]
     fn test_rv_not() {
-        assert_eq!(RV::Bool(true).not(), RV::Bool(false));
-        assert_eq!(RV::Bool(false).not(), RV::Bool(true));
-        assert_eq!(RV::Num(0.0).not(), RV::Bool(true));
-        assert_eq!(RV::Num(1.0).not(), RV::Bool(false));
-        assert_eq!(RV::Str(Arc::new("".to_string())).not(), RV::Bool(true));
+        assert_eq!(StdVal::Bool(true).not(), StdVal::Bool(false));
+        assert_eq!(StdVal::Bool(false).not(), StdVal::Bool(true));
+        assert_eq!(StdVal::Num(0.0).not(), StdVal::Bool(true));
+        assert_eq!(StdVal::Num(1.0).not(), StdVal::Bool(false));
+        assert_eq!(StdVal::Str(Arc::new("".to_string())).not(), StdVal::Bool(true));
         assert_eq!(
-            RV::Str(Arc::new("hello".to_string())).not(),
-            RV::Bool(false)
+            StdVal::Str(Arc::new("hello".to_string())).not(),
+            StdVal::Bool(false)
         );
-        assert_eq!(RV::Undefined.not(), RV::Bool(true));
+        assert_eq!(StdVal::Undefined.not(), StdVal::Bool(true));
     }
 
     #[test]
     fn test_rv_display() {
-        assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "hello");
-        assert_eq!(RV::Num(42.0).to_string(), "42");
-        assert_eq!(RV::Bool(true).to_string(), "true");
-        assert_eq!(RV::Bool(false).to_string(), "false");
-        assert_eq!(RV::Undefined.to_string(), "undefined");
+        assert_eq!(StdVal::Str(Arc::new("hello".to_string())).to_string(), "hello");
+        assert_eq!(StdVal::Num(42.0).to_string(), "42");
+        assert_eq!(StdVal::Bool(true).to_string(), "true");
+        assert_eq!(StdVal::Bool(false).to_string(), "false");
+        assert_eq!(StdVal::Undefined.to_string(), "undefined");
 
-        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
-        assert_eq!(RV::Array(alloc_shared(arr)).to_string(), "[1, test]");
+        let arr = vec![StdVal::Num(1.0), StdVal::Str(Arc::new("test".to_string()))];
+        assert_eq!(StdVal::Array(alloc_shared(arr)).to_string(), "[1, test]");
 
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(42.0));
-        assert_eq!(RV::Object(alloc_shared(map)).to_string(), "{key: 42}");
+        map.insert("key".to_string(), StdVal::Num(42.0));
+        assert_eq!(StdVal::Object(alloc_shared(map)).to_string(), "{key: 42}");
     }
 }

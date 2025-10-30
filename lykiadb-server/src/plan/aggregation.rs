@@ -6,7 +6,7 @@ use crate::{
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
     plan::planner::InClause,
-    value::{RV, callable::CallableKind},
+    value::{StdVal, callable::CallableKind},
 };
 
 use lykiadb_lang::ast::{
@@ -108,7 +108,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
-            if let Ok(RV::Callable(callable)) = &callee_val
+            if let Ok(StdVal::Callable(callable)) = &callee_val
                 && let CallableKind::Aggregator(agg_name) = &callable.kind
             {
                 if self.is_preventing {
