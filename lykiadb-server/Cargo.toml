@@ -9,6 +9,7 @@ lykiadb-lang = { path = "../lykiadb-lang" }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
+bson = { version = "2.9.0" }
 tokio = { version = "~1.35.1", features = [
     "macros",
     "rt",

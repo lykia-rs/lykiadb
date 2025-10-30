@@ -12,6 +12,12 @@ use callable::Callable;
 pub mod callable;
 pub mod environment;
 pub mod eval;
+pub mod traits;
+pub mod rv_wrapper;
+pub mod bson_wrapper;
+pub mod generic_eval;
+pub mod conversions;
+pub mod examples;
 
 #[derive(Debug, Clone)]
 pub enum RV {
