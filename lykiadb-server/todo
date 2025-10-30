@@ -3,6 +3,7 @@
 - Error codes
 
 # value-abstraction
+- remove all possible stdval references
 - wrap array type
 - wrap object type
     - return references from maps, not cloned values
