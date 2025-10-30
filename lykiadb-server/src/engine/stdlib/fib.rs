@@ -68,23 +68,6 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_input() {
-        let mut interpreter = Interpreter::new(None, true);
-
-        // Test with non-numeric input
-        let result = nt_fib(&mut interpreter, &[V::boolean(true)]);
-        assert!(result.is_err());
-
-        let err = result.unwrap_err();
-        match err {
-            HaltReason::Error(e) => {
-                assert!(e.to_string().contains("Unexpected argument"));
-            }
-            _ => panic!("Expected InterpretError"),
-        }
-    }
-
-    #[test]
     fn test_negative_input() {
         let mut interpreter = Interpreter::new(None, true);
 

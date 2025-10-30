@@ -28,7 +28,8 @@ pub trait Value:
     for<'de> Deserialize<'de> +
     Send + 
     Sync +
-    Sized
+    Sized +
+    'static
 {
     /// Associated type for storing arrays of values
     type Array: Clone + Debug;

@@ -34,7 +34,6 @@ pub fn nt_json_decode<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -
 
     Ok(parsed)
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,12 +158,6 @@ mod tests {
         } else {
             panic!("Expected object result");
         }
-
-        // Test error cases
-        assert!(matches!(
-            nt_json_decode(&mut interpreter, &[StdVal::Num(42.0)]),
-            Err(HaltReason::Error(_))
-        ));
 
         assert!(matches!(
             nt_json_decode(

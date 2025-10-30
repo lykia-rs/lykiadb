@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use self::error::ExecutionError;
 use crate::{
     util::{Shared, alloc_shared},
-    value::StdVal,
+    value::{StdVal, Value},
 };
 use interpreter::{Interpreter, Output};
 use lykiadb_common::testing::TestHandler;
@@ -13,9 +13,11 @@ pub mod error;
 pub mod interpreter;
 mod stdlib;
 
+type RuntimeValImpl = StdVal;
+
 pub struct Runtime {
     mode: RuntimeMode,
-    interpreter: Interpreter<StdVal>,
+    interpreter: Interpreter<RuntimeValImpl>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -25,11 +27,11 @@ pub enum RuntimeMode {
 }
 
 impl Runtime {
-    pub fn new(mode: RuntimeMode, interpreter: Interpreter<StdVal>) -> Runtime {
+    pub fn new(mode: RuntimeMode, interpreter: Interpreter<RuntimeValImpl>) -> Runtime {
         Runtime { mode, interpreter }
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<StdVal, ExecutionError> {
+    pub fn interpret(&mut self, source: &str) -> Result<RuntimeValImpl, ExecutionError> {
         let out = self.interpreter.interpret(source);
 
         if self.mode == RuntimeMode::Repl {
@@ -41,7 +43,7 @@ impl Runtime {
 }
 
 pub struct RuntimeTester {
-    out: Shared<Output>,
+    out: Shared<Output<RuntimeValImpl>>,
     runtime: Runtime,
 }
 
@@ -98,7 +100,7 @@ impl TestHandler for RuntimeTester {
                 self.out
                     .write()
                     .unwrap()
-                    .expect(vec![StdVal::Str(Arc::new(part.to_string()))]);
+                    .expect(vec![Value::string(part.to_string())]);
             } else {
                 self.out
                     .write()

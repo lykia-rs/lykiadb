@@ -4,8 +4,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     util::Shared,
-    value::{
-         Value, callable::{Callable, CallableKind, Function}
+    value::{Value, callable::{Callable, CallableKind, Function}
     },
 };
 
@@ -25,7 +24,7 @@ pub mod json;
 pub mod out;
 pub mod time;
 
-pub fn stdlib<V: Value>(out: Option<Shared<Output>>) -> FxHashMap<String, V> {
+pub fn stdlib<V: Value>(out: Option<Shared<Output<V>>>) -> FxHashMap<String, V> {
     let mut std = FxHashMap::default();
 
     let mut benchmark_namespace = FxHashMap::default();
