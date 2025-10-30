@@ -3,8 +3,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    util::Shared,
-    value::Value,
+    value::{Value, ValueObject},
 };
 
 pub fn nt_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> Result<V, HaltReason<V>> {
@@ -57,22 +56,21 @@ pub fn nt_tuple_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> R
     Ok(V::datatype(Datatype::Tuple(inner)))
 }
 
-fn object_rec<V: Value>(inner: Shared<FxHashMap<String, V>>) -> Result<Datatype, HaltReason<V>> {
+fn object_rec<V: Value>(inner: &V::Object) -> Result<Datatype, HaltReason<V>> {
     let mut type_map: FxHashMap<String, Datatype> = FxHashMap::default();
-    for (key, value) in inner.read().unwrap().iter() {
+    for (key, value) in inner.iter() {
         if let Some(object_inner) = value.as_object() {
-            type_map.insert(key.clone(), object_rec(object_inner.clone())?);
+            type_map.insert(key.clone(), object_rec(&object_inner)?);
         } else if let Some(rvdt) = value.as_datatype() {
             type_map.insert(key.clone(), rvdt.clone());
         }
     }
     Ok(Datatype::Object(type_map))
-    Ok(Datatype::None)
 }
 
 pub fn nt_object_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> Result<V, HaltReason<V>> {
     if let Some(inner) = args[0].as_object() {
-        Ok(V::datatype(object_rec(inner.clone())?))
+        Ok(V::datatype(object_rec(&inner)?))
     } else {
         Err(HaltReason::Error(
             InterpretError::Other {
@@ -81,5 +79,4 @@ pub fn nt_object_of<V: Value>(_interpreter: &mut Interpreter<V>, args: &[V]) -> 
             .into(),
         ))
     }
-    Ok(V::undefined())
 }

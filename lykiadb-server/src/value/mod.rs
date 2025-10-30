@@ -83,9 +83,9 @@ pub trait Value:
     fn as_object(&self) -> Option<Self::Object>;
 
     /// Is object
-    fn is_object(&self) -> bool {
-        matches!(self.get_type(), Datatype::Object(_))
-    }
+    fn is_object(&self) -> bool;
+
+    fn val_if_number(&self) -> Option<f64>;
 
     /// Logical NOT operation
     fn not(&self) -> Self {

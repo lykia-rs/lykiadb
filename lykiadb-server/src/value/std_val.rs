@@ -95,6 +95,17 @@ impl Value for StdVal {
             _ => None,
         }
     }
+
+    fn is_object(&self) -> bool {
+        matches!(self, StdVal::Object(_))
+    }
+
+    fn val_if_number(&self) -> Option<f64> {
+        match self {
+            StdVal::Num(n) => Some(*n),
+            _ => None,
+        }
+    }
     
     fn is_in(&self, other: &Self) -> Self {
         self.is_in(other)
@@ -468,6 +479,9 @@ impl ValueObject<StdVal> for ValueObjectWrapper {
 
     fn get(&self, key: &str) -> Option<StdVal> {
         let r = self.inner.read().unwrap();
+        if !r.contains_key(key) {
+            return None;
+        }
         let cloned = r.get(key).unwrap().clone();
         Some(cloned)
     }

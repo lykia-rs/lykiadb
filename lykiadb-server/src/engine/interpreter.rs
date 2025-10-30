@@ -400,7 +400,7 @@ impl<V: Value> VisitorMut<V, HaltReason<V>> for Interpreter<V> {
                 let subject_eval = self.visit_expr(subject)?;
 
                 if let (Some(lower_num), Some(upper_num), Some(subject_num)) =
-                    (lower_eval.as_number(), upper_eval.as_number(), subject_eval.as_number())
+                    (lower_eval.val_if_number(), upper_eval.val_if_number(), subject_eval.val_if_number())
                 {
                     let min_num = lower_num.min(upper_num);
                     let max_num = lower_num.max(upper_num);
