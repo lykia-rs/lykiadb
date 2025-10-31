@@ -1,8 +1,11 @@
-use crate::{util::{Shared, alloc_shared}, value::RV};
+use crate::{
+    util::{Shared, alloc_shared},
+    value::RV,
+};
 
 #[derive(Debug, Clone)]
 pub struct RVArray {
-    inner: Shared<Vec<RV>>
+    inner: Shared<Vec<RV>>,
 }
 
 impl RVArray {

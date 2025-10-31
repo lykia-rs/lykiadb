@@ -1,18 +1,18 @@
+use array::RVArray;
+use callable::RVCallable;
 use lykiadb_lang::types::Datatype;
+use object::RVObject;
 use rustc_hash::FxHashMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use std::sync::Arc;
 use std::ops;
-use callable::RVCallable;
-use array::RVArray;
-use object::RVObject;
+use std::sync::Arc;
 
+pub mod array;
 pub mod callable;
 pub mod environment;
 pub mod eval;
-pub mod array;
 pub mod object;
 
 #[derive(Debug, Clone)]
@@ -113,9 +113,7 @@ impl RV {
         match (self, other) {
             (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
             (lhs, RV::Array(rhs)) => RV::Bool(rhs.contains(lhs)),
-            (RV::Str(key), RV::Object(map)) => {
-                RV::Bool(map.contains_key(key.as_str()))
-            }
+            (RV::Str(key), RV::Object(map)) => RV::Bool(map.contains_key(key.as_str())),
             _ => RV::Bool(false),
         }
     }
@@ -410,10 +408,7 @@ mod tests {
         // Test other types
         assert_eq!(RV::Undefined.as_number(), None);
         assert_eq!(RV::Array(RVArray::new()).as_number(), None);
-        assert_eq!(
-            RV::Object(RVObject::new()).as_number(),
-            None
-        );
+        assert_eq!(RV::Object(RVObject::new()).as_number(), None);
     }
 
     #[test]

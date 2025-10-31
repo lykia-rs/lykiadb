@@ -152,7 +152,10 @@ mod tests {
         if let RV::Object(obj) = object_result {
             assert_eq!(obj.len(), 2);
             assert_eq!(obj.get("key").unwrap(), RV::Num(123.0));
-            assert_eq!(obj.get("msg").unwrap(), RV::Str(Arc::new("value".to_string())));
+            assert_eq!(
+                obj.get("msg").unwrap(),
+                RV::Str(Arc::new("value".to_string()))
+            );
         } else {
             panic!("Expected object result");
         }

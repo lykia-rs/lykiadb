@@ -5,7 +5,9 @@ use rustc_hash::FxHashMap;
 use crate::{
     util::Shared,
     value::{
-        RV, object::RVObject, callable::{RVCallable, CallableKind, Function}
+        RV,
+        callable::{CallableKind, Function, RVCallable},
+        object::RVObject,
     },
 };
 
@@ -182,9 +184,18 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "Benchmark".to_owned(),
         RV::Object(RVObject::from_map(benchmark_namespace)),
     );
-    std.insert("json".to_owned(), RV::Object(RVObject::from_map(json_namespace)));
-    std.insert("time".to_owned(), RV::Object(RVObject::from_map(time_namespace)));
-    std.insert("io".to_owned(), RV::Object(RVObject::from_map(io_namespace)));
+    std.insert(
+        "json".to_owned(),
+        RV::Object(RVObject::from_map(json_namespace)),
+    );
+    std.insert(
+        "time".to_owned(),
+        RV::Object(RVObject::from_map(time_namespace)),
+    );
+    std.insert(
+        "io".to_owned(),
+        RV::Object(RVObject::from_map(io_namespace)),
+    );
     std.insert(
         "dtype".to_owned(),
         RV::Object(RVObject::from_map(dtype_namespace)),

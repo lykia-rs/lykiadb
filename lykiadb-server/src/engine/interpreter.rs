@@ -17,10 +17,10 @@ use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::{array::RVArray, object::RVObject};
-use crate::value::callable::{RVCallable, CallableKind, Function, Stateful};
+use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{RV, eval::eval_binary};
+use crate::value::{array::RVArray, object::RVObject};
 
 use std::fmt::Display;
 use std::sync::Arc;

@@ -37,8 +37,9 @@ mod test {
 
     use lykiadb_lang::ast::expr::Operation;
 
-    use crate::{
-        value::{RVArray, RVObject, eval::{RV, eval_binary}},
+    use crate::value::{
+        RVArray, RVObject,
+        eval::{RV, eval_binary},
     };
 
     #[test]

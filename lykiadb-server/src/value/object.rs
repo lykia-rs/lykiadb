@@ -1,10 +1,13 @@
 use rustc_hash::FxHashMap;
 
-use crate::{util::{Shared, alloc_shared}, value::RV};
+use crate::{
+    util::{Shared, alloc_shared},
+    value::RV,
+};
 
 #[derive(Debug, Clone)]
 pub struct RVObject {
-    inner: Shared<FxHashMap<String, RV>>
+    inner: Shared<FxHashMap<String, RV>>,
 }
 
 impl RVObject {
@@ -40,7 +43,13 @@ impl RVObject {
     }
 
     pub fn keys(&self) -> Box<dyn Iterator<Item = String> + '_> {
-        let keys = self.inner.read().unwrap().keys().cloned().collect::<Vec<_>>();
+        let keys = self
+            .inner
+            .read()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>();
         Box::new(keys.into_iter())
     }
 
