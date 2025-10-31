@@ -42,6 +42,7 @@ mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
     use crate::util::alloc_shared;
+    use crate::value::{RVArray, RVObject};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
@@ -76,7 +77,7 @@ mod tests {
 
         // Test array
         let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
-        let array_rv = RV::Array(alloc_shared(arr));
+        let array_rv = RV::Array(RVArray::from_vec(arr));
 
         assert_eq!(
             nt_json_encode(&mut interpreter, &[array_rv]).unwrap(),
@@ -87,7 +88,7 @@ mod tests {
         let mut map = FxHashMap::default();
         map.insert("key".to_string(), RV::Num(123.0));
         map.insert("msg".to_string(), RV::Str(Arc::new("value".to_string())));
-        let object_rv = RV::Object(alloc_shared(map));
+        let object_rv = RV::Object(RVObject::from_map(map));
 
         assert_eq!(
             nt_json_encode(&mut interpreter, &[object_rv]).unwrap(),
@@ -132,10 +133,9 @@ mod tests {
         .unwrap();
 
         if let RV::Array(arr) = array_result {
-            let arr = arr.read().unwrap();
             assert_eq!(arr.len(), 2);
-            assert_eq!(arr[0], RV::Num(1.0));
-            assert_eq!(arr[1], RV::Str(Arc::new("test".to_string())));
+            assert_eq!(arr.get(0), RV::Num(1.0));
+            assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
         } else {
             panic!("Expected array result");
         }
@@ -150,13 +150,9 @@ mod tests {
         .unwrap();
 
         if let RV::Object(obj) = object_result {
-            let obj = obj.read().unwrap();
             assert_eq!(obj.len(), 2);
-            assert_eq!(obj.get("key").unwrap(), &RV::Num(123.0));
-            assert_eq!(
-                obj.get("msg").unwrap(),
-                &RV::Str(Arc::new("value".to_string()))
-            );
+            assert_eq!(obj.get("key").unwrap(), RV::Num(123.0));
+            assert_eq!(obj.get("msg").unwrap(), RV::Str(Arc::new("value".to_string())));
         } else {
             panic!("Expected object result");
         }

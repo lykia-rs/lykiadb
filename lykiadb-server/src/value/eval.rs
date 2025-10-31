@@ -1,147 +1,5 @@
 use super::RV;
 use lykiadb_lang::ast::expr::Operation;
-use std::ops;
-use std::sync::Arc;
-
-impl PartialEq for RV {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
-            (RV::Undefined, RV::Undefined) => true,
-            //
-            (RV::Undefined, _) | (_, RV::Undefined) => false,
-            //
-            (RV::Str(a), RV::Str(b)) => a == b,
-            (RV::Num(a), RV::Num(b)) => a == b,
-            (RV::Bool(a), RV::Bool(b)) => a == b,
-            //
-            (RV::Str(_), RV::Num(b)) => self.eq_str_num(*b),
-            (RV::Num(a), RV::Str(_)) => other.eq_str_num(*a),
-            //
-            (RV::Str(_), RV::Bool(b)) => self.eq_any_bool(*b),
-            (RV::Bool(a), RV::Str(_)) => other.eq_any_bool(*a),
-            //
-            (RV::Num(_), RV::Bool(b)) => self.eq_any_bool(*b),
-            (RV::Bool(a), RV::Num(_)) => other.eq_any_bool(*a),
-            //
-            (RV::Datatype(a), RV::Datatype(b)) => a == b,
-            //
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd for RV {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (self, other) {
-            (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
-            (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
-            //
-            (RV::Undefined, _) | (_, RV::Undefined) => None,
-            //
-            (RV::Str(a), RV::Str(b)) => Some(a.cmp(b)),
-            (RV::Num(a), RV::Num(b)) => a.partial_cmp(b),
-            (RV::Bool(a), RV::Bool(b)) => a.partial_cmp(b),
-            //
-            (RV::Str(a), RV::Num(b)) => {
-                if let Ok(num) = a.parse::<f64>() {
-                    return num.partial_cmp(b);
-                }
-                None
-            }
-            (RV::Num(a), RV::Str(b)) => {
-                if let Ok(num) = b.parse::<f64>() {
-                    return a.partial_cmp(&num);
-                }
-                None
-            }
-            //
-            (RV::Str(_), RV::Bool(b)) => self.partial_cmp_str_bool(*b),
-            (RV::Bool(a), RV::Str(_)) => other.partial_cmp_str_bool(*a),
-            //
-            (RV::Num(num), RV::Bool(b)) => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
-            (RV::Bool(b), RV::Num(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
-            //
-            _ => None,
-        }
-    }
-}
-
-impl ops::Add for RV {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            //
-            (RV::Bool(_), RV::Bool(_)) | (RV::Num(_), RV::Bool(_)) | (RV::Bool(_), RV::Num(_)) => {
-                RV::Num(self.as_number().unwrap() + rhs.as_number().unwrap())
-            }
-
-            (RV::Num(l), RV::Num(r)) => RV::Num(l + r),
-            //
-            (RV::Str(l), RV::Str(r)) => RV::Str(Arc::new(l.to_string() + &r.to_string())),
-            //
-            (RV::Str(s), RV::Num(num)) => RV::Str(Arc::new(s.to_string() + &num.to_string())),
-            (RV::Num(num), RV::Str(s)) => RV::Str(Arc::new(num.to_string() + &s.to_string())),
-            //
-            (RV::Str(s), RV::Bool(bool)) => RV::Str(Arc::new(s.to_string() + &bool.to_string())),
-            (RV::Bool(bool), RV::Str(s)) => RV::Str(Arc::new(bool.to_string() + &s.to_string())),
-            //
-            (_, _) => RV::Undefined,
-        }
-    }
-}
-
-impl ops::Sub for RV {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| RV::Num(a - b))
-                .unwrap_or(RV::Undefined),
-        }
-    }
-}
-
-impl ops::Mul for RV {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| RV::Num(a * b))
-                .unwrap_or(RV::Undefined),
-        }
-    }
-}
-
-impl ops::Div for RV {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
-            (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| {
-                    if a == 0.0 && b == 0.0 {
-                        RV::Undefined
-                    } else {
-                        RV::Num(a / b)
-                    }
-                })
-                .unwrap_or(RV::Undefined),
-        }
-    }
-}
 
 #[inline(always)]
 pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
@@ -178,11 +36,9 @@ mod test {
     use std::sync::Arc;
 
     use lykiadb_lang::ast::expr::Operation;
-    use rustc_hash::FxHashMap;
 
     use crate::{
-        util::alloc_shared,
-        value::eval::{RV, eval_binary},
+        value::{RVArray, RVObject, eval::{RV, eval_binary}},
     };
 
     #[test]
@@ -200,8 +56,8 @@ mod test {
         assert!((RV::Str(Arc::new("false".to_owned()))).as_bool());
         assert!((RV::Str(Arc::new("true".to_owned()))).as_bool());
         assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
-        assert!((RV::Array(alloc_shared(vec![]))).as_bool());
-        assert!((RV::Object(alloc_shared(FxHashMap::default()))).as_bool());
+        assert!((RV::Array(RVArray::new())).as_bool());
+        assert!((RV::Object(RVObject::new())).as_bool());
     }
 
     #[test]
@@ -1213,6 +1069,8 @@ mod test {
 
 #[cfg(test)]
 mod property_tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::value::eval::eval_binary;
     use proptest::prelude::*;
@@ -1731,6 +1589,8 @@ mod property_tests {
 
 #[cfg(test)]
 mod regression_tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::value::eval::eval_binary;
 

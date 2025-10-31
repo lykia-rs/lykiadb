@@ -16,7 +16,8 @@ use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
-use crate::util::{Shared, alloc_shared};
+use crate::util::Shared;
+use crate::value::{RVArray, RVObject};
 use crate::value::callable::{Callable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{RV, eval::eval_binary};
@@ -252,11 +253,11 @@ impl Interpreter {
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.visit_expr(v).unwrap());
                 }
-                RV::Object(alloc_shared(new_map))
+                RV::Object(RVObject::from_map(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
-                RV::Array(alloc_shared(collected))
+                RV::Array(RVArray::from_vec(collected))
             }
         }
     }
@@ -435,9 +436,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             } => {
                 let object_eval = self.visit_expr(object)?;
                 if let RV::Object(map) = object_eval {
-                    let cloned = map.clone();
-                    let borrowed = cloned.read().unwrap();
-                    let v = borrowed.get(&name.name.clone());
+                    let v = map.get(&name.name.clone());
                     if let Some(v) = v {
                         return Ok(v.clone());
                     }
@@ -466,11 +465,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 ..
             } => {
                 let object_eval = self.visit_expr(object)?;
-                if let RV::Object(map) = object_eval {
+                if let RV::Object(mut map) = object_eval {
                     let evaluated = self.visit_expr(value)?;
-                    // TODO(vck): Set should really set the value
-                    let mut borrowed = map.write().unwrap();
-                    borrowed.insert(name.name.to_string(), evaluated.clone());
+                    map.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(

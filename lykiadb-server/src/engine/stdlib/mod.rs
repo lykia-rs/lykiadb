@@ -3,10 +3,9 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    util::{Shared, alloc_shared},
+    util::Shared,
     value::{
-        RV,
-        callable::{Callable, CallableKind, Function},
+        RV, RVObject, callable::{Callable, CallableKind, Function}
     },
 };
 
@@ -175,20 +174,20 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
         std.insert(
             "test_utils".to_owned(),
-            RV::Object(alloc_shared(test_namespace)),
+            RV::Object(RVObject::from_map(test_namespace)),
         );
     }
 
     std.insert(
         "Benchmark".to_owned(),
-        RV::Object(alloc_shared(benchmark_namespace)),
+        RV::Object(RVObject::from_map(benchmark_namespace)),
     );
-    std.insert("json".to_owned(), RV::Object(alloc_shared(json_namespace)));
-    std.insert("time".to_owned(), RV::Object(alloc_shared(time_namespace)));
-    std.insert("io".to_owned(), RV::Object(alloc_shared(io_namespace)));
+    std.insert("json".to_owned(), RV::Object(RVObject::from_map(json_namespace)));
+    std.insert("time".to_owned(), RV::Object(RVObject::from_map(time_namespace)));
+    std.insert("io".to_owned(), RV::Object(RVObject::from_map(io_namespace)));
     std.insert(
         "dtype".to_owned(),
-        RV::Object(alloc_shared(dtype_namespace)),
+        RV::Object(RVObject::from_map(dtype_namespace)),
     );
 
     std.insert(
