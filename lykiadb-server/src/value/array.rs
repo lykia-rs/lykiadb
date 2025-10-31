@@ -8,6 +8,12 @@ pub struct RVArray {
     inner: Shared<Vec<RV>>,
 }
 
+impl Default for RVArray {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RVArray {
     pub fn new() -> Self {
         RVArray {
@@ -46,8 +52,7 @@ impl RVArray {
             .inner
             .read()
             .unwrap()
-            .iter()
-            .map(|v| v.clone())
+            .iter().cloned()
             .collect::<Vec<_>>();
         Box::new(items.into_iter())
     }

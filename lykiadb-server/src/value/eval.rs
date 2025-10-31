@@ -1374,7 +1374,7 @@ mod property_tests {
             } else {
                 // If rv is falsy, specific falsy values should behave consistently
                 match rv {
-                    RV::Num(n) if n == 0.0 => {
+                    RV::Num(0.0) => {
                         let eq_false = eval_binary(RV::Num(0.0), RV::Bool(false), Operation::IsEqual);
                         prop_assert_eq!(eq_false, RV::Bool(true));
                     }

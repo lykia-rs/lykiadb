@@ -10,6 +10,12 @@ pub struct RVObject {
     inner: Shared<FxHashMap<String, RV>>,
 }
 
+impl Default for RVObject {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RVObject {
     pub fn new() -> Self {
         RVObject {
