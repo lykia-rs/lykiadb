@@ -17,8 +17,8 @@ use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::{RVArray, RVObject};
-use crate::value::callable::{Callable, CallableKind, Function, Stateful};
+use crate::value::{array::RVArray, object::RVObject};
+use crate::value::callable::{RVCallable, CallableKind, Function, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::{RV, eval::eval_binary};
 
@@ -371,7 +371,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 };
 
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
-                let callable = RV::Callable(Callable::new(
+                let callable = RV::Callable(RVCallable::new(
                     fun,
                     Datatype::Unit,
                     Datatype::Unit,

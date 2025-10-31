@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     util::Shared,
     value::{
-        RV, RVObject, callable::{Callable, CallableKind, Function}
+        RV, object::RVObject, callable::{RVCallable, CallableKind, Function}
     },
 };
 
@@ -36,7 +36,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     benchmark_namespace.insert(
         "fib".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda { function: nt_fib },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Num,
@@ -46,7 +46,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     json_namespace.insert(
         "stringify".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_json_encode,
             },
@@ -58,7 +58,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     json_namespace.insert(
         "parse".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_json_decode,
             },
@@ -71,7 +71,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     time_namespace.insert(
         "clock".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda { function: nt_clock },
             Datatype::Unit,
             Datatype::Num,
@@ -81,7 +81,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     io_namespace.insert(
         "print".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda { function: nt_print },
             Datatype::Unknown,
             Datatype::Unit,
@@ -91,7 +91,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert(
         "of_".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda { function: nt_of },
             Datatype::Unknown,
             Datatype::Datatype,
@@ -109,7 +109,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert(
         "array".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_array_of,
             },
@@ -121,7 +121,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert(
         "object".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_object_of,
             },
@@ -133,7 +133,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert(
         "callable".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_callable_of,
             },
@@ -145,7 +145,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert(
         "tuple".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_tuple_of,
             },
@@ -164,7 +164,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
         test_namespace.insert(
             "out".to_owned(),
-            RV::Callable(Callable::new(
+            RV::Callable(RVCallable::new(
                 Function::Stateful(out.unwrap().clone()),
                 Datatype::Unit,
                 Datatype::Unit,
@@ -192,7 +192,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     std.insert(
         "avg".to_owned(),
-        RV::Callable(Callable::new(
+        RV::Callable(RVCallable::new(
             Function::Lambda {
                 function: nt_tuple_of,
             },

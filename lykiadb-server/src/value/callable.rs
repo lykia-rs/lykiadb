@@ -16,21 +16,21 @@ pub enum CallableKind {
 }
 
 #[derive(Clone, Debug)]
-pub struct Callable {
+pub struct RVCallable {
     pub kind: CallableKind,
     pub function: Arc<Function>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
 
-impl Callable {
+impl RVCallable {
     pub fn new(
         function: Function,
         input_type: Datatype,
         return_type: Datatype,
         call_type: CallableKind,
     ) -> Self {
-        Callable {
+        RVCallable {
             function: Arc::new(function),
             parameter_types: input_type,
             return_type,

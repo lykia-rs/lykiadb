@@ -42,7 +42,7 @@ mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
     use crate::util::alloc_shared;
-    use crate::value::{RVArray, RVObject};
+    use crate::value::{array::RVArray, object::RVObject};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 

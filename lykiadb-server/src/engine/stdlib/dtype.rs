@@ -3,8 +3,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    util::Shared,
-    value::{RV, RVObject},
+    value::{RV, object::RVObject},
 };
 
 pub fn nt_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {

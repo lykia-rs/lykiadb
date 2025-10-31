@@ -5,14 +5,15 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::sync::Arc;
 use std::ops;
-
-use crate::util::Shared;
-use crate::util::alloc_shared;
-use callable::Callable;
+use callable::RVCallable;
+use array::RVArray;
+use object::RVObject;
 
 pub mod callable;
 pub mod environment;
 pub mod eval;
+pub mod array;
+pub mod object;
 
 #[derive(Debug, Clone)]
 pub enum RV {
@@ -21,119 +22,9 @@ pub enum RV {
     Bool(bool),
     Object(RVObject),
     Array(RVArray),
-    Callable(Callable),
+    Callable(RVCallable),
     Datatype(Datatype),
     Undefined,
-}
-
-#[derive(Debug, Clone)]
-pub struct RVObject {
-    inner: Shared<FxHashMap<String, RV>>
-}
-
-impl RVObject {
-    pub fn new() -> Self {
-        RVObject {
-            inner: alloc_shared(FxHashMap::default()),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.read().unwrap().is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.inner.read().unwrap().len()
-    }
-
-    pub fn get(&self, key: &str) -> Option<RV> {
-        let r = self.inner.read().unwrap();
-        if !r.contains_key(key) {
-            return None;
-        }
-        let cloned = r.get(key).unwrap().clone();
-        Some(cloned)
-    }
-
-    pub fn insert(&mut self, key: String, value: RV) {
-        self.inner.write().unwrap().insert(key, value);
-    }
-
-    pub fn contains_key(&self, key: &str) -> bool {
-        self.inner.read().unwrap().contains_key(key)
-    }
-
-    pub fn keys(&self) -> Box<dyn Iterator<Item = String> + '_> {
-        let keys = self.inner.read().unwrap().keys().cloned().collect::<Vec<_>>();
-        Box::new(keys.into_iter())
-    }
-
-    pub fn from_map(map: FxHashMap<String, RV>) -> Self {
-        RVObject {
-            inner: alloc_shared(map),
-        }
-    }
-
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, RV)> + '_> {
-        let items = self
-            .inner
-            .read()
-            .unwrap()
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect::<Vec<_>>();
-        Box::new(items.into_iter())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct RVArray {
-    inner: Shared<Vec<RV>>
-}
-
-impl RVArray {
-    pub fn new() -> Self {
-        RVArray {
-            inner: alloc_shared(Vec::new()),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.read().unwrap().is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.inner.read().unwrap().len()
-    }
-
-    pub fn get(&self, index: usize) -> RV {
-        self.inner.read().unwrap()[index].clone()
-    }
-
-    pub fn contains(&self, value: &RV) -> bool {
-        self.inner.read().unwrap().contains(value)
-    }
-
-    pub fn insert(&mut self, value: RV) {
-        self.inner.write().unwrap().push(value);
-    }
-
-    pub fn from_vec(vec: Vec<RV>) -> Self {
-        RVArray {
-            inner: alloc_shared(vec),
-        }
-    }
-
-    pub fn iter(&self) -> Box<dyn Iterator<Item = RV> + '_> {
-        let items = self
-            .inner
-            .read()
-            .unwrap()
-            .iter()
-            .map(|v| v.clone())
-            .collect::<Vec<_>>();
-        Box::new(items.into_iter())
-    }
 }
 
 impl From<RV> for Datatype {
