@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     engine::{
         error::ExecutionError,
@@ -29,15 +31,15 @@ pub enum InClause {
     JoinOn,
 }
 
-impl ToString for InClause {
-    fn to_string(&self) -> String {
+impl Display for InClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            InClause::Where => "WHERE".to_string(),
-            InClause::Projection => "SELECT".to_string(),
-            InClause::Having => "HAVING".to_string(),
-            InClause::GroupBy => "GROUP BY".to_string(),
-            InClause::OrderBy => "ORDER BY".to_string(),
-            InClause::JoinOn => "JOIN ON".to_string(),
+            InClause::Where => write!(f, "WHERE"),
+            InClause::Projection => write!(f, "SELECT"),
+            InClause::Having => write!(f, "HAVING"),
+            InClause::GroupBy => write!(f, "GROUP BY"),
+            InClause::OrderBy => write!(f, "ORDER BY"),
+            InClause::JoinOn => write!(f, "JOIN ON"),
         }
     }
 }
