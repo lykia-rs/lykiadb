@@ -14,6 +14,7 @@ pub mod callable;
 pub mod environment;
 pub mod eval;
 pub mod object;
+pub mod iterator;
 
 #[derive(Debug, Clone)]
 pub enum RV {

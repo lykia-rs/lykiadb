@@ -56,4 +56,8 @@ impl RVArray {
             .collect::<Vec<_>>();
         Box::new(items.into_iter())
     }
+
+    pub fn collect(&self) -> Vec<RV> {
+        self.inner.read().unwrap().iter().cloned().collect()
+    }
 }

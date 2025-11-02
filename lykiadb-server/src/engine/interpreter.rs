@@ -16,9 +16,11 @@ use string_interner::backend::StringBackend;
 use string_interner::symbol::SymbolU32;
 
 use crate::plan::planner::Planner;
+use crate::exec::PlanExecutor;
 use crate::util::Shared;
 use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
+use crate::value::iterator::IterationEnvironment;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 
@@ -114,6 +116,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: Arc<EnvironmentFrame>,
     root_env: Arc<EnvironmentFrame>,
+    iteration_environment: Option<IterationEnvironment>,
     current_program: Option<Arc<Program>>,
     //
     loop_stack: LoopStack,
@@ -142,6 +145,7 @@ impl Interpreter {
             current_program: None,
             output: out,
             interner,
+            iteration_environment: None,
         }
     }
 
@@ -187,7 +191,22 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
+    pub fn set_iteration_environment(&mut self, env: Option<IterationEnvironment>) {
+        self.iteration_environment = env;
+    }
+
+    pub fn clear_iteration_environment(&mut self) {
+        self.iteration_environment = None;
+    }
+
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+        if self.iteration_environment.is_some() {
+            let iter_env = self.iteration_environment.as_ref().unwrap();
+            if let Some(val) = iter_env.get(name) {
+                return Ok(val.clone());
+            }
+        }
+
         let distance = self
             .current_program
             .as_ref()
@@ -491,6 +510,19 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .unwrap()
                         .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
+                let result = PlanExecutor::new(self).execute_plan(plan);
+                if let Err(e) = result {
+                    return Err(HaltReason::Error(e));
+                }
+                let cursor = result.ok().unwrap();
+                let intermediate = cursor.map(|env| {
+                    let mut row: FxHashMap<String, RV> = FxHashMap::default();
+                    for (key, value) in env.inner.iter() {
+                        row.insert(key.clone(), value.clone());
+                    }
+                    RV::Object(RVObject::from_map(row))
+                }).collect::<Vec<RV>>();
+                println!("Intermediate execution result: {:?}", intermediate);
                 Ok(RV::Undefined)
             }
         }
