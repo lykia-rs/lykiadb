@@ -1,18 +1,16 @@
-use std::sync::Arc;
-
+use interb::Symbol;
 use lykiadb_lang::ast::sql::SqlProjection;
 use rustc_hash::FxHashMap;
 
-use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator, RVs}, object::RVObject}};
+use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator, RVs}, object::RVObject}};
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
-    t: Arc<String>,
 }
 
 impl<'a> PlanExecutor<'a> {
     pub fn new(interpreter: &'a mut Interpreter) -> PlanExecutor<'a> {
-        PlanExecutor { interpreter, t: Arc::new(String::new()) }
+        PlanExecutor { interpreter }
     }
 
     pub fn execute_plan(&mut self, plan: Plan) -> Result<RVs, ExecutionError> {
@@ -26,43 +24,44 @@ impl<'a> PlanExecutor<'a> {
     }
 
     pub fn execute_node(&mut self, node: Node) -> Result<RVs, ExecutionError> {
-        // Placeholder for node execution logic
         match node {
             Node::Projection { source, fields } => {
                 let cursor = self.execute_node(*source)?;
 
-                let eval = self.t.clone();
+                let mut inter_fork = self.interpreter.clone();
 
                 let iter = cursor.map(move |env: IterationEnvironment| {
-                    let mut row: FxHashMap<String, RV> = FxHashMap::default();
+                    let mut row: FxHashMap<Symbol, RV> = FxHashMap::default();
 
                     for field in &fields {
                         match field {
                             SqlProjection::All { collection } => {
                                 if collection.is_none() {
-                                    // Select all fields from the environment
-                                    &env.spread_to(&mut row);
+                                    env.spread_to(&mut row);
                                 } else {
                                     let projected_key = collection.as_ref().unwrap().to_string();
-                                    let value = &env.get(&projected_key);
-                                    row.insert(projected_key, value.unwrap().clone());
+                                    let interned_key = GLOBAL_INTERNER.intern(&projected_key);
+                                    let value = &env.get(&interned_key);
+                                    row.insert(interned_key, value.unwrap().clone());
                                 }
                             },
                             SqlProjection::Expr { expr, alias } => {
-                                /*self.interpreter.set_iteration_environment(Some(env.clone()));
-                                let evaluated = self.interpreter.eval(&expr);
-                                self.interpreter.clear_iteration_environment();
+                                inter_fork.set_iter_env(Some(env.clone()));
+                                let evaluated = inter_fork.eval(&expr);
+                                inter_fork.clear_iter_env();
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
                                 };
                                 let key = alias.as_ref().unwrap().to_string();
-                                row.insert(key, value);*/
-                                println!("Eval placeholder used {}", eval);
+                                row.insert(GLOBAL_INTERNER.intern(&key), value);
                             }
                         }
                     }
-                    IterationEnvironment::new(vec!["0".to_owned()], vec![RV::Object(RVObject::from_map(row))])
+
+                    // TODO(vck): The following is terrible, fix it.
+                    let pairs = row.iter().map(|(k, v)| (GLOBAL_INTERNER.resolve(*k).unwrap().to_string(), v.clone())).collect::<Vec<(String, RV)>>();
+                    IterationEnvironment::new(vec![GLOBAL_INTERNER.intern("0")], vec![RV::Object(RVObject::from_map(FxHashMap::from_iter(pairs.into_iter())))])
                 });
 
                 Ok(Box::from(iter))
@@ -82,7 +81,7 @@ impl<'a> PlanExecutor<'a> {
                 let value = evaluated.unwrap();
 
                 let mapper = move |v: RV| IterationEnvironment::new(
-                    vec![alias.to_string()],
+                    vec![GLOBAL_INTERNER.intern(&alias.to_string())],
                     vec![v.clone()]
                 );
 

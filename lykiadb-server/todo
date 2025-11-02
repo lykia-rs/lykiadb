@@ -1,6 +1,7 @@
 # generic
 - Test builders/factories
 - Error codes
+- Replace the current str interner (use a trait)
 
 # planning
 - Select
@@ -35,3 +36,5 @@
 - Map subquery expressions to selects
     - Expr tree nodes are used to represent subqueries
 - get('alias') from the environment??
+- Find a better solution for inter_fork
+- Add interning for strings in the executor

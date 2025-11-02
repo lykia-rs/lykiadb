@@ -41,6 +41,7 @@ pub enum LoopState {
     Function,
 }
 
+#[derive(Clone)]
 struct LoopStack {
     ongoing_loops: Vec<LoopState>,
 }
@@ -112,6 +113,7 @@ impl LoopStack {
     }
 }
 
+#[derive(Clone)]
 pub struct Interpreter {
     env: Arc<EnvironmentFrame>,
     root_env: Arc<EnvironmentFrame>,
@@ -199,7 +201,7 @@ impl Interpreter {
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         if self.iter_env.is_some() {
             let iter_env = self.iter_env.as_ref().unwrap();
-            if let Some(val) = iter_env.get(name) {
+            if let Some(val) = iter_env.get(&self.intern_string(name)) {
                 return Ok(val.clone());
             }
         }
@@ -442,12 +444,43 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
-            Expr::FieldPath { .. } => Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: "Unexpected field path expression".to_string(),
+            Expr::FieldPath { head, tail, span, id } => {
+                let root = self.look_up_variable(&head.name, e);
+
+                if tail.is_empty() {
+                    return root;
                 }
-                .into(),
-            )),
+
+                let mut current = root?;
+
+                for field in tail {
+                    if let RV::Object(map) = current {
+                        let v = map.get(&field.name);
+                        if let Some(v) = v {
+                            current = v;
+                        } else {
+                            return Err(HaltReason::Error(
+                                InterpretError::PropertyNotFound {
+                                    span: *span,
+                                    property: field.name.to_string(),
+                                }
+                                .into(),
+                            ));
+                        }
+                    } else {
+                        return Err(HaltReason::Error(
+                            InterpretError::Other {
+                                message: format!(
+                                    "Only objects have properties. {current:?} is not an object"
+                                ),
+                            }
+                            .into(),
+                        ));
+                    }
+                };
+
+                Ok(current)
+            },
             Expr::Get {
                 object, name, span, ..
             } => {
@@ -516,7 +549,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let intermediate = cursor.map(|env| {
                     let mut row: FxHashMap<String, RV> = FxHashMap::default();
                     for (key, value) in env.inner.iter() {
-                        row.insert(key.clone(), value.clone());
+                        row.insert(GLOBAL_INTERNER.resolve(*key).unwrap().to_string(), value.clone());
                     }
                     RV::Object(RVObject::from_map(row))
                 }).collect::<Vec<RV>>();
