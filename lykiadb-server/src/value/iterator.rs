@@ -1,8 +1,15 @@
+use dyn_clone::DynClone;
 use rustc_hash::FxHashMap;
 
 use crate::value::RV;
 
-pub type RVIterator = Box<dyn Iterator<Item = IterationEnvironment>>;
+pub type RVs = Box<dyn RVIterator>;
+
+pub trait RVIterator: Iterator<Item = IterationEnvironment> + DynClone {}
+
+dyn_clone::clone_trait_object!(RVIterator);
+
+impl<I: Iterator<Item = IterationEnvironment> + DynClone> RVIterator for I {}
 
 #[derive(Debug, Clone)]
 pub struct IterationEnvironment {

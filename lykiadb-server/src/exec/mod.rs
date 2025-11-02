@@ -1,7 +1,7 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 use rustc_hash::FxHashMap;
 
-use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator}, object::RVObject}};
+use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator, RVs}, object::RVObject}};
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
@@ -12,7 +12,7 @@ impl<'a> PlanExecutor<'a> {
         PlanExecutor { interpreter }
     }
 
-    pub fn execute_plan(&mut self, plan: Plan) -> Result<RVIterator, ExecutionError> {
+    pub fn execute_plan(&mut self, plan: Plan) -> Result<RVs, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
             Plan::Select(root) => {
@@ -22,7 +22,7 @@ impl<'a> PlanExecutor<'a> {
         }
     }
 
-    pub fn execute_node(&mut self, node: Node) -> Result<RVIterator, ExecutionError> {
+    pub fn execute_node(&mut self, node: Node) -> Result<RVs, ExecutionError> {
         // Placeholder for node execution logic
         match node {
             Node::Projection { source, fields } => {
