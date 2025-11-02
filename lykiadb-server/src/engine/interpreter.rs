@@ -7,7 +7,7 @@ use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
-use lykiadb_lang::{LangError, SourceProcessor};
+use lykiadb_lang::LangError;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -116,13 +116,12 @@ impl LoopStack {
 pub struct Interpreter {
     env: Arc<EnvironmentFrame>,
     root_env: Arc<EnvironmentFrame>,
-    iteration_environment: Option<IterationEnvironment>,
-    current_program: Option<Arc<Program>>,
+    iter_env: Option<IterationEnvironment>,
     //
-    loop_stack: LoopStack,
-    source_processor: SourceProcessor,
+    program: Option<Arc<Program>>,
     output: Option<Shared<Output>>,
     //
+    loop_stack: LoopStack,
     interner: StringInterner<StringBackend<SymbolU32>>,
 }
 
@@ -141,11 +140,10 @@ impl Interpreter {
             env: root_env.clone(),
             root_env,
             loop_stack: LoopStack::new(),
-            source_processor: SourceProcessor::new(),
-            current_program: None,
+            program: None,
             output: out,
             interner,
-            iteration_environment: None,
+            iter_env: None,
         }
     }
 
@@ -153,9 +151,8 @@ impl Interpreter {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let program = Arc::from(self.source_processor.process(source)?);
-        self.current_program = Some(program.clone());
+    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, ExecutionError> {
+        self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
         if let Ok(val) = out {
             Ok(val)
@@ -191,24 +188,24 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_iteration_environment(&mut self, env: Option<IterationEnvironment>) {
-        self.iteration_environment = env;
+    pub fn set_iter_env(&mut self, env: Option<IterationEnvironment>) {
+        self.iter_env = env;
     }
 
-    pub fn clear_iteration_environment(&mut self) {
-        self.iteration_environment = None;
+    pub fn clear_iter_env(&mut self) {
+        self.iter_env = None;
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        if self.iteration_environment.is_some() {
-            let iter_env = self.iteration_environment.as_ref().unwrap();
+        if self.iter_env.is_some() {
+            let iter_env = self.iter_env.as_ref().unwrap();
             if let Some(val) = iter_env.get(name) {
                 return Ok(val.clone());
             }
         }
 
         let distance = self
-            .current_program
+            .program
             .as_ref()
             .and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
@@ -314,7 +311,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.as_ref().unwrap().get_distance(e);
+                let distance = self.program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let result = if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(

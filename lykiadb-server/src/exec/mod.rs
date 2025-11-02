@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use lykiadb_lang::ast::sql::SqlProjection;
 use rustc_hash::FxHashMap;
 
@@ -5,11 +7,12 @@ use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interprete
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
+    t: Arc<String>,
 }
 
 impl<'a> PlanExecutor<'a> {
     pub fn new(interpreter: &'a mut Interpreter) -> PlanExecutor<'a> {
-        PlanExecutor { interpreter }
+        PlanExecutor { interpreter, t: Arc::new(String::new()) }
     }
 
     pub fn execute_plan(&mut self, plan: Plan) -> Result<RVs, ExecutionError> {
@@ -28,6 +31,8 @@ impl<'a> PlanExecutor<'a> {
             Node::Projection { source, fields } => {
                 let cursor = self.execute_node(*source)?;
 
+                let eval = self.t.clone();
+
                 let iter = cursor.map(move |env: IterationEnvironment| {
                     let mut row: FxHashMap<String, RV> = FxHashMap::default();
 
@@ -44,7 +49,7 @@ impl<'a> PlanExecutor<'a> {
                                 }
                             },
                             SqlProjection::Expr { expr, alias } => {
-                                self.interpreter.set_iteration_environment(Some(env.clone()));
+                                /*self.interpreter.set_iteration_environment(Some(env.clone()));
                                 let evaluated = self.interpreter.eval(&expr);
                                 self.interpreter.clear_iteration_environment();
                                 let value = match evaluated {
@@ -52,7 +57,8 @@ impl<'a> PlanExecutor<'a> {
                                     Err(_) => RV::Undefined,
                                 };
                                 let key = alias.as_ref().unwrap().to_string();
-                                row.insert(key, value);
+                                row.insert(key, value);*/
+                                println!("Eval placeholder used {}", eval);
                             }
                         }
                     }

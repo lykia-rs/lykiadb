@@ -7,6 +7,7 @@ use crate::{
 };
 use interpreter::{Interpreter, Output};
 use lykiadb_common::testing::TestHandler;
+use lykiadb_lang::SourceProcessor;
 use tracing::info;
 
 pub mod error;
@@ -15,6 +16,7 @@ mod stdlib;
 
 pub struct Runtime {
     mode: RuntimeMode,
+    source_processor: SourceProcessor,
     interpreter: Interpreter,
 }
 
@@ -26,11 +28,12 @@ pub enum RuntimeMode {
 
 impl Runtime {
     pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
-        Runtime { mode, interpreter }
+        Runtime { mode, interpreter, source_processor: SourceProcessor::new() }
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let out = self.interpreter.interpret(source);
+        let program = Arc::from(self.source_processor.process(source)?);
+        let out = self.interpreter.interpret(program);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);
