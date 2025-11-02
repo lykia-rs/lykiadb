@@ -145,6 +145,17 @@ impl Interpreter {
         }
     }
 
+    pub fn eval_with_iter(
+        &mut self,
+        e: &Expr,
+        iter: &IterationEnvironment,
+    ) -> Result<RV, HaltReason> {
+        self.set_iter_env(Some(iter.clone()));
+        let evaluated = self.visit_expr(e);
+        self.clear_iter_env();
+        evaluated
+    }
+
     pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         self.visit_expr(e)
     }

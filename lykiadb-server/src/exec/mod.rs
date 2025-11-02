@@ -46,9 +46,7 @@ impl<'a> PlanExecutor<'a> {
                                 }
                             },
                             SqlProjection::Expr { expr, alias } => {
-                                inter_fork.set_iter_env(Some(env.clone()));
-                                let evaluated = inter_fork.eval(&expr);
-                                inter_fork.clear_iter_env();
+                                let evaluated = inter_fork.eval_with_iter(&expr, &env);
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
