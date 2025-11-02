@@ -11,10 +11,9 @@ use lykiadb_lang::LangError;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use string_interner::StringInterner;
-use string_interner::backend::StringBackend;
-use string_interner::symbol::SymbolU32;
 
+use crate::global::GLOBAL_INTERNER;
+use interb::Symbol;
 use crate::plan::planner::Planner;
 use crate::exec::PlanExecutor;
 use crate::util::Shared;
@@ -122,18 +121,16 @@ pub struct Interpreter {
     output: Option<Shared<Output>>,
     //
     loop_stack: LoopStack,
-    interner: StringInterner<StringBackend<SymbolU32>>,
 }
 
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
         let root_env = Arc::new(EnvironmentFrame::new(None));
-        let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
             let native_fns = stdlib(out.clone());
 
             for (name, value) in native_fns {
-                root_env.define(interner.get_or_intern(name), value);
+                root_env.define(GLOBAL_INTERNER.intern(&name), value);
             }
         }
         Interpreter {
@@ -142,7 +139,6 @@ impl Interpreter {
             loop_stack: LoopStack::new(),
             program: None,
             output: out,
-            interner,
             iter_env: None,
         }
     }
@@ -196,6 +192,10 @@ impl Interpreter {
         self.iter_env = None;
     }
 
+    fn intern_string(&self, string: &str) -> Symbol {
+        GLOBAL_INTERNER.intern(string)
+    }
+
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
         if self.iter_env.is_some() {
             let iter_env = self.iter_env.as_ref().unwrap();
@@ -213,10 +213,10 @@ impl Interpreter {
                 &self.env,
                 unwrapped,
                 name,
-                &self.interner.get_or_intern(name),
+                &self.intern_string(name),
             )
         } else {
-            self.root_env.read(name, &self.interner.get_or_intern(name))
+            self.root_env.read(name, &self.intern_string(name))
         }
     }
 
@@ -224,7 +224,7 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         closure: Arc<EnvironmentFrame>,
-        parameters: &[SymbolU32],
+        parameters: &[Symbol],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
@@ -313,18 +313,19 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Expr::Assignment { dst, expr, .. } => {
                 let distance = self.program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
+                let dst_symbol = self.intern_string(&dst.name);
                 let result = if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
                         &self.env,
                         distance_unv,
                         &dst.name,
-                        self.interner.get_or_intern(&dst.name),
+                        dst_symbol,
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env.assign(
                         &dst.name,
-                        self.interner.get_or_intern(&dst.name),
+                        dst_symbol,
                         evaluated.clone(),
                     )
                 };
@@ -376,11 +377,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 let param_identifiers = parameters
                     .iter()
-                    .map(|(x, _)| self.interner.get_or_intern(&x.name))
+                    .map(|(x, _)| self.intern_string(&x.name))
                     .collect();
 
                 let fun = Function::UserDefined {
-                    name: self.interner.get_or_intern(fn_name),
+                    name: self.intern_string(fn_name),
                     body: Arc::clone(body),
                     parameters: param_identifiers,
                     closure: self.env.clone(),
@@ -397,7 +398,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
                     self.env.define(
-                        self.interner.get_or_intern(&name.as_ref().unwrap().name),
+                        self.intern_string(&name.as_ref().unwrap().name),
                         callable.clone(),
                     );
                 }
@@ -542,7 +543,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
                 self.env
-                    .define(self.interner.get_or_intern(&dst.name), evaluated);
+                    .define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(

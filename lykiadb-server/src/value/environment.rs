@@ -1,14 +1,14 @@
 use crate::engine::{error::ExecutionError, interpreter::HaltReason};
+use interb::Symbol;
 use lykiadb_common::error::StandardError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
-use string_interner::symbol::SymbolU32;
 
 use super::RV;
 #[derive(Debug)]
 pub struct EnvironmentFrame {
-    map: RwLock<FxHashMap<SymbolU32, RV>>,
+    map: RwLock<FxHashMap<Symbol, RV>>,
     pub parent: Option<Arc<EnvironmentFrame>>,
 }
 
@@ -30,11 +30,11 @@ impl EnvironmentFrame {
         }
     }
 
-    pub fn define(&self, name: SymbolU32, value: RV) {
+    pub fn define(&self, name: Symbol, value: RV) {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(&self, key: &str, key_sym: SymbolU32, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV) -> Result<bool, HaltReason> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
@@ -55,7 +55,7 @@ impl EnvironmentFrame {
         env: &Arc<EnvironmentFrame>,
         distance: usize,
         key: &str,
-        key_sym: SymbolU32,
+        key_sym: Symbol,
         value: RV,
     ) -> Result<bool, HaltReason> {
         if distance == 0 {
@@ -67,7 +67,7 @@ impl EnvironmentFrame {
         to_ancestor!(env, distance).assign(key, key_sym, value)
     }
 
-    pub fn read(&self, key: &str, key_sym: &SymbolU32) -> Result<RV, HaltReason> {
+    pub fn read(&self, key: &str, key_sym: &Symbol) -> Result<RV, HaltReason> {
         let guard = self.map.read().unwrap();
         if let Some(value) = guard.get(key_sym) {
             // TODO(vck): Remove clone
@@ -88,7 +88,7 @@ impl EnvironmentFrame {
         env: &Arc<EnvironmentFrame>,
         distance: usize,
         key: &str,
-        key_sym: &SymbolU32,
+        key_sym: &Symbol,
     ) -> Result<RV, HaltReason> {
         if distance == 0 {
             return env.read(key, key_sym);
@@ -148,22 +148,15 @@ impl From<EnvironmentError> for StandardError {
 mod test {
     use std::sync::Arc;
 
-    use string_interner::{StringInterner, backend::StringBackend, symbol::SymbolU32};
-
-    use crate::value::RV;
-
-    fn get_interner() -> StringInterner<StringBackend<SymbolU32>> {
-        StringInterner::<StringBackend<SymbolU32>>::new()
-    }
+    use crate::{global::GLOBAL_INTERNER, value::RV};
 
     #[test]
     fn test_read_basic() {
         let env_man = super::EnvironmentFrame::new(None);
-        let mut interner = get_interner();
-        env_man.define(interner.get_or_intern("five"), RV::Num(5.0));
+        env_man.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
         assert_eq!(
             env_man
-                .read("five", &interner.get_or_intern("five"))
+                .read("five", &GLOBAL_INTERNER.intern("five"))
                 .unwrap(),
             RV::Num(5.0)
         );
@@ -172,11 +165,10 @@ mod test {
     #[test]
     fn test_read_from_parent() {
         let root = super::EnvironmentFrame::new(None);
-        let mut interner = get_interner();
-        root.define(interner.get_or_intern("five"), RV::Num(5.0));
+        root.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
         let child = super::EnvironmentFrame::new(Some(Arc::new(root)));
         assert_eq!(
-            child.read("five", &interner.get_or_intern("five")).unwrap(),
+            child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
             RV::Num(5.0)
         );
     }
@@ -184,23 +176,22 @@ mod test {
     #[test]
     fn test_write_to_parent() {
         let root = Arc::new(super::EnvironmentFrame::new(None));
-        let mut interner = get_interner();
 
-        root.define(interner.get_or_intern("five"), RV::Num(5.0));
+        root.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
 
         let child = super::EnvironmentFrame::new(Some(root.clone()));
 
         child
-            .assign("five", interner.get_or_intern("five"), RV::Num(5.1))
+            .assign("five", GLOBAL_INTERNER.intern("five"), RV::Num(5.1))
             .unwrap();
 
         assert_eq!(
-            root.read("five", &interner.get_or_intern("five")).unwrap(),
+            root.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
             RV::Num(5.1)
         );
 
         assert_eq!(
-            child.read("five", &interner.get_or_intern("five")).unwrap(),
+            child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
             RV::Num(5.1)
         );
     }
@@ -208,16 +199,14 @@ mod test {
     #[test]
     fn test_read_undefined_variable() {
         let env = super::EnvironmentFrame::new(None);
-        let mut interner = get_interner();
-        assert!(env.read("five", &interner.get_or_intern("five")).is_err());
+        assert!(env.read("five", &GLOBAL_INTERNER.intern("five")).is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
         let env = super::EnvironmentFrame::new(None);
-        let mut interner = get_interner();
         assert!(
-            env.assign("five", interner.get_or_intern("five"), RV::Num(5.0))
+            env.assign("five", GLOBAL_INTERNER.intern("five"), RV::Num(5.0))
                 .is_err()
         );
     }

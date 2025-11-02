@@ -4,10 +4,10 @@ use crate::{
     engine::interpreter::{HaltReason, Interpreter},
     util::Shared,
 };
+use interb::Symbol;
 use lykiadb_lang::{ast::stmt::Stmt, types::Datatype};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
-use string_interner::symbol::SymbolU32;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CallableKind {
@@ -63,8 +63,8 @@ pub enum Function {
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
-        name: SymbolU32,
-        parameters: Vec<SymbolU32>,
+        name: Symbol,
+        parameters: Vec<Symbol>,
         closure: Arc<EnvironmentFrame>,
         body: Arc<Vec<Stmt>>,
     },
