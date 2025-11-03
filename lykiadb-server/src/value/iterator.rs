@@ -1,6 +1,7 @@
 use dyn_clone::DynClone;
 use interb::Symbol;
 use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 
 use crate::value::RV;
 
@@ -40,13 +41,13 @@ impl IterationEnvironment {
 // IterationEnvironment but with key index based matching without a map
 #[derive(Debug, Clone)]
 pub struct IterationEnvironment {
-    pub keys: Vec<Symbol>,
-    pub values: Vec<RV>,
+    pub keys: SmallVec<[Symbol; 4]>,
+    pub values: SmallVec<[RV; 4]>
 }
 
 impl IterationEnvironment {
-    pub fn new(keys: Vec<Symbol>, values: Vec<RV>) -> Self {
-        IterationEnvironment { keys, values }
+    pub fn new() -> Self {
+        IterationEnvironment { keys: SmallVec::new(), values: SmallVec::new() }
     }
 
     pub fn get(&self, key: &Symbol) -> Option<&RV> {

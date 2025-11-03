@@ -32,7 +32,7 @@ impl<'a> PlanExecutor<'a> {
                 let mut inter_fork = self.interpreter.clone();
 
                 let iter = cursor.map(move |downstream: IterationEnvironment| {
-                    let mut upstream = IterationEnvironment::new(vec![], vec![]);
+                    let mut upstream = IterationEnvironment::new();
 
                     for field in &fields {
                         match field {
@@ -81,10 +81,12 @@ impl<'a> PlanExecutor<'a> {
                 let value = evaluated.unwrap();
 
                 let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
-                let mapper = move |v: RV| IterationEnvironment::new(
-                    vec![sym_alias.clone()],
-                    vec![v.clone()]
-                );
+
+                let mapper = move |v: RV| {
+                    let mut env = IterationEnvironment::new();
+                    env.insert(sym_alias.clone(), v.clone());
+                    env
+                };
 
                 let iter = match value {
                     RV::Array(arr) => {
