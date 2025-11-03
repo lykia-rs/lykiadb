@@ -7,18 +7,19 @@ use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
-use lykiadb_lang::{LangError, SourceProcessor};
+use lykiadb_lang::LangError;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use string_interner::StringInterner;
-use string_interner::backend::StringBackend;
-use string_interner::symbol::SymbolU32;
 
+use crate::global::GLOBAL_INTERNER;
+use interb::Symbol;
 use crate::plan::planner::Planner;
+use crate::exec::PlanExecutor;
 use crate::util::Shared;
 use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
+use crate::value::iterator::IterationEnvironment;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 
@@ -40,6 +41,7 @@ pub enum LoopState {
     Function,
 }
 
+#[derive(Clone)]
 struct LoopStack {
     ongoing_loops: Vec<LoopState>,
 }
@@ -111,47 +113,55 @@ impl LoopStack {
     }
 }
 
+#[derive(Clone)]
 pub struct Interpreter {
     env: Arc<EnvironmentFrame>,
     root_env: Arc<EnvironmentFrame>,
-    current_program: Option<Arc<Program>>,
+    iter_env: Option<IterationEnvironment>,
     //
-    loop_stack: LoopStack,
-    source_processor: SourceProcessor,
+    program: Option<Arc<Program>>,
     output: Option<Shared<Output>>,
     //
-    interner: StringInterner<StringBackend<SymbolU32>>,
+    loop_stack: LoopStack,
 }
 
 impl Interpreter {
     pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
         let root_env = Arc::new(EnvironmentFrame::new(None));
-        let mut interner = StringInterner::<StringBackend<SymbolU32>>::new();
         if with_stdlib {
             let native_fns = stdlib(out.clone());
 
             for (name, value) in native_fns {
-                root_env.define(interner.get_or_intern(name), value);
+                root_env.define(GLOBAL_INTERNER.intern(&name), value);
             }
         }
         Interpreter {
             env: root_env.clone(),
             root_env,
             loop_stack: LoopStack::new(),
-            source_processor: SourceProcessor::new(),
-            current_program: None,
+            program: None,
             output: out,
-            interner,
+            iter_env: None,
         }
+    }
+
+    pub fn eval_with_iter(
+        &mut self,
+        e: &Expr,
+        iter: &IterationEnvironment,
+    ) -> Result<RV, HaltReason> {
+        self.set_iter_env(Some(iter.clone()));
+        let evaluated = self.visit_expr(e);
+        self.clear_iter_env();
+        evaluated
     }
 
     pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
-        let program = Arc::from(self.source_processor.process(source)?);
-        self.current_program = Some(program.clone());
+    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, ExecutionError> {
+        self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
         if let Ok(val) = out {
             Ok(val)
@@ -187,9 +197,28 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
+    pub fn set_iter_env(&mut self, env: Option<IterationEnvironment>) {
+        self.iter_env = env;
+    }
+
+    pub fn clear_iter_env(&mut self) {
+        self.iter_env = None;
+    }
+
+    fn intern_string(&self, string: &str) -> Symbol {
+        GLOBAL_INTERNER.intern(string)
+    }
+
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+        if self.iter_env.is_some() {
+            let iter_env = self.iter_env.as_ref().unwrap();
+            if let Some(val) = iter_env.get(&self.intern_string(name)) {
+                return Ok(val.clone());
+            }
+        }
+
         let distance = self
-            .current_program
+            .program
             .as_ref()
             .and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
@@ -197,10 +226,10 @@ impl Interpreter {
                 &self.env,
                 unwrapped,
                 name,
-                &self.interner.get_or_intern(name),
+                &self.intern_string(name),
             )
         } else {
-            self.root_env.read(name, &self.interner.get_or_intern(name))
+            self.root_env.read(name, &self.intern_string(name))
         }
     }
 
@@ -208,7 +237,7 @@ impl Interpreter {
         &mut self,
         statements: &Vec<Stmt>,
         closure: Arc<EnvironmentFrame>,
-        parameters: &[SymbolU32],
+        parameters: &[Symbol],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
@@ -295,20 +324,21 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.current_program.as_ref().unwrap().get_distance(e);
+                let distance = self.program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
+                let dst_symbol = self.intern_string(&dst.name);
                 let result = if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
                         &self.env,
                         distance_unv,
                         &dst.name,
-                        self.interner.get_or_intern(&dst.name),
+                        dst_symbol,
                         evaluated.clone(),
                     )
                 } else {
                     self.root_env.assign(
                         &dst.name,
-                        self.interner.get_or_intern(&dst.name),
+                        dst_symbol,
                         evaluated.clone(),
                     )
                 };
@@ -360,11 +390,11 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 let param_identifiers = parameters
                     .iter()
-                    .map(|(x, _)| self.interner.get_or_intern(&x.name))
+                    .map(|(x, _)| self.intern_string(&x.name))
                     .collect();
 
                 let fun = Function::UserDefined {
-                    name: self.interner.get_or_intern(fn_name),
+                    name: self.intern_string(fn_name),
                     body: Arc::clone(body),
                     parameters: param_identifiers,
                     closure: self.env.clone(),
@@ -381,7 +411,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
                     self.env.define(
-                        self.interner.get_or_intern(&name.as_ref().unwrap().name),
+                        self.intern_string(&name.as_ref().unwrap().name),
                         callable.clone(),
                     );
                 }
@@ -425,12 +455,43 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
-            Expr::FieldPath { .. } => Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: "Unexpected field path expression".to_string(),
+            Expr::FieldPath { head, tail, span, id } => {
+                let root = self.look_up_variable(&head.name, e);
+
+                if tail.is_empty() {
+                    return root;
                 }
-                .into(),
-            )),
+
+                let mut current = root?;
+
+                for field in tail {
+                    if let RV::Object(map) = current {
+                        let v = map.get(&field.name);
+                        if let Some(v) = v {
+                            current = v;
+                        } else {
+                            return Err(HaltReason::Error(
+                                InterpretError::PropertyNotFound {
+                                    span: *span,
+                                    property: field.name.to_string(),
+                                }
+                                .into(),
+                            ));
+                        }
+                    } else {
+                        return Err(HaltReason::Error(
+                            InterpretError::Other {
+                                message: format!(
+                                    "Only objects have properties. {current:?} is not an object"
+                                ),
+                            }
+                            .into(),
+                        ));
+                    }
+                };
+
+                Ok(current)
+            },
             Expr::Get {
                 object, name, span, ..
             } => {
@@ -491,6 +552,19 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .unwrap()
                         .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
+                let result = PlanExecutor::new(self).execute_plan(plan);
+                if let Err(e) = result {
+                    return Err(HaltReason::Error(e));
+                }
+                let cursor = result.ok().unwrap();
+                let intermediate = cursor.map(|env| {
+                    let mut row: FxHashMap<String, RV> = FxHashMap::default();
+                    for (key, value) in env.inner.iter() {
+                        row.insert(GLOBAL_INTERNER.resolve(*key).unwrap().to_string(), value.clone());
+                    }
+                    RV::Object(RVObject::from_map(row))
+                }).collect::<Vec<RV>>();
+                println!("Intermediate execution result: {:?}", intermediate);
                 Ok(RV::Undefined)
             }
         }
@@ -513,7 +587,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
                 self.env
-                    .define(self.interner.get_or_intern(&dst.name), evaluated);
+                    .define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(

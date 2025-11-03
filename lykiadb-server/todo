@@ -1,6 +1,7 @@
 # generic
 - Test builders/factories
 - Error codes
+- Replace the current str interner (use a trait)
 
 # planning
 - Select
@@ -15,6 +16,7 @@
 - Scope building
 - Scope merging
 - Output fields should be tracked and managed
+- Aggregations should be matched with expressions
 
 # planning.expressions
 - Environment presence check
@@ -25,9 +27,14 @@
 - Order by has to be outside of select core
 
 # planning.aggregation
+- Downstream agg/group by fields must be referenced in projection
+- How to reference upstream fields???
 - Aggregation detector
     - Context check (?)
 
 # execution
 - Map subquery expressions to selects
     - Expr tree nodes are used to represent subqueries
+- get('alias') from the environment??
+- Find a better solution for inter_fork
+- Add interning for strings in the executor
