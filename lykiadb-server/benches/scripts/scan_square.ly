@@ -1,4 +1,4 @@
-var $arr = arr::new(10000);
+var $arr = arr::new(100);
 
 var $result = select 
                 item * item as p, 

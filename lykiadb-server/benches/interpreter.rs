@@ -37,7 +37,7 @@ fn bench(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default().measurement_time(Duration::from_secs(50));
+    config = Criterion::default().measurement_time(Duration::from_secs(20));
     targets = bench
 }
 
