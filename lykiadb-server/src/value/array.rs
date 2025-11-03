@@ -52,7 +52,8 @@ impl RVArray {
             .inner
             .read()
             .unwrap()
-            .iter().cloned()
+            .iter()
+            .cloned()
             .collect::<Vec<_>>();
         Box::new(items.into_iter())
     }

@@ -37,3 +37,4 @@
     - Expr tree nodes are used to represent subqueries
 - Find a better solution for inter_fork
 - scan_loop can use a lazy iterator as source
+- Empty lines should be ignored. They eat time during execution.

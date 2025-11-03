@@ -3,11 +3,13 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::stdlib::arr::nt_create_arr, util::Shared, value::{
+    engine::stdlib::arr::nt_create_arr,
+    util::Shared,
+    value::{
         RV,
         callable::{CallableKind, Function, RVCallable},
         object::RVObject,
-    }
+    },
 };
 
 use self::{
@@ -20,12 +22,12 @@ use self::{
 
 use super::interpreter::Output;
 
+pub mod arr;
 pub mod dtype;
 pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
-pub mod arr;
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = FxHashMap::default();
@@ -165,7 +167,9 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     arr_namespace.insert(
         "new".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda { function: nt_create_arr },
+            Function::Lambda {
+                function: nt_create_arr,
+            },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Array(Box::new(Datatype::Num)),
             CallableKind::Generic,
@@ -224,7 +228,10 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         )),
     );
 
-    std.insert("arr".to_owned(), RV::Object(RVObject::from_map(arr_namespace)));
+    std.insert(
+        "arr".to_owned(),
+        RV::Object(RVObject::from_map(arr_namespace)),
+    );
 
     std
 }

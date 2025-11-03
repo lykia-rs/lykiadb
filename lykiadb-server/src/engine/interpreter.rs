@@ -1,27 +1,27 @@
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
 use lykiadb_common::error::StandardError;
+use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
-use lykiadb_lang::LangError;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::global::GLOBAL_INTERNER;
-use interb::Symbol;
-use crate::plan::planner::Planner;
 use crate::exec::PlanExecutor;
+use crate::global::GLOBAL_INTERNER;
+use crate::plan::planner::Planner;
 use crate::util::Shared;
 use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
+use interb::Symbol;
 
 use std::fmt::Display;
 use std::sync::Arc;
@@ -145,11 +145,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_with_iter(
-        &mut self,
-        e: &Expr,
-        exec_row: &ExecutionRow,
-    ) -> Result<RV, HaltReason> {
+    pub fn eval_with_iter(&mut self, e: &Expr, exec_row: &ExecutionRow) -> Result<RV, HaltReason> {
         self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
         self.clear_exec_row();
@@ -217,17 +213,9 @@ impl Interpreter {
             }
         }
 
-        let distance = self
-            .program
-            .as_ref()
-            .and_then(|x| x.get_distance(expr));
+        let distance = self.program.as_ref().and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
-            EnvironmentFrame::read_at(
-                &self.env,
-                unwrapped,
-                name,
-                &self.intern_string(name),
-            )
+            EnvironmentFrame::read_at(&self.env, unwrapped, name, &self.intern_string(name))
         } else {
             self.root_env.read(name, &self.intern_string(name))
         }
@@ -336,11 +324,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         evaluated.clone(),
                     )
                 } else {
-                    self.root_env.assign(
-                        &dst.name,
-                        dst_symbol,
-                        evaluated.clone(),
-                    )
+                    self.root_env
+                        .assign(&dst.name, dst_symbol, evaluated.clone())
                 };
                 if result.is_err() {
                     return Err(result.err().unwrap());
@@ -455,7 +440,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 }
             }
-            Expr::FieldPath { head, tail, span, id } => {
+            Expr::FieldPath {
+                head,
+                tail,
+                span,
+                id,
+            } => {
                 let root = self.look_up_variable(&head.name, e);
 
                 if tail.is_empty() {
@@ -488,10 +478,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                             .into(),
                         ));
                     }
-                };
+                }
 
                 Ok(current)
-            },
+            }
             Expr::Get {
                 object, name, span, ..
             } => {
@@ -557,11 +547,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     return Err(HaltReason::Error(e));
                 }
                 let cursor = result.ok().unwrap();
-                let intermediate = cursor.map(|row: ExecutionRow| row.as_value()).collect::<Vec<RV>>();
+                let intermediate = cursor
+                    .map(|row: ExecutionRow| row.as_value())
+                    .collect::<Vec<RV>>();
                 Ok(RV::Array(RVArray::from_vec(intermediate)))
-                //
-                // cursor.collect::<Vec<_>>();
-                // Ok(RV::Undefined)
             }
         }
     }
@@ -582,8 +571,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = self.visit_expr(expr)?;
-                self.env
-                    .define(self.intern_string(&dst.name), evaluated);
+                self.env.define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(

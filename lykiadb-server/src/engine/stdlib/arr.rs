@@ -9,7 +9,10 @@ pub fn nt_create_arr(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, 
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::Other {
-                    message: format!("arr::new: Expected non-negative integer size, got '{:?}'", args[0]),
+                    message: format!(
+                        "arr::new: Expected non-negative integer size, got '{:?}'",
+                        args[0]
+                    ),
                 }
                 .into(),
             ));

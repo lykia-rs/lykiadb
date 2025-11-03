@@ -1,6 +1,7 @@
 use std::{
     fs::File,
-    io::{BufReader, Read}, time::Duration,
+    io::{BufReader, Read},
+    time::Duration,
 };
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};

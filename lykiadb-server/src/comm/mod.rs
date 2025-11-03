@@ -22,7 +22,7 @@ impl ServerSession {
     pub async fn handle(&mut self) {
         while let Some(message) = self.conn.read().await.unwrap() {
             // Here we measure the time it takes to process a message
-            
+
             match &message {
                 Message::Request(req) => match req {
                     Request::Run(command) => {

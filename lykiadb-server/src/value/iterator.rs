@@ -1,9 +1,11 @@
 use dyn_clone::DynClone;
 use interb::Symbol;
-use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
-use crate::{global::GLOBAL_INTERNER, value::{RV, object::RVObject}};
+use crate::{
+    global::GLOBAL_INTERNER,
+    value::{RV, object::RVObject},
+};
 
 pub type RVs = Box<dyn RVIterator>;
 
@@ -16,12 +18,15 @@ impl<I: Iterator<Item = ExecutionRow> + DynClone> RVIterator for I {}
 #[derive(Debug, Clone)]
 pub struct ExecutionRow {
     pub keys: SmallVec<[Symbol; 4]>,
-    pub values: SmallVec<[RV; 4]>
+    pub values: SmallVec<[RV; 4]>,
 }
 
 impl ExecutionRow {
     pub fn new() -> Self {
-        ExecutionRow { keys: SmallVec::new(), values: SmallVec::new() }
+        ExecutionRow {
+            keys: SmallVec::new(),
+            values: SmallVec::new(),
+        }
     }
 
     pub fn get(&self, key: &Symbol) -> Option<&RV> {

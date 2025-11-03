@@ -1,6 +1,18 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
-use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{RV, iterator::{ExecutionRow, RVIterator, RVs}, object::RVObject}};
+use crate::{
+    engine::{
+        error::ExecutionError,
+        interpreter::{HaltReason, Interpreter},
+    },
+    global::GLOBAL_INTERNER,
+    plan::{Node, Plan},
+    value::{
+        RV,
+        iterator::{ExecutionRow, RVIterator, RVs},
+        object::RVObject,
+    },
+};
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
@@ -42,7 +54,7 @@ impl<'a> PlanExecutor<'a> {
                                     let value = &downstream.get(&interned_key);
                                     // row.insert(interned_key, value.unwrap().clone());
                                 }
-                            },
+                            }
                             SqlProjection::Expr { expr, alias } => {
                                 let evaluated = inter_fork.eval_with_iter(&expr, &downstream);
                                 let value = match evaluated {
@@ -50,10 +62,7 @@ impl<'a> PlanExecutor<'a> {
                                     Err(_) => RV::Undefined,
                                 };
                                 let key = alias.as_ref().unwrap().to_string();
-                                upstream.insert(
-                                    GLOBAL_INTERNER.intern(&key),
-                                    value,
-                                );
+                                upstream.insert(GLOBAL_INTERNER.intern(&key), value);
                             }
                         }
                     }
@@ -62,7 +71,7 @@ impl<'a> PlanExecutor<'a> {
                 });
 
                 Ok(Box::from(iter))
-            },
+            }
             Node::EvalScan { source, filter } => {
                 let mut evaluated = self.interpreter.eval(&source.expr);
                 if let Err(e) = evaluated {
@@ -89,14 +98,16 @@ impl<'a> PlanExecutor<'a> {
                     RV::Array(arr) => {
                         let c = arr.collect();
                         c.into_iter().map(mapper)
-                    },
-                    _ => {
-                        vec![value].into_iter().collect::<Vec<_>>().into_iter().map(mapper)
                     }
+                    _ => vec![value]
+                        .into_iter()
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .map(mapper),
                 };
 
                 Ok(Box::from(iter))
-            },
+            }
             _ => panic!("Unsupported node type"),
         }
     }
