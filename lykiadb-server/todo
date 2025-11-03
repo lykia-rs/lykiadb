@@ -35,6 +35,5 @@
 # execution
 - Map subquery expressions to selects
     - Expr tree nodes are used to represent subqueries
-OK  - get('alias') from the environment??
-OK  - Add interning for strings in the executor
 - Find a better solution for inter_fork
+- scan_loop can use a lazy iterator as source
