@@ -1,6 +1,7 @@
 use interb::Symbol;
 use lykiadb_lang::ast::sql::SqlProjection;
 use rustc_hash::FxHashMap;
+use serde_json::map::Iter;
 
 use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator, RVs}, object::RVObject}};
 
@@ -30,36 +31,37 @@ impl<'a> PlanExecutor<'a> {
 
                 let mut inter_fork = self.interpreter.clone();
 
-                let iter = cursor.map(move |env: IterationEnvironment| {
-                    let mut row: FxHashMap<Symbol, RV> = FxHashMap::default();
+                let iter = cursor.map(move |downstream: IterationEnvironment| {
+                    let mut upstream = IterationEnvironment::new(vec![], vec![]);
 
                     for field in &fields {
                         match field {
                             SqlProjection::All { collection } => {
                                 if collection.is_none() {
-                                    env.spread_to(&mut row);
+                                    // env.spread_to(&mut row);
                                 } else {
                                     let projected_key = collection.as_ref().unwrap().to_string();
                                     let interned_key = GLOBAL_INTERNER.intern(&projected_key);
-                                    let value = &env.get(&interned_key);
-                                    row.insert(interned_key, value.unwrap().clone());
+                                    let value = &downstream.get(&interned_key);
+                                    // row.insert(interned_key, value.unwrap().clone());
                                 }
                             },
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = inter_fork.eval_with_iter(&expr, &env);
+                                let evaluated = inter_fork.eval_with_iter(&expr, &downstream);
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
                                 };
                                 let key = alias.as_ref().unwrap().to_string();
-                                row.insert(GLOBAL_INTERNER.intern(&key), value);
+                                upstream.insert(
+                                    GLOBAL_INTERNER.intern(&key),
+                                    value,
+                                );
                             }
                         }
                     }
 
-                    // TODO(vck): The following is terrible, fix it.
-                    let pairs = row.iter().map(|(k, v)| (GLOBAL_INTERNER.resolve(*k).unwrap().to_string(), v.clone())).collect::<Vec<(String, RV)>>();
-                    IterationEnvironment::new(vec![GLOBAL_INTERNER.intern("0")], vec![RV::Object(RVObject::from_map(FxHashMap::from_iter(pairs.into_iter())))])
+                    upstream
                 });
 
                 Ok(Box::from(iter))
@@ -78,8 +80,9 @@ impl<'a> PlanExecutor<'a> {
                 let alias = source.alias.to_owned();
                 let value = evaluated.unwrap();
 
+                let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
                 let mapper = move |v: RV| IterationEnvironment::new(
-                    vec![GLOBAL_INTERNER.intern(&alias.to_string())],
+                    vec![sym_alias.clone()],
                     vec![v.clone()]
                 );
 
