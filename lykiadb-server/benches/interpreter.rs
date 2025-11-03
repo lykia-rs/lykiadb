@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufReader, Read},
+    io::{BufReader, Read}, time::Duration,
 };
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
@@ -17,20 +17,27 @@ fn runtime(filename: &str) {
 }
 
 fn bench(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sample-size-example");
-    // group.bench_function("For", |b| b.iter(|| runtime(black_box("benches/scripts/while.ly"))));
-    group.bench_function("Fibonacci 15", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/fib.ly")))
+    let mut group = c.benchmark_group("engine");
+    /*
+    group.bench_function("fib25", |b| {
+        b.iter(|| runtime(black_box("benches/scripts/fib.ly")));
+    }); */
+
+    group.bench_function("scan_square", |b| {
+        b.iter(|| runtime(black_box("benches/scripts/scan_square.ly")));
     });
-    // group.bench_function("While", |b| b.iter(|| runtime(black_box("benches/scripts/while.ly"))));
-    // group.bench_function("While (Short)", |b| b.iter(|| runtime(black_box("benches/scripts/while.short.ly"))));
+
+    group.bench_function("loop_square", |b| {
+        b.iter(|| runtime(black_box("benches/scripts/loop_square.ly")));
+    });
+
     group.finish();
 }
 
 criterion_group! {
     name = benches;
     // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default();
+    config = Criterion::default().measurement_time(Duration::from_secs(20));
     targets = bench
 }
 

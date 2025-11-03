@@ -557,7 +557,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     return Err(HaltReason::Error(e));
                 }
                 let cursor = result.ok().unwrap();
-                let intermediate = cursor.map(|env| {
+                /*let intermediate = cursor.map(|env| {
                     let mut row: FxHashMap<String, RV> = FxHashMap::default();
                     for (key, value) in env.inner.iter() {
                         row.insert(GLOBAL_INTERNER.resolve(*key).unwrap().to_string(), value.clone());
@@ -565,6 +565,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     RV::Object(RVObject::from_map(row))
                 }).collect::<Vec<RV>>();
                 println!("Intermediate execution result: {:?}", intermediate);
+                Ok(RV::Undefined)*/
+                cursor.collect::<Vec<_>>();
+                //Ok(RV::Array(RVArray::from_vec(intermediate)))
                 Ok(RV::Undefined)
             }
         }
