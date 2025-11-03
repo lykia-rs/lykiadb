@@ -19,7 +19,7 @@ use crate::exec::PlanExecutor;
 use crate::util::Shared;
 use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
-use crate::value::iterator::IterationEnvironment;
+use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 
@@ -117,7 +117,7 @@ impl LoopStack {
 pub struct Interpreter {
     env: Arc<EnvironmentFrame>,
     root_env: Arc<EnvironmentFrame>,
-    iter_env: Option<IterationEnvironment>,
+    exec_row: Option<ExecutionRow>,
     //
     program: Option<Arc<Program>>,
     output: Option<Shared<Output>>,
@@ -141,18 +141,18 @@ impl Interpreter {
             loop_stack: LoopStack::new(),
             program: None,
             output: out,
-            iter_env: None,
+            exec_row: None,
         }
     }
 
     pub fn eval_with_iter(
         &mut self,
         e: &Expr,
-        iter: &IterationEnvironment,
+        exec_row: &ExecutionRow,
     ) -> Result<RV, HaltReason> {
-        self.set_iter_env(Some(iter.clone()));
+        self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
-        self.clear_iter_env();
+        self.clear_exec_row();
         evaluated
     }
 
@@ -197,12 +197,12 @@ impl Interpreter {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_iter_env(&mut self, env: Option<IterationEnvironment>) {
-        self.iter_env = env;
+    pub fn set_exec_row(&mut self, exec_row: ExecutionRow) {
+        self.exec_row = Some(exec_row);
     }
 
-    pub fn clear_iter_env(&mut self) {
-        self.iter_env = None;
+    pub fn clear_exec_row(&mut self) {
+        self.exec_row = None;
     }
 
     fn intern_string(&self, string: &str) -> Symbol {
@@ -210,9 +210,9 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        if self.iter_env.is_some() {
-            let iter_env = self.iter_env.as_ref().unwrap();
-            if let Some(val) = iter_env.get(&self.intern_string(name)) {
+        if self.exec_row.is_some() {
+            let exec_row = self.exec_row.as_ref().unwrap();
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
                 return Ok(val.clone());
             }
         }

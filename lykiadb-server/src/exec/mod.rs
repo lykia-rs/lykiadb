@@ -1,9 +1,6 @@
-use interb::Symbol;
 use lykiadb_lang::ast::sql::SqlProjection;
-use rustc_hash::FxHashMap;
-use serde_json::map::Iter;
 
-use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{RV, iterator::{IterationEnvironment, RVIterator, RVs}, object::RVObject}};
+use crate::{engine::{error::ExecutionError, interpreter::{HaltReason, Interpreter}}, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{RV, iterator::{ExecutionRow, RVIterator, RVs}, object::RVObject}};
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
@@ -31,14 +28,14 @@ impl<'a> PlanExecutor<'a> {
 
                 let mut inter_fork = self.interpreter.clone();
 
-                let iter = cursor.map(move |downstream: IterationEnvironment| {
-                    let mut upstream = IterationEnvironment::new();
+                let iter = cursor.map(move |downstream: ExecutionRow| {
+                    let mut upstream = ExecutionRow::new();
 
                     for field in &fields {
                         match field {
                             SqlProjection::All { collection } => {
                                 if collection.is_none() {
-                                    // env.spread_to(&mut row);
+                                    // downstream.spread_to(&mut upstream);
                                 } else {
                                     let projected_key = collection.as_ref().unwrap().to_string();
                                     let interned_key = GLOBAL_INTERNER.intern(&projected_key);
@@ -83,7 +80,7 @@ impl<'a> PlanExecutor<'a> {
                 let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
 
                 let mapper = move |v: RV| {
-                    let mut env = IterationEnvironment::new();
+                    let mut env = ExecutionRow::new();
                     env.insert(sym_alias.clone(), v.clone());
                     env
                 };
