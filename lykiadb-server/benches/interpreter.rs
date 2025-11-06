@@ -19,11 +19,13 @@ fn runtime(filename: &str) {
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("engine");
-    /*
-    group.bench_function("fib25", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/fib.ly")));
-    }); */
-
+    
+    // Standard configuration for more stable results
+    group.warm_up_time(Duration::from_secs(5));
+    group.measurement_time(Duration::from_secs(30));
+    group.sample_size(100);
+    
+    // Original benchmarks with proper warmup
     group.bench_function("scan_square", |b| {
         b.iter(|| runtime(black_box("benches/scripts/scan_square.ly")));
     });
@@ -37,8 +39,11 @@ fn bench(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    // This can be any expression that returns a `Criterion` object.
-    config = Criterion::default().measurement_time(Duration::from_secs(20));
+    // Longer measurement time for more stable results
+    config = Criterion::default()
+        .measurement_time(Duration::from_secs(30))
+        .warm_up_time(Duration::from_secs(5))
+        .sample_size(200);
     targets = bench
 }
 
