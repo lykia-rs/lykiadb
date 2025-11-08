@@ -34,9 +34,14 @@ impl<'a> PlanExecutor<'a> {
 
     pub fn execute_node(&mut self, node: Node) -> Result<RVs, ExecutionError> {
         match node {
+            Node::Offset { source, offset } => {
+                Ok(Box::from(self.execute_node(*source)?.skip(offset)))
+            }
+            Node::Limit { source, limit } => {
+                Ok(Box::from(self.execute_node(*source)?.take(limit)))
+            }
             Node::Filter { source, predicate, subqueries }
             => {
-
                 if predicate.is_constant() {
                     // TODO(vck): Maybe we can deal with this at compile time?
                     let constant_evaluation = predicate.as_bool().map(|b| {
