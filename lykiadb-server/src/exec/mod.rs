@@ -34,6 +34,18 @@ impl<'a> PlanExecutor<'a> {
 
     pub fn execute_node(&mut self, node: Node) -> Result<RVs, ExecutionError> {
         match node {
+            Node::Subquery { source, alias } => {
+                let cursor = self.execute_node(*source)?;
+
+                let iter = cursor.map(move |row: ExecutionRow| {
+                    let mut upstream = ExecutionRow::new();
+                    let key = alias.to_string();
+                    upstream.insert(GLOBAL_INTERNER.intern(&key), row.as_value());
+                    upstream
+                });
+
+                Ok(Box::from(iter))
+            }
             Node::Offset { source, offset } => {
                 Ok(Box::from(self.execute_node(*source)?.skip(offset)))
             }

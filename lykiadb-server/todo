@@ -33,6 +33,9 @@
     - Context check (?)
 
 # execution
+- execution_row 
+    - should not be cloned before passing to inter_fork
+    - pass by reference when possible
 - Map subquery expressions to selects
     - Expr tree nodes are used to represent subqueries
 - Find a better solution for inter_fork

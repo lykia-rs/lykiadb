@@ -127,7 +127,7 @@ pub enum SqlFrom {
     #[serde(rename = "SqlFrom::Select")]
     Select {
         subquery: Box<SqlSelect>,
-        alias: Option<Identifier>,
+        alias: Identifier,
     },
     #[serde(rename = "SqlFrom::Join")]
     Join {

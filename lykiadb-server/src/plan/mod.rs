@@ -120,7 +120,7 @@ pub enum Node {
 
     Subquery {
         source: Box<Node>,
-        alias: Option<Identifier>,
+        alias: Identifier,
     },
 
     Nothing,
@@ -205,10 +205,7 @@ impl Node {
                     f,
                     "{}- subquery [{}]{}",
                     indent_str,
-                    alias
-                        .as_ref()
-                        .map(|x| x.name.clone())
-                        .unwrap_or("unnamed".to_string()),
+                    alias.name.clone(),
                     Self::NEWLINE
                 )?;
                 source._fmt_recursive(f, indent + 1)
