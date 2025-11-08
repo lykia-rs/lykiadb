@@ -48,3 +48,13 @@ impl Scope {
         self.from.get(head).is_some()
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    /// Helper function to create a test scope
+    pub fn create_test_scope() -> Scope {
+        Scope::new()
+    }
+}

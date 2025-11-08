@@ -47,13 +47,9 @@ mod tests {
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
-    fn setup() -> Interpreter {
-        create_test_interpreter(Some(alloc_shared(Output::new())))
-    }
-
     #[test]
     fn test_json_encode() {
-        let mut interpreter = setup();
+        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
 
         // Test primitive values
         assert_eq!(
@@ -99,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_json_decode() {
-        let mut interpreter = setup();
+        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
 
         // Test primitive values
         assert_eq!(

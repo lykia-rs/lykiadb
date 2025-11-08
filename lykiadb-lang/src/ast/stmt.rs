@@ -106,7 +106,7 @@ mod test {
 
     use crate::ast::{
         Span,
-        expr::{Expr, test::create_simple_add_expr},
+        expr::{Expr, test_utils::create_simple_add_expr},
         stmt::Stmt,
     };
 

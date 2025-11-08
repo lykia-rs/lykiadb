@@ -15,13 +15,9 @@ mod tests {
     use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::util::alloc_shared;
 
-    fn setup() -> Interpreter {
-        create_test_interpreter(Some(alloc_shared(Output::new())))
-    }
-
     #[test]
     fn test_nt_clock() {
-        let mut interpreter = setup();
+        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
 
         // Test clock function
         let result = nt_clock(&mut interpreter, &[]);
