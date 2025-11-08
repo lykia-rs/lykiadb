@@ -171,6 +171,7 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 self.resolve_expr(object);
                 self.resolve_expr(value);
             }
+            // TODO(vck): SQL should also be resolved:
             Expr::Select { .. }
             | Expr::Insert { .. }
             | Expr::Update { .. }
@@ -229,7 +230,12 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 if expr.is_some() {
                     self.resolve_expr(expr.as_ref().unwrap());
                 }
-            }
+            },
+            
+            Stmt::Explain { expr, .. } => {
+                self.resolve_expr(expr);
+            },
+            
         };
         Ok(())
     }

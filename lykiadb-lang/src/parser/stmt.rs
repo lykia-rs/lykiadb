@@ -2,8 +2,8 @@ use super::{ParseResult, Parser};
 use crate::ast::expr::Expr;
 use crate::ast::stmt::Stmt;
 use crate::ast::{Literal, Spanned};
-use crate::tokenizer::token::{Keyword::*, Symbol::*, TokenType, TokenType::*};
-use crate::{kw, sym};
+use crate::tokenizer::token::{Keyword::*, SqlKeyword::*, Symbol::*, TokenType, TokenType::*};
+use crate::{kw, skw, sym};
 
 pub struct StmtParser {}
 
@@ -30,6 +30,7 @@ impl StmtParser {
         match_next!(self, cparser, &kw!(Break), break_statement);
         match_next!(self, cparser, &kw!(Continue), continue_statement);
         match_next!(self, cparser, &kw!(Return), return_statement);
+        match_next!(self, cparser, &skw!(Explain), explain_statement);
         if cparser.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
             || cparser.peek_next_all_of(&[sym!(LeftBrace), Str, sym!(Colon)])
             || cparser.peek_next_all_of(&[sym!(LeftBrace), Num, sym!(Colon)])
@@ -198,6 +199,13 @@ impl StmtParser {
         let tok = cparser.peek_bw(1);
         cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Continue { span: tok.span }))
+    }
+
+    fn explain_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
+        let expr = cparser.consume_expr()?;
+        let span = expr.get_span();
+        cparser.expect(&sym!(Semicolon))?;
+        Ok(Box::new(Stmt::Explain { expr, span }))
     }
 
     fn expression_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {

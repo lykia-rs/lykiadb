@@ -1,34 +1,34 @@
 #[name=nested_aggregate_not_allowed, run=plan]>
-SELECT avg(1 + avg(id)) AS average FROM books b;
+EXPLAIN SELECT avg(1 + avg(id)) AS average FROM books b;
 
 ---err
 
-Plan(NestedAggregationNotAllowed(Span { start: 15, end: 22, line: 0, line_end: 0 }))
+Plan(NestedAggregationNotAllowed(Span { start: 23, end: 30, line: 0, line_end: 0 }))
 
 #[name=aggregate_in_group_by_not_allowed, run=plan]>
-SELECT id FROM books b GROUP BY avg(id);
+EXPLAIN SELECT id FROM books b GROUP BY avg(id);
 
 ---err
 
-Plan(AggregationNotAllowed(Span { start: 32, end: 39, line: 0, line_end: 0 }, "GROUP BY"))
+Plan(AggregationNotAllowed(Span { start: 40, end: 47, line: 0, line_end: 0 }, "GROUP BY"))
 
 #[name=aggregate_in_join_on_not_allowed, run=plan]>
-SELECT * FROM a JOIN b ON avg(id) > 10;
+EXPLAIN SELECT * FROM a JOIN b ON avg(id) > 10;
 
 ---err
 
-Plan(AggregationNotAllowed(Span { start: 26, end: 33, line: 0, line_end: 0 }, "JOIN ON"))
+Plan(AggregationNotAllowed(Span { start: 34, end: 41, line: 0, line_end: 0 }, "JOIN ON"))
 
 #[name=aggregate_in_where_not_allowed, run=plan]>
-SELECT id FROM books WHERE avg(id) > 10;
+EXPLAIN SELECT id FROM books WHERE avg(id) > 10;
 
 ---err
 
-Plan(AggregationNotAllowed(Span { start: 27, end: 34, line: 0, line_end: 0 }, "WHERE"))
+Plan(AggregationNotAllowed(Span { start: 35, end: 42, line: 0, line_end: 0 }, "WHERE"))
 
 #[name=having_without_aggregate_not_allowed, run=plan]>
-SELECT publisher_id FROM books HAVING release_year > 2000;
+EXPLAIN SELECT publisher_id FROM books HAVING release_year > 2000;
 
 ---err
 
-Plan(HavingWithoutAggregationNotAllowed(Span { start: 38, end: 57, line: 0, line_end: 0 }))
+Plan(HavingWithoutAggregationNotAllowed(Span { start: 46, end: 65, line: 0, line_end: 0 }))

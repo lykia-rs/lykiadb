@@ -1,6 +1,6 @@
 #[name=plain, run=plan]>
 
-SELECT * FROM books;
+EXPLAIN SELECT * FROM books;
 
 ---
 
@@ -8,7 +8,7 @@ SELECT * FROM books;
 
 #[name=expression, run=plan]>
 
-SELECT * FROM [1,1,2,3,5,8,13] as fib;
+EXPLAIN SELECT * FROM [1,1,2,3,5,8,13] as fib;
 
 ---
 
@@ -16,7 +16,7 @@ SELECT * FROM [1,1,2,3,5,8,13] as fib;
 
 #[name=subquery, run=plan]>
 
-SELECT u.id as id FROM (select * from books) u;
+EXPLAIN SELECT u.id as id FROM (select * from books) u;
 
 ---
 
@@ -27,7 +27,7 @@ SELECT u.id as id FROM (select * from books) u;
 
 #[name=mixed, run=plan]>
 
-SELECT * FROM books, [1,2,3] as num;
+EXPLAIN SELECT * FROM books, [1,2,3] as num;
 
 ---
 

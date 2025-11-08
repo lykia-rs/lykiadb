@@ -632,6 +632,23 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
                 return Err(HaltReason::Return(RV::Undefined));
             }
+            Stmt::Explain { expr, span } => {
+                if matches!(expr.as_ref(), Expr::Select { .. }) {
+                    let mut planner = Planner::new(self);
+                    let plan = planner.build(expr)?;
+                    if let Some(out) = &self.output {
+                        out.write()
+                            .unwrap()
+                            .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
+                    }
+                    return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
+                }
+                else {
+                    return Err(HaltReason::Error(
+                        InterpretError::InvalidExplainTarget { span: *span }.into(),
+                    ))
+                }
+            },
         }
         Ok(RV::Undefined)
     }
@@ -722,6 +739,8 @@ pub enum InterpretError {
     UnexpectedStatement { span: Span },
     #[error("Property '{property}' not found at {span:?}")]
     PropertyNotFound { span: Span, property: String },
+    #[error("Only select expressions can be explained.")]
+    InvalidExplainTarget { span: Span },
     #[error("{message}")]
     Other { message: String }, // TODO(vck): Refactor this
 }
@@ -739,6 +758,9 @@ impl From<InterpretError> for StandardError {
             ),
             InterpretError::PropertyNotFound { span, .. } => {
                 ("Verify the property name exists on the object", *span)
+            }
+            InterpretError::InvalidExplainTarget { span, .. } => {
+                ("Try replacing this with a SELECT expression", *span)
             }
             InterpretError::Other { .. } => (
                 "Review the error details for specific guidance",

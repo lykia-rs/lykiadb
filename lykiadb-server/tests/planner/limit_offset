@@ -1,6 +1,6 @@
 #[name=limit, run=plan]>
 
-SELECT * FROM books limit 4 + 4;
+EXPLAIN SELECT * FROM books limit 4 + 4;
 
 ---
 
@@ -13,7 +13,7 @@ SELECT * FROM books limit 4 + 4;
 var $limit = 5 + 5;
 var $offset = 5 + 15;
 
-SELECT * FROM books limit $limit offset $offset;
+EXPLAIN SELECT * FROM books limit $limit offset $offset;
 
 ---
 
@@ -24,7 +24,7 @@ SELECT * FROM books limit $limit offset $offset;
 
 #[name=limit_with_joins, run=plan]>
 
-SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100;
+EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100;
 
 ---
 
@@ -36,7 +36,7 @@ SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100
 
 #[name=limit_compound_and_joins, run=plan]>
 
-SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id
+EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id
 UNION
 SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id LIMIT 100;
 

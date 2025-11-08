@@ -1,6 +1,6 @@
 #[name=illegal_subquery_in_condition, run=plan]>
 
-select * from books inner join categories ON (select * from books);
+explain select * from books inner join categories ON (select * from books);
 
 ---err
 

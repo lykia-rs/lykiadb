@@ -1,6 +1,6 @@
 #[name=simple, run=plan]>
 
-SELECT * FROM books b order by title;
+EXPLAIN SELECT * FROM books b order by title;
 
 ---
 
@@ -10,7 +10,7 @@ SELECT * FROM books b order by title;
 
 #[name=multiple, run=plan]>
 
-SELECT * FROM books b order by title, id desc;
+EXPLAIN SELECT * FROM books b order by title, id desc;
 
 ---
 
@@ -20,7 +20,7 @@ SELECT * FROM books b order by title, id desc;
 
 #[name=compound, run=plan]>
 
-SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
+EXPLAIN SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
 
 ---
 
