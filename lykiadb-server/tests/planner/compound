@@ -1,6 +1,6 @@
 #[name=simple_union, run=plan]>
 
-SELECT * FROM books
+EXPLAIN SELECT * FROM books
 UNION
 SELECT * FROM books;
 
@@ -13,7 +13,7 @@ SELECT * FROM books;
 
 #[name=simple_intersect, run=plan]>
 
-SELECT * FROM books
+EXPLAIN SELECT * FROM books
 INTERSECT
 SELECT * FROM books;
 
@@ -26,7 +26,7 @@ SELECT * FROM books;
 
 #[name=simple_except, run=plan]>
 
-SELECT * FROM books
+EXPLAIN SELECT * FROM books
 EXCEPT
 SELECT * FROM books;
 
@@ -39,7 +39,7 @@ SELECT * FROM books;
 
 #[name=nested, run=plan]>
 
-SELECT * FROM books where id > 5
+EXPLAIN SELECT * FROM books where id > 5
 UNION
 SELECT * FROM books
 INTERSECT
@@ -61,7 +61,7 @@ SELECT * FROM books;
 
 #[name=with_projection, run=plan]>
 
-SELECT id FROM books where id > 5
+EXPLAIN SELECT id FROM books where id > 5
 UNION
 SELECT title FROM books;
 

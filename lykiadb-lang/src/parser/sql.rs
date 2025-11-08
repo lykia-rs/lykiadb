@@ -439,7 +439,7 @@ impl SqlParser {
             if cparser.cmp_tok(&skw!(Select)) {
                 let subquery = Box::new(self.sql_select_inner(cparser)?);
                 cparser.expect(&sym!(RightParen))?;
-                cparser.expect(&skw!(As))?;
+                cparser.match_next(&skw!(As));
                 let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 return Ok(SqlFrom::Select {
                     subquery,

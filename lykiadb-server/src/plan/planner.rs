@@ -274,114 +274,22 @@ impl<'a> Planner<'a> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        engine::interpreter::Interpreter,
+        engine::interpreter::{tests::create_test_interpreter},
         plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
-            scope::Scope,
+            scope::tests::create_test_scope,
         },
     };
     use lykiadb_lang::ast::{
-        Identifier, IdentifierKind, Literal, Span,
-        expr::{Expr, Operation},
-        sql::{SqlDistinct, SqlProjection, SqlSelect, SqlSelectCore},
+        Literal, Span,
+        expr::{Expr, Operation, test_utils::{create_call_expr, create_field_path_expr, create_identifier_expr, create_number_expr, create_string_expr, create_subquery_expr}},
     };
-    use std::sync::Arc;
 
     /// Helper function to create a test planner instance
-    fn create_test_planner() -> Planner<'static> {
-        let interpreter = Box::leak(Box::new(Interpreter::new(None, false)));
+    pub fn create_test_planner() -> Planner<'static> {
+        let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
         Planner::new(interpreter)
-    }
-
-    /// Helper function to create a test scope
-    fn create_test_scope() -> Scope {
-        Scope::new()
-    }
-
-    /// Helper function to create a simple identifier expression
-    fn create_identifier_expr(name: &str) -> Expr {
-        Expr::Variable {
-            name: Identifier {
-                name: name.to_string(),
-                kind: IdentifierKind::Variable,
-                span: Span::default(),
-            },
-            span: Span::default(),
-            id: 0,
-        }
-    }
-
-    /// Helper function to create a number literal expression
-    fn create_number_expr(value: f64) -> Expr {
-        Expr::Literal {
-            value: Literal::Num(value),
-            raw: value.to_string(),
-            span: Span::default(),
-            id: 0,
-        }
-    }
-
-    /// Helper function to create a string literal expression
-    fn create_string_expr(value: &str) -> Expr {
-        Expr::Literal {
-            value: Literal::Str(Arc::new(value.to_string())),
-            raw: format!("\"{value}\""),
-            span: Span::default(),
-            id: 0,
-        }
-    }
-
-    /// Helper function to create a function call expression
-    fn create_call_expr(callee: &str, args: Vec<Expr>) -> Expr {
-        Expr::Call {
-            callee: Box::new(create_identifier_expr(callee)),
-            args,
-            span: Span::default(),
-            id: 0,
-        }
-    }
-
-    /// Helper function to create a field path expression
-    fn create_field_path_expr(head: &str, tail: Vec<&str>) -> Expr {
-        Expr::FieldPath {
-            head: Identifier {
-                name: head.to_string(),
-                kind: IdentifierKind::Variable,
-                span: Span::default(),
-            },
-            tail: tail
-                .into_iter()
-                .map(|t| Identifier {
-                    name: t.to_string(),
-                    kind: IdentifierKind::Variable,
-                    span: Span::default(),
-                })
-                .collect(),
-            span: Span::default(),
-            id: 0,
-        }
-    }
-
-    /// Helper function to create a subquery expression
-    fn create_subquery_expr() -> Expr {
-        Expr::Select {
-            query: SqlSelect {
-                core: SqlSelectCore {
-                    distinct: SqlDistinct::ImplicitAll,
-                    projection: vec![SqlProjection::All { collection: None }],
-                    from: None,
-                    r#where: None,
-                    group_by: None,
-                    having: None,
-                    compound: None,
-                },
-                order_by: None,
-                limit: None,
-            },
-            span: Span::default(),
-            id: 0,
-        }
     }
 
     // Helper macro to assert the result of build_expr

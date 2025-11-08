@@ -442,11 +442,127 @@ impl Display for Expr {
     }
 }
 
+pub mod test_utils {
+    use crate::ast::expr::Expr;
+
+    use super::*;
+
+    pub fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
+        Expr::Binary {
+            left: Box::new(Expr::Literal {
+                value: Literal::Num(left),
+                span: Span::default(),
+                id: 0,
+                raw: left.to_string(),
+            }),
+            operation: crate::ast::expr::Operation::Add,
+            right: Box::new(Expr::Literal {
+                value: Literal::Num(right),
+                span: Span::default(),
+                id: 0,
+                raw: right.to_string(),
+            }),
+            span: Span::default(),
+            id,
+        }
+    }
+
+    /// Helper function to create a simple identifier expression
+    pub fn create_identifier_expr(name: &str) -> Expr {
+        use crate::ast::{Identifier, IdentifierKind};
+        Expr::Variable {
+            name: Identifier {
+                name: name.to_string(),
+                kind: IdentifierKind::Variable,
+                span: Span::default(),
+            },
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+    /// Helper function to create a number literal expression
+    pub fn create_number_expr(value: f64) -> Expr {
+        Expr::Literal {
+            value: Literal::Num(value),
+            raw: value.to_string(),
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+    /// Helper function to create a string literal expression
+    pub fn create_string_expr(value: &str) -> Expr {
+        use std::sync::Arc;
+        Expr::Literal {
+            value: Literal::Str(Arc::new(value.to_string())),
+            raw: format!("\"{value}\""),
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+    /// Helper function to create a function call expression
+    pub fn create_call_expr(callee: &str, args: Vec<Expr>) -> Expr {
+        Expr::Call {
+            callee: Box::new(create_identifier_expr(callee)),
+            args,
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+    /// Helper function to create a field path expression
+    pub fn create_field_path_expr(head: &str, tail: Vec<&str>) -> Expr {
+        use crate::ast::{Identifier, IdentifierKind};
+        Expr::FieldPath {
+            head: Identifier {
+                name: head.to_string(),
+                kind: IdentifierKind::Variable,
+                span: Span::default(),
+            },
+            tail: tail
+                .into_iter()
+                .map(|t| Identifier {
+                    name: t.to_string(),
+                    kind: IdentifierKind::Variable,
+                    span: Span::default(),
+                })
+                .collect(),
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+    /// Helper function to create a subquery expression
+    pub fn create_subquery_expr() -> Expr {
+        use crate::ast::sql::{SqlDistinct, SqlProjection, SqlSelect, SqlSelectCore};
+        Expr::Select {
+            query: SqlSelect {
+                core: SqlSelectCore {
+                    distinct: SqlDistinct::ImplicitAll,
+                    projection: vec![SqlProjection::All { collection: None }],
+                    from: None,
+                    r#where: None,
+                    group_by: None,
+                    having: None,
+                    compound: None,
+                },
+                order_by: None,
+                limit: None,
+            },
+            span: Span::default(),
+            id: 0,
+        }
+    }
+
+}
+
 #[cfg(test)]
-pub mod test {
+pub mod tests {
     use std::collections::HashSet;
 
-    use crate::ast::{IdentifierKind, expr::Expr};
+    use crate::ast::{IdentifierKind, expr::{Expr, test_utils::create_simple_add_expr}};
 
     use super::*;
 
@@ -883,25 +999,6 @@ pub mod test {
         assert_eq!(call.to_string(), "test_func(Num(1.0), Num(2.0))");
     }
 
-    pub fn create_simple_add_expr(id: usize, left: f64, right: f64) -> Expr {
-        Expr::Binary {
-            left: Box::new(Expr::Literal {
-                value: Literal::Num(left),
-                span: Span::default(),
-                id: 0,
-                raw: left.to_string(),
-            }),
-            operation: crate::ast::expr::Operation::Add,
-            right: Box::new(Expr::Literal {
-                value: Literal::Num(right),
-                span: Span::default(),
-                id: 0,
-                raw: right.to_string(),
-            }),
-            span: Span::default(),
-            id,
-        }
-    }
 
     #[test]
     fn identical_exprs_should_be_equal_when_ids_are_different() {

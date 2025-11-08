@@ -5,11 +5,11 @@ use std::{
 };
 
 use derivative::Derivative;
-use expr::Expr;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-pub mod builder;
+use crate::ast::expr::Expr;
+
 pub mod expr;
 pub mod sql;
 pub mod stmt;

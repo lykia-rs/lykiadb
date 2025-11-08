@@ -150,6 +150,8 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::engine::interpreter::tests::create_test_interpreter;
+
     use super::*;
     use lykiadb_lang::ast::{
         Identifier, IdentifierKind, Span,
@@ -157,13 +159,9 @@ mod tests {
         sql::{SqlProjection, SqlSelectCore},
     };
 
-    fn create_test_interpreter() -> Interpreter {
-        Interpreter::new(None, true)
-    }
-
     #[test]
     fn test_collect_aggregates_simple_projection() {
-        let mut interpreter = create_test_interpreter();
+        let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -196,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_having_clause() {
-        let mut interpreter = create_test_interpreter();
+        let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -226,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_nested_aggregates_not_allowed() {
-        let mut interpreter = create_test_interpreter();
+        let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -266,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_aggregation_should_be_drained_after_each_visit() {
-        let mut interpreter = create_test_interpreter();
+        let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {

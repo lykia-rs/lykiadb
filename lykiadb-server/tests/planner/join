@@ -1,6 +1,6 @@
 #[name=two_way_simple, run=plan]>
 
-SELECT * FROM books b
+EXPLAIN SELECT * FROM books b
     INNER JOIN categories c ON b.category_id = c.id
     WHERE c.name = 'Science';
 
@@ -14,7 +14,7 @@ SELECT * FROM books b
 
 #[name=three_way_simple, run=plan]>
 
-SELECT * FROM books b
+EXPLAIN SELECT * FROM books b
     INNER JOIN categories c ON b.category_id = c.id
     INNER JOIN publishers AS p ON b.publisher_id = p.id
     WHERE p.name = 'Springer';
@@ -31,7 +31,7 @@ SELECT * FROM books b
 
 #[name=three_way_reordered, run=plan]>
 
-SELECT * FROM books b
+EXPLAIN SELECT * FROM books b
     INNER JOIN
     (
       categories c

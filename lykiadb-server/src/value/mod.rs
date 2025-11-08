@@ -90,6 +90,13 @@ impl RV {
         }
     }
 
+    pub fn if_object(&self) -> Option<&RVObject> {
+        match self {
+            RV::Object(obj) => Some(&obj),
+            _ => None,
+        }
+    }
+
     pub fn eq_any_bool(&self, b: bool) -> bool {
         self.as_bool() == b
     }

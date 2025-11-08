@@ -1,6 +1,6 @@
 #[name=implicit_all, run=plan]>
 
-SELECT * FROM books;
+EXPLAIN SELECT * FROM books;
 
 ---
 
@@ -9,7 +9,7 @@ SELECT * FROM books;
 
 #[name=explicit_all, run=plan]>
 
-SELECT books.* FROM books;
+EXPLAIN SELECT books.* FROM books;
 
 ---
 
@@ -19,7 +19,7 @@ SELECT books.* FROM books;
 
 #[name=simple, run=plan]>
 
-SELECT id, title FROM books;
+EXPLAIN SELECT id, title FROM books;
 
 ---
 
@@ -29,7 +29,7 @@ SELECT id, title FROM books;
 
 #[name=constants, run=plan]>
 
-SELECT 5 + 5 as ten FROM books;
+EXPLAIN SELECT 5 + 5 as ten FROM books;
 
 ---
 
@@ -39,7 +39,7 @@ SELECT 5 + 5 as ten FROM books;
 
 #[name=function_call, run=plan]>
 
-SELECT capitalize("str") as json_str_title FROM books;
+EXPLAIN SELECT capitalize("str") as json_str_title FROM books;
 
 ---
 

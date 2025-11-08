@@ -1,6 +1,6 @@
 #[name=simple, run=plan]>
 
-SELECT * FROM books b where title like '%hello%';
+EXPLAIN SELECT * FROM books b where title like '%hello%';
 
 ---
 
@@ -10,7 +10,7 @@ SELECT * FROM books b where title like '%hello%';
 
 #[name=with_subquery, run=plan]>
 
-SELECT * FROM books b 
+EXPLAIN SELECT * FROM books b 
   where author_id in (SELECT id FROM authors where name = 'John')
   or publisher_id in (SELECT id FROM publishers where name = 'Elsevier');
 
@@ -29,7 +29,7 @@ SELECT * FROM books b
 
 #[name=in_array, run=plan]>
 
-SELECT * FROM books b 
+EXPLAIN SELECT * FROM books b 
   where id in [1, 2, 3];
 
 ---
@@ -40,7 +40,7 @@ SELECT * FROM books b
 
 #[name=in_array_via_select, run=plan]>
 
-SELECT * FROM books b 
+EXPLAIN SELECT * FROM books b 
   where id in (select n from [1, 2, 3] as ids);
 
 ---
@@ -53,7 +53,7 @@ SELECT * FROM books b
 
 #[name=between, run=plan]>
 
-SELECT * FROM books b 
+EXPLAIN SELECT * FROM books b 
   where id between 1 and 10;
 
 ---

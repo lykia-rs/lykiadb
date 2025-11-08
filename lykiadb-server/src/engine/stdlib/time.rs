@@ -12,15 +12,12 @@ pub fn nt_clock(_interpreter: &mut Interpreter, _args: &[RV]) -> Result<RV, Halt
 mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
+    use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::util::alloc_shared;
-
-    fn setup() -> Interpreter {
-        Interpreter::new(Some(alloc_shared(Output::new())), true)
-    }
 
     #[test]
     fn test_nt_clock() {
-        let mut interpreter = setup();
+        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
 
         // Test clock function
         let result = nt_clock(&mut interpreter, &[]);

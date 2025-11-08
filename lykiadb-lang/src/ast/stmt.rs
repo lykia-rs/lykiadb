@@ -82,6 +82,14 @@ pub enum Stmt {
         #[derivative(Hash = "ignore")]
         span: Span,
     },
+    #[serde(rename = "Stmt::Explain")]
+    Explain {       
+        expr: Box<Expr>,
+        #[serde(skip)]
+        #[derivative(PartialEq = "ignore")]
+        #[derivative(Hash = "ignore")]
+        span: Span,
+    },
 }
 
 impl Spanned for Stmt {
@@ -96,6 +104,7 @@ impl Spanned for Stmt {
             Stmt::If { span, .. } => *span,
             Stmt::Loop { span, .. } => *span,
             Stmt::Return { span, .. } => *span,
+            Stmt::Explain { span, .. } => *span,
         }
     }
 }
@@ -106,7 +115,7 @@ mod test {
 
     use crate::ast::{
         Span,
-        expr::{Expr, test::create_simple_add_expr},
+        expr::{Expr, test_utils::create_simple_add_expr},
         stmt::Stmt,
     };
 
