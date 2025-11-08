@@ -24,7 +24,7 @@ fn bench(c: &mut Criterion) {
     group.warm_up_time(Duration::from_secs(5));
     group.measurement_time(Duration::from_secs(30));
     group.sample_size(100);
-    
+
     // Original benchmarks with proper warmup
     group.bench_function("scan_square", |b| {
         b.iter(|| runtime(black_box("benches/scripts/scan_square.ly")));
@@ -32,6 +32,14 @@ fn bench(c: &mut Criterion) {
 
     group.bench_function("loop_square", |b| {
         b.iter(|| runtime(black_box("benches/scripts/loop_square.ly")));
+    });
+
+    group.bench_function("filter_square", |b| {
+        b.iter(|| runtime(black_box("benches/scripts/filter_square.ly")));
+    });
+
+    group.bench_function("loop_if_square", |b| {
+        b.iter(|| runtime(black_box("benches/scripts/loop_if_square.ly")));
     });
 
     group.finish();

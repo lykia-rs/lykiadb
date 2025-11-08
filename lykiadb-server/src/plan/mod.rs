@@ -25,6 +25,26 @@ pub enum IntermediateExpr {
     Expr { expr: Box<Expr> },
 }
 
+impl IntermediateExpr {
+    pub fn is_constant(&self) -> bool {
+        matches!(self, IntermediateExpr::Constant(_))
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        if let IntermediateExpr::Constant(rv) = self {
+            return Some(rv.as_bool())
+        }
+        None
+    }
+
+    pub fn as_expr(&self) -> Option<&Expr> {
+        if let IntermediateExpr::Expr { expr } = self {
+            return Some(expr);
+        }
+        None
+    }
+}
+
 impl Display for IntermediateExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -79,10 +99,6 @@ pub enum Node {
     Order {
         source: Box<Node>,
         key: Vec<(IntermediateExpr, SqlOrdering)>,
-    },
-
-    Values {
-        rows: Vec<Vec<IntermediateExpr>>,
     },
 
     Scan {
