@@ -761,3 +761,12 @@ impl From<InterpretError> for ExecutionError {
         ExecutionError::Interpret(err)
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use crate::{engine::interpreter::{Interpreter, Output}, util::Shared};
+
+    pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
+        Interpreter::new(out, true)
+    }
+}

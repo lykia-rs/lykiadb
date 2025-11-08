@@ -24,11 +24,13 @@ pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltRea
 
 #[cfg(test)]
 mod tests {
+    use crate::engine::interpreter::tests::create_test_interpreter;
+
     use super::*;
 
     #[test]
     fn test_basic_fibonacci() {
-        let mut interpreter = Interpreter::new(None, true);
+        let mut interpreter = create_test_interpreter(None);
 
         // Test first few Fibonacci numbers
         assert_eq!(
@@ -67,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_invalid_input() {
-        let mut interpreter = Interpreter::new(None, true);
+        let mut interpreter = create_test_interpreter(None);
 
         // Test with non-numeric input
         let result = nt_fib(&mut interpreter, &[RV::Bool(true)]);
@@ -84,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_negative_input() {
-        let mut interpreter = Interpreter::new(None, true);
+        let mut interpreter = create_test_interpreter(None);
 
         // Negative numbers should return themselves as per implementation
         assert_eq!(

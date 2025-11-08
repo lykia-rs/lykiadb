@@ -41,13 +41,14 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
 mod tests {
     use super::*;
     use crate::engine::interpreter::Output;
+    use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::util::alloc_shared;
     use crate::value::{array::RVArray, object::RVObject};
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
     fn setup() -> Interpreter {
-        Interpreter::new(Some(alloc_shared(Output::new())), true)
+        create_test_interpreter(Some(alloc_shared(Output::new())))
     }
 
     #[test]

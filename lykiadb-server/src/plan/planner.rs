@@ -274,7 +274,7 @@ impl<'a> Planner<'a> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        engine::interpreter::Interpreter,
+        engine::interpreter::{tests::create_test_interpreter},
         plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
@@ -290,7 +290,7 @@ mod tests {
 
     /// Helper function to create a test planner instance
     fn create_test_planner() -> Planner<'static> {
-        let interpreter = Box::leak(Box::new(Interpreter::new(None, false)));
+        let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
         Planner::new(interpreter)
     }
 
