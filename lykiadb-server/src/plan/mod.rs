@@ -25,6 +25,26 @@ pub enum IntermediateExpr {
     Expr { expr: Box<Expr> },
 }
 
+impl IntermediateExpr {
+    pub fn is_constant(&self) -> bool {
+        matches!(self, IntermediateExpr::Constant(_))
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        if let IntermediateExpr::Constant(rv) = self {
+            return Some(rv.as_bool())
+        }
+        None
+    }
+
+    pub fn as_expr(&self) -> Option<&Expr> {
+        if let IntermediateExpr::Expr { expr } = self {
+            return Some(expr);
+        }
+        None
+    }
+}
+
 impl Display for IntermediateExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -81,10 +101,6 @@ pub enum Node {
         key: Vec<(IntermediateExpr, SqlOrdering)>,
     },
 
-    Values {
-        rows: Vec<Vec<IntermediateExpr>>,
-    },
-
     Scan {
         source: SqlCollectionIdentifier,
         filter: Option<IntermediateExpr>,
@@ -104,7 +120,7 @@ pub enum Node {
 
     Subquery {
         source: Box<Node>,
-        alias: Option<Identifier>,
+        alias: Identifier,
     },
 
     Nothing,
@@ -189,10 +205,7 @@ impl Node {
                     f,
                     "{}- subquery [{}]{}",
                     indent_str,
-                    alias
-                        .as_ref()
-                        .map(|x| x.name.clone())
-                        .unwrap_or("unnamed".to_string()),
+                    alias.name.clone(),
                     Self::NEWLINE
                 )?;
                 source._fmt_recursive(f, indent + 1)

@@ -13,8 +13,8 @@ pub mod array;
 pub mod callable;
 pub mod environment;
 pub mod eval;
-pub mod object;
 pub mod iterator;
+pub mod object;
 
 #[derive(Debug, Clone)]
 pub enum RV {

@@ -439,11 +439,11 @@ impl SqlParser {
             if cparser.cmp_tok(&skw!(Select)) {
                 let subquery = Box::new(self.sql_select_inner(cparser)?);
                 cparser.expect(&sym!(RightParen))?;
-                let alias: Option<Token> =
-                    optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false });
+                cparser.expect(&skw!(As))?;
+                let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 return Ok(SqlFrom::Select {
                     subquery,
-                    alias: alias.map(|t| t.extract_identifier().unwrap()),
+                    alias: identifier.extract_identifier().unwrap()
                 });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause

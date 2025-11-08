@@ -64,6 +64,12 @@ Run the shell:
 $ cargo run --release --bin lykiadb-shell lykiadb-shell/examples/fib.ly
 ```
 
+Flamegraph a benchmark:
+
+```shell
+$ sudo cargo flamegraph --bench interpreter -- --bench
+```
+
 For playground, please visit [lykia-rs/playground](https://github.com/lykia-rs/playground)
 
 ## License

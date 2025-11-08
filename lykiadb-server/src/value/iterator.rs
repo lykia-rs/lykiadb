@@ -1,38 +1,58 @@
 use dyn_clone::DynClone;
 use interb::Symbol;
-use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 
-use crate::value::RV;
+use crate::{
+    global::GLOBAL_INTERNER,
+    value::{RV, object::RVObject},
+};
 
 pub type RVs = Box<dyn RVIterator>;
 
-pub trait RVIterator: Iterator<Item = IterationEnvironment> + DynClone {}
+pub trait RVIterator: Iterator<Item = ExecutionRow> + DynClone {}
 
 dyn_clone::clone_trait_object!(RVIterator);
 
-impl<I: Iterator<Item = IterationEnvironment> + DynClone> RVIterator for I {}
+impl<I: Iterator<Item = ExecutionRow> + DynClone> RVIterator for I {}
 
 #[derive(Debug, Clone)]
-pub struct IterationEnvironment {
-    pub inner: FxHashMap<Symbol, RV>,
+pub struct ExecutionRow {
+    pub keys: SmallVec<[Symbol; 4]>,
+    pub values: SmallVec<[RV; 4]>,
 }
 
-impl IterationEnvironment {
-    pub fn new(keys: Vec<Symbol>, values: Vec<RV>) -> Self {
-        let mut inner = FxHashMap::default();
-        for (key, value) in keys.into_iter().zip(values.into_iter()) {
-            inner.insert(key, value);
+impl ExecutionRow {
+    pub fn new() -> Self {
+        ExecutionRow {
+            keys: SmallVec::new(),
+            values: SmallVec::new(),
         }
-        IterationEnvironment { inner }
     }
 
     pub fn get(&self, key: &Symbol) -> Option<&RV> {
-        self.inner.get(key)
+        if let Some(pos) = self.keys.iter().position(|k| k == key) {
+            self.values.get(pos)
+        } else {
+            None
+        }
     }
 
-    pub fn spread_to(&self, target: &mut FxHashMap<Symbol, RV>) {
-        for (key, value) in &self.inner {
-            target.insert(key.clone(), value.clone());
+    pub fn insert(&mut self, key: Symbol, value: RV) {
+        self.keys.push(key);
+        self.values.push(value);
+    }
+
+    pub fn as_value(&self) -> RV {
+        let mut map = RVObject::new();
+        for (k, v) in self.keys.iter().zip(self.values.iter()) {
+            map.insert(GLOBAL_INTERNER.resolve(*k).unwrap().to_string(), v.clone());
+        }
+        RV::Object(map)
+    }
+
+    pub fn copy_to(&self, target: &mut ExecutionRow) {
+        for (k, v) in self.keys.iter().zip(self.values.iter()) {
+            target.insert(*k, v.clone());
         }
     }
 }

@@ -34,19 +34,19 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
             match expr {
                 Expr::Get { object, name, .. } => {
                     // check if the reference resolves
-                    println!("/Expr::Get({:?} of {:?})/", name.name, object);
+                    // println!("/Expr::Get({:?} of {:?})/", name.name, object);
                 }
                 Expr::FieldPath { head, tail, .. } => {
                     // check if the head resolves
-                    println!(
+                    /* println!(
                         "/Is Expr::FieldPath(head={:?}) path_valid={:?}/",
                         head.name,
                         self.scope.is_path_valid(head, tail)
-                    );
+                    ); */
                 }
                 Expr::Call { callee, .. } => {
                     // check if the callee resolves
-                    println!("/Expr::Call({callee:?})/");
+                    // println!("/Expr::Call({callee:?})/");
                 }
                 Expr::Select { query, .. } => {
                     if !self.allow_subqueries {

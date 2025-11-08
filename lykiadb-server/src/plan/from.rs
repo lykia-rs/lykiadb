@@ -52,7 +52,7 @@ pub fn build_from(
                 alias: alias.clone(),
             };
 
-            if let Err(err) = scope.add_source(alias.as_ref().unwrap(), from.clone()) {
+            if let Err(err) = scope.add_source(alias, from.clone()) {
                 return Err(HaltReason::Error(ExecutionError::Plan(err)));
             }
 

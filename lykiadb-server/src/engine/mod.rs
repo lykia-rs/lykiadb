@@ -28,7 +28,11 @@ pub enum RuntimeMode {
 
 impl Runtime {
     pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
-        Runtime { mode, interpreter, source_processor: SourceProcessor::new() }
+        Runtime {
+            mode,
+            interpreter,
+            source_processor: SourceProcessor::new(),
+        }
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {

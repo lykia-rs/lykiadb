@@ -33,8 +33,11 @@
     - Context check (?)
 
 # execution
+- execution_row 
+    - should not be cloned before passing to inter_fork
+    - pass by reference when possible
 - Map subquery expressions to selects
     - Expr tree nodes are used to represent subqueries
-- get('alias') from the environment??
 - Find a better solution for inter_fork
-- Add interning for strings in the executor
+- scan_loop can use a lazy iterator as source
+- output structure is vague

@@ -3,6 +3,7 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
+    engine::stdlib::arr::nt_create_arr,
     util::Shared,
     value::{
         RV,
@@ -21,6 +22,7 @@ use self::{
 
 use super::interpreter::Output;
 
+pub mod arr;
 pub mod dtype;
 pub mod fib;
 pub mod json;
@@ -35,6 +37,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut time_namespace = FxHashMap::default();
     let mut io_namespace = FxHashMap::default();
     let mut dtype_namespace = FxHashMap::default();
+    let mut arr_namespace = FxHashMap::default();
 
     benchmark_namespace.insert(
         "fib".to_owned(),
@@ -161,6 +164,18 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
 
     dtype_namespace.insert("none".to_owned(), RV::Datatype(Datatype::None));
 
+    arr_namespace.insert(
+        "new".to_owned(),
+        RV::Callable(RVCallable::new(
+            Function::Lambda {
+                function: nt_create_arr,
+            },
+            Datatype::Tuple(vec![Datatype::Num]),
+            Datatype::Array(Box::new(Datatype::Num)),
+            CallableKind::Generic,
+        )),
+    );
+
     if out.is_some() {
         let mut test_namespace = FxHashMap::default();
 
@@ -211,6 +226,11 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Datatype::Unknown,
             CallableKind::Aggregator("avg".to_owned()),
         )),
+    );
+
+    std.insert(
+        "arr".to_owned(),
+        RV::Object(RVObject::from_map(arr_namespace)),
     );
 
     std

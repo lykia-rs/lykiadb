@@ -22,12 +22,14 @@ impl ServerSession {
     pub async fn handle(&mut self) {
         while let Some(message) = self.conn.read().await.unwrap() {
             // Here we measure the time it takes to process a message
-            let start = Instant::now();
+
             match &message {
                 Message::Request(req) => match req {
                     Request::Run(command) => {
+                        let start = Instant::now();
                         let execution = self.runtime.interpret(command);
-
+                        let elapsed = start.elapsed();
+                        info!("{:?} (took {:?})", message, elapsed);
                         let response = if execution.is_ok() {
                             Response::Value(execution.unwrap().to_string().into())
                         } else {
@@ -39,8 +41,6 @@ impl ServerSession {
                 },
                 _ => error!("Unsupported message type"),
             }
-            let elapsed = start.elapsed();
-            info!("{:?} (took {:?})", message, elapsed);
         }
     }
 

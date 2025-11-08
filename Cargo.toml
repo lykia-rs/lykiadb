@@ -7,6 +7,10 @@ rust-version = "1.88"
 [profile.release]
 opt-level = 3
 strip = "debuginfo"
+debug = true
+
+[profile.bench]
+debug = true
 
 [workspace.metadata.scripts]
 dev-client = "sh ./dev-client.sh"
