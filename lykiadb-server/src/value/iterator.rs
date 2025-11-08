@@ -49,4 +49,10 @@ impl ExecutionRow {
         }
         RV::Object(map)
     }
+
+    pub fn copy_to(&self, target: &mut ExecutionRow) {
+        for (k, v) in self.keys.iter().zip(self.values.iter()) {
+            target.insert(*k, v.clone());
+        }
+    }
 }

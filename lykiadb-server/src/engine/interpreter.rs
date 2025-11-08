@@ -145,7 +145,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_with_iter(&mut self, e: &Expr, exec_row: &ExecutionRow) -> Result<RV, HaltReason> {
+    pub fn eval_with_row(&mut self, e: &Expr, exec_row: &ExecutionRow) -> Result<RV, HaltReason> {
         self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
         self.clear_exec_row();

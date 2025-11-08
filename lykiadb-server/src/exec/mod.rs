@@ -47,16 +47,16 @@ impl<'a> PlanExecutor<'a> {
                         match field {
                             SqlProjection::All { collection } => {
                                 if collection.is_none() {
-                                    // downstream.spread_to(&mut upstream);
+                                    downstream.copy_to(&mut upstream);
                                 } else {
                                     let projected_key = collection.as_ref().unwrap().to_string();
                                     let interned_key = GLOBAL_INTERNER.intern(&projected_key);
                                     let value = &downstream.get(&interned_key);
-                                    // row.insert(interned_key, value.unwrap().clone());
+                                    upstream.insert(interned_key, value.unwrap().clone());
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = inter_fork.eval_with_iter(&expr, &downstream);
+                                let evaluated = inter_fork.eval_with_row(&expr, &downstream);
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
