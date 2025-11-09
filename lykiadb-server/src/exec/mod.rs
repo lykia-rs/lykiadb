@@ -110,7 +110,7 @@ impl<'a> PlanExecutor<'a> {
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = inter_fork.eval_with_row(&expr, &downstream);
+                                let evaluated = inter_fork.eval_with_row(expr, &downstream);
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
@@ -144,7 +144,7 @@ impl<'a> PlanExecutor<'a> {
 
                 let mapper = move |v: RV| {
                     let mut env = ExecutionRow::new();
-                    env.insert(sym_alias.clone(), v.clone());
+                    env.insert(sym_alias, v.clone());
                     env
                 };
 
@@ -172,14 +172,14 @@ mod tests {
     use super::*;
     use crate::plan::IntermediateExpr;
     use crate::value::RV;
-    use crate::{engine::interpreter::tests::create_test_interpreter, value::object::RVObject};
+    use crate::engine::interpreter::tests::create_test_interpreter;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
     fn create_test_executor() -> PlanExecutor<'static> {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-        let executor = PlanExecutor::new(interpreter);
-        executor
+        
+        PlanExecutor::new(interpreter)
     }
 
     fn create_test_identifier(name: &str) -> Identifier {
@@ -857,7 +857,7 @@ mod tests {
         let symbol = GLOBAL_INTERNER.intern("bool_val");
         let value = rows[0].get(&symbol).unwrap();
         match value {
-            RV::Bool(b) => assert_eq!(*b, true),
+            RV::Bool(b) => assert!(*b),
             _ => panic!("Expected boolean value"),
         }
     }

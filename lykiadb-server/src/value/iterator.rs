@@ -21,6 +21,12 @@ pub struct ExecutionRow {
     pub values: SmallVec<[RV; 4]>,
 }
 
+impl Default for ExecutionRow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExecutionRow {
     pub fn new() -> Self {
         ExecutionRow {

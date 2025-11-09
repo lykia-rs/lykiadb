@@ -92,7 +92,7 @@ impl RV {
 
     pub fn if_object(&self) -> Option<&RVObject> {
         match self {
-            RV::Object(obj) => Some(&obj),
+            RV::Object(obj) => Some(obj),
             _ => None,
         }
     }
