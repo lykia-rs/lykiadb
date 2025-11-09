@@ -443,7 +443,7 @@ impl SqlParser {
                 let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 return Ok(SqlFrom::Select {
                     subquery,
-                    alias: identifier.extract_identifier().unwrap()
+                    alias: identifier.extract_identifier().unwrap(),
                 });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause

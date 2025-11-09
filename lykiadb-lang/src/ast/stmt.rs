@@ -83,7 +83,7 @@ pub enum Stmt {
         span: Span,
     },
     #[serde(rename = "Stmt::Explain")]
-    Explain {       
+    Explain {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]

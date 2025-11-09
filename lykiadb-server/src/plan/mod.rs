@@ -32,7 +32,7 @@ impl IntermediateExpr {
 
     pub fn as_bool(&self) -> Option<bool> {
         if let IntermediateExpr::Constant(rv) = self {
-            return Some(rv.as_bool())
+            return Some(rv.as_bool());
         }
         None
     }
