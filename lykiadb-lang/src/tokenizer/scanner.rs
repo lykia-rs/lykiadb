@@ -428,7 +428,7 @@ impl From<ScanError> for StandardError {
 }
 
 #[cfg(test)]
-pub mod test_helpers {
+pub mod test_utils {
     #[macro_export]
     macro_rules! lexm {
         ($a: literal) => {
@@ -438,7 +438,7 @@ pub mod test_helpers {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::tokenizer::token::TokenType::Eof;
     use crate::{kw, lexm, skw};
 

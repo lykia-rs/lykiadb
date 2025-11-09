@@ -29,7 +29,7 @@ impl Memtable {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::memtable::Memtable;
     use bytes::Bytes;
 

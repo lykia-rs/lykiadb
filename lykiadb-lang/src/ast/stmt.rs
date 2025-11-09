@@ -110,7 +110,7 @@ impl Spanned for Stmt {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::collections::HashSet;
 
     use crate::ast::{
