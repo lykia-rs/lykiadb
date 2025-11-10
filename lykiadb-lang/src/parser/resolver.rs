@@ -230,12 +230,11 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 if expr.is_some() {
                     self.resolve_expr(expr.as_ref().unwrap());
                 }
-            },
-            
+            }
+
             Stmt::Explain { expr, .. } => {
                 self.resolve_expr(expr);
-            },
-            
+            }
         };
         Ok(())
     }

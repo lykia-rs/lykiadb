@@ -274,7 +274,7 @@ impl<'a> Planner<'a> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        engine::interpreter::{tests::create_test_interpreter},
+        engine::interpreter::tests::create_test_interpreter,
         plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
@@ -283,7 +283,13 @@ mod tests {
     };
     use lykiadb_lang::ast::{
         Literal, Span,
-        expr::{Expr, Operation, test_utils::{create_call_expr, create_field_path_expr, create_identifier_expr, create_number_expr, create_string_expr, create_subquery_expr}},
+        expr::{
+            Expr, Operation,
+            test_utils::{
+                create_call_expr, create_field_path_expr, create_identifier_expr,
+                create_number_expr, create_string_expr, create_subquery_expr,
+            },
+        },
     };
 
     /// Helper function to create a test planner instance

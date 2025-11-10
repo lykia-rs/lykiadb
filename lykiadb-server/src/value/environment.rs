@@ -145,7 +145,7 @@ impl From<EnvironmentError> for StandardError {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::sync::Arc;
 
     use crate::{global::GLOBAL_INTERNER, value::RV};

@@ -19,7 +19,7 @@ fn runtime(filename: &str) {
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("engine");
-    
+
     // Standard configuration for more stable results
     group.warm_up_time(Duration::from_secs(5));
     group.measurement_time(Duration::from_secs(30));

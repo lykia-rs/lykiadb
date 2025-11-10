@@ -642,13 +642,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                             .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                     }
                     return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
-                }
-                else {
+                } else {
                     return Err(HaltReason::Error(
                         InterpretError::InvalidExplainTarget { span: *span }.into(),
-                    ))
+                    ));
                 }
-            },
+            }
         }
         Ok(RV::Undefined)
     }
@@ -786,7 +785,10 @@ impl From<InterpretError> for ExecutionError {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{engine::interpreter::{Interpreter, Output}, util::Shared};
+    use crate::{
+        engine::interpreter::{Interpreter, Output},
+        util::Shared,
+    };
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
         Interpreter::new(out, true)

@@ -83,7 +83,7 @@ pub enum Stmt {
         span: Span,
     },
     #[serde(rename = "Stmt::Explain")]
-    Explain {       
+    Explain {
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -110,7 +110,7 @@ impl Spanned for Stmt {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::collections::HashSet;
 
     use crate::ast::{

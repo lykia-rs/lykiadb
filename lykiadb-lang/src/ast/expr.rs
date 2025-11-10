@@ -555,14 +555,16 @@ pub mod test_utils {
             id: 0,
         }
     }
-
 }
 
 #[cfg(test)]
 pub mod tests {
     use std::collections::HashSet;
 
-    use crate::ast::{IdentifierKind, expr::{Expr, test_utils::create_simple_add_expr}};
+    use crate::ast::{
+        IdentifierKind,
+        expr::{Expr, test_utils::create_simple_add_expr},
+    };
 
     use super::*;
 
@@ -998,7 +1000,6 @@ pub mod tests {
         };
         assert_eq!(call.to_string(), "test_func(Num(1.0), Num(2.0))");
     }
-
 
     #[test]
     fn identical_exprs_should_be_equal_when_ids_are_different() {
