@@ -24,7 +24,7 @@ pub fn nt_json_decode(
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
-                    span: called_from.clone(),
+                    span: *called_from,
                     expected: "string".to_string(),
                 }
                 .into(),
@@ -37,7 +37,7 @@ pub fn nt_json_decode(
         Err(e) => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
-                    span: called_from.clone(),
+                    span: *called_from,
                     expected: "JSON".to_string(),
                 }
                 .into(),

@@ -15,7 +15,7 @@ pub fn nt_create_arr(
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
-                    span: called_from.clone(),
+                    span: *called_from,
                     expected: "non-negative integer".to_string(),
                 }
                 .into(),

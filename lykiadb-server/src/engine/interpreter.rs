@@ -766,8 +766,7 @@ impl From<InterpretError> for InputError {
             ),
             InterpretError::InvalidPropertyAccess { span, value_str } => (
                 &format!(
-                    "Ensure that the highlighted expression evaluates to an object: {}",
-                    value_str
+                    "Ensure that the highlighted expression evaluates to an object: {value_str}"
                 ) as &str,
                 *span,
             ),
