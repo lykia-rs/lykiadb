@@ -5,7 +5,7 @@ use crate::sym;
 use crate::tokenizer::token::Symbol::*;
 use crate::tokenizer::token::TokenType::{Eof, Identifier};
 use crate::tokenizer::token::*;
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 use std::sync::Arc;
@@ -408,7 +408,7 @@ pub enum ScanError {
     MalformedNumberLiteral { span: Span },
 }
 
-impl From<ScanError> for StandardError {
+impl From<ScanError> for InputError {
     fn from(value: ScanError) -> Self {
         let (hint, sp) = match &value {
             ScanError::UnexpectedCharacter { span } => {
@@ -423,7 +423,7 @@ impl From<ScanError> for StandardError {
             ),
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp.into()))
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }
 

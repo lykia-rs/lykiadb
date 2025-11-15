@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter, Result};
 use crate::{plan::PlannerError, value::environment::EnvironmentError};
 
 use super::interpreter::InterpretError;
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +22,7 @@ impl Display for ExecutionError {
 }
 
 impl ExecutionError {
-    pub fn generalize(self) -> StandardError {
+    pub fn generalize(self) -> InputError {
         match self {
             ExecutionError::Lang(lang_error) => lang_error.into(),
             ExecutionError::Interpret(interpret_error) => interpret_error.into(),

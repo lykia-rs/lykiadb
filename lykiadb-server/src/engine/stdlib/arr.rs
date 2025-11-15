@@ -1,18 +1,18 @@
+use lykiadb_lang::ast::Span;
+
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
     value::{RV, array::RVArray},
 };
 
-pub fn nt_create_arr(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_create_arr(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     let size = match &args[0] {
         RV::Num(n) if *n >= 0.0 && n.fract() == 0.0 => *n as usize,
         _ => {
             return Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: format!(
-                        "arr::new: Expected non-negative integer size, got '{:?}'",
-                        args[0]
-                    ),
+                InterpretError::InvalidArgumentType {
+                    span: called_from.clone(),
+                    expected: "non-negative integer".to_string(),
                 }
                 .into(),
             ));

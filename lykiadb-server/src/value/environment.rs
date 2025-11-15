@@ -1,6 +1,6 @@
 use crate::engine::{error::ExecutionError, interpreter::HaltReason};
 use interb::Symbol;
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
@@ -131,7 +131,7 @@ impl From<EnvironmentError> for ExecutionError {
     }
 }
 
-impl From<EnvironmentError> for StandardError {
+impl From<EnvironmentError> for InputError {
     fn from(value: EnvironmentError) -> Self {
         let (hint, sp) = match &value {
             EnvironmentError::Other { .. } => (
@@ -140,7 +140,7 @@ impl From<EnvironmentError> for StandardError {
             ),
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp))
+        InputError::new(&value.to_string(), hint, Some(sp))
     }
 }
 

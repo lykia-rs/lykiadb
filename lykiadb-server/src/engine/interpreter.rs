@@ -1,6 +1,6 @@
 use super::error::ExecutionError;
 use super::stdlib::stdlib;
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
@@ -332,7 +332,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
                 Ok(evaluated)
             }
-            Expr::Call { callee, args, .. } => {
+            Expr::Call { callee, args, span,.. } => {
                 let eval = self.visit_expr(callee)?;
 
                 if let RV::Callable(callable) = eval {
@@ -343,7 +343,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     }
                     self.loop_stack.push_fn();
 
-                    let val = callable.call(self, args_evaluated.as_slice());
+                    let val = callable.call(self, span, args_evaluated.as_slice());
 
                     self.loop_stack.pop_fn();
 
@@ -408,6 +408,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 upper,
                 subject,
                 kind,
+                span,
                 ..
             } => {
                 let lower_eval = self.visit_expr(lower)?;
@@ -430,11 +431,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     }
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::Other {
-                            message: format!(
-                                //TODO: Maybe with dates and strings too?
-                                "Range can only be created with numbers. {lower_eval:?} {upper_eval:?} {subject_eval:?}"
-                            ),
+                        InterpretError::InvalidRangeExpression {
+                            span: *span,
                         }
                         .into(),
                     ))
@@ -470,11 +468,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         }
                     } else {
                         return Err(HaltReason::Error(
-                            InterpretError::Other {
-                                message: format!(
-                                    "Only objects have properties. {current:?} is not an object"
-                                ),
-                            }
+                            InterpretError::InvalidPropertyAccess { span: *span, value_str: current.to_string() }
                             .into(),
                         ));
                     }
@@ -500,11 +494,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::Other {
-                            message: format!(
-                                "Only objects have properties. {object_eval:?} is not an object"
-                            ),
-                        }
+                        InterpretError::InvalidPropertyAccess { span: *span, value_str: object_eval.to_string() }
                         .into(),
                     ))
                 }
@@ -513,6 +503,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 object,
                 name,
                 value,
+                span,
                 ..
             } => {
                 let object_eval = self.visit_expr(object)?;
@@ -522,11 +513,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::Other {
-                            message: format!(
-                                "Only objects have properties. {object_eval:?} is not an object"
-                            ),
-                        }
+                        InterpretError::InvalidPropertyAccess { span: *span, value_str: object_eval.to_string() }
                         .into(),
                     ))
                 }
@@ -740,11 +727,15 @@ pub enum InterpretError {
     PropertyNotFound { span: Span, property: String },
     #[error("Only select expressions can be explained.")]
     InvalidExplainTarget { span: Span },
-    #[error("{message}")]
-    Other { message: String }, // TODO(vck): Refactor this
+    #[error("Range can only be created with numbers.")]
+    InvalidRangeExpression { span: Span },
+    #[error("Only objects have properties.")]
+    InvalidPropertyAccess { span: Span, value_str: String },
+    #[error("Argument type mismatch. Expected {expected:?}")]
+    InvalidArgumentType { span: Span, expected: String },
 }
 
-impl From<InterpretError> for StandardError {
+impl From<InterpretError> for InputError {
     fn from(value: InterpretError) -> Self {
         let (hint, sp) = match &value {
             InterpretError::NotCallable { span } => (
@@ -761,13 +752,18 @@ impl From<InterpretError> for StandardError {
             InterpretError::InvalidExplainTarget { span, .. } => {
                 ("Try replacing this with a SELECT expression", *span)
             }
-            InterpretError::Other { .. } => (
-                "Review the error details for specific guidance",
-                Span::default(),
-            ),
+            InterpretError::InvalidRangeExpression { span } => {
+                ("Ensure that the range boundaries are numeric values", *span)
+            }
+            InterpretError::InvalidPropertyAccess { span, value_str } => {
+                (&format!("Ensure that the highlighted expression evaluates to an object: {}", value_str) as &str, *span)
+            }
+            InterpretError::InvalidArgumentType { span, .. } => {
+                ("Check that the argument matches the expected types", *span)
+            }
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp.into()))
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }
 

@@ -1,4 +1,4 @@
-use lykiadb_lang::types::Datatype;
+use lykiadb_lang::{ast::Span, types::Datatype};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -6,23 +6,20 @@ use crate::{
     value::{RV, object::RVObject},
 };
 
-pub fn nt_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_of(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     Ok(RV::Datatype(args[0].get_type()))
 }
 
-pub fn nt_array_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_array_of(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     match &args[0] {
         RV::Datatype(inner) => Ok(RV::Datatype(Datatype::Array(Box::new(inner.clone())))),
         _ => Err(HaltReason::Error(
-            InterpretError::Other {
-                message: format!("array_of: Unexpected argument '{:?}'", args[0]),
-            }
-            .into(),
+            InterpretError::InvalidArgumentType { span: *called_from, expected: "datatype".to_string() }.into(),
         )),
     }
 }
 
-pub fn nt_callable_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_callable_of(_interpreter: &mut Interpreter, called_from: &Span,args: &[RV]) -> Result<RV, HaltReason> {
     match &args[0] {
         RV::Datatype(input) => match &args[1] {
             RV::Datatype(output) => Ok(RV::Datatype(Datatype::Callable(
@@ -30,32 +27,23 @@ pub fn nt_callable_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
                 Box::new(output.clone()),
             ))),
             _ => Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: format!("callable_of: Unexpected argument '{:?}'", args[1]),
-                }
-                .into(),
+                InterpretError::InvalidArgumentType { span: *called_from, expected: "datatype".to_string() }.into()
             )),
         },
         _ => Err(HaltReason::Error(
-            InterpretError::Other {
-                message: format!("callable_of: Unexpected argument '{:?}'", args[0]),
-            }
-            .into(),
+            InterpretError::InvalidArgumentType { span: *called_from, expected: "datatype".to_string() }.into()
         )),
     }
 }
 
-pub fn nt_tuple_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_tuple_of(_interpreter: &mut Interpreter, called_from: &Span,args: &[RV]) -> Result<RV, HaltReason> {
     let mut inner = Vec::new();
     for arg in args {
         match arg {
             RV::Datatype(dt) => inner.push(dt.clone()),
             _ => {
                 return Err(HaltReason::Error(
-                    InterpretError::Other {
-                        message: format!("tuple_of: Unexpected argument '{arg:?}'"),
-                    }
-                    .into(),
+                    InterpretError::InvalidArgumentType { span: *called_from, expected: "datatype".to_string() }.into(),
                 ));
             }
         }
@@ -79,14 +67,11 @@ fn object_rec(inner: &RVObject) -> Result<Datatype, HaltReason> {
     Ok(Datatype::Object(type_map))
 }
 
-pub fn nt_object_of(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_object_of(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     match &args[0] {
         RV::Object(inner) => Ok(RV::Datatype(object_rec(inner)?)),
         _ => Err(HaltReason::Error(
-            InterpretError::Other {
-                message: format!("object_of: Unexpected argument '{:?}'", args[0]),
-            }
-            .into(),
+            InterpretError::InvalidArgumentType { span: *called_from, expected: "datatype".to_string() }.into(),
         )),
     }
 }

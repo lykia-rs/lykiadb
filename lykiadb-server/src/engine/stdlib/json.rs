@@ -2,20 +2,22 @@ use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
     value::RV,
 };
+use lykiadb_lang::ast::Span;
 use serde_json::json;
 use std::sync::Arc;
 
-pub fn nt_json_encode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_json_encode(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))
 }
 
-pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_json_decode(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
     let json_str = match &args[0] {
         RV::Str(s) => s,
         _ => {
             return Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: format!("json_decode: Unexpected argument '{:?}'", args[0]),
+                InterpretError::InvalidArgumentType {
+                    span: called_from.clone(),
+                    expected: "string".to_string(),
                 }
                 .into(),
             ));
@@ -26,10 +28,10 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV,
         Ok(v) => v,
         Err(e) => {
             return Err(HaltReason::Error(
-                InterpretError::Other {
-                    message: format!("json_decode: Unhandled error '{e:?}'"),
-                }
-                .into(),
+                InterpretError::InvalidArgumentType { 
+                    span: called_from.clone(),
+                    expected: "JSON".to_string()
+                }.into()
             ));
         }
     };
@@ -53,22 +55,22 @@ mod tests {
 
         // Test primitive values
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Num(42.0)]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]).unwrap(),
             RV::Str(Arc::new("42.0".to_string()))
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Bool(true)]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Bool(true)]).unwrap(),
             RV::Str(Arc::new("true".to_string()))
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Str(Arc::new("hello".to_string()))]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("hello".to_string()))]).unwrap(),
             RV::Str(Arc::new("\"hello\"".to_string()))
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[RV::Undefined]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Undefined]).unwrap(),
             RV::Str(Arc::new("null".to_string()))
         );
 
@@ -77,7 +79,7 @@ mod tests {
         let array_rv = RV::Array(RVArray::from_vec(arr));
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[array_rv]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[array_rv]).unwrap(),
             RV::Str(Arc::new("[1.0,\"test\"]".to_string()))
         );
 
@@ -88,7 +90,7 @@ mod tests {
         let object_rv = RV::Object(RVObject::from_map(map));
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &[object_rv]).unwrap(),
+            nt_json_encode(&mut interpreter, &Span::default(), &[object_rv]).unwrap(),
             RV::Str(Arc::new("{\"key\":123.0,\"msg\":\"value\"}".to_string()))
         );
     }
@@ -99,18 +101,19 @@ mod tests {
 
         // Test primitive values
         assert_eq!(
-            nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("42.0".to_string()))]).unwrap(),
+            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("42.0".to_string()))]).unwrap(),
             RV::Num(42.0)
         );
 
         assert_eq!(
-            nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("true".to_string()))]).unwrap(),
+            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("true".to_string()))]).unwrap(),
             RV::Bool(true)
         );
 
         assert_eq!(
             nt_json_decode(
                 &mut interpreter,
+                &Span::default(),
                 &[RV::Str(Arc::new("\"hello\"".to_string()))]
             )
             .unwrap(),
@@ -118,13 +121,14 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_decode(&mut interpreter, &[RV::Str(Arc::new("null".to_string()))]).unwrap(),
+            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("null".to_string()))]).unwrap(),
             RV::Undefined
         );
 
         // Test array
         let array_result = nt_json_decode(
             &mut interpreter,
+                &Span::default(),
             &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))],
         )
         .unwrap();
@@ -140,6 +144,7 @@ mod tests {
         // Test object
         let object_result = nt_json_decode(
             &mut interpreter,
+                &Span::default(),
             &[RV::Str(Arc::new(
                 "{\"key\": 123.0, \"msg\": \"value\"}".to_string(),
             ))],
@@ -159,13 +164,14 @@ mod tests {
 
         // Test error cases
         assert!(matches!(
-            nt_json_decode(&mut interpreter, &[RV::Num(42.0)]),
+            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]),
             Err(HaltReason::Error(_))
         ));
 
         assert!(matches!(
             nt_json_decode(
                 &mut interpreter,
+                &Span::default(),
                 &[RV::Str(Arc::new("invalid json".to_string()))]
             ),
             Err(HaltReason::Error(_))

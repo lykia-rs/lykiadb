@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use pretty_assertions::assert_eq;
 use self::error::ExecutionError;
 use crate::{
     util::{Shared, alloc_shared},
