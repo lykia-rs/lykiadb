@@ -162,7 +162,12 @@ impl<'a> PlanExecutor<'a> {
 
                 Ok(Box::from(iter))
             }
-            _ => panic!("Unsupported node type"),
+            Node::Aggregate { source, group_by, aggregates } => todo!(),
+            Node::Join { left, join_type, right, constraint } => todo!(),
+            Node::Order { source, key } => todo!(),
+            Node::Scan { source, filter } => todo!(),
+            Node::Compound { source, operator, right } => todo!(),
+            Node::Nothing => todo!(),
         }
     }
 }
