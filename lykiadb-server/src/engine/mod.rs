@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use pretty_assertions::assert_eq;
 use self::error::ExecutionError;
 use crate::{
     util::{Shared, alloc_shared},
@@ -9,6 +8,7 @@ use crate::{
 use interpreter::{Interpreter, Output};
 use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
+use pretty_assertions::assert_eq;
 use tracing::info;
 
 pub mod error;

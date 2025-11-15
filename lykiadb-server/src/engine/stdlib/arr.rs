@@ -5,7 +5,11 @@ use crate::{
     value::{RV, array::RVArray},
 };
 
-pub fn nt_create_arr(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_create_arr(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     let size = match &args[0] {
         RV::Num(n) if *n >= 0.0 && n.fract() == 0.0 => *n as usize,
         _ => {

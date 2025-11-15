@@ -6,11 +6,19 @@ use lykiadb_lang::ast::Span;
 use serde_json::json;
 use std::sync::Arc;
 
-pub fn nt_json_encode(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_json_encode(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))
 }
 
-pub fn nt_json_decode(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_json_decode(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     let json_str = match &args[0] {
         RV::Str(s) => s,
         _ => {
@@ -28,10 +36,11 @@ pub fn nt_json_decode(_interpreter: &mut Interpreter, called_from: &Span, args: 
         Ok(v) => v,
         Err(e) => {
             return Err(HaltReason::Error(
-                InterpretError::InvalidArgumentType { 
+                InterpretError::InvalidArgumentType {
                     span: called_from.clone(),
-                    expected: "JSON".to_string()
-                }.into()
+                    expected: "JSON".to_string(),
+                }
+                .into(),
             ));
         }
     };
@@ -65,7 +74,12 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("hello".to_string()))]).unwrap(),
+            nt_json_encode(
+                &mut interpreter,
+                &Span::default(),
+                &[RV::Str(Arc::new("hello".to_string()))]
+            )
+            .unwrap(),
             RV::Str(Arc::new("\"hello\"".to_string()))
         );
 
@@ -101,12 +115,22 @@ mod tests {
 
         // Test primitive values
         assert_eq!(
-            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("42.0".to_string()))]).unwrap(),
+            nt_json_decode(
+                &mut interpreter,
+                &Span::default(),
+                &[RV::Str(Arc::new("42.0".to_string()))]
+            )
+            .unwrap(),
             RV::Num(42.0)
         );
 
         assert_eq!(
-            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("true".to_string()))]).unwrap(),
+            nt_json_decode(
+                &mut interpreter,
+                &Span::default(),
+                &[RV::Str(Arc::new("true".to_string()))]
+            )
+            .unwrap(),
             RV::Bool(true)
         );
 
@@ -121,14 +145,19 @@ mod tests {
         );
 
         assert_eq!(
-            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Str(Arc::new("null".to_string()))]).unwrap(),
+            nt_json_decode(
+                &mut interpreter,
+                &Span::default(),
+                &[RV::Str(Arc::new("null".to_string()))]
+            )
+            .unwrap(),
             RV::Undefined
         );
 
         // Test array
         let array_result = nt_json_decode(
             &mut interpreter,
-                &Span::default(),
+            &Span::default(),
             &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))],
         )
         .unwrap();
@@ -144,7 +173,7 @@ mod tests {
         // Test object
         let object_result = nt_json_decode(
             &mut interpreter,
-                &Span::default(),
+            &Span::default(),
             &[RV::Str(Arc::new(
                 "{\"key\": 123.0, \"msg\": \"value\"}".to_string(),
             ))],

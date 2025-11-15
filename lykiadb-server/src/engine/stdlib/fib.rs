@@ -12,12 +12,19 @@ fn _calculate(n: f64) -> f64 {
     _calculate(n - 1.) + _calculate(n - 2.)
 }
 
-pub fn nt_fib(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_fib(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     if let RV::Num(n) = args[0] {
         return Ok(RV::Num(_calculate(n)));
     }
     Err(HaltReason::Error(
-        InterpretError::InvalidArgumentType { span: *called_from, expected: "number".to_string() }
+        InterpretError::InvalidArgumentType {
+            span: *called_from,
+            expected: "number".to_string(),
+        }
         .into(),
     ))
 }
@@ -78,7 +85,10 @@ mod tests {
         let err = result.unwrap_err();
         match err {
             HaltReason::Error(interp_err) => match &interp_err {
-                ExecutionError::Interpret(InterpretError::InvalidArgumentType { span: _, expected }) => {
+                ExecutionError::Interpret(InterpretError::InvalidArgumentType {
+                    span: _,
+                    expected,
+                }) => {
                     assert_eq!(expected, "number");
                 }
                 _ => panic!("Expected InvalidArgumentType error"),

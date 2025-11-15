@@ -170,15 +170,15 @@ impl<'a> PlanExecutor<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::plan::IntermediateExpr;
     use crate::value::RV;
-    use crate::engine::interpreter::tests::create_test_interpreter;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
     fn create_test_executor() -> PlanExecutor<'static> {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-        
+
         PlanExecutor::new(interpreter)
     }
 

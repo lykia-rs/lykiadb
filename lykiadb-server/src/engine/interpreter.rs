@@ -332,7 +332,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
                 Ok(evaluated)
             }
-            Expr::Call { callee, args, span,.. } => {
+            Expr::Call {
+                callee, args, span, ..
+            } => {
                 let eval = self.visit_expr(callee)?;
 
                 if let RV::Callable(callable) = eval {
@@ -431,10 +433,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     }
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::InvalidRangeExpression {
-                            span: *span,
-                        }
-                        .into(),
+                        InterpretError::InvalidRangeExpression { span: *span }.into(),
                     ))
                 }
             }
@@ -468,7 +467,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         }
                     } else {
                         return Err(HaltReason::Error(
-                            InterpretError::InvalidPropertyAccess { span: *span, value_str: current.to_string() }
+                            InterpretError::InvalidPropertyAccess {
+                                span: *span,
+                                value_str: current.to_string(),
+                            }
                             .into(),
                         ));
                     }
@@ -494,7 +496,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     ))
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::InvalidPropertyAccess { span: *span, value_str: object_eval.to_string() }
+                        InterpretError::InvalidPropertyAccess {
+                            span: *span,
+                            value_str: object_eval.to_string(),
+                        }
                         .into(),
                     ))
                 }
@@ -513,7 +518,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     Ok(evaluated)
                 } else {
                     Err(HaltReason::Error(
-                        InterpretError::InvalidPropertyAccess { span: *span, value_str: object_eval.to_string() }
+                        InterpretError::InvalidPropertyAccess {
+                            span: *span,
+                            value_str: object_eval.to_string(),
+                        }
                         .into(),
                     ))
                 }
@@ -752,12 +760,17 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidExplainTarget { span, .. } => {
                 ("Try replacing this with a SELECT expression", *span)
             }
-            InterpretError::InvalidRangeExpression { span } => {
-                ("Ensure that the range boundaries are numeric values", *span)
-            }
-            InterpretError::InvalidPropertyAccess { span, value_str } => {
-                (&format!("Ensure that the highlighted expression evaluates to an object: {}", value_str) as &str, *span)
-            }
+            InterpretError::InvalidRangeExpression { span } => (
+                "Ensure that the range expression is built with numbers",
+                *span,
+            ),
+            InterpretError::InvalidPropertyAccess { span, value_str } => (
+                &format!(
+                    "Ensure that the highlighted expression evaluates to an object: {}",
+                    value_str
+                ) as &str,
+                *span,
+            ),
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
             }

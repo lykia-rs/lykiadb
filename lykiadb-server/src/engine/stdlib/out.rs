@@ -5,7 +5,11 @@ use crate::{
     value::RV,
 };
 
-pub fn nt_print(_interpreter: &mut Interpreter, called_from: &Span, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_print(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     for arg in args {
         print!("{arg:?} ");
     }
