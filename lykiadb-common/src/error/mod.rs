@@ -9,16 +9,16 @@ pub struct Span {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StandardError {
+pub struct InputError {
     pub message: String,
     pub hint: String,
     pub error_code: String,
     pub span: Option<Span>,
 }
 
-impl StandardError {
+impl InputError {
     pub fn new(message: &str, hint: &str, span: Option<Span>) -> Self {
-        StandardError {
+        InputError {
             message: message.to_owned(),
             hint: hint.to_owned(),
             error_code: "000".to_owned(),

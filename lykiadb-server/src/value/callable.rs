@@ -5,7 +5,10 @@ use crate::{
     util::Shared,
 };
 use interb::Symbol;
-use lykiadb_lang::{ast::stmt::Stmt, types::Datatype};
+use lykiadb_lang::{
+    ast::{Span, stmt::Stmt},
+    types::Datatype,
+};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
@@ -38,10 +41,15 @@ impl RVCallable {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, arguments: &[RV]) -> Result<RV, HaltReason> {
+    pub fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        called_from: &Span,
+        arguments: &[RV],
+    ) -> Result<RV, HaltReason> {
         match self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Lambda { function } => function(interpreter, arguments),
+            Function::Lambda { function } => function(interpreter, called_from, arguments),
             Function::UserDefined {
                 parameters,
                 closure,
@@ -59,7 +67,7 @@ pub trait Stateful {
 #[derive(Clone)]
 pub enum Function {
     Lambda {
-        function: fn(&mut Interpreter, &[RV]) -> Result<RV, HaltReason>,
+        function: fn(&mut Interpreter, called_from: &Span, &[RV]) -> Result<RV, HaltReason>,
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {

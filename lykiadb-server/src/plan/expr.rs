@@ -32,11 +32,11 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
-                Expr::Get {   .. } => {
+                Expr::Get { .. } => {
                     // check if the reference resolves
                     // println!("/Expr::Get({:?} of {:?})/", name.name, object);
                 }
-                Expr::FieldPath {   .. } => {
+                Expr::FieldPath { .. } => {
                     // check if the head resolves
                     /* println!(
                         "/Is Expr::FieldPath(head={:?}) path_valid={:?}/",
@@ -44,7 +44,7 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
                         self.scope.is_path_valid(head, tail)
                     ); */
                 }
-                Expr::Call {  .. } => {
+                Expr::Call { .. } => {
                     // check if the callee resolves
                     // println!("/Expr::Call({callee:?})/");
                 }

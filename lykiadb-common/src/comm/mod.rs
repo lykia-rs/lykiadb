@@ -4,7 +4,7 @@ pub mod tcp;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::error::StandardError;
+use crate::error::InputError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
@@ -15,7 +15,7 @@ pub enum Request {
 pub enum Response {
     Value(Value),
     Program(Value),
-    Error(StandardError),
+    Error(InputError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

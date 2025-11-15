@@ -5,7 +5,7 @@ use crate::ast::expr::Expr;
 use crate::ast::{Span, Spanned};
 use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use sql::SqlParser;
@@ -245,7 +245,7 @@ pub enum ParseError {
     NoTokens,
 }
 
-impl From<ParseError> for StandardError {
+impl From<ParseError> for InputError {
     fn from(value: ParseError) -> Self {
         let (hint, sp) = match &value {
             ParseError::UnexpectedToken { token } => (
@@ -263,6 +263,6 @@ impl From<ParseError> for StandardError {
             ParseError::NoTokens => ("Provide valid input to parse", Span::default()),
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp.into()))
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

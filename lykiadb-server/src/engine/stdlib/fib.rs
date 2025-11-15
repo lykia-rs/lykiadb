@@ -1,3 +1,5 @@
+use lykiadb_lang::ast::Span;
+
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
     value::RV,
@@ -10,13 +12,18 @@ fn _calculate(n: f64) -> f64 {
     _calculate(n - 1.) + _calculate(n - 2.)
 }
 
-pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltReason> {
+pub fn nt_fib(
+    _interpreter: &mut Interpreter,
+    called_from: &Span,
+    args: &[RV],
+) -> Result<RV, HaltReason> {
     if let RV::Num(n) = args[0] {
         return Ok(RV::Num(_calculate(n)));
     }
     Err(HaltReason::Error(
-        InterpretError::Other {
-            message: format!("fib_nat: Unexpected argument '{:?}'", args[0]),
+        InterpretError::InvalidArgumentType {
+            span: *called_from,
+            expected: "number".to_string(),
         }
         .into(),
     ))
@@ -24,7 +31,7 @@ pub fn nt_fib(_interpreter: &mut Interpreter, args: &[RV]) -> Result<RV, HaltRea
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::engine::{error::ExecutionError, interpreter::tests::create_test_interpreter};
 
     use super::*;
 
@@ -34,35 +41,35 @@ mod tests {
 
         // Test first few Fibonacci numbers
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(0.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(0.0)]).unwrap(),
             RV::Num(0.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(1.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(1.0)]).unwrap(),
             RV::Num(1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(2.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(2.0)]).unwrap(),
             RV::Num(1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(3.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(3.0)]).unwrap(),
             RV::Num(2.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(4.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(4.0)]).unwrap(),
             RV::Num(3.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(5.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(5.0)]).unwrap(),
             RV::Num(5.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(6.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(6.0)]).unwrap(),
             RV::Num(8.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(7.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(7.0)]).unwrap(),
             RV::Num(13.0)
         );
     }
@@ -72,14 +79,20 @@ mod tests {
         let mut interpreter = create_test_interpreter(None);
 
         // Test with non-numeric input
-        let result = nt_fib(&mut interpreter, &[RV::Bool(true)]);
+        let result = nt_fib(&mut interpreter, &Span::default(), &[RV::Bool(true)]);
         assert!(result.is_err());
 
         let err = result.unwrap_err();
         match err {
-            HaltReason::Error(e) => {
-                assert!(e.to_string().contains("Unexpected argument"));
-            }
+            HaltReason::Error(interp_err) => match &interp_err {
+                ExecutionError::Interpret(InterpretError::InvalidArgumentType {
+                    span: _,
+                    expected,
+                }) => {
+                    assert_eq!(expected, "number");
+                }
+                _ => panic!("Expected InvalidArgumentType error"),
+            },
             _ => panic!("Expected InterpretError"),
         }
     }
@@ -90,11 +103,11 @@ mod tests {
 
         // Negative numbers should return themselves as per implementation
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(-1.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-1.0)]).unwrap(),
             RV::Num(-1.0)
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &[RV::Num(-5.0)]).unwrap(),
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-5.0)]).unwrap(),
             RV::Num(-5.0)
         );
     }

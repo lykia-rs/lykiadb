@@ -39,7 +39,7 @@ impl From<ResolveError> for LangError {
     }
 }
 
-impl From<LangError> for lykiadb_common::error::StandardError {
+impl From<LangError> for lykiadb_common::error::InputError {
     fn from(value: LangError) -> Self {
         match value {
             LangError::Parse(parse_error) => parse_error.into(),

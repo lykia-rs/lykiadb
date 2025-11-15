@@ -4,7 +4,7 @@ use crate::ast::stmt::Stmt;
 use crate::ast::visitor::VisitorMut;
 use crate::ast::{Identifier, Literal};
 use crate::{Locals, Scopes};
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -246,7 +246,7 @@ pub enum ResolveError {
     GenericError { span: Span, message: String },
 }
 
-impl From<ResolveError> for StandardError {
+impl From<ResolveError> for InputError {
     fn from(value: ResolveError) -> Self {
         let (hint, sp) = match &value {
             ResolveError::GenericError { span, .. } => {
@@ -254,6 +254,6 @@ impl From<ResolveError> for StandardError {
             }
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp.into()))
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

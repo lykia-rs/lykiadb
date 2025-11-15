@@ -67,9 +67,16 @@ impl Shell {
 
     fn handle_response(&mut self, filename: &str, content: &str, response: Message) {
         match response {
-            Message::Response(Response::Value(result)) => println!("{result:?}"),
+            Message::Response(Response::Value(value)) |
             Message::Response(Response::Program(value)) => {
-                println!("{}", serde_json::to_string_pretty(&value).unwrap())
+                match value {
+                    serde_json::Value::String(str) => {
+                        println!("{}", str)
+                    },
+                    _ => {
+                        println!("{}", serde_json::to_string_pretty(&value).unwrap())
+                    }
+                }
             }
             Message::Response(Response::Error(err)) => {
                 err.report(filename, content, &mut stdout());

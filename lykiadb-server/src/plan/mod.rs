@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use lykiadb_common::error::StandardError;
+use lykiadb_common::error::InputError;
 use lykiadb_lang::ast::{
     Identifier, Span,
     expr::Expr,
@@ -349,7 +349,7 @@ pub enum PlannerError {
     DuplicateObjectInScope(Identifier),
 }
 
-impl From<PlannerError> for StandardError {
+impl From<PlannerError> for InputError {
     fn from(value: PlannerError) -> Self {
         let (hint, sp) = match &value {
             PlannerError::NestedAggregationNotAllowed(span) => {
@@ -370,6 +370,6 @@ impl From<PlannerError> for StandardError {
             ),
         };
 
-        StandardError::new(&value.to_string(), hint, Some(sp.into()))
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }
