@@ -28,6 +28,7 @@ pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
+pub mod avg;
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = FxHashMap::default();
@@ -219,8 +220,8 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert(
         "avg".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
-                function: nt_tuple_of,
+            Function::Agg {
+                function: || Box::new(avg::AvgAggregator::default()),
             },
             Datatype::Unknown,
             Datatype::Unknown,

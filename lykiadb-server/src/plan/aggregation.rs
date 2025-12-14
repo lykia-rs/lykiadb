@@ -6,7 +6,7 @@ use crate::{
         interpreter::{Aggregation, HaltReason, Interpreter},
     },
     plan::planner::InClause,
-    value::{RV, callable::CallableKind},
+    value::{RV, callable::{CallableKind, Function}},
 };
 
 use lykiadb_lang::ast::{
@@ -120,6 +120,11 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                     )));
                 }
 
+                let factory = match &callable.function.as_ref() {
+                    Function::Agg { function } => function,
+                    _ => panic!("Expected aggregator function"),
+                };
+
                 match visit {
                     ExprVisitorNode::In => {
                         if self.in_call > 0 {
@@ -130,7 +135,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         self.in_call += 1;
                         self.accumulator.push(Aggregation {
                             name: agg_name.clone(),
-                            callable: Some(callable.clone()),
+                            callable: Some(factory.clone()),
                             args: args.clone(),
                         });
                     }

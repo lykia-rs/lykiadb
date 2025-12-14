@@ -17,7 +17,7 @@ use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
+use crate::value::callable::{AggregatorFactory, CallableKind, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
@@ -656,7 +656,7 @@ pub struct Aggregation {
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
-    pub callable: Option<RVCallable>,
+    pub callable: Option<AggregatorFactory>,
     pub args: Vec<Expr>,
 }
 
@@ -747,6 +747,8 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
+    #[error("Aggregator functions cannot be called outside of queries.")]
+    InvalidAggregatorCall { span: Span },
 }
 
 impl From<InterpretError> for InputError {
@@ -778,7 +780,11 @@ impl From<InterpretError> for InputError {
             ),
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
-            }
+            },
+            InterpretError::InvalidAggregatorCall { span } => (
+                "Aggregator functions can only be used within query contexts",
+                *span,
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))
