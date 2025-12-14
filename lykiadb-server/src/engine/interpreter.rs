@@ -11,6 +11,7 @@ use lykiadb_lang::types::Datatype;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
 
 use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
@@ -648,9 +649,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
 pub struct Aggregation {
     pub name: String,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub callable: Option<RVCallable>,
     pub args: Vec<Expr>,
 }
 

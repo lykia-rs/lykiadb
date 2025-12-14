@@ -28,6 +28,14 @@ pub enum RV {
     Undefined,
 }
 
+impl Eq for RV {}
+
+impl std::hash::Hash for RV {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+    }
+}
+
 impl From<RV> for Datatype {
     fn from(rv: RV) -> Self {
         match rv {
