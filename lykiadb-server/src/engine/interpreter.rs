@@ -1,5 +1,4 @@
 use super::error::ExecutionError;
-use super::stdlib::stdlib;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -15,6 +14,7 @@ use derivative::Derivative;
 
 use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
+use crate::libs::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
 use crate::value::callable::{AggregatorFactory, CallableKind, Function, RVCallable, Stateful};

@@ -13,7 +13,6 @@ use tracing::info;
 
 pub mod error;
 pub mod interpreter;
-mod stdlib;
 
 pub struct Runtime {
     mode: RuntimeMode,
