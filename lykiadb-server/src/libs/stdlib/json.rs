@@ -1,10 +1,10 @@
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter},
-    value::RV,
+    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_module, value::RV
 };
 use lykiadb_lang::ast::Span;
 use serde_json::json;
 use std::sync::Arc;
+
 
 pub fn nt_json_encode(
     _interpreter: &mut Interpreter,
@@ -47,6 +47,11 @@ pub fn nt_json_decode(
 
     Ok(parsed)
 }
+
+lykia_module!(json, {
+    "stringify" => nt_json_encode,
+    "parse" => nt_json_decode
+});
 
 #[cfg(test)]
 mod tests {

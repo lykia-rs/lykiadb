@@ -1,6 +1,7 @@
 use lykiadb_lang::ast::Span;
 
 use crate::engine::interpreter::{HaltReason, Interpreter};
+use crate::lykia_module;
 use crate::value::RV;
 use std::time;
 
@@ -14,6 +15,11 @@ pub fn nt_clock(
     }
     Ok(RV::Undefined)
 }
+
+lykia_module!(time, {
+    "clock" => nt_clock
+});
+
 #[cfg(test)]
 mod tests {
     use super::*;

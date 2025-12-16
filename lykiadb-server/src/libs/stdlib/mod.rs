@@ -3,7 +3,7 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::Output, libs::stdlib::arr::nt_create_arr, util::Shared, value::{
+    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time}, lykia_lib, util::Shared, value::{
         RV,
         callable::{CallableKind, Function, RVCallable},
         object::RVObject,
@@ -13,9 +13,7 @@ use crate::{
 use self::{
     dtype::nt_of,
     fib::nt_fib,
-    json::{nt_json_decode, nt_json_encode},
     out::nt_print,
-    time::nt_clock,
 };
 
 
@@ -27,12 +25,12 @@ pub mod out;
 pub mod time;
 pub mod avg;
 
+lykia_lib!(std_core, [json(), time()]);
+
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
-    let mut std = FxHashMap::default();
+    let mut std = std_core();
 
     let mut benchmark_namespace = FxHashMap::default();
-    let mut json_namespace = FxHashMap::default();
-    let mut time_namespace = FxHashMap::default();
     let mut io_namespace = FxHashMap::default();
     let mut dtype_namespace = FxHashMap::default();
     let mut arr_namespace = FxHashMap::default();
@@ -42,41 +40,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         RV::Callable(RVCallable::new(
             Function::Lambda { function: nt_fib },
             Datatype::Tuple(vec![Datatype::Num]),
-            Datatype::Num,
-            CallableKind::Generic,
-        )),
-    );
-
-    json_namespace.insert(
-        "stringify".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Lambda {
-                function: nt_json_encode,
-            },
-            Datatype::Unknown,
-            Datatype::Str,
-            CallableKind::Generic,
-        )),
-    );
-
-    json_namespace.insert(
-        "parse".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Lambda {
-                function: nt_json_decode,
-            },
-            Datatype::Str,
-            // TODO(vck): This should be a concrete type
-            Datatype::Unknown,
-            CallableKind::Generic,
-        )),
-    );
-
-    time_namespace.insert(
-        "clock".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Lambda { function: nt_clock },
-            Datatype::Unit,
             Datatype::Num,
             CallableKind::Generic,
         )),
@@ -196,14 +159,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert(
         "Benchmark".to_owned(),
         RV::Object(RVObject::from_map(benchmark_namespace)),
-    );
-    std.insert(
-        "json".to_owned(),
-        RV::Object(RVObject::from_map(json_namespace)),
-    );
-    std.insert(
-        "time".to_owned(),
-        RV::Object(RVObject::from_map(time_namespace)),
     );
     std.insert(
         "io".to_owned(),
