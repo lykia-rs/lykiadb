@@ -25,10 +25,10 @@ pub mod out;
 pub mod time;
 pub mod math;
 
-lykia_lib!(std_core, [json(), time()]);
+lykia_lib!(std_core, vec![json(), time()]);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
-    let mut std = std_core();
+    let mut std = std_core().as_raw();
 
     let mut benchmark_namespace = FxHashMap::default();
     let mut io_namespace = FxHashMap::default();

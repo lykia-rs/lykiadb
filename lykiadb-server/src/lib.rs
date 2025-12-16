@@ -42,22 +42,23 @@ macro_rules! lykia_agg_fn {
 macro_rules! lykia_module {
     ($name: ident, {$($function_name:ident=>$callable:expr),*}) => {
         use lykiadb_lang::types::Datatype;
-        use rustc_hash::FxHashMap;
+        use crate::libs::LykiaModule;
         use crate::value::callable::RVCallable;
-        pub fn $name() -> (String, RV) {
-            let mut map = FxHashMap::default();
+
+        pub fn $name() -> LykiaModule {
+            let mut modl = LykiaModule::new(stringify!($name));
             $(
-                map.insert(
-                    stringify!($function_name).to_owned(),
-                    RV::Callable(RVCallable::new(
+                modl.insert(
+                    stringify!($function_name),
+                    RVCallable::new(
                         $callable,
                         Datatype::Unknown,
                         Datatype::Unknown,
-                    )),
+                    ),
                 );
             )*
 
-            (stringify!($name).to_owned(), RV::Object(crate::value::object::RVObject::from_map(map)))
+            modl
         }
     }
 }
@@ -65,12 +66,10 @@ macro_rules! lykia_module {
 #[macro_export]
 macro_rules! lykia_lib {
     ($name: ident, $value: expr) => {
-        pub fn $name() -> FxHashMap<String, RV> {
-            let mut lib = FxHashMap::default();
-            for (key, val) in $value {
-                lib.insert(key, val);
-            }
-            lib
+        use crate::libs::LykiaLibrary;
+
+        pub fn $name() -> LykiaLibrary {
+            LykiaLibrary::new(stringify!($name), $value)
         }
     }
 }
