@@ -24,5 +24,5 @@ impl Aggregator for AvgAggregator {
 }
 
 lykia_module!(math, {
-    agg => lykia_agg_fn!(AvgAggregator)
+    avg => lykia_agg_fn!(AvgAggregator)
 });
