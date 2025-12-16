@@ -49,3 +49,149 @@ impl LykiaLibrary {
         lib
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::value::callable::Function;
+    use lykiadb_lang::{ast::Span, types::Datatype};
+    use crate::engine::interpreter::{HaltReason, Interpreter};
+
+    // Helper function to create a simple test callable
+    fn create_test_callable(_name: &str) -> RVCallable {
+        fn test_fn(_: &mut Interpreter, _: &Span, _: &[RV]) -> Result<RV, HaltReason> {
+            Ok(RV::Undefined)
+        }
+
+        RVCallable::new(
+            Function::Native { function: test_fn },
+            Datatype::Unit,
+            Datatype::Unit,
+        )
+    }
+
+    #[test]
+    fn test_lykia_module_new() {
+        let module = LykiaModule::new("test_module");
+        assert_eq!(module.name, "test_module");
+        assert!(module.map.is_empty());
+    }
+
+    #[test]
+    fn test_lykia_module_insert() {
+        let mut module = LykiaModule::new("test_module");
+        let callable = create_test_callable("test_fn");
+        
+        module.insert("test_function", callable);
+        
+        assert_eq!(module.map.len(), 1);
+        assert!(module.map.contains_key("test_function"));
+        assert!(matches!(module.map.get("test_function"), Some(RV::Callable(_))));
+    }
+
+    #[test]
+    fn test_lykia_module_insert_multiple() {
+        let mut module = LykiaModule::new("test_module");
+        
+        module.insert("fn1", create_test_callable("fn1"));
+        module.insert("fn2", create_test_callable("fn2"));
+        module.insert("fn3", create_test_callable("fn3"));
+        
+        assert_eq!(module.map.len(), 3);
+        assert!(module.map.contains_key("fn1"));
+        assert!(module.map.contains_key("fn2"));
+        assert!(module.map.contains_key("fn3"));
+    }
+
+    #[test]
+    fn test_lykia_module_as_raw() {
+        let mut module = LykiaModule::new("math");
+        module.insert("add", create_test_callable("add"));
+        module.insert("subtract", create_test_callable("subtract"));
+        
+        let (name, rv) = module.as_raw();
+        
+        assert_eq!(name, "math");
+        assert!(matches!(rv, RV::Object(_)));
+        
+        if let RV::Object(obj) = rv {
+            assert_eq!(obj.len(), 2);
+            assert!(obj.contains_key("add"));
+            assert!(obj.contains_key("subtract"));
+        }
+    }
+
+    #[test]
+    fn test_lykia_library_new() {
+        let module1 = LykiaModule::new("mod1");
+        let module2 = LykiaModule::new("mod2");
+        
+        let library = LykiaLibrary::new("test_lib", vec![module1, module2]);
+        
+        assert_eq!(library.name, "test_lib");
+        assert_eq!(library.mods.len(), 2);
+    }
+
+    #[test]
+    fn test_lykia_library_new_empty() {
+        let library = LykiaLibrary::new("empty_lib", vec![]);
+        
+        assert_eq!(library.name, "empty_lib");
+        assert_eq!(library.mods.len(), 0);
+    }
+
+    #[test]
+    fn test_lykia_library_as_raw() {
+        let mut module1 = LykiaModule::new("math");
+        module1.insert("add", create_test_callable("add"));
+        module1.insert("multiply", create_test_callable("multiply"));
+        
+        let mut module2 = LykiaModule::new("string");
+        module2.insert("concat", create_test_callable("concat"));
+        
+        let library = LykiaLibrary::new("stdlib", vec![module1, module2]);
+        let lib_map = library.as_raw();
+        
+        assert_eq!(lib_map.len(), 2);
+        assert!(lib_map.contains_key("math"));
+        assert!(lib_map.contains_key("string"));
+        
+        // Verify math module contents
+        if let Some(RV::Object(math_obj)) = lib_map.get("math") {
+            assert_eq!(math_obj.len(), 2);
+            assert!(math_obj.contains_key("add"));
+            assert!(math_obj.contains_key("multiply"));
+        } else {
+            panic!("Expected math module to be an object");
+        }
+        
+        // Verify string module contents
+        if let Some(RV::Object(string_obj)) = lib_map.get("string") {
+            assert_eq!(string_obj.len(), 1);
+            assert!(string_obj.contains_key("concat"));
+        } else {
+            panic!("Expected string module to be an object");
+        }
+    }
+
+    #[test]
+    fn test_lykia_library_as_raw_empty() {
+        let library = LykiaLibrary::new("empty_lib", vec![]);
+        let lib_map = library.as_raw();
+        
+        assert!(lib_map.is_empty());
+    }
+
+    #[test]
+    fn test_lykia_module_overwrite_function() {
+        let mut module = LykiaModule::new("test_module");
+        
+        module.insert("func", create_test_callable("func1"));
+        assert_eq!(module.map.len(), 1);
+        
+        // Inserting with the same name should overwrite
+        module.insert("func", create_test_callable("func2"));
+        assert_eq!(module.map.len(), 1);
+        assert!(module.map.contains_key("func"));
+    }
+}
