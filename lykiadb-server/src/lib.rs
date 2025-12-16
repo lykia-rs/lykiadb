@@ -32,6 +32,7 @@ macro_rules! lykia_lambda {
 macro_rules! lykia_agg {
     ($agg:ident) => {
         crate::value::callable::Function::Agg {
+            name: stringify!($agg).into(),
             function: || Box::new($agg::default()),
         }
     };
@@ -42,11 +43,7 @@ macro_rules! lykia_module {
     ($name: ident, {$($function_name:ident=>$callable:expr),*}) => {
         use lykiadb_lang::types::Datatype;
         use rustc_hash::FxHashMap;
-        use crate::{
-            value::{
-                callable::{CallableKind, RVCallable},
-            }
-        };
+        use crate::value::callable::RVCallable;
         pub fn $name() -> (String, RV) {
             let mut map = FxHashMap::default();
             $(
@@ -56,7 +53,6 @@ macro_rules! lykia_module {
                         $callable,
                         Datatype::Unknown,
                         Datatype::Unknown,
-                        CallableKind::Generic,
                     )),
                 );
             )*

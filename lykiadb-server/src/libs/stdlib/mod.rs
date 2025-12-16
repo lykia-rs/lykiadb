@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time}, lykia_lib, util::Shared, value::{
         RV,
-        callable::{CallableKind, Function, RVCallable},
+        callable::{Function, RVCallable},
         object::RVObject,
     }
 };
@@ -41,7 +41,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda { function: nt_fib },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Num,
-            CallableKind::Generic,
+            
         )),
     );
 
@@ -51,7 +51,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda { function: nt_print },
             Datatype::Unknown,
             Datatype::Unit,
-            CallableKind::Generic,
+            
         )),
     );
 
@@ -61,7 +61,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Lambda { function: nt_of },
             Datatype::Unknown,
             Datatype::Datatype,
-            CallableKind::Generic,
+            
         )),
     );
 
@@ -81,7 +81,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Unknown,
             Datatype::Datatype,
-            CallableKind::Generic,
         )),
     );
 
@@ -93,7 +92,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Unknown,
             Datatype::Datatype,
-            CallableKind::Generic,
         )),
     );
 
@@ -105,7 +103,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Unknown,
             Datatype::Datatype,
-            CallableKind::Generic,
         )),
     );
 
@@ -117,7 +114,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Unknown,
             Datatype::Datatype,
-            CallableKind::Generic,
         )),
     );
 
@@ -133,7 +129,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Array(Box::new(Datatype::Num)),
-            CallableKind::Generic,
+            
         )),
     );
 
@@ -146,7 +142,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
                 Function::Stateful(out.unwrap().clone()),
                 Datatype::Unit,
                 Datatype::Unit,
-                CallableKind::Generic,
+                
             )),
         );
 
@@ -173,11 +169,11 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "avg".to_owned(),
         RV::Callable(RVCallable::new(
             Function::Agg {
+                name: "avg".to_owned(),
                 function: || Box::new(math::AvgAggregator::default()),
             },
             Datatype::Unknown,
             Datatype::Unknown,
-            CallableKind::Aggregator("avg".to_owned()),
         )),
     );
 

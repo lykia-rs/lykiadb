@@ -11,16 +11,9 @@ use lykiadb_lang::{
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum CallableKind {
-    Generic,
-    Aggregator(String),
-}
-
 #[derive(Clone, Debug)]
 pub struct RVCallable {
-    pub kind: CallableKind,
-    pub function: Arc<Function>,
+    pub function: Function,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
@@ -30,13 +23,11 @@ impl RVCallable {
         function: Function,
         input_type: Datatype,
         return_type: Datatype,
-        call_type: CallableKind,
     ) -> Self {
         RVCallable {
-            function: Arc::new(function),
+            function,
             parameter_types: input_type,
             return_type,
-            kind: call_type,
         }
     }
 
@@ -46,7 +37,7 @@ impl RVCallable {
         called_from: &Span,
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        match self.function.as_ref() {
+        match &self.function {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Lambda { function } => function(interpreter, called_from, arguments),
             Function::Agg { .. } => Err(HaltReason::Error(crate::engine::error::ExecutionError::Interpret(InterpretError::InvalidAggregatorCall {
@@ -81,6 +72,7 @@ pub enum Function {
         body: Arc<Vec<Stmt>>,
     },
     Agg {
+        name: String,
         function: AggregatorFactory,
     },
 }

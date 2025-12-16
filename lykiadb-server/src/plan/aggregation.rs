@@ -4,9 +4,7 @@ use crate::{
     engine::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
-    },
-    plan::planner::InClause,
-    value::{RV, callable::{CallableKind, Function}},
+    }, plan::planner::InClause, value::{RV, callable::{Function, RVCallable}}
 };
 
 use lykiadb_lang::ast::{
@@ -109,7 +107,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
             let callee_val = self.interpreter.eval(callee);
 
             if let Ok(RV::Callable(callable)) = &callee_val
-                && let CallableKind::Aggregator(agg_name) = &callable.kind
+                && let RVCallable { function: Function::Agg { function: factory, name: agg_name }, .. } = &callable
             {
                 if self.is_preventing {
                     return Err(HaltReason::Error(ExecutionError::Plan(
@@ -119,11 +117,6 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         ),
                     )));
                 }
-
-                let factory = match &callable.function.as_ref() {
-                    Function::Agg { function } => function,
-                    _ => panic!("Expected aggregator function"),
-                };
 
                 match visit {
                     ExprVisitorNode::In => {

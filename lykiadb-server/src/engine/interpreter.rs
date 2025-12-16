@@ -17,7 +17,7 @@ use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::callable::{AggregatorFactory, CallableKind, Function, RVCallable, Stateful};
+use crate::value::callable::{AggregatorFactory, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
@@ -393,7 +393,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     fun,
                     Datatype::Unit,
                     Datatype::Unit,
-                    CallableKind::Generic,
                 ));
 
                 if name.is_some() {
