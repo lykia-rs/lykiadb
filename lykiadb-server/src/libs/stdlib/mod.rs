@@ -23,7 +23,7 @@ pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
-pub mod avg;
+pub mod math;
 
 lykia_lib!(std_core, [json(), time()]);
 
@@ -173,7 +173,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         "avg".to_owned(),
         RV::Callable(RVCallable::new(
             Function::Agg {
-                function: || Box::new(avg::AvgAggregator::default()),
+                function: || Box::new(math::AvgAggregator::default()),
             },
             Datatype::Unknown,
             Datatype::Unknown,
