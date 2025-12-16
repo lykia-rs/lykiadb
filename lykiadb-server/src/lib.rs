@@ -20,16 +20,16 @@ macro_rules! assert_plan {
 }
 
 #[macro_export]
-macro_rules! lykia_lambda {
+macro_rules! lykia_native_fn {
     ($builder:expr) => {
-        crate::value::callable::Function::Lambda {
+        crate::value::callable::Function::Native {
             function: $builder,
         }
     };
 }
 
 #[macro_export]
-macro_rules! lykia_agg {
+macro_rules! lykia_agg_fn {
     ($agg:ident) => {
         crate::value::callable::Function::Agg {
             name: stringify!($agg).into(),

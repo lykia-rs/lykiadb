@@ -1,4 +1,4 @@
-use crate::{exec::aggregation::Aggregator, lykia_agg, lykia_module, value::RV};
+use crate::{exec::aggregation::Aggregator, lykia_agg_fn, lykia_module, value::RV};
 
 #[derive(Default)]
 pub(crate) struct AvgAggregator {
@@ -24,5 +24,5 @@ impl Aggregator for AvgAggregator {
 }
 
 lykia_module!(math, {
-    agg => lykia_agg!(AvgAggregator)
+    agg => lykia_agg_fn!(AvgAggregator)
 });

@@ -38,7 +38,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     benchmark_namespace.insert(
         "fib".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda { function: nt_fib },
+            Function::Native { function: nt_fib },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Num,
             
@@ -48,7 +48,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     io_namespace.insert(
         "print".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda { function: nt_print },
+            Function::Native { function: nt_print },
             Datatype::Unknown,
             Datatype::Unit,
             
@@ -58,7 +58,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     dtype_namespace.insert(
         "of_".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda { function: nt_of },
+            Function::Native { function: nt_of },
             Datatype::Unknown,
             Datatype::Datatype,
             
@@ -76,7 +76,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     dtype_namespace.insert(
         "array".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
+            Function::Native {
                 function: nt_array_of,
             },
             Datatype::Unknown,
@@ -87,7 +87,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     dtype_namespace.insert(
         "object".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
+            Function::Native {
                 function: nt_object_of,
             },
             Datatype::Unknown,
@@ -98,7 +98,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     dtype_namespace.insert(
         "callable".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
+            Function::Native {
                 function: nt_callable_of,
             },
             Datatype::Unknown,
@@ -109,7 +109,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     dtype_namespace.insert(
         "tuple".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
+            Function::Native {
                 function: nt_tuple_of,
             },
             Datatype::Unknown,
@@ -124,7 +124,7 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     arr_namespace.insert(
         "new".to_owned(),
         RV::Callable(RVCallable::new(
-            Function::Lambda {
+            Function::Native {
                 function: nt_create_arr,
             },
             Datatype::Tuple(vec![Datatype::Num]),

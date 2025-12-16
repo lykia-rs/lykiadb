@@ -39,7 +39,7 @@ impl RVCallable {
     ) -> Result<RV, HaltReason> {
         match &self.function {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Lambda { function } => function(interpreter, called_from, arguments),
+            Function::Native { function } => function(interpreter, called_from, arguments),
             Function::Agg { .. } => Err(HaltReason::Error(crate::engine::error::ExecutionError::Interpret(InterpretError::InvalidAggregatorCall {
                 span: called_from.clone(),
             }))),
@@ -61,7 +61,7 @@ pub type AggregatorFactory = fn() -> Box<dyn Aggregator + Send>;
 
 #[derive(Clone)]
 pub enum Function {
-    Lambda {
+    Native {
         function: fn(&mut Interpreter, called_from: &Span, &[RV]) -> Result<RV, HaltReason>,
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
@@ -80,7 +80,7 @@ pub enum Function {
 impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
+            Function::Stateful(_) | Function::Native { .. } => write!(f, "<native_fn>"),
             Function::UserDefined { .. } => write!(f, "<user_defined_fn>"),
             Function::Agg { .. } => write!(f, "<agg_fn>"),
         }
