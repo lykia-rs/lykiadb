@@ -20,24 +20,40 @@ macro_rules! assert_plan {
 }
 
 #[macro_export]
+macro_rules! lykia_lambda {
+    ($builder:expr) => {
+        crate::value::callable::Function::Lambda {
+            function: $builder,
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! lykia_agg {
+    ($agg:ident) => {
+        crate::value::callable::Function::Agg {
+            function: || Box::new($agg::default()),
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! lykia_module {
-    ($name: ident, {$($operator:expr=>$builder:expr),*}) => {
+    ($name: ident, {$($function_name:ident=>$callable:expr),*}) => {
         use lykiadb_lang::types::Datatype;
         use rustc_hash::FxHashMap;
         use crate::{
             value::{
-                callable::{CallableKind, Function, RVCallable},
+                callable::{CallableKind, RVCallable},
             }
         };
         pub fn $name() -> (String, RV) {
             let mut map = FxHashMap::default();
             $(
                 map.insert(
-                    $operator.to_owned(),
+                    stringify!($function_name).to_owned(),
                     RV::Callable(RVCallable::new(
-                        Function::Lambda {
-                            function: $builder,
-                        },
+                        $callable,
                         Datatype::Unknown,
                         Datatype::Unknown,
                         CallableKind::Generic,

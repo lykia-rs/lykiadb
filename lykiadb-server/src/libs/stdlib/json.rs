@@ -1,5 +1,5 @@
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_module, value::RV
+    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_lambda, lykia_module, value::RV
 };
 use lykiadb_lang::ast::Span;
 use serde_json::json;
@@ -49,8 +49,8 @@ pub fn nt_json_decode(
 }
 
 lykia_module!(json, {
-    "stringify" => nt_json_encode,
-    "parse" => nt_json_decode
+    stringify => lykia_lambda!(nt_json_encode),
+    parse => lykia_lambda!(nt_json_decode)
 });
 
 #[cfg(test)]
