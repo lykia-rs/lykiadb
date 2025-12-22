@@ -1,5 +1,4 @@
 use super::error::ExecutionError;
-use super::stdlib::stdlib;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -11,12 +10,14 @@ use lykiadb_lang::types::Datatype;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use derivative::Derivative;
 
 use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
+use crate::libs::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::callable::{CallableKind, Function, RVCallable, Stateful};
+use crate::value::callable::{AggregatorFactory, Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
@@ -392,7 +393,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     fun,
                     Datatype::Unit,
                     Datatype::Unit,
-                    CallableKind::Generic,
                 ));
 
                 if name.is_some() {
@@ -648,9 +648,14 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
 pub struct Aggregation {
     pub name: String,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub callable: Option<AggregatorFactory>,
     pub args: Vec<Expr>,
 }
 
@@ -741,6 +746,8 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
+    #[error("Aggregator functions cannot be called outside of queries.")]
+    InvalidAggregatorCall { span: Span },
 }
 
 impl From<InterpretError> for InputError {
@@ -772,7 +779,11 @@ impl From<InterpretError> for InputError {
             ),
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
-            }
+            },
+            InterpretError::InvalidAggregatorCall { span } => (
+                "Aggregator functions can only be used within query contexts",
+                *span,
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

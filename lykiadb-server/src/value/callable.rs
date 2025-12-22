@@ -1,8 +1,7 @@
 use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
-    util::Shared,
+    engine::interpreter::{HaltReason, InterpretError, Interpreter}, exec::aggregation::Aggregator, util::Shared
 };
 use interb::Symbol;
 use lykiadb_lang::{
@@ -12,16 +11,9 @@ use lykiadb_lang::{
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum CallableKind {
-    Generic,
-    Aggregator(String),
-}
-
 #[derive(Clone, Debug)]
 pub struct RVCallable {
-    pub kind: CallableKind,
-    pub function: Arc<Function>,
+    pub function: Function,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
@@ -31,13 +23,11 @@ impl RVCallable {
         function: Function,
         input_type: Datatype,
         return_type: Datatype,
-        call_type: CallableKind,
     ) -> Self {
         RVCallable {
-            function: Arc::new(function),
+            function,
             parameter_types: input_type,
             return_type,
-            kind: call_type,
         }
     }
 
@@ -47,9 +37,12 @@ impl RVCallable {
         called_from: &Span,
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        match self.function.as_ref() {
+        match &self.function {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Lambda { function } => function(interpreter, called_from, arguments),
+            Function::Native { function } => function(interpreter, called_from, arguments),
+            Function::Agg { .. } => Err(HaltReason::Error(crate::engine::error::ExecutionError::Interpret(InterpretError::InvalidAggregatorCall {
+                span: called_from.clone(),
+            }))),
             Function::UserDefined {
                 parameters,
                 closure,
@@ -64,9 +57,11 @@ pub trait Stateful {
     fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
 }
 
+pub type AggregatorFactory = fn() -> Box<dyn Aggregator + Send>;
+
 #[derive(Clone)]
 pub enum Function {
-    Lambda {
+    Native {
         function: fn(&mut Interpreter, called_from: &Span, &[RV]) -> Result<RV, HaltReason>,
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
@@ -76,13 +71,18 @@ pub enum Function {
         closure: Arc<EnvironmentFrame>,
         body: Arc<Vec<Stmt>>,
     },
+    Agg {
+        name: String,
+        function: AggregatorFactory,
+    },
 }
 
 impl Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Function::Stateful(_) | Function::Lambda { .. } => write!(f, "<native_fn>"),
+            Function::Stateful(_) | Function::Native { .. } => write!(f, "<native_fn>"),
             Function::UserDefined { .. } => write!(f, "<user_defined_fn>"),
+            Function::Agg { .. } => write!(f, "<agg_fn>"),
         }
     }
 }

@@ -4,14 +4,12 @@ use crate::{
     engine::{
         error::ExecutionError,
         interpreter::{HaltReason, Interpreter},
-    },
-    global::GLOBAL_INTERNER,
-    plan::{Node, Plan},
-    value::{
-        RV,
-        iterator::{ExecutionRow, RVs},
-    },
+    }, exec::aggregation::Grouper, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{
+        RV, iterator::{ExecutionRow, RVs}
+    }
 };
+
+pub mod aggregation;
 
 pub struct PlanExecutor<'a> {
     interpreter: &'a mut Interpreter,
@@ -162,7 +160,26 @@ impl<'a> PlanExecutor<'a> {
 
                 Ok(Box::from(iter))
             }
-            Node::Aggregate { source, group_by, aggregates } => todo!(),
+            Node::Aggregate { source, group_by, aggregates } => {
+                let inter_fork = self.interpreter.clone();
+
+                let mut grouper = Grouper::new(group_by, aggregates, inter_fork);
+
+                let cursor = self.execute_node(*source)?;
+
+                for row in cursor {
+                    if let Err(e) = grouper.row(row) {
+                        match e {
+                            HaltReason::Error(err) => return Err(err),
+                            _ => ()
+                        }
+                    }
+                }
+
+                let rows = grouper.finalize();
+
+                Ok(Box::from(rows.into_iter()))
+            },
             Node::Join { left, join_type, right, constraint } => todo!(),
             Node::Order { source, key } => todo!(),
             Node::Scan { source, filter } => todo!(),

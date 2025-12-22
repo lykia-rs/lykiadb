@@ -9,7 +9,7 @@
 - Update
 - Delete
 
-# planning.scope-binding
+# planning.scope-building
 - Input collections and projected fields flow
 - Path check (if a path is valid)
 - Identifier check (if an identifier is valid)
@@ -17,8 +17,6 @@
 - Scope merging
 - Output fields should be tracked and managed
 - Aggregations should be matched with expressions
-
-# planning.expressions
 - Environment presence check
     - Check all the functions and variables
     - Overlaps with aggregation caller eval
