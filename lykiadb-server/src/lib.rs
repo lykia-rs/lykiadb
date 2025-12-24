@@ -30,9 +30,9 @@ macro_rules! lykia_native_fn {
 
 #[macro_export]
 macro_rules! lykia_agg_fn {
-    ($agg:ident) => {
+    ($name:ident, $agg:ident) => {
         crate::value::callable::Function::Agg {
-            name: stringify!($agg).into(),
+            name: stringify!($name).into(),
             function: || Box::new($agg::default()),
         }
     };
@@ -40,7 +40,7 @@ macro_rules! lykia_agg_fn {
 
 #[macro_export]
 macro_rules! lykia_module {
-    ($name: ident, {$($function_name:ident=>$callable:expr),*}) => {
+    ($name: ident, {$($function_name:ident=>$callable:expr),*}, [$($root_name:ident),*]) => {
         use lykiadb_lang::types::Datatype;
         use crate::libs::LykiaModule;
         use crate::value::callable::RVCallable;
@@ -56,6 +56,10 @@ macro_rules! lykia_module {
                         Datatype::Unknown,
                     ),
                 );
+            )*
+
+            $(
+                modl.expose_as_root(stringify!($root_name));
             )*
 
             modl

@@ -3,7 +3,7 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time}, lykia_lib, util::Shared, value::{
+    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math}, lykia_lib, util::Shared, value::{
         RV,
         callable::{Function, RVCallable},
         object::RVObject,
@@ -25,7 +25,7 @@ pub mod out;
 pub mod time;
 pub mod math;
 
-lykia_lib!(std_core, vec![json(), time()]);
+lykia_lib!(std_core, vec![json(), time(), math()]);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();
@@ -163,18 +163,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert(
         "dtype".to_owned(),
         RV::Object(RVObject::from_map(dtype_namespace)),
-    );
-
-    std.insert(
-        "avg".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Agg {
-                name: "avg".to_owned(),
-                function: || Box::new(math::AvgAggregator::default()),
-            },
-            Datatype::Unknown,
-            Datatype::Unknown,
-        )),
     );
 
     std.insert(

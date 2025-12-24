@@ -18,7 +18,7 @@ pub fn nt_clock(
 
 lykia_module!(time, {
     clock => lykia_native_fn!(nt_clock)
-});
+},[]);
 
 #[cfg(test)]
 mod tests {

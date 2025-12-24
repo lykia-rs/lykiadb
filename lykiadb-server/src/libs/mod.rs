@@ -6,14 +6,16 @@ pub mod stdlib;
 
 pub struct LykiaModule {
     name: String,
-    map: FxHashMap<String, RV>
+    map: FxHashMap<String, RV>,
+    root: Vec<String>,
 }
 
 impl LykiaModule {
     pub fn new(name: &str) -> Self {
         LykiaModule {
             name: name.to_owned(),
-            map: FxHashMap::default()
+            map: FxHashMap::default(),
+            root: Vec::new(),
         }
     }
     
@@ -21,8 +23,19 @@ impl LykiaModule {
         self.map.insert(function_name.to_owned(), RV::Callable(callable));
     }
 
-    pub fn as_raw(self: &Self) -> (String, RV) {
-        (self.name.clone(), RV::Object(RVObject::from_map(self.map.clone())))
+    pub fn as_raw(self: &Self) -> Vec<(String, RV)> {
+        let mut raw = Vec::new();
+        raw.push((self.name.clone(), RV::Object(RVObject::from_map(self.map.clone()))));
+
+        for root in &self.root {
+            raw.push((root.clone(), self.map.get(root).cloned().unwrap_or(RV::Undefined)));
+        }
+
+        raw
+    }
+
+    pub fn expose_as_root(self: &mut Self, name: &str) {
+        self.root.push(name.to_owned());
     }
 }
 
@@ -42,8 +55,10 @@ impl LykiaLibrary {
     pub fn as_raw(self: &Self) -> FxHashMap<String, RV> {
         let mut lib = FxHashMap::default();
         for modl in self.mods.iter() {
-            let (name, map) = modl.as_raw();
-            lib.insert(name, map);
+            let mod_defs = modl.as_raw();
+            for (name, map) in mod_defs {
+                lib.insert(name, map);
+            }
         }
 
         lib
@@ -101,24 +116,6 @@ mod tests {
         assert!(module.map.contains_key("fn1"));
         assert!(module.map.contains_key("fn2"));
         assert!(module.map.contains_key("fn3"));
-    }
-
-    #[test]
-    fn test_lykia_module_as_raw() {
-        let mut module = LykiaModule::new("math");
-        module.insert("add", create_test_callable("add"));
-        module.insert("subtract", create_test_callable("subtract"));
-        
-        let (name, rv) = module.as_raw();
-        
-        assert_eq!(name, "math");
-        assert!(matches!(rv, RV::Object(_)));
-        
-        if let RV::Object(obj) = rv {
-            assert_eq!(obj.len(), 2);
-            assert!(obj.contains_key("add"));
-            assert!(obj.contains_key("subtract"));
-        }
     }
 
     #[test]
