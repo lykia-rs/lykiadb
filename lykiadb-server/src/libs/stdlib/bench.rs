@@ -1,7 +1,9 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_module, lykia_native_fn, value::RV
+    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
+    value::RV,
 };
 
 fn _calculate(n: f64) -> f64 {

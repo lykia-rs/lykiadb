@@ -2,10 +2,10 @@ pub mod comm;
 pub mod engine;
 pub mod exec;
 pub mod global;
+pub mod libs;
 pub mod plan;
 pub mod util;
 pub mod value;
-pub mod libs;
 
 #[macro_export]
 macro_rules! assert_plan {
@@ -22,9 +22,7 @@ macro_rules! assert_plan {
 #[macro_export]
 macro_rules! lykia_native_fn {
     ($builder:expr) => {
-        crate::value::callable::Function::Native {
-            function: $builder,
-        }
+        crate::value::callable::Function::Native { function: $builder }
     };
 }
 
@@ -82,5 +80,5 @@ macro_rules! lykia_lib {
         pub fn $name() -> LykiaLibrary {
             LykiaLibrary::new(stringify!($name), $value)
         }
-    }
+    };
 }

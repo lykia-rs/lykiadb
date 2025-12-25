@@ -1,10 +1,11 @@
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_native_fn, lykia_module, value::RV
+    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
+    value::RV,
 };
 use lykiadb_lang::ast::Span;
 use serde_json::json;
 use std::sync::Arc;
-
 
 pub fn nt_json_encode(
     _interpreter: &mut Interpreter,

@@ -2,24 +2,28 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math, dtype::dtype, bench::bench}, lykia_lib, util::Shared, value::{
+    engine::interpreter::Output,
+    libs::stdlib::{
+        arr::nt_create_arr, bench::bench, dtype::dtype, json::json, math::math, time::time,
+    },
+    lykia_lib,
+    util::Shared,
+    value::{
         RV,
         callable::{Function, RVCallable},
         object::RVObject,
-    }
+    },
 };
 
-use self::{
-    out::nt_print,
-};
+use self::out::nt_print;
 
 pub mod arr;
+pub mod bench;
 pub mod dtype;
 pub mod json;
+pub mod math;
 pub mod out;
 pub mod time;
-pub mod math;
-pub mod bench;
 
 lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench()]);
 
@@ -34,7 +38,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             Function::Native { function: nt_print },
             Datatype::Unknown,
             Datatype::Unit,
-            
         )),
     );
 
@@ -46,7 +49,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             },
             Datatype::Tuple(vec![Datatype::Num]),
             Datatype::Array(Box::new(Datatype::Num)),
-            
         )),
     );
 
@@ -59,7 +61,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
                 Function::Stateful(out.unwrap().clone()),
                 Datatype::Unit,
                 Datatype::Unit,
-                
             )),
         );
 

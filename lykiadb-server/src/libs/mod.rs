@@ -18,9 +18,10 @@ impl LykiaModule {
             root: Vec::new(),
         }
     }
-    
+
     pub fn insert(self: &mut Self, function_name: &str, callable: RVCallable) {
-        self.map.insert(function_name.to_owned(), RV::Callable(callable));
+        self.map
+            .insert(function_name.to_owned(), RV::Callable(callable));
     }
 
     pub fn insert_raw(self: &mut Self, name: &str, value: RV) {
@@ -29,10 +30,16 @@ impl LykiaModule {
 
     pub fn as_raw(self: &Self) -> Vec<(String, RV)> {
         let mut raw = Vec::new();
-        raw.push((self.name.clone(), RV::Object(RVObject::from_map(self.map.clone()))));
+        raw.push((
+            self.name.clone(),
+            RV::Object(RVObject::from_map(self.map.clone())),
+        ));
 
         for root in &self.root {
-            raw.push((root.clone(), self.map.get(root).cloned().unwrap_or(RV::Undefined)));
+            raw.push((
+                root.clone(),
+                self.map.get(root).cloned().unwrap_or(RV::Undefined),
+            ));
         }
 
         raw
@@ -45,7 +52,7 @@ impl LykiaModule {
 
 pub struct LykiaLibrary {
     name: String,
-    mods: Vec<LykiaModule>
+    mods: Vec<LykiaModule>,
 }
 
 impl LykiaLibrary {
@@ -72,9 +79,9 @@ impl LykiaLibrary {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::interpreter::{HaltReason, Interpreter};
     use crate::value::callable::Function;
     use lykiadb_lang::{ast::Span, types::Datatype};
-    use crate::engine::interpreter::{HaltReason, Interpreter};
 
     // Helper function to create a simple test callable
     fn create_test_callable(_name: &str) -> RVCallable {
@@ -100,22 +107,25 @@ mod tests {
     fn test_lykia_module_insert() {
         let mut module = LykiaModule::new("test_module");
         let callable = create_test_callable("test_fn");
-        
+
         module.insert("test_function", callable);
-        
+
         assert_eq!(module.map.len(), 1);
         assert!(module.map.contains_key("test_function"));
-        assert!(matches!(module.map.get("test_function"), Some(RV::Callable(_))));
+        assert!(matches!(
+            module.map.get("test_function"),
+            Some(RV::Callable(_))
+        ));
     }
 
     #[test]
     fn test_lykia_module_insert_multiple() {
         let mut module = LykiaModule::new("test_module");
-        
+
         module.insert("fn1", create_test_callable("fn1"));
         module.insert("fn2", create_test_callable("fn2"));
         module.insert("fn3", create_test_callable("fn3"));
-        
+
         assert_eq!(module.map.len(), 3);
         assert!(module.map.contains_key("fn1"));
         assert!(module.map.contains_key("fn2"));
@@ -126,9 +136,9 @@ mod tests {
     fn test_lykia_library_new() {
         let module1 = LykiaModule::new("mod1");
         let module2 = LykiaModule::new("mod2");
-        
+
         let library = LykiaLibrary::new("test_lib", vec![module1, module2]);
-        
+
         assert_eq!(library.name, "test_lib");
         assert_eq!(library.mods.len(), 2);
     }
@@ -136,7 +146,7 @@ mod tests {
     #[test]
     fn test_lykia_library_new_empty() {
         let library = LykiaLibrary::new("empty_lib", vec![]);
-        
+
         assert_eq!(library.name, "empty_lib");
         assert_eq!(library.mods.len(), 0);
     }
@@ -146,17 +156,17 @@ mod tests {
         let mut module1 = LykiaModule::new("math");
         module1.insert("add", create_test_callable("add"));
         module1.insert("multiply", create_test_callable("multiply"));
-        
+
         let mut module2 = LykiaModule::new("string");
         module2.insert("concat", create_test_callable("concat"));
-        
+
         let library = LykiaLibrary::new("stdlib", vec![module1, module2]);
         let lib_map = library.as_raw();
-        
+
         assert_eq!(lib_map.len(), 2);
         assert!(lib_map.contains_key("math"));
         assert!(lib_map.contains_key("string"));
-        
+
         // Verify math module contents
         if let Some(RV::Object(math_obj)) = lib_map.get("math") {
             assert_eq!(math_obj.len(), 2);
@@ -165,7 +175,7 @@ mod tests {
         } else {
             panic!("Expected math module to be an object");
         }
-        
+
         // Verify string module contents
         if let Some(RV::Object(string_obj)) = lib_map.get("string") {
             assert_eq!(string_obj.len(), 1);
@@ -179,17 +189,17 @@ mod tests {
     fn test_lykia_library_as_raw_empty() {
         let library = LykiaLibrary::new("empty_lib", vec![]);
         let lib_map = library.as_raw();
-        
+
         assert!(lib_map.is_empty());
     }
 
     #[test]
     fn test_lykia_module_overwrite_function() {
         let mut module = LykiaModule::new("test_module");
-        
+
         module.insert("func", create_test_callable("func1"));
         assert_eq!(module.map.len(), 1);
-        
+
         // Inserting with the same name should overwrite
         module.insert("func", create_test_callable("func2"));
         assert_eq!(module.map.len(), 1);

@@ -3,7 +3,7 @@ use crate::{exec::aggregation::Aggregator, lykia_agg_fn, lykia_module, value::RV
 #[derive(Default)]
 pub(crate) struct AvgAggregator {
     accumulator: f64,
-    items: usize
+    items: usize,
 }
 
 impl Aggregator for AvgAggregator {

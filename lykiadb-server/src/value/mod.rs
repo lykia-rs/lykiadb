@@ -506,7 +506,7 @@ mod tests {
 
         // Test that all variants of the same type hash to the same value
         // regardless of their content (discriminant-only hashing)
-        
+
         // String variants with different content should hash the same
         let str1 = RV::Str(Arc::new("hello".to_string()));
         let str2 = RV::Str(Arc::new("world".to_string()));
@@ -541,13 +541,13 @@ mod tests {
 
         // Create different arrays with different contents
         let arr1 = RV::Array(RVArray::from_vec(vec![
-            RV::Num(1.0), 
-            RV::Str(Arc::new("test".to_string()))
+            RV::Num(1.0),
+            RV::Str(Arc::new("test".to_string())),
         ]));
         let arr2 = RV::Array(RVArray::from_vec(vec![
-            RV::Bool(true), 
+            RV::Bool(true),
             RV::Num(999.0),
-            RV::Str(Arc::new("completely different".to_string()))
+            RV::Str(Arc::new("completely different".to_string())),
         ]));
         let empty_arr = RV::Array(RVArray::new());
 
@@ -562,7 +562,10 @@ mod tests {
         let obj1 = RV::Object(RVObject::from_map(map1));
 
         let mut map2 = FxHashMap::default();
-        map2.insert("city".to_string(), RV::Str(Arc::new("New York".to_string())));
+        map2.insert(
+            "city".to_string(),
+            RV::Str(Arc::new("New York".to_string())),
+        );
         map2.insert("population".to_string(), RV::Num(8000000.0));
         map2.insert("active".to_string(), RV::Bool(true));
         let obj2 = RV::Object(RVObject::from_map(map2));
@@ -600,7 +603,10 @@ mod tests {
 
         let mut outer_map = FxHashMap::default();
         outer_map.insert("nested_array".to_string(), nested_arr);
-        outer_map.insert("simple_value".to_string(), RV::Str(Arc::new("test".to_string())));
+        outer_map.insert(
+            "simple_value".to_string(),
+            RV::Str(Arc::new("test".to_string())),
+        );
         let complex_obj = RV::Object(RVObject::from_map(outer_map));
 
         // Create a different complex structure
@@ -617,10 +623,10 @@ mod tests {
         // Test with Datatype variant
         let datatype1 = RV::Datatype(Datatype::Str);
         let datatype2 = RV::Datatype(Datatype::Bool);
-        
+
         // Different datatype content should still hash the same
         assert_eq!(hash_rv(&datatype1), hash_rv(&datatype2));
-        
+
         // But different from other variants
         assert_ne!(hash_rv(&datatype1), hash_rv(&complex_obj));
     }

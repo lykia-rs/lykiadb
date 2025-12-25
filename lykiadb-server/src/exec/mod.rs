@@ -4,9 +4,14 @@ use crate::{
     engine::{
         error::ExecutionError,
         interpreter::{HaltReason, Interpreter},
-    }, exec::aggregation::Grouper, global::GLOBAL_INTERNER, plan::{Node, Plan}, value::{
-        RV, iterator::{ExecutionRow, RVs}
-    }
+    },
+    exec::aggregation::Grouper,
+    global::GLOBAL_INTERNER,
+    plan::{Node, Plan},
+    value::{
+        RV,
+        iterator::{ExecutionRow, RVs},
+    },
 };
 
 pub mod aggregation;
@@ -160,7 +165,11 @@ impl<'a> PlanExecutor<'a> {
 
                 Ok(Box::from(iter))
             }
-            Node::Aggregate { source, group_by, aggregates } => {
+            Node::Aggregate {
+                source,
+                group_by,
+                aggregates,
+            } => {
                 let inter_fork = self.interpreter.clone();
 
                 let mut grouper = Grouper::new(group_by, aggregates, inter_fork);
@@ -171,7 +180,7 @@ impl<'a> PlanExecutor<'a> {
                     if let Err(e) = grouper.row(row) {
                         match e {
                             HaltReason::Error(err) => return Err(err),
-                            _ => ()
+                            _ => (),
                         }
                     }
                 }
@@ -179,11 +188,20 @@ impl<'a> PlanExecutor<'a> {
                 let rows = grouper.finalize();
 
                 Ok(Box::from(rows.into_iter()))
-            },
-            Node::Join { left, join_type, right, constraint } => todo!(),
+            }
+            Node::Join {
+                left,
+                join_type,
+                right,
+                constraint,
+            } => todo!(),
             Node::Order { source, key } => todo!(),
             Node::Scan { source, filter } => todo!(),
-            Node::Compound { source, operator, right } => todo!(),
+            Node::Compound {
+                source,
+                operator,
+                right,
+            } => todo!(),
             Node::Nothing => todo!(),
         }
     }

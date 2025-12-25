@@ -2,7 +2,9 @@ use lykiadb_lang::ast::Span;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_module, lykia_native_fn, value::{RV, object::RVObject}
+    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
+    value::{RV, object::RVObject},
 };
 
 pub fn nt_of(
