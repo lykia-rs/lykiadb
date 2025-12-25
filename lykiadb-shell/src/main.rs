@@ -70,7 +70,7 @@ impl Shell {
             Message::Response(Response::Value(value))
             | Message::Response(Response::Program(value)) => match value {
                 serde_json::Value::String(str) => {
-                    println!("{}", str)
+                    println!("{str}")
                 }
                 _ => {
                     println!("{}", serde_json::to_string_pretty(&value).unwrap())

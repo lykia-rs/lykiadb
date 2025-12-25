@@ -28,7 +28,7 @@ impl Grouper {
         }
     }
 
-    pub fn row(self: &mut Self, row: ExecutionRow) -> Result<(), HaltReason> {
+    pub fn row(&mut self, row: ExecutionRow) -> Result<(), HaltReason> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -77,6 +77,6 @@ impl Grouper {
 }
 
 pub trait Aggregator {
-    fn row(self: &mut Self, row: RV);
-    fn finalize(self: &Self) -> RV;
+    fn row(&mut self, row: RV);
+    fn finalize(&self) -> RV;
 }

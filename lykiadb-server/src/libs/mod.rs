@@ -19,16 +19,16 @@ impl LykiaModule {
         }
     }
 
-    pub fn insert(self: &mut Self, function_name: &str, callable: RVCallable) {
+    pub fn insert(&mut self, function_name: &str, callable: RVCallable) {
         self.map
             .insert(function_name.to_owned(), RV::Callable(callable));
     }
 
-    pub fn insert_raw(self: &mut Self, name: &str, value: RV) {
+    pub fn insert_raw(&mut self, name: &str, value: RV) {
         self.map.insert(name.to_owned(), value);
     }
 
-    pub fn as_raw(self: &Self) -> Vec<(String, RV)> {
+    pub fn as_raw(&self) -> Vec<(String, RV)> {
         let mut raw = Vec::new();
         raw.push((
             self.name.clone(),
@@ -45,7 +45,7 @@ impl LykiaModule {
         raw
     }
 
-    pub fn expose_as_root(self: &mut Self, name: &str) {
+    pub fn expose_as_root(&mut self, name: &str) {
         self.root.push(name.to_owned());
     }
 }
@@ -63,7 +63,7 @@ impl LykiaLibrary {
         }
     }
 
-    pub fn as_raw(self: &Self) -> FxHashMap<String, RV> {
+    pub fn as_raw(&self) -> FxHashMap<String, RV> {
         let mut lib = FxHashMap::default();
         for modl in self.mods.iter() {
             let mod_defs = modl.as_raw();

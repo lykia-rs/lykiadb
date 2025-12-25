@@ -178,10 +178,7 @@ impl<'a> PlanExecutor<'a> {
 
                 for row in cursor {
                     if let Err(e) = grouper.row(row) {
-                        match e {
-                            HaltReason::Error(err) => return Err(err),
-                            _ => (),
-                        }
+                        if let HaltReason::Error(err) = e { return Err(err) }
                     }
                 }
 

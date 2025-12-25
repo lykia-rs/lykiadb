@@ -41,7 +41,7 @@ impl RVCallable {
             Function::Agg { .. } => Err(HaltReason::Error(
                 crate::engine::error::ExecutionError::Interpret(
                     InterpretError::InvalidAggregatorCall {
-                        span: called_from.clone(),
+                        span: *called_from,
                     },
                 ),
             )),

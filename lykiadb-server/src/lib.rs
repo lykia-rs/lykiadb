@@ -22,14 +22,14 @@ macro_rules! assert_plan {
 #[macro_export]
 macro_rules! lykia_native_fn {
     ($builder:expr) => {
-        crate::value::callable::Function::Native { function: $builder }
+        $crate::value::callable::Function::Native { function: $builder }
     };
 }
 
 #[macro_export]
 macro_rules! lykia_agg_fn {
     ($name:ident, $agg:ident) => {
-        crate::value::callable::Function::Agg {
+        $crate::value::callable::Function::Agg {
             name: stringify!($name).into(),
             function: || Box::new($agg::default()),
         }
@@ -40,8 +40,8 @@ macro_rules! lykia_agg_fn {
 macro_rules! lykia_module {
     ($name: ident, {$($function_name:ident=>$callable:expr),*}, {$($constant_name:ident=>$constant:expr),*}, [$($root_name:ident),*]) => {
         use lykiadb_lang::types::Datatype;
-        use crate::libs::LykiaModule;
-        use crate::value::callable::RVCallable;
+        use $crate::libs::LykiaModule;
+        use $crate::value::callable::RVCallable;
 
         pub fn $name() -> LykiaModule {
             let mut modl = LykiaModule::new(stringify!($name));
@@ -75,7 +75,7 @@ macro_rules! lykia_module {
 #[macro_export]
 macro_rules! lykia_lib {
     ($name: ident, $value: expr) => {
-        use crate::libs::LykiaLibrary;
+        use $crate::libs::LykiaLibrary;
 
         pub fn $name() -> LykiaLibrary {
             LykiaLibrary::new(stringify!($name), $value)

@@ -140,7 +140,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         self.in_call += 1;
                         self.accumulator.push(Aggregation {
                             name: agg_name.clone(),
-                            callable: Some(factory.clone()),
+                            callable: Some(*factory),
                             args: args.clone(),
                         });
                     }
