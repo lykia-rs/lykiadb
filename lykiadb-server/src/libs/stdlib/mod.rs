@@ -2,7 +2,7 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math, dtype::dtype}, lykia_lib, util::Shared, value::{
+    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math, dtype::dtype, bench::bench}, lykia_lib, util::Shared, value::{
         RV,
         callable::{Function, RVCallable},
         object::RVObject,
@@ -10,36 +10,23 @@ use crate::{
 };
 
 use self::{
-    fib::nt_fib,
     out::nt_print,
 };
 
 pub mod arr;
 pub mod dtype;
-pub mod fib;
 pub mod json;
 pub mod out;
 pub mod time;
 pub mod math;
+pub mod bench;
 
-lykia_lib!(std_core, vec![json(), time(), math(), dtype()]);
+lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench()]);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();
-
-    let mut benchmark_namespace = FxHashMap::default();
     let mut io_namespace = FxHashMap::default();
     let mut arr_namespace = FxHashMap::default();
-
-    benchmark_namespace.insert(
-        "fib".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native { function: nt_fib },
-            Datatype::Tuple(vec![Datatype::Num]),
-            Datatype::Num,
-            
-        )),
-    );
 
     io_namespace.insert(
         "print".to_owned(),
@@ -82,10 +69,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
         );
     }
 
-    std.insert(
-        "Benchmark".to_owned(),
-        RV::Object(RVObject::from_map(benchmark_namespace)),
-    );
     std.insert(
         "io".to_owned(),
         RV::Object(RVObject::from_map(io_namespace)),
