@@ -23,6 +23,10 @@ impl LykiaModule {
         self.map.insert(function_name.to_owned(), RV::Callable(callable));
     }
 
+    pub fn insert_raw(self: &mut Self, name: &str, value: RV) {
+        self.map.insert(name.to_owned(), value);
+    }
+
     pub fn as_raw(self: &Self) -> Vec<(String, RV)> {
         let mut raw = Vec::new();
         raw.push((self.name.clone(), RV::Object(RVObject::from_map(self.map.clone()))));

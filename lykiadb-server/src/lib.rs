@@ -40,7 +40,7 @@ macro_rules! lykia_agg_fn {
 
 #[macro_export]
 macro_rules! lykia_module {
-    ($name: ident, {$($function_name:ident=>$callable:expr),*}, [$($root_name:ident),*]) => {
+    ($name: ident, {$($function_name:ident=>$callable:expr),*}, {$($constant_name:ident=>$constant:expr),*}, [$($root_name:ident),*]) => {
         use lykiadb_lang::types::Datatype;
         use crate::libs::LykiaModule;
         use crate::value::callable::RVCallable;
@@ -55,6 +55,13 @@ macro_rules! lykia_module {
                         Datatype::Unknown,
                         Datatype::Unknown,
                     ),
+                );
+            )*
+
+            $(
+                modl.insert_raw(
+                    stringify!($constant_name),
+                    $constant,
                 );
             )*
 

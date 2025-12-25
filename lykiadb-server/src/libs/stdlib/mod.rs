@@ -1,9 +1,8 @@
-use dtype::{nt_array_of, nt_callable_of, nt_object_of, nt_tuple_of};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math}, lykia_lib, util::Shared, value::{
+    engine::interpreter::Output, libs::stdlib::{arr::nt_create_arr, json::json, time::time, math::math, dtype::dtype}, lykia_lib, util::Shared, value::{
         RV,
         callable::{Function, RVCallable},
         object::RVObject,
@@ -11,11 +10,9 @@ use crate::{
 };
 
 use self::{
-    dtype::nt_of,
     fib::nt_fib,
     out::nt_print,
 };
-
 
 pub mod arr;
 pub mod dtype;
@@ -25,14 +22,13 @@ pub mod out;
 pub mod time;
 pub mod math;
 
-lykia_lib!(std_core, vec![json(), time(), math()]);
+lykia_lib!(std_core, vec![json(), time(), math(), dtype()]);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();
 
     let mut benchmark_namespace = FxHashMap::default();
     let mut io_namespace = FxHashMap::default();
-    let mut dtype_namespace = FxHashMap::default();
     let mut arr_namespace = FxHashMap::default();
 
     benchmark_namespace.insert(
@@ -54,72 +50,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             
         )),
     );
-
-    dtype_namespace.insert(
-        "of_".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native { function: nt_of },
-            Datatype::Unknown,
-            Datatype::Datatype,
-            
-        )),
-    );
-
-    dtype_namespace.insert("str".to_owned(), RV::Datatype(Datatype::Str));
-
-    dtype_namespace.insert("num".to_owned(), RV::Datatype(Datatype::Num));
-
-    dtype_namespace.insert("bool".to_owned(), RV::Datatype(Datatype::Bool));
-
-    dtype_namespace.insert("unit".to_owned(), RV::Datatype(Datatype::Unit));
-
-    dtype_namespace.insert(
-        "array".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native {
-                function: nt_array_of,
-            },
-            Datatype::Unknown,
-            Datatype::Datatype,
-        )),
-    );
-
-    dtype_namespace.insert(
-        "object".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native {
-                function: nt_object_of,
-            },
-            Datatype::Unknown,
-            Datatype::Datatype,
-        )),
-    );
-
-    dtype_namespace.insert(
-        "callable".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native {
-                function: nt_callable_of,
-            },
-            Datatype::Unknown,
-            Datatype::Datatype,
-        )),
-    );
-
-    dtype_namespace.insert(
-        "tuple".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native {
-                function: nt_tuple_of,
-            },
-            Datatype::Unknown,
-            Datatype::Datatype,
-        )),
-    );
-
-    dtype_namespace.insert("dtype".to_owned(), RV::Datatype(Datatype::Datatype));
-
-    dtype_namespace.insert("none".to_owned(), RV::Datatype(Datatype::None));
 
     arr_namespace.insert(
         "new".to_owned(),
@@ -159,10 +89,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     std.insert(
         "io".to_owned(),
         RV::Object(RVObject::from_map(io_namespace)),
-    );
-    std.insert(
-        "dtype".to_owned(),
-        RV::Object(RVObject::from_map(dtype_namespace)),
     );
 
     std.insert(

@@ -51,7 +51,7 @@ pub fn nt_json_decode(
 lykia_module!(json, {
     stringify => lykia_native_fn!(nt_json_encode),
     parse => lykia_native_fn!(nt_json_decode)
-}, []);
+}, {}, []);
 
 #[cfg(test)]
 mod tests {
