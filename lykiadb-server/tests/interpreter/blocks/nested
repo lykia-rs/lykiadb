@@ -8,17 +8,17 @@ var $c = "global c";
     var $b = "outer b";
     {
         var $a = "inner a";
-        test_utils::out($a);
-        test_utils::out($b);
-        test_utils::out($c);
+        testutil::print($a);
+        testutil::print($b);
+        testutil::print($c);
     }
-    test_utils::out($a);
-    test_utils::out($b);
-    test_utils::out($c);
+    testutil::print($a);
+    testutil::print($b);
+    testutil::print($c);
 }
-test_utils::out($a);
-test_utils::out($b);
-test_utils::out($c);
+testutil::print($a);
+testutil::print($b);
+testutil::print($c);
 
 ---
 
@@ -39,13 +39,13 @@ function $fn_block() {
     var $a = "global";
     {
         var $a = "block";
-        test_utils::out($a);
+        testutil::print($a);
     }
-    test_utils::out($a);
+    testutil::print($a);
 };
 
 $fn_block();
-test_utils::out($a);
+testutil::print($a);
 
 ---
 
@@ -58,7 +58,7 @@ Environment(Other { message: "Variable '$a' was not found" })
 
 --->
 
-test_utils::out($a);
+testutil::print($a);
 
 ---
 

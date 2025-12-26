@@ -3,13 +3,13 @@
 var $a = 30;
 
 if ($a > 50) {
-    test_utils::out("> 50");
+    testutil::print("> 50");
 }
 else if ($a > 20) {
-    test_utils::out("50 > $a > 20");
+    testutil::print("50 > $a > 20");
 }
 else {
-    test_utils::out("< 20");
+    testutil::print("< 20");
 }
 
 ---

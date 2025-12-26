@@ -1,10 +1,10 @@
 #[name=unary_evaluation, run=interpreter]>
 
-test_utils::out(-2);
-test_utils::out(-(-2));
-test_utils::out(!3);
-test_utils::out(!!3);
-test_utils::out(!!!3);
+testutil::print(-2);
+testutil::print(-(-2));
+testutil::print(!3);
+testutil::print(!!3);
+testutil::print(!!!3);
 
 ---
 
@@ -16,11 +16,11 @@ false
 
 #[name=binary_evaluation, run=interpreter]>
 
-test_utils::out(5-(-2));
-test_utils::out((5 + 2) * 4);
-test_utils::out(5 + 2 * 4);
-test_utils::out((13 + 4) * (7 + 3));
-test_utils::out(-5-2);
+testutil::print(5-(-2));
+testutil::print((5 + 2) * 4);
+testutil::print(5 + 2 * 4);
+testutil::print((13 + 4) * (7 + 3));
+testutil::print(-5-2);
 
 ---
 
@@ -32,13 +32,13 @@ test_utils::out(-5-2);
 
 #[name=logical_evaluation, run=interpreter]>
 
-test_utils::out(5 && 1);
-test_utils::out(5 || 1);
-test_utils::out(5 && 0);
-test_utils::out(5 || 0);
-test_utils::out(!(5 || 0));
-test_utils::out(!(5 || 0) || 1);
-test_utils::out(!(5 || 0) || (1 && 0));
+testutil::print(5 && 1);
+testutil::print(5 || 1);
+testutil::print(5 && 0);
+testutil::print(5 || 0);
+testutil::print(!(5 || 0));
+testutil::print(!(5 || 0) || 1);
+testutil::print(!(5 || 0) || (1 && 0));
 
 ---
 
@@ -62,10 +62,10 @@ var $obj = {
     }
 };
 
-test_utils::out($obj.name);
-test_utils::out($obj.age);
-test_utils::out($obj.address.city);
-test_utils::out($obj.address.zip);
+testutil::print($obj.name);
+testutil::print($obj.age);
+testutil::print($obj.address.city);
+testutil::print($obj.address.zip);
 
 ---
 
@@ -81,7 +81,7 @@ var $obj = {
     name: "John"
 };
 
-test_utils::out($obj.age);
+testutil::print($obj.age);
 
 ---err
 
@@ -89,7 +89,7 @@ Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end:
 
 --->
 
-test_utils::out($obj.address.city);
+testutil::print($obj.address.city);
 
 ---err
 
@@ -98,7 +98,7 @@ Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end:
 
 --->
 
-test_utils::out(undefined.prop);
+testutil::print(undefined.prop);
 
 ---err
 
@@ -108,7 +108,7 @@ Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line
 
 --->
 
-test_utils::out(5.prop);
+testutil::print(5.prop);
 
 ---err
 
@@ -119,7 +119,7 @@ Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 22, line: 0, line
 
 --->
 
-test_utils::out("string".length);
+testutil::print("string".length);
 
 ---err
 
@@ -141,16 +141,16 @@ var $obj = {
 };
 
 $obj.name = "Jane";
-test_utils::out($obj.name);
+testutil::print($obj.name);
 
 $obj.age = 31;
-test_utils::out($obj.age);
+testutil::print($obj.age);
 
 $obj.address.city = "Boston";
-test_utils::out($obj.address.city);
+testutil::print($obj.address.city);
 
 $obj.newProp = "test";
-test_utils::out($obj.newProp);
+testutil::print($obj.newProp);
 
 ---
 
@@ -218,17 +218,17 @@ Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_
 #[name=between_evaluation, run=interpreter]>
 
 var $x = 5;
-test_utils::out($x between 1 and 10);
-test_utils::out($x between 5 and 10);
-test_utils::out($x between 1 and 5);
-test_utils::out($x between 6 and 10);
-test_utils::out($x between 0 and 4);
+testutil::print($x between 1 and 10);
+testutil::print($x between 5 and 10);
+testutil::print($x between 1 and 5);
+testutil::print($x between 6 and 10);
+testutil::print($x between 0 and 4);
 
-test_utils::out($x not between 1 and 10);
-test_utils::out($x not between 5 and 10);
-test_utils::out($x not between 1 and 5);
-test_utils::out($x not between 6 and 10);
-test_utils::out($x not between 0 and 4);
+testutil::print($x not between 1 and 10);
+testutil::print($x not between 5 and 10);
+testutil::print($x not between 1 and 5);
+testutil::print($x not between 6 and 10);
+testutil::print($x not between 0 and 4);
 
 ---
 
@@ -245,7 +245,7 @@ true
 
 #[name=between_errors, run=interpreter]>
 
-test_utils::out(5 between "1" and 10);
+testutil::print(5 between "1" and 10);
 
 ---err
 
@@ -253,7 +253,7 @@ Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, lin
 
 --->
 
-test_utils::out(5 between 1 and "10");
+testutil::print(5 between 1 and "10");
 
 ---err
 
@@ -262,7 +262,7 @@ Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, lin
 
 --->
 
-test_utils::out("5" between 1 and 10);
+testutil::print("5" between 1 and 10);
 
 ---err
 
@@ -275,7 +275,7 @@ Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, lin
 var $object = {};
 $object.test = 1;
 
-test_utils::out($object.test == 1);
+testutil::print($object.test == 1);
 
 ---
 
@@ -292,9 +292,9 @@ $object.level_one.title = "1";
 $object.level_one.level_two.title = "2";
 $object.level_one.level_two.level_three.title = "3";
 
-test_utils::out($object.level_one.title);
-test_utils::out($object.level_one.level_two.title);
-test_utils::out($object.level_one.level_two.level_three.title);
+testutil::print($object.level_one.title);
+testutil::print($object.level_one.level_two.title);
+testutil::print($object.level_one.level_two.level_three.title);
 
 ---
 

@@ -4,7 +4,7 @@ function $resolved_first() {
     var $a = "global";
     {
         function $show_a() {
-            test_utils::out($a);
+            testutil::print($a);
         };
     
         $show_a();

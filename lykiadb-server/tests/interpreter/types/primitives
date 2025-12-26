@@ -1,10 +1,10 @@
 #[name=numerical, run=interpreter]>
 
-test_utils::out(dtype::of_(1) == dtype::num);
-test_utils::out(dtype::of_(1.12) == dtype::num);
-test_utils::out(dtype::of_(1) == dtype::str);
-test_utils::out(dtype::of_(1));
-test_utils::out(dtype::of_(1.12));
+testutil::print(dtype::of_(1) == dtype::num);
+testutil::print(dtype::of_(1.12) == dtype::num);
+testutil::print(dtype::of_(1) == dtype::str);
+testutil::print(dtype::of_(1));
+testutil::print(dtype::of_(1.12));
 ---
 
 true
@@ -16,9 +16,9 @@ false
 
 #[name=string, run=interpreter]>
 
-test_utils::out(dtype::of_("1") == dtype::str);
-test_utils::out(dtype::of_("1") == dtype::num);
-test_utils::out(dtype::of_("1"));
+testutil::print(dtype::of_("1") == dtype::str);
+testutil::print(dtype::of_("1") == dtype::num);
+testutil::print(dtype::of_("1"));
 
 ---
 
@@ -29,11 +29,11 @@ false
 
 #[name=boolean, run=interpreter]>
 
-test_utils::out(dtype::of_(true) == dtype::bool);
-test_utils::out(dtype::of_(false) == dtype::bool);
-test_utils::out(dtype::of_(true) == dtype::str);
-test_utils::out(dtype::of_(true));
-test_utils::out(dtype::of_(false));
+testutil::print(dtype::of_(true) == dtype::bool);
+testutil::print(dtype::of_(false) == dtype::bool);
+testutil::print(dtype::of_(true) == dtype::str);
+testutil::print(dtype::of_(true));
+testutil::print(dtype::of_(false));
 
 ---
 
@@ -45,9 +45,9 @@ false
 
 
 #[name=array, run=interpreter]>
-test_utils::out(dtype::of_([1, 2, 3]) == dtype::array(dtype::num));
-test_utils::out(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
-test_utils::out(dtype::of_([1, 2, 3]));
+testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::num));
+testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
+testutil::print(dtype::of_([1, 2, 3]));
 
 ---
 
@@ -57,10 +57,10 @@ false
 
 
 #[name=object, run=interpreter]>
-test_utils::out(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::num, b: dtype::num}));
-test_utils::out(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::num)}));
-test_utils::out(dtype::of_({a: [1, 2, 3] }));
-test_utils::out(dtype::of_({a: 1, b: 2}));
+testutil::print(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::num, b: dtype::num}));
+testutil::print(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::num)}));
+testutil::print(dtype::of_({a: [1, 2, 3] }));
+testutil::print(dtype::of_({a: 1, b: 2}));
 ---
 
 true
@@ -71,20 +71,20 @@ true
 
 #[name=callable, run=interpreter]>
 
-test_utils::out(dtype::of_(out::print) == dtype::str);
-test_utils::out(dtype::of_(out::print));
+testutil::print(dtype::of_(out::print) == dtype::str);
+testutil::print(dtype::of_(out::print));
 
 ---
 
 false
-<Datatype, dtype::callable(dtype::unknown, dtype::unit)>
+<Datatype, dtype::callable(dtype::unknown, dtype::unknown)>
 
 
 #[name=datatype, run=interpreter]>
 
-test_utils::out(dtype::of_(dtype::num) == dtype::dtype);
-test_utils::out(dtype::of_(dtype::num) == dtype::str);
-test_utils::out(dtype::of_(dtype::num));
+testutil::print(dtype::of_(dtype::num) == dtype::dtype);
+testutil::print(dtype::of_(dtype::num) == dtype::str);
+testutil::print(dtype::of_(dtype::num));
 
 ---
 
@@ -95,9 +95,9 @@ false
 
 #[name=none, run=interpreter]>
 
-test_utils::out(dtype::of_(undefined) == dtype::none);
-test_utils::out(dtype::of_(undefined) == dtype::str);
-test_utils::out(dtype::of_(undefined));
+testutil::print(dtype::of_(undefined) == dtype::none);
+testutil::print(dtype::of_(undefined) == dtype::str);
+testutil::print(dtype::of_(undefined));
 
 ---
 
