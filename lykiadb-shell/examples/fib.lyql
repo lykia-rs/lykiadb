@@ -9,5 +9,5 @@ io::print($fib(35) == 9227465);
 io::print("elapsed (user defined):", time::clock() - $start_ly);
 
 var $start_rs = time::clock();
-io::print(Benchmark::fib(35) == 9227465);
+io::print(bench::fib(35) == 9227465);
 io::print("elapsed (native):", time::clock() - $start_rs);

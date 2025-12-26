@@ -1,6 +1,11 @@
 use rustc_hash::FxHashMap;
 
-use crate::{engine::interpreter::{Aggregation, HaltReason}, global::GLOBAL_INTERNER, plan::IntermediateExpr, value::{RV, iterator::ExecutionRow}};
+use crate::{
+    engine::interpreter::{Aggregation, HaltReason},
+    global::GLOBAL_INTERNER,
+    plan::IntermediateExpr,
+    value::{RV, iterator::ExecutionRow},
+};
 
 pub(crate) struct Grouper {
     group_exprs: Vec<IntermediateExpr>,
@@ -10,7 +15,11 @@ pub(crate) struct Grouper {
 }
 
 impl Grouper {
-    pub fn new(group_exprs: Vec<IntermediateExpr>, aggregators: Vec<Aggregation>, interpreter: crate::engine::interpreter::Interpreter) -> Grouper {
+    pub fn new(
+        group_exprs: Vec<IntermediateExpr>,
+        aggregators: Vec<Aggregation>,
+        interpreter: crate::engine::interpreter::Interpreter,
+    ) -> Grouper {
         Grouper {
             group_exprs,
             aggregations: aggregators,
@@ -19,7 +28,7 @@ impl Grouper {
         }
     }
 
-    pub fn row(self: &mut Self, row: ExecutionRow) -> Result<(), HaltReason> {
+    pub fn row(&mut self, row: ExecutionRow) -> Result<(), HaltReason> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -37,7 +46,6 @@ impl Grouper {
             }
 
             self.groups.insert(bucket.clone(), aggregators);
-
         }
 
         let bucket_value = self.groups.get_mut(&bucket).unwrap();
@@ -69,6 +77,6 @@ impl Grouper {
 }
 
 pub trait Aggregator {
-    fn row(self: &mut Self, row: RV);
-    fn finalize(self: &Self) -> RV;
+    fn row(&mut self, row: RV);
+    fn finalize(&self) -> RV;
 }

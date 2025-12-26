@@ -1,4 +1,5 @@
 use super::error::ExecutionError;
+use derivative::Derivative;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -10,7 +11,6 @@ use lykiadb_lang::types::Datatype;
 use pretty_assertions::assert_eq;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use derivative::Derivative;
 
 use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
@@ -389,11 +389,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 };
 
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
-                let callable = RV::Callable(RVCallable::new(
-                    fun,
-                    Datatype::Unit,
-                    Datatype::Unit,
-                ));
+                let callable = RV::Callable(RVCallable::new(fun, Datatype::Unit, Datatype::Unit));
 
                 if name.is_some() {
                     // TODO(vck): Callable shouldn't be cloned here
@@ -779,7 +775,7 @@ impl From<InterpretError> for InputError {
             ),
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
-            },
+            }
             InterpretError::InvalidAggregatorCall { span } => (
                 "Aggregator functions can only be used within query contexts",
                 *span,

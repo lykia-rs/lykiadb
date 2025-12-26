@@ -1,8 +1,9 @@
-use lykiadb_lang::{ast::Span, types::Datatype};
+use lykiadb_lang::ast::Span;
 use rustc_hash::FxHashMap;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
     value::{RV, object::RVObject},
 };
 
@@ -115,3 +116,18 @@ pub fn nt_object_of(
         )),
     }
 }
+
+lykia_module!(dtype, {
+    of_ => lykia_native_fn!(nt_of),
+    array => lykia_native_fn!(nt_array_of),
+    object => lykia_native_fn!(nt_object_of),
+    callable => lykia_native_fn!(nt_callable_of),
+    tuple => lykia_native_fn!(nt_tuple_of)
+}, {
+    str => RV::Datatype(Datatype::Str),
+    num => RV::Datatype(Datatype::Num),
+    bool => RV::Datatype(Datatype::Bool),
+    unit => RV::Datatype(Datatype::Unit),
+    dtype => RV::Datatype(Datatype::Datatype),
+    none => RV::Datatype(Datatype::None)
+}, []);

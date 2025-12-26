@@ -4,7 +4,12 @@ use crate::{
     engine::{
         error::ExecutionError,
         interpreter::{Aggregation, HaltReason, Interpreter},
-    }, plan::planner::InClause, value::{RV, callable::{Function, RVCallable}}
+    },
+    plan::planner::InClause,
+    value::{
+        RV,
+        callable::{Function, RVCallable},
+    },
 };
 
 use lykiadb_lang::ast::{
@@ -107,7 +112,14 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
             let callee_val = self.interpreter.eval(callee);
 
             if let Ok(RV::Callable(callable)) = &callee_val
-                && let RVCallable { function: Function::Agg { function: factory, name: agg_name }, .. } = &callable
+                && let RVCallable {
+                    function:
+                        Function::Agg {
+                            function: factory,
+                            name: agg_name,
+                        },
+                    ..
+                } = &callable
             {
                 if self.is_preventing {
                     return Err(HaltReason::Error(ExecutionError::Plan(
@@ -128,7 +140,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                         self.in_call += 1;
                         self.accumulator.push(Aggregation {
                             name: agg_name.clone(),
-                            callable: Some(factory.clone()),
+                            callable: Some(*factory),
                             args: args.clone(),
                         });
                     }

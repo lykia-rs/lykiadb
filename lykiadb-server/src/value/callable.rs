@@ -1,7 +1,9 @@
 use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, exec::aggregation::Aggregator, util::Shared
+    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    exec::aggregation::Aggregator,
+    util::Shared,
 };
 use interb::Symbol;
 use lykiadb_lang::{
@@ -19,11 +21,7 @@ pub struct RVCallable {
 }
 
 impl RVCallable {
-    pub fn new(
-        function: Function,
-        input_type: Datatype,
-        return_type: Datatype,
-    ) -> Self {
+    pub fn new(function: Function, input_type: Datatype, return_type: Datatype) -> Self {
         RVCallable {
             function,
             parameter_types: input_type,
@@ -40,9 +38,13 @@ impl RVCallable {
         match &self.function {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
-            Function::Agg { .. } => Err(HaltReason::Error(crate::engine::error::ExecutionError::Interpret(InterpretError::InvalidAggregatorCall {
-                span: called_from.clone(),
-            }))),
+            Function::Agg { .. } => Err(HaltReason::Error(
+                crate::engine::error::ExecutionError::Interpret(
+                    InterpretError::InvalidAggregatorCall {
+                        span: *called_from,
+                    },
+                ),
+            )),
             Function::UserDefined {
                 parameters,
                 closure,

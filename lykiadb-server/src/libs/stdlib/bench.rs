@@ -2,6 +2,7 @@ use lykiadb_lang::ast::Span;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
     value::RV,
 };
 
@@ -28,6 +29,10 @@ pub fn nt_fib(
         .into(),
     ))
 }
+
+lykia_module!(bench, {
+    fib => lykia_native_fn!(nt_fib)
+}, {}, []);
 
 #[cfg(test)]
 mod tests {
