@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     engine::interpreter::Output,
     libs::stdlib::{
-        bench::bench, dtype::dtype, json::json, math::math, time::time, out::out, arr::arr
+        arr::arr, bench::bench, dtype::dtype, json::json, math::math, out::out, time::time,
     },
     lykia_lib,
     util::Shared,
@@ -23,7 +23,10 @@ mod math;
 mod out;
 mod time;
 
-lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench(), out(), arr()]);
+lykia_lib!(
+    std_core,
+    vec![json(), time(), math(), dtype(), bench(), out(), arr()]
+);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();

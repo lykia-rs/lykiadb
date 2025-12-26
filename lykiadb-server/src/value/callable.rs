@@ -45,8 +45,8 @@ impl RVCallable {
                     for item in arr.iter() {
                         aggregator.row(item);
                     }
-                
-                    return Ok(aggregator.finalize())
+
+                    return Ok(aggregator.finalize());
                 }
 
                 Err(HaltReason::Error(
@@ -54,7 +54,7 @@ impl RVCallable {
                         InterpretError::InvalidAggregatorCall { span: *called_from },
                     ),
                 ))
-            },
+            }
             Function::UserDefined {
                 parameters,
                 closure,

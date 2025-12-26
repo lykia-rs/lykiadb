@@ -1,7 +1,9 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter}, lykia_module, lykia_native_fn, value::{RV, array::RVArray}
+    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
+    value::{RV, array::RVArray},
 };
 
 pub fn nt_create_arr(
