@@ -111,11 +111,11 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
-            if let Ok(RV::Callable(callable)) = &callee_val && 
-            let Function::Agg {
-                            function: factory,
-                            name: agg_name,
-                        } = &callable.function.as_ref()
+            if let Ok(RV::Callable(callable)) = &callee_val
+                && let Function::Agg {
+                    function: factory,
+                    name: agg_name,
+                } = &callable.function.as_ref()
             {
                 if self.is_preventing {
                     return Err(HaltReason::Error(ExecutionError::Plan(

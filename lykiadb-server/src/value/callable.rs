@@ -40,9 +40,7 @@ impl RVCallable {
             Function::Native { function } => function(interpreter, called_from, arguments),
             Function::Agg { .. } => Err(HaltReason::Error(
                 crate::engine::error::ExecutionError::Interpret(
-                    InterpretError::InvalidAggregatorCall {
-                        span: *called_from,
-                    },
+                    InterpretError::InvalidAggregatorCall { span: *called_from },
                 ),
             )),
             Function::UserDefined {
