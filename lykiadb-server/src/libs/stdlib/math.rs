@@ -54,50 +54,70 @@ impl Aggregator for SumAggregator {
 }
 
 pub(crate) struct MinAggregator {
-    value: f64,
+    value: Option<f64>,
 }
 
 impl Default for MinAggregator {
     fn default() -> Self {
-        MinAggregator { value: f64::MAX }
+        MinAggregator { value: None }
     }
 }
 
 impl Aggregator for MinAggregator {
     fn row(&mut self, expr_val: RV) {
-        if let Some(n) = expr_val.as_number()
-            && n < self.value
-        {
-            self.value = n;
+        if let Some(n) = expr_val.as_number() {
+            if self.value.is_none() {
+                self.value = Some(n);
+            }
+            else if let Some(v) = self.value
+                && n < v
+            {
+                self.value = Some(n);
+            }
         }
     }
 
     fn finalize(&self) -> crate::value::RV {
-        RV::Num(self.value)
+        if let Some(n) = self.value {
+            RV::Num(n)
+        }
+        else {
+            RV::Undefined
+        }
     }
 }
 
 pub(crate) struct MaxAggregator {
-    value: f64,
+    value: Option<f64>,
 }
 
 impl Default for MaxAggregator {
     fn default() -> Self {
-        MaxAggregator { value: f64::MIN }
+        MaxAggregator { value: None }
     }
 }
 
 impl Aggregator for MaxAggregator {
     fn row(&mut self, expr_val: RV) {
-        if let Some(n) = expr_val.as_number()
-            && n > self.value
-        {
-            self.value = n;
+        if let Some(n) = expr_val.as_number() {
+            if self.value.is_none() {
+                self.value = Some(n);
+            }
+            else if let Some(v) = self.value
+                && n > v
+            {
+                self.value = Some(n);
+            }
         }
     }
 
     fn finalize(&self) -> crate::value::RV {
-        RV::Num(self.value)
+        if let Some(n) = self.value {
+            RV::Num(n)
+        }
+        else {
+            RV::Undefined
+        }
     }
 }
 
@@ -190,7 +210,7 @@ mod tests {
     #[test]
     fn test_min_aggregator_empty() {
         let agg = MinAggregator::default();
-        assert_eq!(agg.finalize(), RV::Num(f64::MAX));
+        assert_eq!(agg.finalize(), RV::Undefined);
     }
 
     #[test]
@@ -214,7 +234,7 @@ mod tests {
     #[test]
     fn test_max_aggregator_empty() {
         let agg = MaxAggregator::default();
-        assert_eq!(agg.finalize(), RV::Num(f64::MIN));
+        assert_eq!(agg.finalize(), RV::Undefined);
     }
 
     #[test]
