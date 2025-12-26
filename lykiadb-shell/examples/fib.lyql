@@ -5,9 +5,9 @@ function $fib($n) {
 };
 
 var $start_ly = time::clock();
-io::print($fib(35) == 9227465);
-io::print("elapsed (user defined):", time::clock() - $start_ly);
+out::print($fib(35) == 9227465);
+out::print("elapsed (user defined):", time::clock() - $start_ly);
 
 var $start_rs = time::clock();
-io::print(bench::fib(35) == 9227465);
-io::print("elapsed (native):", time::clock() - $start_rs);
+out::print(bench::fib(35) == 9227465);
+out::print("elapsed (native):", time::clock() - $start_rs);

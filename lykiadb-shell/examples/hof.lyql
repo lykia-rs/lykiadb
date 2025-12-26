@@ -2,7 +2,7 @@ function $make_counter() {
     var $i = 0;
     function $count() {
         $i = $i + 1;
-        io::print($i);
+        out::print($i);
     };
 
     return $count;

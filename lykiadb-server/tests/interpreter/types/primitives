@@ -71,8 +71,8 @@ true
 
 #[name=callable, run=interpreter]>
 
-test_utils::out(dtype::of_(io::print) == dtype::str);
-test_utils::out(dtype::of_(io::print));
+test_utils::out(dtype::of_(out::print) == dtype::str);
+test_utils::out(dtype::of_(out::print));
 
 ---
 

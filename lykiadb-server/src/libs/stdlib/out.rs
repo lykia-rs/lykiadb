@@ -1,8 +1,7 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
-    value::RV,
+    engine::interpreter::{HaltReason, Interpreter}, lykia_module, lykia_native_fn, value::RV
 };
 
 pub fn nt_print(
@@ -16,3 +15,7 @@ pub fn nt_print(
     println!();
     Ok(RV::Undefined)
 }
+
+lykia_module!(out, {
+    print => lykia_native_fn!(nt_print)
+}, {}, [print]);

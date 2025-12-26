@@ -12,8 +12,8 @@ var $calc = {
     return $a / $b;
   },
 };
-io::print($calc.add(4, 5));
-io::print($calc.sub(4, 5));
-io::print($calc.mul(4, 5));
-io::print($calc.div(4, 5));
+out::print($calc.add(4, 5));
+out::print($calc.sub(4, 5));
+out::print($calc.mul(4, 5));
+out::print($calc.div(4, 5));
 

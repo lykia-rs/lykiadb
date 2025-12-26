@@ -4,7 +4,7 @@ use rustc_hash::FxHashMap;
 use crate::{
     engine::interpreter::Output,
     libs::stdlib::{
-        arr::nt_create_arr, bench::bench, dtype::dtype, json::json, math::math, time::time,
+        arr::nt_create_arr, bench::bench, dtype::dtype, json::json, math::math, time::time, out::out
     },
     lykia_lib,
     util::Shared,
@@ -15,8 +15,6 @@ use crate::{
     },
 };
 
-use self::out::nt_print;
-
 pub mod arr;
 pub mod bench;
 pub mod dtype;
@@ -25,21 +23,11 @@ pub mod math;
 pub mod out;
 pub mod time;
 
-lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench()]);
+lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench(), out()]);
 
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();
-    let mut io_namespace = FxHashMap::default();
     let mut arr_namespace = FxHashMap::default();
-
-    io_namespace.insert(
-        "print".to_owned(),
-        RV::Callable(RVCallable::new(
-            Function::Native { function: nt_print },
-            Datatype::Unknown,
-            Datatype::Unit,
-        )),
-    );
 
     arr_namespace.insert(
         "new".to_owned(),
@@ -69,11 +57,6 @@ pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
             RV::Object(RVObject::from_map(test_namespace)),
         );
     }
-
-    std.insert(
-        "io".to_owned(),
-        RV::Object(RVObject::from_map(io_namespace)),
-    );
 
     std.insert(
         "arr".to_owned(),
