@@ -15,13 +15,13 @@ use crate::{
     },
 };
 
-pub mod arr;
-pub mod bench;
-pub mod dtype;
-pub mod json;
-pub mod math;
-pub mod out;
-pub mod time;
+mod arr;
+mod bench;
+mod dtype;
+mod json;
+mod math;
+mod out;
+mod time;
 
 lykia_lib!(std_core, vec![json(), time(), math(), dtype(), bench(), out(), arr()]);
 
