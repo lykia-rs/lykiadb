@@ -742,8 +742,6 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
-    #[error("Aggregator functions should be either called in queries or with arrays.")]
-    InvalidAggregatorCall { span: Span },
 }
 
 impl From<InterpretError> for InputError {
@@ -776,10 +774,6 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
             }
-            InterpretError::InvalidAggregatorCall { span } => (
-                "Make sure sure that the argument is an array or try executing this with a query.",
-                *span,
-            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

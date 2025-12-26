@@ -15,7 +15,7 @@ impl Default for AvgAggregator {
 }
 
 impl Aggregator for AvgAggregator {
-    fn row(&mut self, expr_val: RV) {
+    fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             self.accumulator += n;
         }
@@ -42,7 +42,7 @@ impl Default for SumAggregator {
 }
 
 impl Aggregator for SumAggregator {
-    fn row(&mut self, expr_val: RV) {
+    fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             self.accumulator += n;
         }
@@ -64,7 +64,7 @@ impl Default for MinAggregator {
 }
 
 impl Aggregator for MinAggregator {
-    fn row(&mut self, expr_val: RV) {
+    fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
@@ -98,7 +98,7 @@ impl Default for MaxAggregator {
 }
 
 impl Aggregator for MaxAggregator {
-    fn row(&mut self, expr_val: RV) {
+    fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
@@ -136,9 +136,9 @@ mod tests {
     fn test_avg_aggregator() {
         let mut agg = AvgAggregator::default();
 
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Num(20.0));
-        agg.row(RV::Num(30.0));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Num(20.0));
+        agg.row(&RV::Num(30.0));
 
         assert_eq!(agg.finalize(), RV::Num(20.0));
     }
@@ -153,10 +153,10 @@ mod tests {
     fn test_avg_aggregator_with_non_numbers() {
         let mut agg = AvgAggregator::default();
 
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Str(std::sync::Arc::new("not a number".to_string())));
-        agg.row(RV::Num(20.0));
-        agg.row(RV::Bool(true));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Str(std::sync::Arc::new("not a number".to_string())));
+        agg.row(&RV::Num(20.0));
+        agg.row(&RV::Bool(true));
 
         assert_eq!(agg.finalize(), RV::Num(7.75)); // (10 + 20 + 1) / 4 items
     }
@@ -165,9 +165,9 @@ mod tests {
     fn test_sum_aggregator() {
         let mut agg = SumAggregator::default();
 
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Num(20.0));
-        agg.row(RV::Num(30.0));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Num(20.0));
+        agg.row(&RV::Num(30.0));
 
         assert_eq!(agg.finalize(), RV::Num(60.0));
     }
@@ -182,9 +182,9 @@ mod tests {
     fn test_sum_aggregator_with_non_numbers() {
         let mut agg = SumAggregator::default();
 
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Str(std::sync::Arc::new("not a number".to_string())));
-        agg.row(RV::Num(20.0));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Str(std::sync::Arc::new("not a number".to_string())));
+        agg.row(&RV::Num(20.0));
 
         assert_eq!(agg.finalize(), RV::Num(30.0));
     }
@@ -193,9 +193,9 @@ mod tests {
     fn test_min_aggregator() {
         let mut agg = MinAggregator::default();
 
-        agg.row(RV::Num(30.0));
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Num(20.0));
+        agg.row(&RV::Num(30.0));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Num(20.0));
 
         assert_eq!(agg.finalize(), RV::Num(10.0));
     }
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_min_aggregator_single_value() {
         let mut agg = MinAggregator::default();
-        agg.row(RV::Num(42.0));
+        agg.row(&RV::Num(42.0));
         assert_eq!(agg.finalize(), RV::Num(42.0));
     }
 
@@ -217,9 +217,9 @@ mod tests {
     fn test_max_aggregator() {
         let mut agg = MaxAggregator::default();
 
-        agg.row(RV::Num(10.0));
-        agg.row(RV::Num(30.0));
-        agg.row(RV::Num(20.0));
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Num(30.0));
+        agg.row(&RV::Num(20.0));
 
         assert_eq!(agg.finalize(), RV::Num(30.0));
     }
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_max_aggregator_single_value() {
         let mut agg = MaxAggregator::default();
-        agg.row(RV::Num(42.0));
+        agg.row(&RV::Num(42.0));
         assert_eq!(agg.finalize(), RV::Num(42.0));
     }
 
@@ -247,10 +247,10 @@ mod tests {
         let values = vec![RV::Num(-10.0), RV::Num(5.0), RV::Num(-3.0)];
 
         for val in values {
-            min_agg.row(val.clone());
-            max_agg.row(val.clone());
-            sum_agg.row(val.clone());
-            avg_agg.row(val);
+            min_agg.row(&val);
+            max_agg.row(&val);
+            sum_agg.row(&val);
+            avg_agg.row(&val);
         }
 
         assert_eq!(min_agg.finalize(), RV::Num(-10.0));

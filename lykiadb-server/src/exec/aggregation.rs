@@ -53,7 +53,7 @@ impl Grouper {
         for (idx, agg) in self.aggregations.iter().enumerate() {
             let val = self.interpreter.eval_with_row(&agg.args[0], &row)?;
 
-            bucket_value[idx].as_mut().row(val);
+            bucket_value[idx].as_mut().row(&val);
         }
 
         Ok(())
@@ -77,6 +77,6 @@ impl Grouper {
 }
 
 pub trait Aggregator {
-    fn row(&mut self, row: RV);
+    fn row(&mut self, row: &RV);
     fn finalize(&self) -> RV;
 }
