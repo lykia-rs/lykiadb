@@ -8,7 +8,7 @@ use crate::{
     plan::planner::InClause,
     value::{
         RV,
-        callable::{Function, RVCallable},
+        callable::Function,
     },
 };
 
