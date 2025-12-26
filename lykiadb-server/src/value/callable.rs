@@ -38,11 +38,23 @@ impl RVCallable {
         match &self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
-            Function::Agg { .. } => Err(HaltReason::Error(
-                crate::engine::error::ExecutionError::Interpret(
-                    InterpretError::InvalidAggregatorCall { span: *called_from },
-                ),
-            )),
+            Function::Agg { function, .. } => {
+                if let RV::Array(arr) = &arguments[0] {
+                    let mut aggregator = function();
+
+                    for item in arr.iter() {
+                        aggregator.row(item);
+                    }
+
+                    return Ok(aggregator.finalize());
+                }
+
+                Err(HaltReason::Error(
+                    crate::engine::error::ExecutionError::Interpret(
+                        InterpretError::InvalidAggregatorCall { span: *called_from },
+                    ),
+                ))
+            }
             Function::UserDefined {
                 parameters,
                 closure,

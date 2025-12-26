@@ -742,7 +742,7 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
-    #[error("Aggregator functions cannot be called outside of queries.")]
+    #[error("Aggregator functions should be either called in queries or with arrays.")]
     InvalidAggregatorCall { span: Span },
 }
 
@@ -777,7 +777,7 @@ impl From<InterpretError> for InputError {
                 ("Check that the argument matches the expected types", *span)
             }
             InterpretError::InvalidAggregatorCall { span } => (
-                "Aggregator functions can only be used within query contexts",
+                "Make sure sure that the argument is an array or try executing this with a query.",
                 *span,
             ),
         };

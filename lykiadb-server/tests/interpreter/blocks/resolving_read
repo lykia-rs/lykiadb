@@ -3,7 +3,7 @@
 var $a = "global";
 {
     function $show_a() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     $show_a();
@@ -22,7 +22,7 @@ global
 var $a = "global";
 {
     function $show_a() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     $show_a();
@@ -30,7 +30,7 @@ var $a = "global";
     $show_a();
 
     function $show_b() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     $show_b();
@@ -48,7 +48,7 @@ block
     var $a = "global";
     {
         function $show_a() {
-            test_utils::out($a);
+            testutil::print($a);
         };
     
         $show_a();
@@ -70,14 +70,14 @@ var $text = 'outer $text';
 var $a = {
     my_fun: function() {
         function $pre_define() {
-            test_utils::out($text);
+            testutil::print($text);
         };
         $pre_define();
 
         var $text = 'inner $text';
 
         function $post_define() {
-            test_utils::out($text);
+            testutil::print($text);
         };
         $post_define();
     }
@@ -100,14 +100,14 @@ var $a = {
         c0: {
             my_fun: function() {
                 function $pre_define() {
-                    test_utils::out($text);
+                    testutil::print($text);
                 };
                 $pre_define();
 
                 var $text = 'c0 inner $text';
 
                 function $post_define() {
-                    test_utils::out($text);
+                    testutil::print($text);
                 };
                 $post_define();
             }
@@ -115,14 +115,14 @@ var $a = {
         c1: {
             my_fun: function() {
                 function $pre_define() {
-                    test_utils::out($text);
+                    testutil::print($text);
                 };
                 $pre_define();
 
                 var $text = 'c1 inner $text';
 
                 function $post_define() {
-                    test_utils::out($text);
+                    testutil::print($text);
                 };
                 $post_define();
             }

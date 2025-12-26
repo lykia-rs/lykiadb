@@ -5,7 +5,7 @@ for (var $i = 0; $i < 10; $i = $i + 1) {
         {
             if ($i == 2) continue;
             if ($i == 8) break;
-            test_utils::out($i);
+            testutil::print($i);
         }
     }
 }
@@ -27,7 +27,7 @@ for (var $i = 0; $i < 10000000; $i = $i + 1) {
     if ($i > 17) break;
     if ($i < 15) continue;
     for (var $j = 0; $j < 10000000; $j = $j + 1) {
-        test_utils::out($i + ":" + $j);
+        testutil::print($i + ":" + $j);
         if ($j > 2) break;
     }
 }
@@ -55,7 +55,7 @@ var $q = 0;
 for (var $i = 0; $i < 10000000; $i = $i + 1) {
     break;
     $q = $q + 1;
-    test_utils::out("Shouldn't be shown");
+    testutil::print("Shouldn't be shown");
 }
 
 {
@@ -65,7 +65,7 @@ for (var $i = 0; $i < 10000000; $i = $i + 1) {
                 {
                     {
                         {
-                            test_utils::out($q);
+                            testutil::print($q);
                         }
                     }
                 }

@@ -2,6 +2,7 @@ use lykiadb_lang::ast::Span;
 
 use crate::{
     engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    lykia_module, lykia_native_fn,
     value::{RV, array::RVArray},
 };
 
@@ -32,3 +33,7 @@ pub fn nt_create_arr(
     let arr = RV::Array(RVArray::from_vec(vec));
     Ok(arr)
 }
+
+lykia_module!(arr, {
+    new => lykia_native_fn!(nt_create_arr)
+}, {}, []);

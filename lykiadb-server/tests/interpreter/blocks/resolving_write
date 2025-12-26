@@ -3,13 +3,13 @@
 var $a = "global";
 {
     function $show_a() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     var $a = "block";
     
     function $show_b() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     
@@ -35,13 +35,13 @@ test
 var $a = "global";
 {
     var $show_a = function() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     var $a = "block";
     
     var $show_b = function() {
-        test_utils::out($a);
+        testutil::print($a);
     };
 
     $show_a();

@@ -5,7 +5,7 @@ function $f($x, $q) {
 };
 
 function $g($q) {
-    test_utils::out($q);
+    testutil::print($q);
 };
 
 for (var $i = 0; $i < 10; $i = $i + 1) {
@@ -32,7 +32,7 @@ function $make_counter() {
     var $i = 0;
     function $count() {
         $i = $i + 1;
-        test_utils::out($i);
+        testutil::print($i);
     };
 
     return $count;
