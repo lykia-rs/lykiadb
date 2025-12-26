@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub struct RVCallable {
-    pub function: Function,
+    pub function: Arc<Function>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
@@ -23,7 +23,7 @@ pub struct RVCallable {
 impl RVCallable {
     pub fn new(function: Function, input_type: Datatype, return_type: Datatype) -> Self {
         RVCallable {
-            function,
+            function: Arc::new(function),
             parameter_types: input_type,
             return_type,
         }
@@ -35,7 +35,7 @@ impl RVCallable {
         called_from: &Span,
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-        match &self.function {
+        match &self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
             Function::Agg { .. } => Err(HaltReason::Error(
