@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use crate::{
     engine::{
         error::ExecutionError,
-        interpreter::{Aggregation, HaltReason, Interpreter},
+        interpreter::{HaltReason, Interpreter},
     },
-    plan::planner::InClause,
+    plan::{Aggregation, planner::InClause},
     value::{
         RV,
         callable::Function,
@@ -138,6 +138,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                             name: agg_name.clone(),
                             callable: Some(*factory),
                             args: args.clone(),
+                            signature: expr.clone(),
                         });
                     }
                     ExprVisitorNode::Out => {

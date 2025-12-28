@@ -1,9 +1,9 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::{Aggregation, HaltReason},
+    engine::interpreter::HaltReason,
     global::GLOBAL_INTERNER,
-    plan::IntermediateExpr,
+    plan::{Aggregation, IntermediateExpr},
     value::{RV, iterator::ExecutionRow},
 };
 
@@ -65,8 +65,9 @@ impl Grouper {
         for (_, agg) in self.groups.iter() {
             let mut row = ExecutionRow::new();
             for (idx, value) in agg.iter().enumerate() {
-                let key = self.aggregations[idx].args[0].to_string();
-                row.insert(GLOBAL_INTERNER.intern(&key), value.finalize());
+                let key = self.aggregations[idx].get_field();
+                let finalized = value.finalize();
+                row.insert(GLOBAL_INTERNER.intern(&key), finalized);
             }
 
             rows.push(row);

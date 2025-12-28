@@ -1,5 +1,4 @@
 use super::error::ExecutionError;
-use derivative::Derivative;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -17,14 +16,12 @@ use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::callable::{AggregatorFactory, Function, RVCallable, Stateful};
+use crate::value::callable::{Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 use interb::Symbol;
-
-use std::fmt::Display;
 use std::sync::Arc;
 use std::vec;
 
@@ -641,32 +638,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
             }
         }
         Ok(RV::Undefined)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Eq, PartialEq, Hash)]
-pub struct Aggregation {
-    pub name: String,
-    #[serde(skip)]
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Hash = "ignore")]
-    pub callable: Option<AggregatorFactory>,
-    pub args: Vec<Expr>,
-}
-
-impl Display for Aggregation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}({})",
-            self.name,
-            self.args
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
     }
 }
 

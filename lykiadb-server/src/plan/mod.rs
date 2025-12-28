@@ -11,7 +11,8 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{engine::interpreter::Aggregation, value::RV};
+use derivative::Derivative;
+use crate::{value::{RV, callable::AggregatorFactory}};
 
 mod aggregation;
 mod expr;
@@ -325,6 +326,41 @@ impl Node {
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._fmt_recursive(f, 0)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
+pub struct Aggregation {
+    pub name: String,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub callable: Option<AggregatorFactory>,
+    pub args: Vec<Expr>,
+    pub signature: Expr,
+}
+
+impl Aggregation {
+    pub fn get_field(&self) -> String {
+        let mut buf = "#agg_".to_owned();
+        buf.push_str(&self.signature.to_string());
+        buf
+    }
+}
+
+impl Display for Aggregation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({})",
+            self.name,
+            self.args
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 
