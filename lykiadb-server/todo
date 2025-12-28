@@ -25,6 +25,7 @@
 - Order by has to be outside of select core
 
 # planning.aggregation
+- max(avg(a), avg(b)) wouldn't work as nested aggregations are not supported
 - Downstream agg/group by fields must be referenced in projection
 - How to reference upstream fields???
 - Aggregation detector

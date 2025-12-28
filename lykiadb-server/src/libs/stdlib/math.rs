@@ -52,6 +52,25 @@ impl Aggregator for SumAggregator {
         RV::Num(self.accumulator)
     }
 }
+pub(crate) struct CountAggregator {
+    count: usize,
+}
+
+impl Default for CountAggregator {
+    fn default() -> Self {
+        CountAggregator { count: 0 }
+    }
+}
+
+impl Aggregator for CountAggregator {
+    fn row(&mut self, _expr_val: &RV) {
+        self.count += 1;
+    }
+
+    fn finalize(&self) -> crate::value::RV {
+        RV::Num(self.count as f64)
+    }
+}
 
 pub(crate) struct MinAggregator {
     value: Option<f64>,
@@ -124,9 +143,10 @@ impl Aggregator for MaxAggregator {
 lykia_module!(math, {
     avg => lykia_agg_fn!(avg, AvgAggregator),
     sum => lykia_agg_fn!(sum, SumAggregator),
+    count => lykia_agg_fn!(count, CountAggregator),
     min => lykia_agg_fn!(min, MinAggregator),
     max => lykia_agg_fn!(max, MaxAggregator)
-}, {}, [avg, sum, min, max]);
+}, {}, [avg, sum, count, min, max]);
 
 #[cfg(test)]
 mod tests {
@@ -187,6 +207,23 @@ mod tests {
         agg.row(&RV::Num(20.0));
 
         assert_eq!(agg.finalize(), RV::Num(30.0));
+    }
+
+    #[test]
+    fn test_count_aggregator() {
+        let mut agg = CountAggregator::default();
+
+        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Str(std::sync::Arc::new("hello".to_string())));
+        agg.row(&RV::Bool(true));
+
+        assert_eq!(agg.finalize(), RV::Num(3.0));
+    }
+
+    #[test]
+    fn test_count_aggregator_empty() {
+        let agg = CountAggregator::default();
+        assert_eq!(agg.finalize(), RV::Num(0.0));
     }
 
     #[test]
