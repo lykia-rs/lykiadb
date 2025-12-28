@@ -350,7 +350,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 if let RV::Callable(callable) = eval {
 
                     if self.has_exec_row() && callable.is_agg() {
-                        let value = self.get_from_row(&format!("#agg_{}", e.sign()));
+                        let value = self.get_from_row(&e.sign());
 
                         if value.is_some() {
                             return Ok(value.unwrap());

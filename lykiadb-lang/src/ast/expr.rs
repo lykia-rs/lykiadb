@@ -286,10 +286,11 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn sign(&self) -> u64 {
+    pub fn sign(&self) -> String {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
-        hasher.finish()
+        let h= hasher.finish();
+        format!("#expr_{}", h).to_string()
     }
 }
 

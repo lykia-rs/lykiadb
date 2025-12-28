@@ -336,6 +336,7 @@ pub struct Aggregation {
     pub callable: Option<AggregatorFactory>,
     pub args: Vec<Expr>,
     pub call_expr: Expr,
+    pub call_sign: String,
 }
 
 impl Aggregation {
@@ -345,13 +346,8 @@ impl Aggregation {
             callable: Some(*agg_factory),
             args: args.clone(),
             call_expr: expr.clone(),
+            call_sign: expr.sign(),
         }
-    }
-
-    pub fn get_field(&self) -> String {
-        let mut buf = "#agg_".to_owned();
-        buf.push_str(&self.call_expr.sign().to_string());
-        buf
     }
 }
 
