@@ -43,8 +43,8 @@ EXPLAIN SELECT publisher_id FROM books GROUP BY publisher_id HAVING avg(rating) 
 
 ---
 
-- filter [(avg(rating) Greater Num(3.0))]
-  - project [publisher_id as publisher_id]
+- project [publisher_id as publisher_id]
+  - filter [(avg(rating) Greater Num(3.0))]
     - aggregate [group_by=[publisher_id], aggregates=[avg(rating)]]
       - scan [books as books]
 
@@ -54,8 +54,8 @@ EXPLAIN SELECT avg(rating) FROM books HAVING avg(rating) > 3.0;
 
 ---
 
-- filter [(avg(rating) Greater Num(3.0))]
-  - project [avg(rating) as avg(rating)]
+- project [avg(rating) as avg(rating)]
+  - filter [(avg(rating) Greater Num(3.0))]
     - aggregate [group_by=[], aggregates=[avg(rating)]]
       - scan [books as books]
 
@@ -64,8 +64,8 @@ EXPLAIN SELECT avg(rating) FROM books HAVING anything > 10;
 
 ---
 
-- filter [(anything Greater Num(10.0))]
-  - project [avg(rating) as avg(rating)]
+- project [avg(rating) as avg(rating)]
+  - filter [(anything Greater Num(10.0))]
     - aggregate [group_by=[], aggregates=[avg(rating)]]
       - scan [books as books]
 

@@ -103,15 +103,14 @@ impl<'a> Planner<'a> {
     }
 }
 
-// Select planner
 impl<'a> Planner<'a> {
     /*
 
     The data flow we built using SqlSelectCore is as follows:
 
     +--------+      +---------+      +-----------+      +------------+      +-----------------------+
-    | Source | ---> | Filter  | ---> | Aggregate | ---> | Projection | ---> | Filter                |
-    | (req.) |      | (optl.) |      | (optl.)   |      | (req.)     |      | (for post projection) |
+    | Source | ---> | Filter  | ---> | Aggregate | ---> | Filter     | ---> | Projection            |
+    | (req.) |      | (optl.) |      | (optl.)   |      | (optl.)    |      | (for post filtering) |
     +--------+      +---------+      +-----------+      +------------+      +-----------------------+
     */
 
@@ -131,14 +130,10 @@ impl<'a> Planner<'a> {
 
         let mut core_scope = Scope::new();
 
-        // Source: The data flow starts from a source, which is a collection or a
-        // subquery.
         if let Some(from) = &core.from {
             node = build_from(self, from, &mut core_scope)?;
         }
 
-        // Filter: The source is then filtered, and the result is passed to the next
-        // node.
         if let Some(predicate) = &core.r#where {
             let (expr, subqueries): (IntermediateExpr, Vec<Node>) = self.build_expr(
                 predicate.as_ref(),
@@ -154,14 +149,8 @@ impl<'a> Planner<'a> {
             }
         }
 
-        // Pre-Aggregate: Once the filtering is done, it is time to explore all the
-        // aggregates. This is done by collecting all the aggregates from the
-        // expressions in the projection and the having clauses.
         let aggregates = collect_aggregates(core, self.interpreter)?;
 
-        // Aggregate and Group By: In order to prepare an aggregate node, we need to
-        // check if there are any grouping keys, too. We finally put the information
-        // together and create the aggregate node.
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
@@ -180,6 +169,16 @@ impl<'a> Planner<'a> {
                 group_by,
                 aggregates,
             };
+
+            if let Some(having) = &core.having {
+                let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
+                    self.build_expr(having, InClause::Having, &mut core_scope, true, true)?;
+                node = Node::Filter {
+                    source: Box::new(node),
+                    predicate: expr,
+                    subqueries,
+                }
+            }
         } else if let Some(having) = &core.having {
             // Fail fast if there is a HAVING clause without aggregation.
             return Err(HaltReason::Error(ExecutionError::Plan(
@@ -187,8 +186,6 @@ impl<'a> Planner<'a> {
             )));
         }
 
-        // Projection: Projection is required to be done after the aggregate node, for the sake of
-        // projecting aggregated data.
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
@@ -201,22 +198,6 @@ impl<'a> Planner<'a> {
             };
         }
 
-        // PostProjection-Filter: After the aggregated data is projected, we can filter the
-        // result using the HAVING clause. In earlier stages, we already collected
-        // the aggregates from the projection and the having clause. As we already
-        // have the aggregates, we can use them to filter the result.
-        if let Some(having) = &core.having {
-            let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                self.build_expr(having, InClause::Having, &mut core_scope, true, true)?;
-            node = Node::Filter {
-                source: Box::new(node),
-                predicate: expr,
-                subqueries,
-            }
-        }
-
-        // We recursively build the compound queries (if any). The result of one
-        // query is used as a source for another query.
         if let Some(compound) = &core.compound {
             node = Node::Compound {
                 source: Box::new(node),
