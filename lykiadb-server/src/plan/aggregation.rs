@@ -134,12 +134,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                             )));
                         }
                         self.in_call += 1;
-                        self.accumulator.push(Aggregation {
-                            name: agg_name.clone(),
-                            callable: Some(*factory),
-                            args: args.clone(),
-                            signature: expr.clone(),
-                        });
+                        self.accumulator.push(Aggregation::new(agg_name, factory, args, expr));
                     }
                     ExprVisitorNode::Out => {
                         self.in_call -= 1;

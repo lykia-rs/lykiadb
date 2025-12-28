@@ -342,6 +342,15 @@ pub struct Aggregation {
 }
 
 impl Aggregation {
+    pub fn new(agg_name: &str, agg_factory: &AggregatorFactory, args: &Vec<Expr>, expr: &Expr) -> Aggregation {
+         Aggregation {
+            name: agg_name.to_string(),
+            callable: Some(*agg_factory),
+            args: args.clone(),
+            signature: expr.clone(),
+        }
+    }
+
     pub fn get_field(&self) -> String {
         let mut buf = "#agg_".to_owned();
         buf.push_str(&self.signature.to_string());
