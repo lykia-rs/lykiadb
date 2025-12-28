@@ -1,13 +1,10 @@
 use std::fmt::Display;
 
 use lykiadb_common::error::InputError;
-use lykiadb_lang::ast::{
-    Identifier, Span,
-    expr::Expr,
-    sql::{
+use lykiadb_lang::ast::{Identifier, Span, expr::Expr, sql::{
         SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
         SqlOrdering, SqlProjection,
-    },
+    }
 };
 use serde::{Deserialize, Serialize};
 
@@ -338,7 +335,7 @@ pub struct Aggregation {
     #[derivative(Hash = "ignore")]
     pub callable: Option<AggregatorFactory>,
     pub args: Vec<Expr>,
-    pub signature: Expr,
+    pub call_expr: Expr,
 }
 
 impl Aggregation {
@@ -347,13 +344,13 @@ impl Aggregation {
             name: agg_name.to_string(),
             callable: Some(*agg_factory),
             args: args.clone(),
-            signature: expr.clone(),
+            call_expr: expr.clone(),
         }
     }
 
     pub fn get_field(&self) -> String {
         let mut buf = "#agg_".to_owned();
-        buf.push_str(&self.signature.to_string());
+        buf.push_str(&self.call_expr.sign().to_string());
         buf
     }
 }

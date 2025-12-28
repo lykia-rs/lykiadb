@@ -29,6 +29,10 @@ impl RVCallable {
         }
     }
 
+    pub fn is_agg(&self) -> bool {
+        matches!(&*self.function, Function::Agg { .. })
+    }
+
     pub fn call(
         &self,
         interpreter: &mut Interpreter,

@@ -199,8 +199,21 @@ impl Interpreter {
         self.exec_row = None;
     }
 
+    pub fn has_exec_row(&self) -> bool {
+        self.exec_row.is_some()
+    }
+
     fn intern_string(&self, string: &str) -> Symbol {
         GLOBAL_INTERNER.intern(string)
+    }
+
+    fn get_from_row(&mut self, name: &str) -> Option<RV> {
+        if let Some(exec_row) = &self.exec_row {
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
@@ -334,10 +347,20 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 callee, args, span, ..
             } => {
                 let eval = self.visit_expr(callee)?;
-
                 if let RV::Callable(callable) = eval {
-                    let mut args_evaluated: Vec<RV> = vec![];
 
+                    if self.has_exec_row() && callable.is_agg() {
+                        let value = self.get_from_row(&format!("#agg_{}", e.sign()));
+
+                        if value.is_some() {
+                            return Ok(value.unwrap());
+                        }
+                        
+                        panic!("Aggregator value not found in execution row");
+                    }
+
+                    let mut args_evaluated: Vec<RV> = vec![];
+                    
                     for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(arg)?);
                     }
