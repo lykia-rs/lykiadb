@@ -31,6 +31,7 @@
     - Context check (?)
 
 # execution
+- execution an undefined function does not return an error
 - execution_row 
     - should not be cloned before passing to inter_fork
     - pass by reference when possible
