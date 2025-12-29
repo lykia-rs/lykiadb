@@ -1,14 +1,10 @@
 use crate::{exec::aggregation::Aggregator, value::RV};
 
+#[derive(Default)]
 pub(crate) struct CountAggregator {
     count: usize,
 }
 
-impl Default for CountAggregator {
-    fn default() -> Self {
-        CountAggregator { count: 0 }
-    }
-}
 
 impl Aggregator for CountAggregator {
     fn row(&mut self, _expr_val: &RV) {

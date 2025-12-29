@@ -1,14 +1,10 @@
 use crate::{exec::aggregation::Aggregator, value::RV};
 
+#[derive(Default)]
 pub(crate) struct MinAggregator {
     value: Option<f64>,
 }
 
-impl Default for MinAggregator {
-    fn default() -> Self {
-        MinAggregator { value: None }
-    }
-}
 
 impl Aggregator for MinAggregator {
     fn row(&mut self, expr_val: &RV) {
