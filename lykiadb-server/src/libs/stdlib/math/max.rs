@@ -15,8 +15,7 @@ impl Aggregator for MaxAggregator {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
-            }
-            else if let Some(v) = self.value
+            } else if let Some(v) = self.value
                 && n > v
             {
                 self.value = Some(n);
@@ -27,13 +26,11 @@ impl Aggregator for MaxAggregator {
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
             RV::Num(n)
-        }
-        else {
+        } else {
             RV::Undefined
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -22,7 +22,6 @@ impl Aggregator for SumAggregator {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,7 +1,12 @@
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
-use std::{collections::hash_map::DefaultHasher, fmt::Display, hash::{Hash, Hasher}, sync::Arc};
+use std::{
+    collections::hash_map::DefaultHasher,
+    fmt::Display,
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use super::{
     AstNode, Identifier, Literal, Span, Spanned,
@@ -279,7 +284,7 @@ pub enum Expr {
         #[derivative(Hash = "ignore")]
         span: Span,
         #[serde(skip)]
-        #[derivative(PartialEq = "ignore")] 
+        #[derivative(PartialEq = "ignore")]
         #[derivative(Hash = "ignore")]
         id: usize,
     },
@@ -289,7 +294,7 @@ impl Expr {
     pub fn sign(&self) -> String {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
-        let h= hasher.finish();
+        let h = hasher.finish();
         format!("#expr_{}", h).to_string()
     }
 }

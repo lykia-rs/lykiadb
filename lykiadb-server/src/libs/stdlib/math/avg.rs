@@ -31,7 +31,6 @@ impl Aggregator for AvgAggregator {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

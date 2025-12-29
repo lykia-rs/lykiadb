@@ -1,15 +1,18 @@
 use std::fmt::Display;
 
 use lykiadb_common::error::InputError;
-use lykiadb_lang::ast::{Identifier, Span, expr::Expr, sql::{
+use lykiadb_lang::ast::{
+    Identifier, Span,
+    expr::Expr,
+    sql::{
         SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
         SqlOrdering, SqlProjection,
-    }
+    },
 };
 use serde::{Deserialize, Serialize};
 
+use crate::value::{RV, callable::AggregatorFactory};
 use derivative::Derivative;
-use crate::{value::{RV, callable::AggregatorFactory}};
 
 mod aggregation;
 mod expr;
@@ -340,8 +343,13 @@ pub struct Aggregation {
 }
 
 impl Aggregation {
-    pub fn new(agg_name: &str, agg_factory: &AggregatorFactory, args: &Vec<Expr>, expr: &Expr) -> Aggregation {
-         Aggregation {
+    pub fn new(
+        agg_name: &str,
+        agg_factory: &AggregatorFactory,
+        args: &Vec<Expr>,
+        expr: &Expr,
+    ) -> Aggregation {
+        Aggregation {
             name: agg_name.to_string(),
             callable: Some(*agg_factory),
             args: args.clone(),

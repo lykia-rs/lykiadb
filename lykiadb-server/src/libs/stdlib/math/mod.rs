@@ -1,4 +1,10 @@
-use crate::{libs::stdlib::math::{avg::AvgAggregator, count::CountAggregator, max::MaxAggregator, min::MinAggregator, sum::SumAggregator}, lykia_agg_fn, lykia_module};
+use crate::{
+    libs::stdlib::math::{
+        avg::AvgAggregator, count::CountAggregator, max::MaxAggregator, min::MinAggregator,
+        sum::SumAggregator,
+    },
+    lykia_agg_fn, lykia_module,
+};
 
 mod avg;
 mod count;
