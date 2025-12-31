@@ -6,10 +6,7 @@ use crate::{
         interpreter::{HaltReason, Interpreter},
     },
     plan::{Aggregation, planner::InClause},
-    value::{
-        RV,
-        callable::Function,
-    },
+    value::{RV, callable::Function},
 };
 
 use lykiadb_lang::ast::{
@@ -134,7 +131,8 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
                             )));
                         }
                         self.in_call += 1;
-                        self.accumulator.push(Aggregation::new(agg_name, factory, args, expr));
+                        self.accumulator
+                            .push(Aggregation::new(agg_name, factory, args, expr));
                     }
                     ExprVisitorNode::Out => {
                         self.in_call -= 1;

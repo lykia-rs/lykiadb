@@ -65,7 +65,10 @@ impl Grouper {
         for (_, agg) in self.groups.iter() {
             let mut row = ExecutionRow::new();
             for (idx, value) in agg.iter().enumerate() {
-                row.insert(GLOBAL_INTERNER.intern(&self.aggregations[idx].call_sign), value.finalize());
+                row.insert(
+                    GLOBAL_INTERNER.intern(&self.aggregations[idx].call_sign),
+                    value.finalize(),
+                );
             }
 
             rows.push(row);

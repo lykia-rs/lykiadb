@@ -57,7 +57,6 @@ pub(crate) struct CountAggregator {
     count: usize,
 }
 
-
 impl Aggregator for CountAggregator {
     fn row(&mut self, _expr_val: &RV) {
         self.count += 1;
@@ -73,14 +72,12 @@ pub(crate) struct MinAggregator {
     value: Option<f64>,
 }
 
-
 impl Aggregator for MinAggregator {
     fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
-            }
-            else if let Some(v) = self.value
+            } else if let Some(v) = self.value
                 && n < v
             {
                 self.value = Some(n);
@@ -91,8 +88,7 @@ impl Aggregator for MinAggregator {
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
             RV::Num(n)
-        }
-        else {
+        } else {
             RV::Undefined
         }
     }
@@ -103,14 +99,12 @@ pub(crate) struct MaxAggregator {
     value: Option<f64>,
 }
 
-
 impl Aggregator for MaxAggregator {
     fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
-            }
-            else if let Some(v) = self.value
+            } else if let Some(v) = self.value
                 && n > v
             {
                 self.value = Some(n);
@@ -121,8 +115,7 @@ impl Aggregator for MaxAggregator {
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
             RV::Num(n)
-        }
-        else {
+        } else {
             RV::Undefined
         }
     }
