@@ -88,10 +88,15 @@ impl<'a> Resolver<'a> {
 impl VisitorMut<(), ResolveError> for Resolver<'_> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
-            Expr::Literal { value, .. } => match value {
+            Expr::Literal { value, span, .. } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(map.get(item).unwrap())?;
+                        let value = map.get(item).ok_or(ResolveError::VariableNotFound {
+                            span: *span,
+                            name: item.to_string(),
+                        })?;
+
+                        self.visit_expr(value)?;
                     }
                 }
                 Literal::Array(items) => {
@@ -143,9 +148,9 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 body,
                 ..
             } => {
-                if name.is_some() {
-                    self.declare(&name.as_ref().unwrap().clone());
-                    self.define(&name.as_ref().unwrap().clone());
+                if let Some(name) = name {
+                    self.declare(&name);
+                    self.define(&name);
                 }
                 self.begin_scope();
                 for (ident, _) in parameters {
@@ -209,8 +214,8 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
             } => {
                 self.resolve_expr(condition)?;
                 self.resolve_stmt(body)?;
-                if r#else.is_some() {
-                    self.resolve_stmt(r#else.as_ref().unwrap())?;
+                if let Some(r#else) = r#else {
+                    self.resolve_stmt(r#else.as_ref())?;
                 }
             }
             Stmt::Loop {
@@ -219,17 +224,17 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 post,
                 ..
             } => {
-                if condition.is_some() {
-                    self.resolve_expr(condition.as_ref().unwrap())?;
+                if let Some(condition) = condition {
+                    self.resolve_expr(condition.as_ref())?;
                 }
                 self.resolve_stmt(body)?;
-                if post.is_some() {
-                    self.resolve_stmt(post.as_ref().unwrap())?;
+                if let Some(post) = post {
+                    self.resolve_stmt(post.as_ref())?;
                 }
             }
             Stmt::Return { expr, .. } => {
-                if expr.is_some() {
-                    self.resolve_expr(expr.as_ref().unwrap())?;
+                if let Some(expr) = expr {
+                    self.resolve_expr(expr.as_ref())?;
                 }
             }
 
@@ -243,6 +248,8 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
 
 #[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ResolveError {
+    #[error("Failed to resolve variable `{name}`")]
+    VariableNotFound { span: Span, name: String },
     #[error("{message} at {span:?}")]
     GenericError { span: Span, message: String },
 }
@@ -252,6 +259,12 @@ impl From<ResolveError> for InputError {
         let (hint, sp) = match &value {
             ResolveError::GenericError { span, .. } => {
                 ("Check variable declarations and scope usage", *span)
+            }
+            ResolveError::VariableNotFound { span, name } => {
+                (
+                    &format!("Variable `{}` not found in the current scope", name) as &str,
+                    *span,
+                )
             }
         };
 
