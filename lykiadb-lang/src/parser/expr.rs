@@ -49,12 +49,13 @@ impl ExprParser {
     fn fun_declaration(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         let fun_tok = cparser.peek_bw(1);
 
-        let name_identifier: Option<crate::ast::Identifier> = if cparser.cmp_tok(&Identifier { dollar: true }) {
-            let tok = cparser.expect(&Identifier { dollar: true })?.clone();
-            Some(tok.extract_identifier()?)
-        } else {
-            None
-        };
+        let name_identifier: Option<crate::ast::Identifier> =
+            if cparser.cmp_tok(&Identifier { dollar: true }) {
+                let tok = cparser.expect(&Identifier { dollar: true })?.clone();
+                Some(tok.extract_identifier()?)
+            } else {
+                None
+            };
 
         cparser.expect(&sym!(LeftParen))?;
 
@@ -411,7 +412,9 @@ impl ExprParser {
                     Identifier { dollar: false } | Str => key_tok
                         .extract_literal()?
                         .as_str()
-                        .ok_or(ParseError::UnexpectedToken { token: key_tok.clone() })?
+                        .ok_or(ParseError::UnexpectedToken {
+                            token: key_tok.clone(),
+                        })?
                         .to_string(),
                     Num => match key_tok.literal {
                         Some(Literal::Num(n)) => n.to_string(),

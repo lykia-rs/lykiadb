@@ -81,9 +81,11 @@ impl SqlParser {
 
         let collection = match self.sql_collection_identifier(cparser)? {
             Some(col) => col,
-            None => return Err(ParseError::UnexpectedToken {
-                token: cparser.peek_bw(0).clone(),
-            }),
+            None => {
+                return Err(ParseError::UnexpectedToken {
+                    token: cparser.peek_bw(0).clone(),
+                });
+            }
         };
 
         cparser.expect(&skw!(Set))?;
@@ -164,7 +166,8 @@ impl SqlParser {
                         skw!(As),
                         Identifier { dollar: false }
                     )
-                    .map(|t| t.extract_identifier()).transpose()?,
+                    .map(|t| t.extract_identifier())
+                    .transpose()?,
                 }));
             }
             return Ok(Some(SqlCollectionIdentifier {
@@ -178,7 +181,8 @@ impl SqlParser {
                     skw!(As),
                     Identifier { dollar: false }
                 )
-                .map(|t| t.extract_identifier()).transpose()?,
+                .map(|t| t.extract_identifier())
+                .transpose()?,
             }));
         }
         Ok(None)
@@ -331,7 +335,7 @@ impl SqlParser {
                     optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
                     expr,
-                    alias: alias.map(|t| t.extract_identifier()).transpose()?
+                    alias: alias.map(|t| t.extract_identifier()).transpose()?,
                 });
             }
             if !cparser.match_next(&sym!(Comma)) {

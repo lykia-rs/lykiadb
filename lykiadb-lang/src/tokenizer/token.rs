@@ -1,7 +1,10 @@
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
-use crate::{ast::{Identifier, IdentifierKind, Literal, Span}, parser::ParseError};
+use crate::{
+    ast::{Identifier, IdentifierKind, Literal, Span},
+    parser::ParseError,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
@@ -283,21 +286,27 @@ impl Token {
                 },
                 span: self.span,
             }),
-            _ => Err(ParseError::MissingIdentifier { token: self.clone() }),
+            _ => Err(ParseError::MissingIdentifier {
+                token: self.clone(),
+            }),
         }
     }
 
     pub fn extract_literal(&self) -> Result<&Literal, ParseError> {
         match &self.literal {
-            Some(lit) => Ok(&lit),
-            _ => Err(ParseError::EmptyTokenLiteral { token: self.clone() }),
+            Some(lit) => Ok(lit),
+            _ => Err(ParseError::EmptyTokenLiteral {
+                token: self.clone(),
+            }),
         }
     }
 
     pub fn extract_lexeme(&self) -> Result<&str, ParseError> {
         match &self.lexeme {
             Some(lex) => Ok(lex.as_str()),
-            _ => Err(ParseError::EmptyTokenLexeme { token: self.clone() }),
+            _ => Err(ParseError::EmptyTokenLexeme {
+                token: self.clone(),
+            }),
         }
     }
 }
