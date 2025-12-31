@@ -247,6 +247,8 @@ pub enum ParseError {
     EmptyTokenLiteral { token: Token },
     #[error("Empty token lexeme")]
     EmptyTokenLexeme { token: Token },
+    #[error("Malformed JOIN clause")]
+    MalformedJoin { span: Span },
     #[error("No tokens to parse")]
     NoTokens,
 }
@@ -271,6 +273,10 @@ impl From<ParseError> for InputError {
                 ("Provide a valid literal value", token.span)
             }
             ParseError::EmptyTokenLexeme { token } => ("Provide a valid lexeme", token.span),
+            ParseError::MalformedJoin { span } => (
+                "Check the JOIN clause syntax and ensure it is well-formed",
+                *span,
+            ),
             ParseError::NoTokens => ("Provide valid input to parse", Span::default()),
         };
 

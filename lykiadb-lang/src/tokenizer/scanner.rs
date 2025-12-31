@@ -10,13 +10,15 @@ use std::iter::{Enumerate, Peekable};
 use std::str::Chars;
 use std::sync::Arc;
 
+type ScanResult<T> = Result<T, ScanError>;
+
 pub struct Scanner<'a> {
     chars: Peekable<Enumerate<Chars<'a>>>,
     line: u32,
 }
 
 impl Scanner<'_> {
-    pub fn scan(source: &str) -> Result<Vec<Token>, ScanError> {
+    pub fn scan(source: &str) -> ScanResult<Vec<Token>> {
         let mut scanner = Scanner {
             chars: source.chars().enumerate().peekable(),
             line: 0,
@@ -54,7 +56,7 @@ impl Scanner<'_> {
         self.chars.clone().peek().is_none()
     }
 
-    fn scan_string(&mut self, start: usize, c: char) -> Result<Token, ScanError> {
+    fn scan_string(&mut self, start: usize, c: char) -> ScanResult<Token> {
         self.advance(); // consume the opening "
         let mut raw_str = String::new();
         while self.peek(0) != c && !self.is_at_end() {
@@ -88,7 +90,7 @@ impl Scanner<'_> {
         })
     }
 
-    fn scan_number(&mut self, start: usize) -> Result<Token, ScanError> {
+    fn scan_number(&mut self, start: usize) -> ScanResult<Token> {
         let mut raw_str = String::new();
         while self.peek(0).is_ascii_digit() {
             raw_str.push(self.advance().1);
@@ -122,7 +124,18 @@ impl Scanner<'_> {
             }
         }
 
-        let parsed = raw_str.parse::<f64>().unwrap();
+        let parsed = match raw_str.parse::<f64>() {
+            Ok(num) => num,
+            Err(_) => return Err(ScanError::MalformedNumberLiteral {
+                span: Span {
+                    start,
+                    end: start + raw_str.len(),
+                    line: self.line,
+                    line_end: self.line,
+                },
+            }),
+        };
+
         let len = raw_str.len();
 
         Ok(Token {
@@ -138,7 +151,7 @@ impl Scanner<'_> {
         })
     }
 
-    fn scan_identifier(&mut self, start: usize, prev: Option<&Token>) -> Result<Token, ScanError> {
+    fn scan_identifier(&mut self, start: usize, prev: Option<&Token>) -> ScanResult<Token> {
         let mut raw_str = String::new();
         while self.peek(0).is_alphabetic()
             || self.peek(0) == '_'
@@ -315,7 +328,7 @@ impl Scanner<'_> {
         }
     }
 
-    fn scan_other(&mut self, start: usize, other: char) -> Result<Token, ScanError> {
+    fn scan_other(&mut self, start: usize, other: char) -> ScanResult<Token> {
         self.advance();
         if let Some(sym) = SYMBOLS.get(&other) {
             Ok(Token {
@@ -355,7 +368,7 @@ impl Scanner<'_> {
         }
     }
 
-    fn scan_tokens(&mut self) -> Result<Vec<Token>, ScanError> {
+    fn scan_tokens(&mut self) -> ScanResult<Vec<Token>> {
         let mut tokens: Vec<Token> = vec![];
 
         while !self.is_at_end() {

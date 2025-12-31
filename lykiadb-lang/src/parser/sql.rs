@@ -17,8 +17,8 @@ use crate::{skw, sym};
 macro_rules! optional_with_expected {
     ($self: ident, $cparser: expr, $optional: expr, $expected: expr) => {
         if $cparser.match_next(&$optional) {
-            let token = $cparser.expect(&$expected);
-            Some(token.unwrap().clone())
+            let token = $cparser.expect(&$expected)?;
+            Some(token.clone())
         } else if $cparser.match_next(&$expected) {
             let token = $cparser.peek_bw(1);
             Some(token.clone())
@@ -240,8 +240,8 @@ impl SqlParser {
             };
 
             match (&second_expr, reverse) {
-                (Some(_), true) => Some(SqlLimitClause {
-                    count: second_expr.unwrap(),
+                (Some(inner), true) => Some(SqlLimitClause {
+                    count: inner.clone(),
                     offset: Some(first_expr),
                 }),
                 _ => Some(SqlLimitClause {
@@ -389,7 +389,9 @@ impl SqlParser {
                     None
                 };
 
-                let left_popped = from_group.pop().unwrap();
+                let left_popped = from_group.pop().ok_or(ParseError::MalformedJoin {
+                    span: cparser.peek_bw(0).span,
+                })?;
 
                 from_group.push(SqlFrom::Join {
                     left: Box::new(left_popped),
