@@ -126,14 +126,16 @@ impl Scanner<'_> {
 
         let parsed = match raw_str.parse::<f64>() {
             Ok(num) => num,
-            Err(_) => return Err(ScanError::MalformedNumberLiteral {
-                span: Span {
-                    start,
-                    end: start + raw_str.len(),
-                    line: self.line,
-                    line_end: self.line,
-                },
-            }),
+            Err(_) => {
+                return Err(ScanError::MalformedNumberLiteral {
+                    span: Span {
+                        start,
+                        end: start + raw_str.len(),
+                        line: self.line,
+                        line_end: self.line,
+                    },
+                });
+            }
         };
 
         let len = raw_str.len();

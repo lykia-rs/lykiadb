@@ -73,14 +73,14 @@ impl<'a> Resolver<'a> {
     fn declare(&mut self, name: &Identifier) {
         match self.scopes.last_mut() {
             Some(scope) => scope.insert(name.name.to_string(), false),
-            None => return
+            None => return,
         };
     }
 
     fn define(&mut self, name: &Identifier) {
         match self.scopes.last_mut() {
             Some(scope) => scope.insert(name.name.to_string(), true),
-            None => return
+            None => return,
         };
     }
 }
@@ -149,8 +149,8 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 ..
             } => {
                 if let Some(name) = name {
-                    self.declare(&name);
-                    self.define(&name);
+                    self.declare(name);
+                    self.define(name);
                 }
                 self.begin_scope();
                 for (ident, _) in parameters {
@@ -260,12 +260,10 @@ impl From<ResolveError> for InputError {
             ResolveError::GenericError { span, .. } => {
                 ("Check variable declarations and scope usage", *span)
             }
-            ResolveError::VariableNotFound { span, name } => {
-                (
-                    &format!("Variable `{}` not found in the current scope", name) as &str,
-                    *span,
-                )
-            }
+            ResolveError::VariableNotFound { span, name } => (
+                &format!("Variable `{name}` not found in the current scope") as &str,
+                *span,
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

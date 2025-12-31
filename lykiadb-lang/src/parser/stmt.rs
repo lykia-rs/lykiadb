@@ -112,7 +112,10 @@ impl StmtParser {
         }
 
         Ok(Box::new(Stmt::Return {
-            span: expr.as_ref().map(|e| cparser.get_merged_span(&ret_tok.span, &e.get_span())).unwrap_or(ret_tok.span),
+            span: expr
+                .as_ref()
+                .map(|e| cparser.get_merged_span(&ret_tok.span, &e.get_span()))
+                .unwrap_or(ret_tok.span),
             expr,
         }))
     }
@@ -152,12 +155,14 @@ impl StmtParser {
 
         let header = match initializer {
             Some(init) => init,
-            None =>  return Ok(Box::new(Stmt::Loop {
-                condition,
-                body: inner_stmt.clone(),
-                post: increment,
-                span: cparser.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
-            })),
+            None => {
+                return Ok(Box::new(Stmt::Loop {
+                    condition,
+                    body: inner_stmt.clone(),
+                    post: increment,
+                    span: cparser.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
+                }));
+            }
         };
 
         let loop_stmt = Box::new(Stmt::Loop {
