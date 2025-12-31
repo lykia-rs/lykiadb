@@ -373,7 +373,7 @@ impl Display for Expr {
                 write!(
                     f,
                     "{} ({})",
-                    name.as_ref().unwrap(),
+                    name.as_ref().unwrap_or(&Identifier::new("<anonymous>", super::IdentifierKind::Symbol)),
                     parameters
                         .iter()
                         .map(|(x, _)| x.to_string())

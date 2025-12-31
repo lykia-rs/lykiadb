@@ -49,8 +49,9 @@ impl ExprParser {
     fn fun_declaration(&mut self, cparser: &mut Parser) -> ParseResult<Box<Expr>> {
         let fun_tok = cparser.peek_bw(1);
 
-        let token = if cparser.cmp_tok(&Identifier { dollar: true }) {
-            Some(cparser.expect(&Identifier { dollar: true })?.clone())
+        let name_identifier: Option<crate::ast::Identifier> = if cparser.cmp_tok(&Identifier { dollar: true }) {
+            let tok = cparser.expect(&Identifier { dollar: true })?.clone();
+            Some(tok.extract_identifier()?)
         } else {
             None
         };
@@ -87,12 +88,17 @@ impl ExprParser {
             _ => vec![*stmt.clone()],
         };
 
+        let processed_parameters: Result<Vec<_>, ParseError> = parameters
+            .iter()
+            .map(|(t, annotation)| {
+                t.extract_identifier()
+                    .map(|identifier| (identifier, annotation.clone()))
+            })
+            .collect();
+
         let node = Expr::Function {
-            name: token.map(|t| t.extract_identifier().unwrap()),
-            parameters: parameters
-                .iter()
-                .map(|(t, annotation)| (t.extract_identifier().unwrap(), annotation.clone()))
-                .collect(),
+            name: name_identifier,
+            parameters: processed_parameters?,
             return_type: None,
             body: Arc::new(body),
             span: cparser.get_merged_span(&fun_tok.span, &stmt.get_span()),
@@ -330,7 +336,7 @@ impl ExprParser {
                 let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 expr = Box::new(Expr::Get {
                     object: expr.clone(),
-                    name: identifier.extract_identifier().unwrap(),
+                    name: identifier.extract_identifier()?,
                     span: cparser.get_merged_span(&(expr).get_span(), &identifier.span),
                     id: cparser.get_expr_id(),
                 })
@@ -359,7 +365,7 @@ impl ExprParser {
                 let mut tail: Vec<crate::ast::Identifier> = vec![];
                 while cparser.match_next(&sym!(Dot)) {
                     let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
-                    tail.push(identifier.extract_identifier().unwrap());
+                    tail.push(identifier.extract_identifier()?);
                 }
                 return Ok(Box::new(Expr::FieldPath {
                     head,
@@ -502,7 +508,7 @@ impl ExprParser {
                 id: cparser.get_expr_id(),
             })),
             Identifier { .. } => Ok(Box::new(Expr::Variable {
-                name: tok.extract_identifier().unwrap(),
+                name: tok.extract_identifier()?,
                 span: tok.span,
                 id: cparser.get_expr_id(),
             })),
