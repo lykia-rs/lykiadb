@@ -112,7 +112,7 @@ impl StmtParser {
         }
 
         Ok(Box::new(Stmt::Return {
-            span: cparser.get_merged_span(&ret_tok.span, &expr.as_ref().unwrap().get_span()),
+            span: expr.as_ref().map(|e| cparser.get_merged_span(&ret_tok.span, &e.get_span())).unwrap_or(ret_tok.span),
             expr,
         }))
     }
@@ -150,14 +150,16 @@ impl StmtParser {
         let inner_stmt = self.block(cparser)?;
         cparser.match_next(&sym!(Semicolon));
 
-        if initializer.is_none() {
-            return Ok(Box::new(Stmt::Loop {
+        let header = match initializer {
+            Some(init) => init,
+            None =>  return Ok(Box::new(Stmt::Loop {
                 condition,
                 body: inner_stmt.clone(),
                 post: increment,
                 span: cparser.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
-            }));
-        }
+            })),
+        };
+
         let loop_stmt = Box::new(Stmt::Loop {
             condition,
             body: inner_stmt.clone(),
@@ -165,7 +167,7 @@ impl StmtParser {
             span: cparser.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
         });
         Ok(Box::new(Stmt::Block {
-            body: vec![*initializer.unwrap(), *loop_stmt],
+            body: vec![*header, *loop_stmt],
             span: cparser.get_merged_span(&for_tok.span, &inner_stmt.get_span()),
         }))
     }
@@ -232,7 +234,7 @@ impl StmtParser {
         };
         cparser.expect(&sym!(Semicolon))?;
         Ok(Box::new(Stmt::Declaration {
-            dst: ident.extract_identifier().unwrap(),
+            dst: ident.extract_identifier()?,
             expr: expr.clone(),
             span: cparser.get_merged_span(&var_tok.span, &expr.get_span()),
         }))
