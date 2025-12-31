@@ -290,7 +290,7 @@ impl Expr {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         let h= hasher.finish();
-        format!("#expr_{}", h).to_string()
+        format!("#expr_{h}").to_string()
     }
 }
 

@@ -52,14 +52,9 @@ impl Aggregator for SumAggregator {
         RV::Num(self.accumulator)
     }
 }
+#[derive(Default)]
 pub(crate) struct CountAggregator {
     count: usize,
-}
-
-impl Default for CountAggregator {
-    fn default() -> Self {
-        CountAggregator { count: 0 }
-    }
 }
 
 impl Aggregator for CountAggregator {
@@ -72,14 +67,9 @@ impl Aggregator for CountAggregator {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct MinAggregator {
     value: Option<f64>,
-}
-
-impl Default for MinAggregator {
-    fn default() -> Self {
-        MinAggregator { value: None }
-    }
 }
 
 impl Aggregator for MinAggregator {
@@ -87,8 +77,7 @@ impl Aggregator for MinAggregator {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
-            }
-            else if let Some(v) = self.value
+            } else if let Some(v) = self.value
                 && n < v
             {
                 self.value = Some(n);
@@ -99,21 +88,15 @@ impl Aggregator for MinAggregator {
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
             RV::Num(n)
-        }
-        else {
+        } else {
             RV::Undefined
         }
     }
 }
 
+#[derive(Default)]
 pub(crate) struct MaxAggregator {
     value: Option<f64>,
-}
-
-impl Default for MaxAggregator {
-    fn default() -> Self {
-        MaxAggregator { value: None }
-    }
 }
 
 impl Aggregator for MaxAggregator {
@@ -121,8 +104,7 @@ impl Aggregator for MaxAggregator {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
                 self.value = Some(n);
-            }
-            else if let Some(v) = self.value
+            } else if let Some(v) = self.value
                 && n > v
             {
                 self.value = Some(n);
@@ -133,8 +115,7 @@ impl Aggregator for MaxAggregator {
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
             RV::Num(n)
-        }
-        else {
+        } else {
             RV::Undefined
         }
     }
