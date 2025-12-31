@@ -44,18 +44,21 @@ impl<'a> Resolver<'a> {
         self.scopes.pop();
     }
 
-    fn resolve_stmts(&mut self, statements: &Vec<Stmt>) {
+    fn resolve_stmts(&mut self, statements: &Vec<Stmt>) -> Result<(), ResolveError> {
         for statement in statements {
-            self.resolve_stmt(statement);
+            self.resolve_stmt(statement)?;
         }
+        Ok(())
     }
 
-    fn resolve_stmt(&mut self, statement: &Stmt) {
-        self.visit_stmt(statement).unwrap();
+    fn resolve_stmt(&mut self, statement: &Stmt) -> Result<(), ResolveError> {
+        self.visit_stmt(statement)?;
+        Ok(())
     }
 
-    fn resolve_expr(&mut self, expr: &Expr) {
-        self.visit_expr(expr).unwrap();
+    fn resolve_expr(&mut self, expr: &Expr) -> Result<(), ResolveError> {
+        self.visit_expr(expr)?;
+        Ok(())
     }
 
     fn resolve_local(&mut self, expr_id: usize, name: &Identifier) {
@@ -68,29 +71,32 @@ impl<'a> Resolver<'a> {
     }
 
     fn declare(&mut self, name: &Identifier) {
-        if self.scopes.is_empty() {
-            return;
-        }
-        let last = self.scopes.last_mut();
-        last.unwrap().insert(name.name.to_string(), false);
+        match self.scopes.last_mut() {
+            Some(scope) => scope.insert(name.name.to_string(), false),
+            None => return,
+        };
     }
 
     fn define(&mut self, name: &Identifier) {
-        if self.scopes.is_empty() {
-            return;
-        }
-        let last = self.scopes.last_mut();
-        last.unwrap().insert(name.name.to_string(), true);
+        match self.scopes.last_mut() {
+            Some(scope) => scope.insert(name.name.to_string(), true),
+            None => return,
+        };
     }
 }
 
 impl VisitorMut<(), ResolveError> for Resolver<'_> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
-            Expr::Literal { value, .. } => match value {
+            Expr::Literal { value, span, .. } => match value {
                 Literal::Object(map) => {
                     for item in map.keys() {
-                        self.visit_expr(map.get(item).unwrap())?;
+                        let value = map.get(item).ok_or(ResolveError::VariableNotFound {
+                            span: *span,
+                            name: item.to_string(),
+                        })?;
+
+                        self.visit_expr(value)?;
                     }
                 }
                 Literal::Array(items) => {
@@ -101,11 +107,11 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 _ => (),
             },
 
-            Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } => self.resolve_expr(expr),
+            Expr::Grouping { expr, .. } | Expr::Unary { expr, .. } => self.resolve_expr(expr)?,
 
             Expr::Binary { left, right, .. } => {
-                self.resolve_expr(left);
-                self.resolve_expr(right);
+                self.resolve_expr(left)?;
+                self.resolve_expr(right)?;
             }
             Expr::Variable { name, span, id } => {
                 if !self.scopes.is_empty() {
@@ -122,18 +128,18 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 self.resolve_local(*id, name);
             }
             Expr::Assignment { dst, expr, id, .. } => {
-                self.resolve_expr(expr);
+                self.resolve_expr(expr)?;
                 self.resolve_local(*id, dst);
             }
             Expr::Logical { left, right, .. } => {
-                self.resolve_expr(left);
-                self.resolve_expr(right);
+                self.resolve_expr(left)?;
+                self.resolve_expr(right)?;
             }
             Expr::Call { callee, args, .. } => {
-                self.resolve_expr(callee);
+                self.resolve_expr(callee)?;
 
                 for argument in args {
-                    self.resolve_expr(argument);
+                    self.resolve_expr(argument)?;
                 }
             }
             Expr::Function {
@@ -142,16 +148,16 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 body,
                 ..
             } => {
-                if name.is_some() {
-                    self.declare(&name.as_ref().unwrap().clone());
-                    self.define(&name.as_ref().unwrap().clone());
+                if let Some(name) = name {
+                    self.declare(name);
+                    self.define(name);
                 }
                 self.begin_scope();
                 for (ident, _) in parameters {
                     self.declare(ident);
                     self.define(ident);
                 }
-                self.resolve_stmts(body.as_ref());
+                self.resolve_stmts(body.as_ref())?;
                 self.end_scope();
             }
             Expr::Between {
@@ -160,16 +166,16 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 subject,
                 ..
             } => {
-                self.resolve_expr(lower);
-                self.resolve_expr(upper);
-                self.resolve_expr(subject);
+                self.resolve_expr(lower)?;
+                self.resolve_expr(upper)?;
+                self.resolve_expr(subject)?;
             }
             Expr::Get { object, .. } => {
-                self.resolve_expr(object);
+                self.resolve_expr(object)?;
             }
             Expr::Set { object, value, .. } => {
-                self.resolve_expr(object);
-                self.resolve_expr(value);
+                self.resolve_expr(object)?;
+                self.resolve_expr(value)?;
             }
             // TODO(vck): SQL should also be resolved:
             Expr::Select { .. }
@@ -184,20 +190,20 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
     fn visit_stmt(&mut self, s: &Stmt) -> Result<(), ResolveError> {
         match s {
             Stmt::Program { body: stmts, .. } => {
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(stmts)?;
             }
             Stmt::Block { body: stmts, .. } => {
                 self.begin_scope();
-                self.resolve_stmts(stmts);
+                self.resolve_stmts(stmts)?;
                 self.end_scope();
             }
             Stmt::Break { .. } | Stmt::Continue { .. } => (),
             Stmt::Expression { expr, .. } => {
-                self.resolve_expr(expr);
+                self.resolve_expr(expr)?;
             }
             Stmt::Declaration { dst, expr, .. } => {
                 self.declare(dst);
-                self.resolve_expr(expr);
+                self.resolve_expr(expr)?;
                 self.define(dst);
             }
             Stmt::If {
@@ -206,10 +212,10 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 r#else_body: r#else,
                 ..
             } => {
-                self.resolve_expr(condition);
-                self.resolve_stmt(body);
-                if r#else.is_some() {
-                    self.resolve_stmt(r#else.as_ref().unwrap());
+                self.resolve_expr(condition)?;
+                self.resolve_stmt(body)?;
+                if let Some(r#else) = r#else {
+                    self.resolve_stmt(r#else.as_ref())?;
                 }
             }
             Stmt::Loop {
@@ -218,22 +224,22 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
                 post,
                 ..
             } => {
-                if condition.is_some() {
-                    self.resolve_expr(condition.as_ref().unwrap());
+                if let Some(condition) = condition {
+                    self.resolve_expr(condition.as_ref())?;
                 }
-                self.resolve_stmt(body);
-                if post.is_some() {
-                    self.resolve_stmt(post.as_ref().unwrap());
+                self.resolve_stmt(body)?;
+                if let Some(post) = post {
+                    self.resolve_stmt(post.as_ref())?;
                 }
             }
             Stmt::Return { expr, .. } => {
-                if expr.is_some() {
-                    self.resolve_expr(expr.as_ref().unwrap());
+                if let Some(expr) = expr {
+                    self.resolve_expr(expr.as_ref())?;
                 }
             }
 
             Stmt::Explain { expr, .. } => {
-                self.resolve_expr(expr);
+                self.resolve_expr(expr)?;
             }
         };
         Ok(())
@@ -242,6 +248,8 @@ impl VisitorMut<(), ResolveError> for Resolver<'_> {
 
 #[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum ResolveError {
+    #[error("Failed to resolve variable `{name}`")]
+    VariableNotFound { span: Span, name: String },
     #[error("{message} at {span:?}")]
     GenericError { span: Span, message: String },
 }
@@ -252,6 +260,10 @@ impl From<ResolveError> for InputError {
             ResolveError::GenericError { span, .. } => {
                 ("Check variable declarations and scope usage", *span)
             }
+            ResolveError::VariableNotFound { span, name } => (
+                &format!("Variable `{name}` not found in the current scope") as &str,
+                *span,
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

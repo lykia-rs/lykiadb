@@ -1,7 +1,10 @@
 use phf::phf_map;
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{Identifier, IdentifierKind, Literal, Span};
+use crate::{
+    ast::{Identifier, IdentifierKind, Literal, Span},
+    parser::ParseError,
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Symbol {
@@ -272,10 +275,10 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn extract_identifier(&self) -> Option<Identifier> {
+    pub fn extract_identifier(&self) -> Result<Identifier, ParseError> {
         match &self.tok_type {
-            TokenType::Identifier { dollar } => Some(Identifier {
-                name: self.lexeme.clone().unwrap(),
+            TokenType::Identifier { dollar } => Ok(Identifier {
+                name: self.extract_lexeme()?.to_string(),
                 kind: if *dollar {
                     IdentifierKind::Variable
                 } else {
@@ -283,7 +286,27 @@ impl Token {
                 },
                 span: self.span,
             }),
-            _ => None,
+            _ => Err(ParseError::MissingIdentifier {
+                token: self.clone(),
+            }),
+        }
+    }
+
+    pub fn extract_literal(&self) -> Result<&Literal, ParseError> {
+        match &self.literal {
+            Some(lit) => Ok(lit),
+            _ => Err(ParseError::EmptyTokenLiteral {
+                token: self.clone(),
+            }),
+        }
+    }
+
+    pub fn extract_lexeme(&self) -> Result<&str, ParseError> {
+        match &self.lexeme {
+            Some(lex) => Ok(lex.as_str()),
+            _ => Err(ParseError::EmptyTokenLexeme {
+                token: self.clone(),
+            }),
         }
     }
 }

@@ -50,7 +50,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
-        if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
+        if tokens.is_empty() || tokens.first().ok_or(ParseError::NoTokens)?.tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
         let mut parser = Parser {
@@ -241,6 +241,14 @@ pub enum ParseError {
     MissingToken { token: Token, expected: TokenType },
     #[error("Invalid assignment target {left:?}")]
     InvalidAssignmentTarget { left: Token },
+    #[error("Missing identifier")]
+    MissingIdentifier { token: Token },
+    #[error("Empty token literal")]
+    EmptyTokenLiteral { token: Token },
+    #[error("Empty token lexeme")]
+    EmptyTokenLexeme { token: Token },
+    #[error("Malformed JOIN clause")]
+    MalformedJoin { span: Span },
     #[error("No tokens to parse")]
     NoTokens,
 }
@@ -259,6 +267,15 @@ impl From<ParseError> for InputError {
             ParseError::InvalidAssignmentTarget { left } => (
                 "Ensure the left side of assignment is a valid variable or identifier",
                 left.span,
+            ),
+            ParseError::MissingIdentifier { token } => ("Provide a valid identifier", token.span),
+            ParseError::EmptyTokenLiteral { token } => {
+                ("Provide a valid literal value", token.span)
+            }
+            ParseError::EmptyTokenLexeme { token } => ("Provide a valid lexeme", token.span),
+            ParseError::MalformedJoin { span } => (
+                "Check the JOIN clause syntax and ensure it is well-formed",
+                *span,
             ),
             ParseError::NoTokens => ("Provide valid input to parse", Span::default()),
         };
