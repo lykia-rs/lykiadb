@@ -1,17 +1,15 @@
 use std::fmt::Display;
 
 use lykiadb_common::error::InputError;
-use lykiadb_lang::ast::{
-    Identifier, Span,
-    expr::Expr,
-    sql::{
+use lykiadb_lang::ast::{Identifier, Span, expr::Expr, sql::{
         SqlCollectionIdentifier, SqlCompoundOperator, SqlExpressionSource, SqlJoinType,
         SqlOrdering, SqlProjection,
-    },
+    }
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{engine::interpreter::Aggregation, value::RV};
+use derivative::Derivative;
+use crate::{value::{RV, callable::AggregatorFactory}};
 
 mod aggregation;
 mod expr;
@@ -325,6 +323,46 @@ impl Node {
 impl Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._fmt_recursive(f, 0)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
+pub struct Aggregation {
+    pub name: String,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub callable: Option<AggregatorFactory>,
+    pub args: Vec<Expr>,
+    pub call_expr: Expr,
+    pub call_sign: String,
+}
+
+impl Aggregation {
+    pub fn new(agg_name: &str, agg_factory: &AggregatorFactory, args: &Vec<Expr>, expr: &Expr) -> Aggregation {
+         Aggregation {
+            name: agg_name.to_string(),
+            callable: Some(*agg_factory),
+            args: args.clone(),
+            call_expr: expr.clone(),
+            call_sign: expr.sign(),
+        }
+    }
+}
+
+impl Display for Aggregation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({})",
+            self.name,
+            self.args
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 

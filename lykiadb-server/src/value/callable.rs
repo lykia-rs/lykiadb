@@ -1,7 +1,7 @@
 use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    engine::interpreter::{HaltReason, Interpreter},
     exec::aggregation::Aggregator,
     util::Shared,
 };
@@ -29,6 +29,10 @@ impl RVCallable {
         }
     }
 
+    pub fn is_agg(&self) -> bool {
+        matches!(&*self.function, Function::Agg { .. })
+    }
+
     pub fn call(
         &self,
         interpreter: &mut Interpreter,
@@ -39,21 +43,19 @@ impl RVCallable {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
             Function::Agg { function, .. } => {
-                if let RV::Array(arr) = &arguments[0] {
-                    let mut aggregator = function();
+                let mut aggregator = function();
 
+                if let RV::Array(arr) = &arguments[0] {
                     for item in arr.iter() {
+                        aggregator.row(&item);
+                    }
+                } else {
+                    for item in arguments.iter() {
                         aggregator.row(item);
                     }
-
-                    return Ok(aggregator.finalize());
                 }
 
-                Err(HaltReason::Error(
-                    crate::engine::error::ExecutionError::Interpret(
-                        InterpretError::InvalidAggregatorCall { span: *called_from },
-                    ),
-                ))
+                return Ok(aggregator.finalize());
             }
             Function::UserDefined {
                 parameters,

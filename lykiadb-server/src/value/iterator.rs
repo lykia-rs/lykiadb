@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use dyn_clone::DynClone;
 use interb::Symbol;
 use smallvec::SmallVec;
@@ -60,5 +62,20 @@ impl ExecutionRow {
         for (k, v) in self.keys.iter().zip(self.values.iter()) {
             target.insert(*k, v.clone());
         }
+    }
+}
+
+impl Display for ExecutionRow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut first = true;
+        write!(f, "{{")?;
+        for (k, v) in self.keys.iter().zip(self.values.iter()) {
+            if !first {
+                write!(f, ", ")?;
+            }
+            first = false;
+            write!(f, "{}: {}", GLOBAL_INTERNER.resolve(*k).unwrap(), v)?;
+        }
+        write!(f, "}}")
     }
 }

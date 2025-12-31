@@ -1,5 +1,4 @@
 use super::error::ExecutionError;
-use derivative::Derivative;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -17,14 +16,12 @@ use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
 use crate::plan::planner::Planner;
 use crate::util::Shared;
-use crate::value::callable::{AggregatorFactory, Function, RVCallable, Stateful};
+use crate::value::callable::{Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{RV, eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 use interb::Symbol;
-
-use std::fmt::Display;
 use std::sync::Arc;
 use std::vec;
 
@@ -202,8 +199,21 @@ impl Interpreter {
         self.exec_row = None;
     }
 
+    pub fn has_exec_row(&self) -> bool {
+        self.exec_row.is_some()
+    }
+
     fn intern_string(&self, string: &str) -> Symbol {
         GLOBAL_INTERNER.intern(string)
+    }
+
+    fn get_from_row(&mut self, name: &str) -> Option<RV> {
+        if let Some(exec_row) = &self.exec_row {
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
@@ -337,10 +347,20 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 callee, args, span, ..
             } => {
                 let eval = self.visit_expr(callee)?;
-
                 if let RV::Callable(callable) = eval {
-                    let mut args_evaluated: Vec<RV> = vec![];
 
+                    if self.has_exec_row() && callable.is_agg() {
+                        let value = self.get_from_row(&e.sign());
+
+                        if value.is_some() {
+                            return Ok(value.unwrap());
+                        }
+                        
+                        panic!("Aggregator value not found in execution row");
+                    }
+
+                    let mut args_evaluated: Vec<RV> = vec![];
+                    
                     for arg in args.iter() {
                         args_evaluated.push(self.visit_expr(arg)?);
                     }
@@ -644,32 +664,6 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Eq, PartialEq, Hash)]
-pub struct Aggregation {
-    pub name: String,
-    #[serde(skip)]
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Hash = "ignore")]
-    pub callable: Option<AggregatorFactory>,
-    pub args: Vec<Expr>,
-}
-
-impl Display for Aggregation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}({})",
-            self.name,
-            self.args
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
-
 #[derive(Clone)]
 pub struct Output {
     out: Vec<RV>,
@@ -742,8 +736,6 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
-    #[error("Aggregator functions should be either called in queries or with arrays.")]
-    InvalidAggregatorCall { span: Span },
 }
 
 impl From<InterpretError> for InputError {
@@ -776,10 +768,6 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
             }
-            InterpretError::InvalidAggregatorCall { span } => (
-                "Make sure sure that the argument is an array or try executing this with a query.",
-                *span,
-            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))
