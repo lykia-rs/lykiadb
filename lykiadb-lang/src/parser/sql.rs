@@ -42,11 +42,10 @@ impl SqlParser {
             let values = if cparser.cmp_tok(&skw!(Select)) {
                 let select_inner = self.sql_select_inner(cparser);
 
-                if select_inner.is_err() {
-                    return Err(select_inner.err().unwrap());
+                match select_inner {
+                    Ok(inner) => SqlValues::Select(Box::new(inner)),
+                    Err(err) => return Err(err),
                 }
-
-                SqlValues::Select(Box::new(select_inner.unwrap()))
             } else if cparser.match_next(&skw!(Values)) {
                 cparser.expect(&sym!(LeftParen))?;
                 let mut values: Vec<Expr> = vec![];
@@ -80,7 +79,12 @@ impl SqlParser {
             return self.sql_delete(cparser);
         }
 
-        let collection = self.sql_collection_identifier(cparser)?;
+        let collection = match self.sql_collection_identifier(cparser)? {
+            Some(col) => col,
+            None => return Err(ParseError::UnexpectedToken {
+                token: cparser.peek_bw(0).clone(),
+            }),
+        };
 
         cparser.expect(&skw!(Set))?;
 
@@ -103,7 +107,7 @@ impl SqlParser {
 
         Ok(Box::new(Expr::Update {
             command: SqlUpdate {
-                collection: collection.unwrap(),
+                collection,
                 assignments,
                 r#where,
             },
@@ -152,30 +156,29 @@ impl SqlParser {
                 Identifier { dollar: false },
             ]) {
                 return Ok(Some(SqlCollectionIdentifier {
-                    namespace: Some(cparser.peek_bw(3).extract_identifier().unwrap()),
-                    name: cparser.peek_bw(1).extract_identifier().unwrap(),
+                    namespace: Some(cparser.peek_bw(3).extract_identifier()?),
+                    name: cparser.peek_bw(1).extract_identifier()?,
                     alias: optional_with_expected!(
                         self,
                         cparser,
                         skw!(As),
                         Identifier { dollar: false }
                     )
-                    .map(|t| t.extract_identifier().unwrap()),
+                    .map(|t| t.extract_identifier()).transpose()?,
                 }));
             }
             return Ok(Some(SqlCollectionIdentifier {
                 namespace: None,
                 name: cparser
                     .expect(&Identifier { dollar: false })?
-                    .extract_identifier()
-                    .unwrap(),
+                    .extract_identifier()?,
                 alias: optional_with_expected!(
                     self,
                     cparser,
                     skw!(As),
                     Identifier { dollar: false }
                 )
-                .map(|t| t.extract_identifier().unwrap()),
+                .map(|t| t.extract_identifier()).transpose()?,
             }));
         }
         Ok(None)
@@ -186,19 +189,9 @@ impl SqlParser {
             return cparser.consume_call2();
         }
 
-        let query: ParseResult<SqlSelect> = {
-            let select_inner = self.sql_select_inner(cparser);
-
-            if select_inner.is_err() {
-                return Err(select_inner.err().unwrap());
-            }
-
-            Ok(select_inner.unwrap())
-        };
-
         Ok(Box::new(Expr::Select {
             span: Span::default(),
-            query: query.unwrap(),
+            query: self.sql_select_inner(cparser)?,
             id: cparser.get_expr_id(),
         }))
     }
@@ -213,14 +206,14 @@ impl SqlParser {
             loop {
                 let order_expr = cparser.consume_expr()?;
                 let order = if cparser.match_next(&skw!(Desc)) {
-                    Some(SqlOrdering::Desc)
+                    SqlOrdering::Desc
                 } else {
                     cparser.match_next(&skw!(Asc));
-                    Some(SqlOrdering::Asc)
+                    SqlOrdering::Asc
                 };
                 ordering.push(SqlOrderByClause {
                     expr: order_expr,
-                    ordering: order.unwrap(),
+                    ordering: order,
                 });
                 if !cparser.match_next(&sym!(Comma)) {
                     break;
@@ -330,7 +323,7 @@ impl SqlParser {
                 sym!(Star),
             ]) {
                 projections.push(SqlProjection::All {
-                    collection: Some(cparser.peek_bw(3).extract_identifier().unwrap()),
+                    collection: Some(cparser.peek_bw(3).extract_identifier()?),
                 });
             } else {
                 let expr = cparser.consume_expr()?;
@@ -338,7 +331,7 @@ impl SqlParser {
                     optional_with_expected!(self, cparser, skw!(As), Identifier { dollar: false });
                 projections.push(SqlProjection::Expr {
                     expr,
-                    alias: alias.map(|t| t.extract_identifier().unwrap()),
+                    alias: alias.map(|t| t.extract_identifier()).transpose()?
                 });
             }
             if !cparser.match_next(&sym!(Comma)) {
@@ -443,7 +436,7 @@ impl SqlParser {
                 let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
                 return Ok(SqlFrom::Select {
                     subquery,
-                    alias: identifier.extract_identifier().unwrap(),
+                    alias: identifier.extract_identifier()?,
                 });
             }
             // If the next token is a left paren, then it must be either a select statement or a recursive "from" clause
@@ -458,7 +451,7 @@ impl SqlParser {
             let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
             return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
                 expr,
-                alias: identifier.extract_identifier().unwrap(),
+                alias: identifier.extract_identifier()?,
             })));
         }
     }

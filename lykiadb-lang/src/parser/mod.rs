@@ -50,7 +50,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse(tokens: &Vec<Token>) -> ParseResult<Program> {
-        if tokens.is_empty() || tokens.first().unwrap().tok_type == Eof {
+        if tokens.is_empty() || tokens.first().ok_or(ParseError::NoTokens)?.tok_type == Eof {
             return Err(ParseError::NoTokens);
         }
         let mut parser = Parser {
