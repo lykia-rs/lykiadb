@@ -55,7 +55,7 @@ impl RVCallable {
                     }
                 }
 
-                return Ok(aggregator.finalize());
+                Ok(aggregator.finalize())
             }
             Function::UserDefined {
                 parameters,

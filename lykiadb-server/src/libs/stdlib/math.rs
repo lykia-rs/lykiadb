@@ -52,15 +52,11 @@ impl Aggregator for SumAggregator {
         RV::Num(self.accumulator)
     }
 }
+#[derive(Default)]
 pub(crate) struct CountAggregator {
     count: usize,
 }
 
-impl Default for CountAggregator {
-    fn default() -> Self {
-        CountAggregator { count: 0 }
-    }
-}
 
 impl Aggregator for CountAggregator {
     fn row(&mut self, _expr_val: &RV) {
@@ -72,15 +68,11 @@ impl Aggregator for CountAggregator {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct MinAggregator {
     value: Option<f64>,
 }
 
-impl Default for MinAggregator {
-    fn default() -> Self {
-        MinAggregator { value: None }
-    }
-}
 
 impl Aggregator for MinAggregator {
     fn row(&mut self, expr_val: &RV) {
@@ -106,15 +98,11 @@ impl Aggregator for MinAggregator {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct MaxAggregator {
     value: Option<f64>,
 }
 
-impl Default for MaxAggregator {
-    fn default() -> Self {
-        MaxAggregator { value: None }
-    }
-}
 
 impl Aggregator for MaxAggregator {
     fn row(&mut self, expr_val: &RV) {
