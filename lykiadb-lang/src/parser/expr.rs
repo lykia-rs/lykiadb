@@ -409,12 +409,10 @@ impl ExprParser {
                 let key_tok = cparser.peek_bw(1).clone();
                 match key_tok.tok_type {
                     Identifier { dollar: false } | Str => key_tok
-                        .literal
-                        .as_ref()
-                        .unwrap()
+                        .extract_literal()?
                         .as_str()
-                        .unwrap()
-                        .to_owned(),
+                        .ok_or(ParseError::UnexpectedToken { token: key_tok.clone() })?
+                        .to_string(),
                     Num => match key_tok.literal {
                         Some(Literal::Num(n)) => n.to_string(),
                         _ => {
@@ -502,8 +500,8 @@ impl ExprParser {
                 id: cparser.get_expr_id(),
             })),
             Str | Num => Ok(Box::new(Expr::Literal {
-                value: tok.literal.clone().unwrap(),
-                raw: tok.lexeme.clone().unwrap(),
+                value: tok.extract_literal()?.clone(),
+                raw: tok.extract_lexeme()?.to_owned(),
                 span: tok.span,
                 id: cparser.get_expr_id(),
             })),

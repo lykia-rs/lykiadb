@@ -243,6 +243,10 @@ pub enum ParseError {
     InvalidAssignmentTarget { left: Token },
     #[error("Missing identifier")]
     MissingIdentifier { token : Token },
+    #[error("Empty token literal")]
+    EmptyTokenLiteral { token: Token },
+    #[error("Empty token lexeme")]
+    EmptyTokenLexeme { token: Token },
     #[error("No tokens to parse")]
     NoTokens,
 }
@@ -264,6 +268,14 @@ impl From<ParseError> for InputError {
             ),
             ParseError::MissingIdentifier { token } => (
                 "Provide a valid identifier",
+                token.span,
+            ),
+            ParseError::EmptyTokenLiteral { token } => (
+                "Provide a valid literal value",
+                token.span,
+            ),
+            ParseError::EmptyTokenLexeme { token } => (
+                "Provide a valid lexeme",
                 token.span,
             ),
             ParseError::NoTokens => ("Provide valid input to parse", Span::default()),
