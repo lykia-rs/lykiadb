@@ -4,7 +4,7 @@ use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
-use lykiadb_lang::ast::{Literal, Span, Spanned};
+use lykiadb_lang::ast::{Identifier, Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
 use pretty_assertions::assert_eq;
@@ -157,13 +157,13 @@ impl Interpreter {
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, ExecutionError> {
         self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
-        if let Ok(val) = out {
-            Ok(val)
-        } else {
-            let err = out.err().unwrap();
-            match err {
-                HaltReason::Return(rv) => Ok(rv),
-                HaltReason::Error(interpret_err) => Err(interpret_err),
+        match out {
+            Ok(val) => Ok(val),
+            Err(err) => {
+                match err {
+                    HaltReason::Return(rv) => Ok(rv),
+                    HaltReason::Error(interpret_err) => Err(interpret_err),
+                }
             }
         }
     }
@@ -217,11 +217,9 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        if self.exec_row.is_some() {
-            let exec_row = self.exec_row.as_ref().unwrap();
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Ok(val.clone());
-            }
+        if let Some(exec_row) = self.exec_row.as_ref() 
+            && let Some(val) = exec_row.get(&self.intern_string(name)) {
+            return Ok(val.clone());
         }
 
         let distance = self.program.as_ref().and_then(|x| x.get_distance(expr));
@@ -326,7 +324,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let distance = self.program.as_ref().unwrap().get_distance(e);
                 let evaluated = self.visit_expr(expr)?;
                 let dst_symbol = self.intern_string(&dst.name);
-                let result = if let Some(distance_unv) = distance {
+                if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
                         &self.env,
                         distance_unv,
@@ -337,10 +335,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 } else {
                     self.root_env
                         .assign(&dst.name, dst_symbol, evaluated.clone())
-                };
-                if result.is_err() {
-                    return Err(result.err().unwrap());
-                }
+                }?;
                 Ok(evaluated)
             }
             Expr::Call {
@@ -351,8 +346,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     if self.has_exec_row() && callable.is_agg() {
                         let value = self.get_from_row(&e.sign());
 
-                        if value.is_some() {
-                            return Ok(value.unwrap());
+                        if let Some(value) = value   {
+                            return Ok(value);
                         }
 
                         panic!("Aggregator value not found in execution row");
@@ -389,8 +384,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 body,
                 ..
             } => {
-                let fn_name = if name.is_some() {
-                    &name.as_ref().unwrap().name
+                let fn_name = if let Some(Identifier { name, .. }) = name {
+                    name
                 } else {
                     "<anonymous>"
                 };
