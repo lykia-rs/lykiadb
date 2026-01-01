@@ -159,12 +159,10 @@ impl Interpreter {
         let out = self.visit_stmt(&program.get_root());
         match out {
             Ok(val) => Ok(val),
-            Err(err) => {
-                match err {
-                    HaltReason::Return(rv) => Ok(rv),
-                    HaltReason::Error(interpret_err) => Err(interpret_err),
-                }
-            }
+            Err(err) => match err {
+                HaltReason::Return(rv) => Ok(rv),
+                HaltReason::Error(interpret_err) => Err(interpret_err),
+            },
         }
     }
 
@@ -217,8 +215,9 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        if let Some(exec_row) = self.exec_row.as_ref() 
-            && let Some(val) = exec_row.get(&self.intern_string(name)) {
+        if let Some(exec_row) = self.exec_row.as_ref()
+            && let Some(val) = exec_row.get(&self.intern_string(name))
+        {
             return Ok(val.clone());
         }
 
@@ -237,11 +236,9 @@ impl Interpreter {
         parameters: &[Symbol],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
-
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, arg) in arguments.iter().enumerate() {
-
             if i >= parameters.len() {
                 break;
             }
@@ -330,8 +327,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.program.as_ref()
-                    .ok_or(HaltReason::Error(ExecutionError::Interpret(InterpretError::NoProgramLoaded)))?
+                let distance = self
+                    .program
+                    .as_ref()
+                    .ok_or(HaltReason::Error(ExecutionError::Interpret(
+                        InterpretError::NoProgramLoaded,
+                    )))?
                     .get_distance(e);
 
                 let evaluated = self.visit_expr(expr)?;
@@ -358,7 +359,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     if self.has_exec_row() && callable.is_agg() {
                         let value = self.get_from_row(&e.sign());
 
-                        if let Some(value) = value   {
+                        if let Some(value) = value {
                             return Ok(value);
                         }
 
@@ -419,10 +420,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 
                 if let Some(Identifier { name, .. }) = name {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env.define(
-                        self.intern_string(name),
-                        callable.clone(),
-                    );
+                    self.env.define(self.intern_string(name), callable.clone());
                 }
 
                 Ok(callable)
@@ -562,12 +560,12 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let result = PlanExecutor::new(self).execute_plan(plan);
 
                 match result {
-                    Err(e) => return Err(HaltReason::Error(e)),
+                    Err(e) => Err(HaltReason::Error(e)),
                     Ok(cursor) => {
                         let intermediate = cursor
                             .map(|row: ExecutionRow| row.as_value())
                             .collect::<Vec<RV>>();
-                        return Ok(RV::Array(RVArray::from_vec(intermediate)));
+                        Ok(RV::Array(RVArray::from_vec(intermediate)))
                     }
                 }
             }
