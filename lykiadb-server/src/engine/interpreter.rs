@@ -237,11 +237,17 @@ impl Interpreter {
         parameters: &[Symbol],
         arguments: &[RV],
     ) -> Result<RV, HaltReason> {
+
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
-        for (i, param) in parameters.iter().enumerate() {
+        for (i, arg) in arguments.iter().enumerate() {
+
+            if i >= parameters.len() {
+                break;
+            }
+
             // TODO: Remove clone here
-            fn_env.define(*param, arguments.get(i).unwrap().clone());
+            fn_env.define(parameters[i], arg.clone());
         }
 
         self.execute_block(statements, Arc::new(fn_env))
@@ -268,8 +274,8 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> RV {
-        match literal {
+    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV, HaltReason> {
+        Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
             Literal::Bool(b) => RV::Bool(*b),
@@ -277,22 +283,25 @@ impl Interpreter {
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
-                    new_map.insert(k.clone(), self.visit_expr(v).unwrap());
+                    new_map.insert(k.clone(), self.visit_expr(v)?);
                 }
                 RV::Object(RVObject::from_map(new_map))
             }
             Literal::Array(arr) => {
-                let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
+                let collected = arr
+                    .iter()
+                    .map(|x| self.visit_expr(x))
+                    .collect::<Result<Vec<RV>, HaltReason>>()?;
                 RV::Array(RVArray::from_vec(collected))
             }
-        }
+        })
     }
 }
 
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
+            Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
             Expr::Unary {
                 operation, expr, ..
@@ -321,7 +330,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.program.as_ref().unwrap().get_distance(e);
+                let distance = self.program.as_ref()
+                    .ok_or(HaltReason::Error(ExecutionError::Interpret(InterpretError::NoProgramLoaded)))?
+                    .get_distance(e);
+
                 let evaluated = self.visit_expr(expr)?;
                 let dst_symbol = self.intern_string(&dst.name);
                 if let Some(distance_unv) = distance {
@@ -405,10 +417,10 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(RVCallable::new(fun, Datatype::Unit, Datatype::Unit));
 
-                if name.is_some() {
+                if let Some(Identifier { name, .. }) = name {
                     // TODO(vck): Callable shouldn't be cloned here
                     self.env.define(
-                        self.intern_string(&name.as_ref().unwrap().name),
+                        self.intern_string(name),
                         callable.clone(),
                     );
                 }
@@ -548,14 +560,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
                 let result = PlanExecutor::new(self).execute_plan(plan);
-                if let Err(e) = result {
-                    return Err(HaltReason::Error(e));
+
+                match result {
+                    Err(e) => return Err(HaltReason::Error(e)),
+                    Ok(cursor) => {
+                        let intermediate = cursor
+                            .map(|row: ExecutionRow| row.as_value())
+                            .collect::<Vec<RV>>();
+                        return Ok(RV::Array(RVArray::from_vec(intermediate)));
+                    }
                 }
-                let cursor = result.ok().unwrap();
-                let intermediate = cursor
-                    .map(|row: ExecutionRow| row.as_value())
-                    .collect::<Vec<RV>>();
-                Ok(RV::Array(RVArray::from_vec(intermediate)))
             }
         }
     }
@@ -631,8 +645,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
             }
             Stmt::Return { expr, .. } => {
-                if expr.is_some() {
-                    let ret = self.visit_expr(expr.as_ref().unwrap())?;
+                if let Some(expr) = expr {
+                    let ret = self.visit_expr(expr)?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
@@ -730,6 +744,8 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
+    #[error("No program loaded in interpreter.")]
+    NoProgramLoaded,
 }
 
 impl From<InterpretError> for InputError {
@@ -762,6 +778,10 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
             }
+            InterpretError::NoProgramLoaded => (
+                "Load a program into the interpreter before execution",
+                Span::default(),
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))
