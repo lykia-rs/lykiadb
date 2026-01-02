@@ -64,7 +64,9 @@ fn save_snapshot(name: &str) -> Result<()> {
     let dest = snapshots_dir().join(name);
 
     if !src.exists() {
-        anyhow::bail!("No criterion results found. Run benchmarks first with: cargo bench -p lykiadb-bench");
+        anyhow::bail!(
+            "No criterion results found. Run benchmarks first with: cargo bench -p lykiadb-bench"
+        );
     }
 
     fs::create_dir_all(&dest)?;
@@ -74,69 +76,66 @@ fn save_snapshot(name: &str) -> Result<()> {
         name: name.to_string(),
         timestamp: chrono::Local::now().to_rfc3339(),
     };
-    fs::write(
-        dest.join("meta.json"),
-        serde_json::to_string_pretty(&meta)?,
-    )?;
+    fs::write(dest.join("meta.json"), serde_json::to_string_pretty(&meta)?)?;
 
-    println!("✓ Saved snapshot: {}", name);
+    println!("✓ Saved snapshot: {name}");
     Ok(())
 }
 
 fn compare_snapshots(baseline: &str, current: &str) -> Result<()> {
     let baseline_path = snapshots_dir().join(baseline);
     if !baseline_path.exists() {
-        anyhow::bail!("Snapshot '{}' not found", baseline);
+        anyhow::bail!("Snapshot '{baseline}' not found");
     }
 
     let current_path = snapshots_dir().join(current);
     if !current_path.exists() {
-        anyhow::bail!("Snapshot '{}' not found", current);
+        anyhow::bail!("Snapshot '{current}' not found");
     }
 
     // Set up comparison by copying baseline and current data to criterion's expected locations
     let crit_dir = criterion_dir();
     let _ = fs::remove_dir_all(&crit_dir);
     fs::create_dir_all(&crit_dir)?;
-    
+
     // Copy the main report directory from current snapshot
     let current_report = current_path.join("report");
     if current_report.exists() {
         let crit_report = crit_dir.join("report");
         copy_dir_all(&current_report, &crit_report)?;
     }
-    
+
     // Find all benchmark groups and set up comparison
     for entry in fs::read_dir(&current_path)? {
         let entry = entry?;
         let name = entry.file_name();
         let name_str = name.to_string_lossy();
-        
+
         // Skip non-benchmark directories
         if name_str == "report" || name_str == "meta.json" || name_str.starts_with('.') {
             continue;
         }
-        
+
         let baseline_group = baseline_path.join(&name);
         let current_group = current_path.join(&name);
-        
+
         if !baseline_group.exists() || !current_group.exists() {
             continue;
         }
-        
+
         // Copy current data to criterion dir
         let crit_group = crit_dir.join(&name);
         copy_dir_all(&current_group, &crit_group)?;
-        
+
         // Copy baseline data as "base"
         let base_dest = crit_group.join("base");
         copy_dir_all(&baseline_group, &base_dest)?;
     }
 
-    println!("✓ Comparison prepared: '{}' vs '{}'", baseline, current);
+    println!("✓ Comparison prepared: '{baseline}' vs '{current}'");
     println!("\nView results:");
     println!("  open lykiadb-bench/target/criterion/report/index.html");
-    
+
     Ok(())
 }
 

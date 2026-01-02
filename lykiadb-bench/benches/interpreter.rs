@@ -29,19 +29,19 @@ fn bench(c: &mut Criterion) {
     let base = concat!(env!("CARGO_MANIFEST_DIR"), "/benches/scripts/");
 
     group.bench_function("scan_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{}scan_square.ly", base))));
+        b.iter(|| runtime(black_box(&format!("{base}scan_square.ly"))));
     });
 
     group.bench_function("loop_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{}loop_square.ly", base))));
+        b.iter(|| runtime(black_box(&format!("{base}loop_square.ly"))));
     });
 
     group.bench_function("filter_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{}filter_square.ly", base))));
+        b.iter(|| runtime(black_box(&format!("{base}filter_square.ly"))));
     });
 
     group.bench_function("loop_if_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{}loop_if_square.ly", base))));
+        b.iter(|| runtime(black_box(&format!("{base}loop_if_square.ly"))));
     });
 
     group.finish();
