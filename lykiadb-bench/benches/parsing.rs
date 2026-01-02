@@ -65,7 +65,7 @@ fn runtime() {
 }
 
 fn bench(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sample-size-example");
+    let mut group = c.benchmark_group("parsing");
     group.bench_function("2-way join", |b| b.iter(runtime));
     group.finish();
 }

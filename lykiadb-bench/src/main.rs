@@ -14,18 +14,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Save current benchmark results
+    /// Save current benchmark results with a name
     Save {
         /// Name for this snapshot
         name: String,
     },
-    /// Generate HTML report comparing saved results
-    Report {
-        /// Baseline snapshot name
+    /// Compare two snapshots
+    Compare {
+        /// First snapshot name
         baseline: String,
-        /// Current snapshot name (optional, uses latest criterion results if omitted)
-        #[arg(short, long)]
-        current: Option<String>,
+        /// Second snapshot name
+        current: String,
     },
     /// List saved snapshots
     List,
@@ -37,20 +36,27 @@ struct Snapshot {
     timestamp: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct Estimates {
+    mean: Option<PointEstimate>,
+    median: Option<PointEstimate>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct PointEstimate {
+    point_estimate: f64,
+}
+
 fn bench_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
 fn criterion_dir() -> PathBuf {
-    bench_dir().parent().unwrap().join("target/criterion")
+    bench_dir().join("target/criterion")
 }
 
 fn snapshots_dir() -> PathBuf {
     bench_dir().join("snapshots")
-}
-
-fn report_dir() -> PathBuf {
-    bench_dir().join("reports")
 }
 
 fn save_snapshot(name: &str) -> Result<()> {
@@ -58,7 +64,7 @@ fn save_snapshot(name: &str) -> Result<()> {
     let dest = snapshots_dir().join(name);
 
     if !src.exists() {
-        anyhow::bail!("No criterion results found. Run benchmarks first with: cargo bench");
+        anyhow::bail!("No criterion results found. Run benchmarks first with: cargo bench -p lykiadb-bench");
     }
 
     fs::create_dir_all(&dest)?;
@@ -73,69 +79,64 @@ fn save_snapshot(name: &str) -> Result<()> {
         serde_json::to_string_pretty(&meta)?,
     )?;
 
-    println!("Saved snapshot: {}", name);
+    println!("✓ Saved snapshot: {}", name);
     Ok(())
 }
 
-fn generate_report(baseline: &str, current: Option<&str>) -> Result<()> {
+fn compare_snapshots(baseline: &str, current: &str) -> Result<()> {
     let baseline_path = snapshots_dir().join(baseline);
     if !baseline_path.exists() {
-        anyhow::bail!("Baseline snapshot '{}' not found", baseline);
+        anyhow::bail!("Snapshot '{}' not found", baseline);
     }
 
-    let current_path = if let Some(c) = current {
-        let p = snapshots_dir().join(c);
-        if !p.exists() {
-            anyhow::bail!("Current snapshot '{}' not found", c);
-        }
-        p
-    } else {
-        criterion_dir()
-    };
-
+    let current_path = snapshots_dir().join(current);
     if !current_path.exists() {
-        anyhow::bail!("Current results not found");
+        anyhow::bail!("Snapshot '{}' not found", current);
     }
 
-    let report_dir = report_dir();
-    fs::create_dir_all(&report_dir)?;
+    // Set up comparison by copying baseline and current data to criterion's expected locations
+    let crit_dir = criterion_dir();
+    let _ = fs::remove_dir_all(&crit_dir);
+    fs::create_dir_all(&crit_dir)?;
+    
+    // Copy the main report directory from current snapshot
+    let current_report = current_path.join("report");
+    if current_report.exists() {
+        let crit_report = crit_dir.join("report");
+        copy_dir_all(&current_report, &crit_report)?;
+    }
+    
+    // Find all benchmark groups and set up comparison
+    for entry in fs::read_dir(&current_path)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+        
+        // Skip non-benchmark directories
+        if name_str == "report" || name_str == "meta.json" || name_str.starts_with('.') {
+            continue;
+        }
+        
+        let baseline_group = baseline_path.join(&name);
+        let current_group = current_path.join(&name);
+        
+        if !baseline_group.exists() || !current_group.exists() {
+            continue;
+        }
+        
+        // Copy current data to criterion dir
+        let crit_group = crit_dir.join(&name);
+        copy_dir_all(&current_group, &crit_group)?;
+        
+        // Copy baseline data as "base"
+        let base_dest = crit_group.join("base");
+        copy_dir_all(&baseline_group, &base_dest)?;
+    }
 
-    // Copy baseline to report/base
-    let base_dest = report_dir.join("base");
-    fs::create_dir_all(&base_dest)?;
-    copy_dir_all(&baseline_path, &base_dest)?;
-
-    // Copy current to report/change
-    let change_dest = report_dir.join("change");
-    fs::create_dir_all(&change_dest)?;
-    copy_dir_all(&current_path, &change_dest)?;
-
-    // Symlink for criterion compatibility
-    let _ = fs::remove_file(report_dir.join("both"));
-    #[cfg(unix)]
-    std::os::unix::fs::symlink(".", report_dir.join("both"))?;
-
-    // Generate index
-    let current_name = current.unwrap_or("latest");
-    let index = format!(
-        r#"<!DOCTYPE html>
-<html>
-<head><title>Benchmark Comparison</title></head>
-<body>
-<h1>{} vs {}</h1>
-<p>Browse base and change directories for detailed reports.</p>
-<ul>
-<li><a href="base/report/index.html">Baseline: {}</a></li>
-<li><a href="change/report/index.html">Current: {}</a></li>
-</ul>
-</body>
-</html>"#,
-        baseline, current_name, baseline, current_name
-    );
-
-    fs::write(report_dir.join("index.html"), index)?;
-
-    println!("Report generated: {}", report_dir.join("index.html").display());
+    println!("✓ Comparison prepared: '{}' vs '{}'", baseline, current);
+    println!("\nView results:");
+    println!("  open lykiadb-bench/target/criterion/report/index.html");
+    
     Ok(())
 }
 
@@ -189,7 +190,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Save { name } => save_snapshot(&name),
-        Commands::Report { baseline, current } => generate_report(&baseline, current.as_deref()),
+        Commands::Compare { baseline, current } => compare_snapshots(&baseline, &current),
         Commands::List => list_snapshots(),
     }
 }

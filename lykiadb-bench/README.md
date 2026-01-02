@@ -6,36 +6,30 @@
 # Run benchmarks
 cargo bench -p lykiadb-bench
 
-# Save current results
+# Save results with a name
 cargo run -p lykiadb-bench -r -- save <name>
 
 # List saved snapshots
 cargo run -p lykiadb-bench -r -- list
 
-# Generate comparison report (baseline vs latest)
-cargo run -p lykiadb-bench -r -- report <baseline>
-
 # Compare two snapshots
-cargo run -p lykiadb-bench -r -- report <baseline> --current <name>
+cargo run -p lykiadb-bench -r -- compare <baseline> <current>
 ```
 
 ## Example Workflow
 
 ```bash
-# Initial baseline
+# Run initial benchmarks and save
 cargo bench -p lykiadb-bench
 cargo run -p lykiadb-bench -r -- save v1.0
 
-# After changes
+# After code changes, run benchmarks again and save
 cargo bench -p lykiadb-bench
-cargo run -p lykiadb-bench -r -- report v1.0
-
-# Save new baseline
 cargo run -p lykiadb-bench -r -- save v1.1
 
-# Compare two snapshots
-cargo run -p lykiadb-bench -r -- report v1.0 --current v1.1
-```
+# Compare the two snapshots
+cargo run -p lykiadb-bench -r -- compare v1.0 v1.1
 
-Reports: `lykiadb-bench/reports/<comparison>/index.html`  
-Snapshots: `lykiadb-bench/snapshots/<name>`
+# View HTML report
+open lykiadb-bench/target/criterion/report/index.html
+```
