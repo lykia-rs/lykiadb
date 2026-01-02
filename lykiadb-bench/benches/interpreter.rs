@@ -25,21 +25,23 @@ fn bench(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(30));
     group.sample_size(100);
 
-    // Original benchmarks with proper warmup
+    // Benchmark scripts are in lykiadb-bench/benches/scripts/
+    let base = concat!(env!("CARGO_MANIFEST_DIR"), "/benches/scripts/");
+
     group.bench_function("scan_square", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/scan_square.ly")));
+        b.iter(|| runtime(black_box(&format!("{base}scan_square.ly"))));
     });
 
     group.bench_function("loop_square", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/loop_square.ly")));
+        b.iter(|| runtime(black_box(&format!("{base}loop_square.ly"))));
     });
 
     group.bench_function("filter_square", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/filter_square.ly")));
+        b.iter(|| runtime(black_box(&format!("{base}filter_square.ly"))));
     });
 
     group.bench_function("loop_if_square", |b| {
-        b.iter(|| runtime(black_box("benches/scripts/loop_if_square.ly")));
+        b.iter(|| runtime(black_box(&format!("{base}loop_if_square.ly"))));
     });
 
     group.finish();
@@ -47,7 +49,6 @@ fn bench(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    // Longer measurement time for more stable results
     config = Criterion::default()
         .measurement_time(Duration::from_secs(30))
         .warm_up_time(Duration::from_secs(5))

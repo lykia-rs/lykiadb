@@ -1,0 +1,24 @@
+[package]
+name = "lykiadb-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+chrono = "0.4"
+lykiadb-server = { path = "../lykiadb-server" }
+lykiadb-lang = { path = "../lykiadb-lang" }
+rustc-hash = "1.1.0"
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "interpreter"
+harness = false
+
+[[bench]]
+name = "parsing"
+harness = false
