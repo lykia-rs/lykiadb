@@ -35,7 +35,3 @@ derivative = "2.2.0"
 criterion = { version = "0.4", features = ["html_reports"] }
 test_each_file = "0.3.4"
 proptest = "1.4"
-
-[[bench]]
-name = "interpreter"
-harness = false
