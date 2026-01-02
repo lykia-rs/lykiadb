@@ -33,13 +33,7 @@ mod tests {
 
         // Test clock function
         let result = nt_clock(&mut interpreter, &Span::default(), &[]);
-        assert!(result.is_ok());
 
-        let clock = result.unwrap();
-        if let RV::Num(_) = clock {
-            // Clock function returns a number
-        } else {
-            panic!("Expected number result from clock function");
-        }
+        assert_eq!(matches!(result, Ok(RV::Num(_))), true);
     }
 }
