@@ -31,13 +31,13 @@ lykia_lib!(
 pub fn stdlib(out: Option<Shared<Output>>) -> FxHashMap<String, RV> {
     let mut std = std_core().as_raw();
 
-    if out.is_some() {
+    if let Some(out) = out {
         let mut test_namespace = FxHashMap::default();
 
         test_namespace.insert(
             "print".to_owned(),
             RV::Callable(RVCallable::new(
-                Function::Stateful(out.unwrap().clone()),
+                Function::Stateful(out.clone()),
                 Datatype::Unit,
                 Datatype::Unit,
             )),

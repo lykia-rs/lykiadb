@@ -4,7 +4,7 @@ use lykiadb_lang::LangError;
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::ast::visitor::VisitorMut;
-use lykiadb_lang::ast::{Literal, Span, Spanned};
+use lykiadb_lang::ast::{Identifier, Literal, Span, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
 use pretty_assertions::assert_eq;
@@ -25,7 +25,7 @@ use interb::Symbol;
 use std::sync::Arc;
 use std::vec;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum HaltReason {
     Error(ExecutionError),
     Return(RV),
@@ -157,14 +157,12 @@ impl Interpreter {
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, ExecutionError> {
         self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
-        if let Ok(val) = out {
-            Ok(val)
-        } else {
-            let err = out.err().unwrap();
-            match err {
+        match out {
+            Ok(val) => Ok(val),
+            Err(err) => match err {
                 HaltReason::Return(rv) => Ok(rv),
                 HaltReason::Error(interpret_err) => Err(interpret_err),
-            }
+            },
         }
     }
 
@@ -217,11 +215,10 @@ impl Interpreter {
     }
 
     fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
-        if self.exec_row.is_some() {
-            let exec_row = self.exec_row.as_ref().unwrap();
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Ok(val.clone());
-            }
+        if let Some(exec_row) = self.exec_row.as_ref()
+            && let Some(val) = exec_row.get(&self.intern_string(name))
+        {
+            return Ok(val.clone());
         }
 
         let distance = self.program.as_ref().and_then(|x| x.get_distance(expr));
@@ -241,9 +238,13 @@ impl Interpreter {
     ) -> Result<RV, HaltReason> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
-        for (i, param) in parameters.iter().enumerate() {
+        for (i, arg) in arguments.iter().enumerate() {
+            if i >= parameters.len() {
+                break;
+            }
+
             // TODO: Remove clone here
-            fn_env.define(*param, arguments.get(i).unwrap().clone());
+            fn_env.define(parameters[i], arg.clone());
         }
 
         self.execute_block(statements, Arc::new(fn_env))
@@ -270,8 +271,8 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> RV {
-        match literal {
+    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV, HaltReason> {
+        Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Num(*n),
             Literal::Bool(b) => RV::Bool(*b),
@@ -279,22 +280,25 @@ impl Interpreter {
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
-                    new_map.insert(k.clone(), self.visit_expr(v).unwrap());
+                    new_map.insert(k.clone(), self.visit_expr(v)?);
                 }
                 RV::Object(RVObject::from_map(new_map))
             }
             Literal::Array(arr) => {
-                let collected = arr.iter().map(|x| self.visit_expr(x).unwrap()).collect();
+                let collected = arr
+                    .iter()
+                    .map(|x| self.visit_expr(x))
+                    .collect::<Result<Vec<RV>, HaltReason>>()?;
                 RV::Array(RVArray::from_vec(collected))
             }
-        }
+        })
     }
 }
 
 impl VisitorMut<RV, HaltReason> for Interpreter {
     fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
         match e {
-            Expr::Literal { value, .. } => Ok(self.literal_to_rv(value)),
+            Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
             Expr::Unary {
                 operation, expr, ..
@@ -323,10 +327,17 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self.program.as_ref().unwrap().get_distance(e);
+                let distance = self
+                    .program
+                    .as_ref()
+                    .ok_or(HaltReason::Error(ExecutionError::Interpret(
+                        InterpretError::NoProgramLoaded,
+                    )))?
+                    .get_distance(e);
+
                 let evaluated = self.visit_expr(expr)?;
                 let dst_symbol = self.intern_string(&dst.name);
-                let result = if let Some(distance_unv) = distance {
+                if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
                         &self.env,
                         distance_unv,
@@ -337,10 +348,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 } else {
                     self.root_env
                         .assign(&dst.name, dst_symbol, evaluated.clone())
-                };
-                if result.is_err() {
-                    return Err(result.err().unwrap());
-                }
+                }?;
                 Ok(evaluated)
             }
             Expr::Call {
@@ -351,8 +359,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                     if self.has_exec_row() && callable.is_agg() {
                         let value = self.get_from_row(&e.sign());
 
-                        if value.is_some() {
-                            return Ok(value.unwrap());
+                        if let Some(value) = value {
+                            return Ok(value);
                         }
 
                         panic!("Aggregator value not found in execution row");
@@ -389,8 +397,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 body,
                 ..
             } => {
-                let fn_name = if name.is_some() {
-                    &name.as_ref().unwrap().name
+                let fn_name = if let Some(Identifier { name, .. }) = name {
+                    name
                 } else {
                     "<anonymous>"
                 };
@@ -410,12 +418,9 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
                 let callable = RV::Callable(RVCallable::new(fun, Datatype::Unit, Datatype::Unit));
 
-                if name.is_some() {
+                if let Some(Identifier { name, .. }) = name {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env.define(
-                        self.intern_string(&name.as_ref().unwrap().name),
-                        callable.clone(),
-                    );
+                    self.env.define(self.intern_string(name), callable.clone());
                 }
 
                 Ok(callable)
@@ -553,14 +558,16 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
                 let result = PlanExecutor::new(self).execute_plan(plan);
-                if let Err(e) = result {
-                    return Err(HaltReason::Error(e));
+
+                match result {
+                    Err(e) => Err(HaltReason::Error(e)),
+                    Ok(cursor) => {
+                        let intermediate = cursor
+                            .map(|row: ExecutionRow| row.as_value())
+                            .collect::<Vec<RV>>();
+                        Ok(RV::Array(RVArray::from_vec(intermediate)))
+                    }
                 }
-                let cursor = result.ok().unwrap();
-                let intermediate = cursor
-                    .map(|row: ExecutionRow| row.as_value())
-                    .collect::<Vec<RV>>();
-                Ok(RV::Array(RVArray::from_vec(intermediate)))
             }
         }
     }
@@ -636,8 +643,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 }
             }
             Stmt::Return { expr, .. } => {
-                if expr.is_some() {
-                    let ret = self.visit_expr(expr.as_ref().unwrap())?;
+                if let Some(expr) = expr {
+                    let ret = self.visit_expr(expr)?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
@@ -735,6 +742,8 @@ pub enum InterpretError {
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
     InvalidArgumentType { span: Span, expected: String },
+    #[error("No program loaded in interpreter.")]
+    NoProgramLoaded,
 }
 
 impl From<InterpretError> for InputError {
@@ -767,6 +776,10 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
             }
+            InterpretError::NoProgramLoaded => (
+                "Load a program into the interpreter before execution",
+                Span::default(),
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

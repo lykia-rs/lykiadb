@@ -352,8 +352,8 @@ mod tests {
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 2);
         let symbol = GLOBAL_INTERNER.intern("numbers");
-        assert_eq!(rows[0].get(&symbol).unwrap(), &RV::Num(1.0));
-        assert_eq!(rows[1].get(&symbol).unwrap(), &RV::Num(2.0));
+        assert_eq!(rows[0].get(&symbol), Some(&RV::Num(1.0)));
+        assert_eq!(rows[1].get(&symbol), Some(&RV::Num(2.0)));
     }
 
     #[test]
@@ -392,9 +392,9 @@ mod tests {
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 3);
         let symbol = GLOBAL_INTERNER.intern("numbers");
-        assert_eq!(rows[0].get(&symbol).unwrap(), &RV::Num(3.0));
-        assert_eq!(rows[1].get(&symbol).unwrap(), &RV::Num(4.0));
-        assert_eq!(rows[2].get(&symbol).unwrap(), &RV::Num(5.0));
+        assert_eq!(rows[0].get(&symbol), Some(&RV::Num(3.0)));
+        assert_eq!(rows[1].get(&symbol), Some(&RV::Num(4.0)));
+        assert_eq!(rows[2].get(&symbol), Some(&RV::Num(5.0)));
     }
 
     #[test]
