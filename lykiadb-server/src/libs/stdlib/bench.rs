@@ -46,36 +46,36 @@ mod tests {
 
         // Test first few Fibonacci numbers
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(0.0)]).unwrap(),
-            RV::Num(0.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(0.0)]),
+            Ok(RV::Num(0.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(1.0)]).unwrap(),
-            RV::Num(1.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(1.0)]),
+            Ok(RV::Num(1.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(2.0)]).unwrap(),
-            RV::Num(1.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(2.0)]),
+            Ok(RV::Num(1.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(3.0)]).unwrap(),
-            RV::Num(2.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(3.0)]),
+            Ok(RV::Num(2.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(4.0)]).unwrap(),
-            RV::Num(3.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(4.0)]),
+            Ok(RV::Num(3.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(5.0)]).unwrap(),
-            RV::Num(5.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(5.0)]),
+            Ok(RV::Num(5.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(6.0)]).unwrap(),
-            RV::Num(8.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(6.0)]),
+            Ok(RV::Num(8.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(7.0)]).unwrap(),
-            RV::Num(13.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(7.0)]),
+            Ok(RV::Num(13.0))
         );
     }
 
@@ -108,12 +108,12 @@ mod tests {
 
         // Negative numbers should return themselves as per implementation
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-1.0)]).unwrap(),
-            RV::Num(-1.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-1.0)]),
+            Ok(RV::Num(-1.0))
         );
         assert_eq!(
-            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-5.0)]).unwrap(),
-            RV::Num(-5.0)
+            nt_fib(&mut interpreter, &Span::default(), &[RV::Num(-5.0)]),
+            Ok(RV::Num(-5.0))
         );
     }
 }

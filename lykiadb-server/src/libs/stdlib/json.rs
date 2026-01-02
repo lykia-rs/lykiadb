@@ -70,13 +70,13 @@ mod tests {
 
         // Test primitive values
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]).unwrap(),
-            RV::Str(Arc::new("42.0".to_string()))
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]),
+            Ok(RV::Str(Arc::new("42.0".to_string())))
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Bool(true)]).unwrap(),
-            RV::Str(Arc::new("true".to_string()))
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Bool(true)]),
+            Ok(RV::Str(Arc::new("true".to_string())))
         );
 
         assert_eq!(
@@ -85,13 +85,13 @@ mod tests {
                 &Span::default(),
                 &[RV::Str(Arc::new("hello".to_string()))]
             )
-            .unwrap(),
-            RV::Str(Arc::new("\"hello\"".to_string()))
+            ,
+            Ok(RV::Str(Arc::new("\"hello\"".to_string())))
         );
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Undefined]).unwrap(),
-            RV::Str(Arc::new("null".to_string()))
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Undefined]),
+            Ok(RV::Str(Arc::new("null".to_string())))
         );
 
         // Test array
@@ -99,8 +99,8 @@ mod tests {
         let array_rv = RV::Array(RVArray::from_vec(arr));
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[array_rv]).unwrap(),
-            RV::Str(Arc::new("[1.0,\"test\"]".to_string()))
+            nt_json_encode(&mut interpreter, &Span::default(), &[array_rv]),
+            Ok(RV::Str(Arc::new("[1.0,\"test\"]".to_string())))
         );
 
         // Test object
@@ -110,8 +110,8 @@ mod tests {
         let object_rv = RV::Object(RVObject::from_map(map));
 
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[object_rv]).unwrap(),
-            RV::Str(Arc::new("{\"key\":123.0,\"msg\":\"value\"}".to_string()))
+            nt_json_encode(&mut interpreter, &Span::default(), &[object_rv]),
+            Ok(RV::Str(Arc::new("{\"key\":123.0,\"msg\":\"value\"}".to_string())))
         );
     }
 
@@ -125,9 +125,8 @@ mod tests {
                 &mut interpreter,
                 &Span::default(),
                 &[RV::Str(Arc::new("42.0".to_string()))]
-            )
-            .unwrap(),
-            RV::Num(42.0)
+            ),
+            Ok(RV::Num(42.0))
         );
 
         assert_eq!(
@@ -135,9 +134,8 @@ mod tests {
                 &mut interpreter,
                 &Span::default(),
                 &[RV::Str(Arc::new("true".to_string()))]
-            )
-            .unwrap(),
-            RV::Bool(true)
+            ),
+            Ok(RV::Bool(true))
         );
 
         assert_eq!(
@@ -145,9 +143,8 @@ mod tests {
                 &mut interpreter,
                 &Span::default(),
                 &[RV::Str(Arc::new("\"hello\"".to_string()))]
-            )
-            .unwrap(),
-            RV::Str(Arc::new("hello".to_string()))
+            ),
+            Ok(RV::Str(Arc::new("hello".to_string())))
         );
 
         assert_eq!(
@@ -155,9 +152,8 @@ mod tests {
                 &mut interpreter,
                 &Span::default(),
                 &[RV::Str(Arc::new("null".to_string()))]
-            )
-            .unwrap(),
-            RV::Undefined
+            ),
+            Ok(RV::Undefined)
         );
 
         // Test array
@@ -165,10 +161,10 @@ mod tests {
             &mut interpreter,
             &Span::default(),
             &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))],
-        )
-        .unwrap();
+        );
+        
 
-        if let RV::Array(arr) = array_result {
+        if let Ok(RV::Array(arr)) = array_result {
             assert_eq!(arr.len(), 2);
             assert_eq!(arr.get(0), RV::Num(1.0));
             assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
@@ -183,15 +179,14 @@ mod tests {
             &[RV::Str(Arc::new(
                 "{\"key\": 123.0, \"msg\": \"value\"}".to_string(),
             ))],
-        )
-        .unwrap();
+        );
 
-        if let RV::Object(obj) = object_result {
+        if let Ok(RV::Object(obj)) = object_result {
             assert_eq!(obj.len(), 2);
-            assert_eq!(obj.get("key").unwrap(), RV::Num(123.0));
+            assert_eq!(obj.get("key"), Some(RV::Num(123.0)));
             assert_eq!(
-                obj.get("msg").unwrap(),
-                RV::Str(Arc::new("value".to_string()))
+                obj.get("msg"),
+                Some(RV::Str(Arc::new("value".to_string())))
             );
         } else {
             panic!("Expected object result");

@@ -25,7 +25,7 @@ use interb::Symbol;
 use std::sync::Arc;
 use std::vec;
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub enum HaltReason {
     Error(ExecutionError),
     Return(RV),
