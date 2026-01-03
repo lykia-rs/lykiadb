@@ -66,7 +66,7 @@ impl Grouper {
             let mut row = ExecutionRow::new();
             for (idx, value) in bucket.iter().enumerate() {
                 row.insert(
-                    GLOBAL_INTERNER.intern(&self.group_exprs[idx].to_string()),
+                    GLOBAL_INTERNER.intern(&format!("col_{}", idx)),
                     value.clone(),
                 );
             }

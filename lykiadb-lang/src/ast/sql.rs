@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ast::Span;
+
 use super::{Identifier, expr::Expr};
 
 // Enums
@@ -148,6 +150,7 @@ pub struct SqlSelectCore {
     pub group_by: Option<Vec<Expr>>,
     pub having: Option<Box<Expr>>,
     pub compound: Option<Box<SqlSelectCompound>>,
+    pub span: Span,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]

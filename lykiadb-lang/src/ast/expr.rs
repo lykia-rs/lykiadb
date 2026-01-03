@@ -564,6 +564,7 @@ pub mod test_utils {
                     group_by: None,
                     having: None,
                     compound: None,
+                    span: Span::default(),
                 },
                 order_by: None,
                 limit: None,

@@ -10,10 +10,7 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    Spanned,
-    expr::Expr,
-    sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::{ExprVisitor, VisitorMut},
+    Spanned, expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}
 };
 
 use super::{
@@ -179,6 +176,15 @@ impl<'a> Planner<'a> {
                     subqueries,
                 }
             }
+
+            if core.projection.contains(&SqlProjection::All { collection: None }) {
+                return Err(HaltReason::Error(ExecutionError::Plan(
+                    PlannerError::SelectAllWithAggregationNotAllowed(
+                        core.span
+                    ),
+                )));
+            }
+
         } else if let Some(having) = &core.having {
             // Fail fast if there is a HAVING clause without aggregation.
             return Err(HaltReason::Error(ExecutionError::Plan(
