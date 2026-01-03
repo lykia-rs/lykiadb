@@ -62,8 +62,14 @@ impl Grouper {
     pub fn finalize(&self) -> Vec<ExecutionRow> {
         let mut rows = vec![];
 
-        for (_, agg) in self.groups.iter() {
+        for (bucket, agg) in self.groups.iter() {
             let mut row = ExecutionRow::new();
+            for (idx, value) in bucket.iter().enumerate() {
+                row.insert(
+                    GLOBAL_INTERNER.intern(&format!("col_{}", idx)),
+                    value.clone(),
+                );
+            }
             for (idx, value) in agg.iter().enumerate() {
                 row.insert(
                     GLOBAL_INTERNER.intern(&self.aggregations[idx].call_sign),

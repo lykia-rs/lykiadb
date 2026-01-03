@@ -10,10 +10,7 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    Spanned,
-    expr::Expr,
-    sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::{ExprVisitor, VisitorMut},
+    Spanned, expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}
 };
 
 use super::{
@@ -164,6 +161,14 @@ impl<'a> Planner<'a> {
         };
 
         if !aggregates.is_empty() || !group_by.is_empty() {
+            if core.projection.iter().any(|p| matches!(p, SqlProjection::All { collection: _ })) {
+                return Err(HaltReason::Error(ExecutionError::Plan(
+                    PlannerError::SelectAllWithAggregationNotAllowed(
+                        core.span
+                    ),
+                )));
+            }
+
             node = Node::Aggregate {
                 source: Box::new(node),
                 group_by,
@@ -179,6 +184,7 @@ impl<'a> Planner<'a> {
                     subqueries,
                 }
             }
+
         } else if let Some(having) = &core.having {
             // Fail fast if there is a HAVING clause without aggregation.
             return Err(HaltReason::Error(ExecutionError::Plan(
@@ -509,5 +515,83 @@ mod tests {
         let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true);
 
         assert_build_expr_result!(result, &expr, 0);
+    }
+
+    #[test]
+    fn test_select_all_with_aggregation_not_allowed() {
+        use lykiadb_lang::ast::sql::{SqlDistinct, SqlProjection, SqlSelectCore};
+
+        let mut planner = create_test_planner();
+
+        let core = SqlSelectCore {
+            distinct: SqlDistinct::All,
+            projection: vec![SqlProjection::All { collection: None }],
+            from: None,
+            r#where: None,
+            group_by: Some(vec![create_identifier_expr("category")]),
+            having: None,
+            compound: None,
+            span: Span::default(),
+        };
+
+        let result = planner.build_select_core(&core);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_select_all_with_aggregate_function_not_allowed() {
+        use lykiadb_lang::ast::sql::{SqlDistinct, SqlProjection, SqlSelectCore};
+
+        let mut planner = create_test_planner();
+
+        let core = SqlSelectCore {
+            distinct: SqlDistinct::All,
+            projection: vec![
+                SqlProjection::All { collection: None },
+                SqlProjection::Expr {
+                    expr: Box::new(create_call_expr("count", vec![create_identifier_expr("*")])),
+                    alias: None,
+                },
+            ],
+            from: None,
+            r#where: None,
+            group_by: None,
+            having: None,
+            compound: None,
+            span: Span::default(),
+        };
+
+        let result = planner.build_select_core(&core);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_select_specific_columns_with_aggregation_allowed() {
+        use lykiadb_lang::ast::sql::{SqlDistinct, SqlProjection, SqlSelectCore};
+
+        let mut planner = create_test_planner();
+
+        let core = SqlSelectCore {
+            distinct: SqlDistinct::All,
+            projection: vec![
+                SqlProjection::Expr {
+                    expr: Box::new(create_identifier_expr("category")),
+                    alias: None,
+                },
+                SqlProjection::Expr {
+                    expr: Box::new(create_call_expr("avg", vec![create_identifier_expr("price")])),
+                    alias: None,
+                },
+            ],
+            from: None,
+            r#where: None,
+            group_by: Some(vec![create_identifier_expr("category")]),
+            having: None,
+            compound: None,
+            span: Span::default(),
+        };
+
+        let result = planner.build_select_core(&core);
+        assert!(result.is_ok());
     }
 }

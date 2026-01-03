@@ -263,7 +263,7 @@ impl SqlParser {
     }
 
     fn sql_select_core(&mut self, cparser: &mut Parser) -> ParseResult<SqlSelectCore> {
-        cparser.expect(&skw!(Select))?;
+        let start_tok = cparser.expect(&skw!(Select))?.clone();
         let distinct = if cparser.match_next(&skw!(Distinct)) {
             SqlDistinct::Distinct
         } else if cparser.match_next(&skw!(All)) {
@@ -305,6 +305,8 @@ impl SqlParser {
                 None
             };
 
+        let end_tok = &cparser.peek_bw(0);
+
         Ok(SqlSelectCore {
             distinct,
             projection,
@@ -313,6 +315,7 @@ impl SqlParser {
             group_by,
             having,
             compound,
+            span: Span::merge(&start_tok.span, &end_tok.span),
         })
     }
 

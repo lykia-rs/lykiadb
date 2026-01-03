@@ -1,4 +1,7 @@
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
+
+use crate::ast::Span;
 
 use super::{Identifier, expr::Expr};
 
@@ -138,7 +141,8 @@ pub enum SqlFrom {
     },
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Derivative)]
+#[derivative(Eq, PartialEq, Hash)]
 #[serde(tag = "@type")]
 pub struct SqlSelectCore {
     pub distinct: SqlDistinct,
@@ -148,6 +152,10 @@ pub struct SqlSelectCore {
     pub group_by: Option<Vec<Expr>>,
     pub having: Option<Box<Expr>>,
     pub compound: Option<Box<SqlSelectCompound>>,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
+    #[derivative(Hash = "ignore")]
+    pub span: Span,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Hash)]

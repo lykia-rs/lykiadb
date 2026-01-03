@@ -118,7 +118,11 @@ impl<'a> PlanExecutor<'a> {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,
                                 };
-                                let key = alias.as_ref().unwrap().to_string();
+                                let key = alias
+                                    .as_ref()
+                                    .and_then(|a| Some(a.to_string()))
+                                    .unwrap_or(expr.to_string());
+
                                 upstream.insert(GLOBAL_INTERNER.intern(&key), value);
                             }
                         }

@@ -186,6 +186,7 @@ mod tests {
             distinct: lykiadb_lang::ast::sql::SqlDistinct::All,
             r#where: None,
             compound: None,
+            span: Span::default(),
         };
 
         let result = collect_aggregates(&core, &mut interpreter).unwrap();
@@ -216,6 +217,7 @@ mod tests {
             r#where: None,
             compound: None,
             having: Some(Box::new(avg_call)),
+            span: Span::default(),
         };
 
         let result = collect_aggregates(&core, &mut interpreter).unwrap();

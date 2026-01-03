@@ -1,0 +1,9 @@
+var $a = arr::new(1000000);
+var $b = 4;
+
+select
+    col_0 as mod,
+    avg(a) as avg,
+    count(a) as ct
+from $a as a 
+    group by mod(a, $b);

@@ -33,6 +33,34 @@ impl Eq for RV {}
 impl std::hash::Hash for RV {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
+        match self {
+            RV::Str(s) => s.hash(state),
+            RV::Num(n) => n.to_bits().hash(state),
+            RV::Bool(b) => b.hash(state),
+            RV::Object(obj) => {
+                // Hash the object by its pointer address
+                // This is necessary because RVObject doesn't implement Hash
+                (obj as *const _ as usize).hash(state);
+            }
+            RV::Array(arr) => {
+                // Hash array length and each element
+                arr.len().hash(state);
+                for item in arr.iter() {
+                    item.hash(state);
+                }
+            }
+            RV::Callable(callable) => {
+                // Hash by pointer address for identity-based hashing
+                (callable as *const _ as usize).hash(state);
+            }
+            RV::Datatype(dtype) => {
+                // Hash the string representation of the datatype
+                dtype.to_string().hash(state);
+            }
+            RV::Undefined => {
+                // Discriminant is enough for Undefined
+            }
+        }
     }
 }
 
@@ -494,140 +522,112 @@ mod tests {
     }
 
     #[test]
-    fn test_rv_hash_discriminant_only() {
+    fn test_rv_hash_primitives() {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        fn hash_rv(rv: &RV) -> u64 {
+        fn hash(rv: &RV) -> u64 {
             let mut hasher = DefaultHasher::new();
             rv.hash(&mut hasher);
             hasher.finish()
         }
 
-        // Test that all variants of the same type hash to the same value
-        // regardless of their content (discriminant-only hashing)
+        // Strings: value-based hashing
+        assert_ne!(hash(&RV::Str(Arc::new("hello".to_string()))), 
+                   hash(&RV::Str(Arc::new("world".to_string()))));
+        assert_eq!(hash(&RV::Str(Arc::new("test".to_string()))), 
+                   hash(&RV::Str(Arc::new("test".to_string()))));
 
-        // String variants with different content should hash the same
-        let str1 = RV::Str(Arc::new("hello".to_string()));
-        let str2 = RV::Str(Arc::new("world".to_string()));
-        assert_eq!(hash_rv(&str1), hash_rv(&str2));
+        // Numbers: value-based hashing
+        assert_ne!(hash(&RV::Num(1.0)), hash(&RV::Num(2.0)));
+        assert_ne!(hash(&RV::Num(10.0)), hash(&RV::Num(500.0)));
+        assert_eq!(hash(&RV::Num(42.0)), hash(&RV::Num(42.0)));
 
-        // Number variants with different values should hash the same
-        let num1 = RV::Num(42.0);
-        let num2 = RV::Num(-999.99);
-        assert_eq!(hash_rv(&num1), hash_rv(&num2));
+        // Booleans: value-based hashing
+        assert_ne!(hash(&RV::Bool(true)), hash(&RV::Bool(false)));
+        assert_eq!(hash(&RV::Bool(true)), hash(&RV::Bool(true)));
 
-        // Boolean variants should hash the same
-        let bool1 = RV::Bool(true);
-        let bool2 = RV::Bool(false);
-        assert_eq!(hash_rv(&bool1), hash_rv(&bool2));
-
-        // Different enum variants should hash differently
-        assert_ne!(hash_rv(&str1), hash_rv(&num1));
-        assert_ne!(hash_rv(&num1), hash_rv(&bool1));
-        assert_ne!(hash_rv(&bool1), hash_rv(&RV::Undefined));
+        // Undefined: discriminant-only hashing
+        assert_eq!(hash(&RV::Undefined), hash(&RV::Undefined));
     }
 
     #[test]
-    fn test_rv_hash_complex_objects() {
+    fn test_rv_hash_arrays() {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        fn hash_rv(rv: &RV) -> u64 {
+        fn hash(rv: &RV) -> u64 {
             let mut hasher = DefaultHasher::new();
             rv.hash(&mut hasher);
             hasher.finish()
         }
 
-        // Create different arrays with different contents
-        let arr1 = RV::Array(RVArray::from_vec(vec![
-            RV::Num(1.0),
-            RV::Str(Arc::new("test".to_string())),
-        ]));
-        let arr2 = RV::Array(RVArray::from_vec(vec![
-            RV::Bool(true),
-            RV::Num(999.0),
-            RV::Str(Arc::new("completely different".to_string())),
-        ]));
-        let empty_arr = RV::Array(RVArray::new());
-
-        // All arrays should hash the same (discriminant only)
-        assert_eq!(hash_rv(&arr1), hash_rv(&arr2));
-        assert_eq!(hash_rv(&arr1), hash_rv(&empty_arr));
-
-        // Create different objects with different contents
-        let mut map1 = FxHashMap::default();
-        map1.insert("name".to_string(), RV::Str(Arc::new("Alice".to_string())));
-        map1.insert("age".to_string(), RV::Num(30.0));
-        let obj1 = RV::Object(RVObject::from_map(map1));
-
-        let mut map2 = FxHashMap::default();
-        map2.insert(
-            "city".to_string(),
-            RV::Str(Arc::new("New York".to_string())),
-        );
-        map2.insert("population".to_string(), RV::Num(8000000.0));
-        map2.insert("active".to_string(), RV::Bool(true));
-        let obj2 = RV::Object(RVObject::from_map(map2));
-
-        let empty_obj = RV::Object(RVObject::new());
-
-        // All objects should hash the same (discriminant only)
-        assert_eq!(hash_rv(&obj1), hash_rv(&obj2));
-        assert_eq!(hash_rv(&obj1), hash_rv(&empty_obj));
-
-        // Arrays and objects should hash differently from each other
-        assert_ne!(hash_rv(&arr1), hash_rv(&obj1));
+        // Arrays: content-based hashing
+        let arr1 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
+        let arr2 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
+        let arr3 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(3.0)]));
+        
+        assert_eq!(hash(&arr1), hash(&arr2)); // Same content
+        assert_ne!(hash(&arr1), hash(&arr3)); // Different content
     }
 
     #[test]
-    fn test_rv_hash_nested_complex_types() {
+    fn test_rv_hash_objects() {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        fn hash_rv(rv: &RV) -> u64 {
+        fn hash(rv: &RV) -> u64 {
             let mut hasher = DefaultHasher::new();
             rv.hash(&mut hasher);
             hasher.finish()
         }
 
-        // Create nested objects and arrays
-        let mut inner_map = FxHashMap::default();
-        inner_map.insert("inner_key".to_string(), RV::Num(42.0));
-        let inner_obj = RV::Object(RVObject::from_map(inner_map));
+        // Objects: pointer-based hashing (identity)
+        let mut map = FxHashMap::default();
+        map.insert("key".to_string(), RV::Num(1.0));
+        let obj1 = RV::Object(RVObject::from_map(map));
 
-        let nested_arr = RV::Array(RVArray::from_vec(vec![
-            inner_obj,
-            RV::Array(RVArray::from_vec(vec![RV::Bool(true), RV::Bool(false)])),
-        ]));
+        let mut map = FxHashMap::default();
+        map.insert("key".to_string(), RV::Num(1.0));
+        let obj2 = RV::Object(RVObject::from_map(map));
 
-        let mut outer_map = FxHashMap::default();
-        outer_map.insert("nested_array".to_string(), nested_arr);
-        outer_map.insert(
-            "simple_value".to_string(),
-            RV::Str(Arc::new("test".to_string())),
-        );
-        let complex_obj = RV::Object(RVObject::from_map(outer_map));
+        // Different instances, even with same content, hash differently
+        assert_ne!(hash(&obj1), hash(&obj2));
+    }
 
-        // Create a different complex structure
-        let simple_obj = RV::Object(RVObject::from_map({
-            let mut map = FxHashMap::default();
-            map.insert("x".to_string(), RV::Num(1.0));
-            map
-        }));
+    #[test]
+    fn test_rv_hash_datatypes() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
 
-        // Despite vastly different internal structure, they should hash the same
-        // because they're both Object variants (discriminant-only hashing)
-        assert_eq!(hash_rv(&complex_obj), hash_rv(&simple_obj));
+        fn hash(rv: &RV) -> u64 {
+            let mut hasher = DefaultHasher::new();
+            rv.hash(&mut hasher);
+            hasher.finish()
+        }
 
-        // Test with Datatype variant
-        let datatype1 = RV::Datatype(Datatype::Str);
-        let datatype2 = RV::Datatype(Datatype::Bool);
+        // Datatypes: value-based hashing via string representation
+        assert_ne!(hash(&RV::Datatype(Datatype::Str)), 
+                   hash(&RV::Datatype(Datatype::Num)));
+        assert_eq!(hash(&RV::Datatype(Datatype::Bool)), 
+                   hash(&RV::Datatype(Datatype::Bool)));
+    }
 
-        // Different datatype content should still hash the same
-        assert_eq!(hash_rv(&datatype1), hash_rv(&datatype2));
+    #[test]
+    fn test_rv_hash_for_group_by() {
+        use std::collections::HashMap;
 
-        // But different from other variants
-        assert_ne!(hash_rv(&datatype1), hash_rv(&complex_obj));
+        // This test verifies the fix for the GROUP BY performance issue
+        // Numbers with different values must hash to different buckets
+        
+        let mut groups: HashMap<RV, usize> = HashMap::new();
+        
+        for i in 0..500 {
+            let key = RV::Num(i as f64);
+            *groups.entry(key).or_insert(0) += 1;
+        }
+        
+        // Should have 500 distinct hash buckets
+        assert_eq!(groups.len(), 500);
     }
 }

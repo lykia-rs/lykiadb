@@ -393,6 +393,9 @@ pub enum PlannerError {
 
     #[error("Duplicate object '{0}' in scope")]
     DuplicateObjectInScope(Identifier),
+
+    #[error("SELECT * with aggregation is not allowed")]
+    SelectAllWithAggregationNotAllowed(Span),
 }
 
 impl From<PlannerError> for InputError {
@@ -414,6 +417,9 @@ impl From<PlannerError> for InputError {
                 "Make sure object names are unique within the same scope",
                 ident.span,
             ),
+            PlannerError::SelectAllWithAggregationNotAllowed(span) => {
+                ("Specify explicit projections instead of using SELECT *", *span)
+            }
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))
