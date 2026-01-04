@@ -13,9 +13,9 @@ pub enum Request {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    Value(Value, u128),
-    Program(Value, u128),
-    Error(InputError, u128),
+    Value(Value, u64),
+    Program(Value, u64),
+    Error(InputError, u64),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
