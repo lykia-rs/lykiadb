@@ -131,40 +131,35 @@ impl<'a> PlanExecutor<'a> {
                 Ok(Box::from(iter))
             }
             Node::EvalScan { source, filter } => {
-                let mut evaluated = self.interpreter.eval(&source.expr);
-                if let Err(e) = evaluated {
-                    match e {
-                        HaltReason::Error(err) => return Err(err),
-                        HaltReason::Return(value) => {
-                            evaluated = Ok(value);
-                        }
+                match self.interpreter.eval(&source.expr) {
+                    Err(HaltReason::Error(err) ) => Err(err),
+                    Err(HaltReason::Return(value)) |
+                    Ok(value) => {
+                        let alias = source.alias.to_owned();
+
+                        let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
+
+                        let mapper = move |v: RV| {
+                            let mut env = ExecutionRow::new();
+                            env.insert(sym_alias, v.clone());
+                            env
+                        };
+
+                        let iter = match value {
+                            RV::Array(arr) => {
+                                let c = arr.collect();
+                                c.into_iter().map(mapper)
+                            }
+                            _ => vec![value]
+                                .into_iter()
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .map(mapper),
+                        };
+
+                        Ok(Box::from(iter))
                     }
                 }
-
-                let alias = source.alias.to_owned();
-                let value = evaluated.unwrap();
-
-                let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
-
-                let mapper = move |v: RV| {
-                    let mut env = ExecutionRow::new();
-                    env.insert(sym_alias, v.clone());
-                    env
-                };
-
-                let iter = match value {
-                    RV::Array(arr) => {
-                        let c = arr.collect();
-                        c.into_iter().map(mapper)
-                    }
-                    _ => vec![value]
-                        .into_iter()
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .map(mapper),
-                };
-
-                Ok(Box::from(iter))
             }
             Node::Aggregate {
                 source,
