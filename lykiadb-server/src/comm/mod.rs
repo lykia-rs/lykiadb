@@ -31,9 +31,15 @@ impl ServerSession {
                         let elapsed = start.elapsed();
                         info!("{:?} (took {:?})", message, elapsed);
                         let response = if execution.is_ok() {
-                            Response::Value(execution.unwrap().to_string().into(), elapsed.as_millis() as u64)
+                            Response::Value(
+                                execution.unwrap().to_string().into(),
+                                elapsed.as_millis() as u64,
+                            )
                         } else {
-                            Response::Error(execution.err().unwrap().generalize(), elapsed.as_millis() as u64)
+                            Response::Error(
+                                execution.err().unwrap().generalize(),
+                                elapsed.as_millis() as u64,
+                            )
                         };
 
                         self.conn.write(Message::Response(response)).await.unwrap();

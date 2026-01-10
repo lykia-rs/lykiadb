@@ -5,7 +5,6 @@ pub(crate) struct CountAggregator {
     count: usize,
 }
 
-
 impl Aggregator for CountAggregator {
     fn row(&mut self, _expr_val: &RV) {
         self.count += 1;

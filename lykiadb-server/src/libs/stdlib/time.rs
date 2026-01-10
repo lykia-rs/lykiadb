@@ -34,6 +34,6 @@ mod tests {
         // Test clock function
         let result = nt_clock(&mut interpreter, &Span::default(), &[]);
 
-        assert_eq!(matches!(result, Ok(RV::Num(_))), true);
+        assert!(matches!(result, Ok(RV::Num(_))));
     }
 }

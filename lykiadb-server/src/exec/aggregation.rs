@@ -65,10 +65,7 @@ impl Grouper {
         for (bucket, agg) in self.groups.iter() {
             let mut row = ExecutionRow::new();
             for (idx, value) in bucket.iter().enumerate() {
-                row.insert(
-                    GLOBAL_INTERNER.intern(&format!("col_{}", idx)),
-                    value.clone(),
-                );
+                row.insert(GLOBAL_INTERNER.intern(&format!("col_{idx}")), value.clone());
             }
             for (idx, value) in agg.iter().enumerate() {
                 row.insert(
