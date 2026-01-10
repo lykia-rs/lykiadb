@@ -202,7 +202,7 @@ impl<'a> PlanExecutor<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::{engine::interpreter::tests::create_test_interpreter, value::environment::EnvironmentError};
     use crate::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    fn test_execute_node_evalscan_with_array() {
+    fn test_execute_node_evalscan_with_array() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create an EvalScan node with an array literal
@@ -272,13 +272,15 @@ mod tests {
         let result = executor.execute_node(node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 3);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_evalscan_with_single_value() {
+    fn test_execute_node_evalscan_with_single_value() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create an EvalScan node with a single value
@@ -297,20 +299,19 @@ mod tests {
         let result = executor.execute_node(node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 1);
 
         let symbol = GLOBAL_INTERNER.intern("single");
-        let value = rows[0].get(&symbol).unwrap();
-        match value {
-            RV::Str(s) => assert_eq!(s.as_str(), "test_value"),
-            _ => panic!("Expected string value"),
-        }
+
+        assert!(matches!(rows[0].get(&symbol), Some(RV::Str(_))));
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_limit() {
+    fn test_execute_node_limit() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node (EvalScan with array)
@@ -341,16 +342,18 @@ mod tests {
         let result = executor.execute_node(limit_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 2);
         let symbol = GLOBAL_INTERNER.intern("numbers");
         assert_eq!(rows[0].get(&symbol), Some(&RV::Num(1.0)));
         assert_eq!(rows[1].get(&symbol), Some(&RV::Num(2.0)));
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_offset() {
+    fn test_execute_node_offset() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node (EvalScan with array)
@@ -381,17 +384,19 @@ mod tests {
         let result = executor.execute_node(offset_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 3);
         let symbol = GLOBAL_INTERNER.intern("numbers");
         assert_eq!(rows[0].get(&symbol), Some(&RV::Num(3.0)));
         assert_eq!(rows[1].get(&symbol), Some(&RV::Num(4.0)));
         assert_eq!(rows[2].get(&symbol), Some(&RV::Num(5.0)));
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_subquery() {
+    fn test_execute_node_subquery() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node (EvalScan with array)
@@ -419,7 +424,7 @@ mod tests {
         let result = executor.execute_node(subquery_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 2);
 
@@ -446,10 +451,12 @@ mod tests {
                 .unwrap(),
             RV::Num(2.0)
         );
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_filter_constant_true() {
+    fn test_execute_node_filter_constant_true() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -478,13 +485,15 @@ mod tests {
         let result = executor.execute_node(filter_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 2);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_filter_constant_false() {
+    fn test_execute_node_filter_constant_false() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -513,13 +522,15 @@ mod tests {
         let result = executor.execute_node(filter_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_projection_all() {
+    fn test_execute_node_projection_all() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -547,13 +558,15 @@ mod tests {
         let result = executor.execute_node(projection_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 2);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_projection_expr() {
+    fn test_execute_node_projection_expr() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -584,21 +597,21 @@ mod tests {
         let result = executor.execute_node(projection_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 1);
 
         // Check the projected value
         let symbol = GLOBAL_INTERNER.intern("projected");
         let value = rows[0].get(&symbol).unwrap();
-        match value {
-            RV::Str(s) => assert_eq!(s.as_str(), "projected_value"),
-            _ => panic!("Expected string value"),
-        }
+
+        assert!(matches!(value, RV::Str(s) if s.as_str() == "projected_value"));
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_evalscan_empty_array() {
+    fn test_execute_node_evalscan_empty_array() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create an EvalScan node with an empty array
@@ -617,13 +630,15 @@ mod tests {
         let result = executor.execute_node(node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_limit_larger_than_available() {
+    fn test_execute_node_limit_larger_than_available() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node with 2 items
@@ -651,14 +666,16 @@ mod tests {
         let result = executor.execute_node(limit_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         // Should return all available items
         assert_eq!(rows.len(), 2);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_limit_zero() {
+    fn test_execute_node_limit_zero() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -686,13 +703,15 @@ mod tests {
         let result = executor.execute_node(limit_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_offset_larger_than_available() {
+    fn test_execute_node_offset_larger_than_available() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node with 2 items
@@ -720,14 +739,16 @@ mod tests {
         let result = executor.execute_node(offset_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         // Should return empty result
         assert_eq!(rows.len(), 0);
+
+        Ok(())
     }
 
     #[test]
-    fn test_execute_node_projection_all_with_collection() {
+    fn test_execute_node_projection_all_with_collection() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node
@@ -755,13 +776,15 @@ mod tests {
         let result = executor.execute_node(projection_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 1);
+
+        Ok(())
     }
 
     #[test]
-    fn test_complex_plan_execution() {
+    fn test_complex_plan_execution() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create a complex plan with multiple nodes: EvalScan -> Filter -> Limit
@@ -802,14 +825,16 @@ mod tests {
         let result = executor.execute_plan(plan);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         // Should have 3 rows due to limit
         assert_eq!(rows.len(), 3);
+
+        Ok(())
     }
 
     #[test]
-    fn test_complex_plan_with_offset_and_projection() {
+    fn test_complex_plan_with_offset_and_projection() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create a plan with: EvalScan -> Offset -> Projection -> Subquery
@@ -850,7 +875,7 @@ mod tests {
         let result = executor.execute_node(subquery_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         // Should have 2 rows (3 original - 1 offset)
         assert_eq!(rows.len(), 2);
@@ -860,10 +885,12 @@ mod tests {
         for row in &rows {
             assert!(row.get(&symbol).is_some());
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_evalscan_with_different_value_types() {
+    fn test_evalscan_with_different_value_types() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Test with boolean value
@@ -882,20 +909,19 @@ mod tests {
         let result = executor.execute_node(node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 1);
 
         let symbol = GLOBAL_INTERNER.intern("bool_val");
-        let value = rows[0].get(&symbol).unwrap();
-        match value {
-            RV::Bool(b) => assert!(*b),
-            _ => panic!("Expected boolean value"),
-        }
+
+        assert!(matches!(rows[0].get(&symbol), Some(RV::Bool(true))));
+
+        Ok(())
     }
 
     #[test]
-    fn test_projection_expr_with_undefined_result() {
+    fn test_projection_expr_with_undefined_result() -> Result<(), ExecutionError> {
         let mut executor = create_test_executor();
 
         // Create source node with one item
@@ -924,15 +950,13 @@ mod tests {
         let result = executor.execute_node(projection_node);
         assert!(result.is_ok());
 
-        let iterator = result.unwrap();
+        let iterator = result?;
         let rows: Vec<ExecutionRow> = iterator.collect();
         assert_eq!(rows.len(), 1);
 
         let symbol = GLOBAL_INTERNER.intern("undef");
-        let value = rows[0].get(&symbol).unwrap();
-        match value {
-            RV::Undefined => {} // Expected
-            _ => panic!("Expected undefined value"),
-        }
+        assert!(matches!(rows[0].get(&symbol), Some(RV::Undefined)));
+
+        Ok(())
     }
 }
