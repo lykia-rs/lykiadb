@@ -67,16 +67,16 @@ impl Shell {
 
     fn handle_response(&mut self, filename: &str, content: &str, response: Message) {
         match response {
-            Message::Response(Response::Value(value))
-            | Message::Response(Response::Program(value)) => match value {
+            Message::Response(Response::Value(value, time))
+            | Message::Response(Response::Program(value, time)) => match value {
                 serde_json::Value::String(str) => {
-                    println!("{str}")
+                    println!("{str} (took {time:?})")
                 }
                 _ => {
-                    println!("{}", serde_json::to_string_pretty(&value).unwrap())
+                    println!("{} (took {time:?})", serde_json::to_string_pretty(&value).unwrap())
                 }
             },
-            Message::Response(Response::Error(err)) => {
+            Message::Response(Response::Error(err, time)) => {
                 err.report(filename, content, &mut stdout());
             }
             _ => panic!(""),
