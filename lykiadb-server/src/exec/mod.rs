@@ -7,7 +7,7 @@ use crate::{
     },
     exec::aggregation::Grouper,
     global::GLOBAL_INTERNER,
-    plan::{Node, Plan},
+    plan::{IntermediateExpr, Node, Plan},
     value::{
         RV,
         iterator::{ExecutionRow, RVs},
@@ -58,39 +58,36 @@ impl<'a> PlanExecutor<'a> {
                 predicate,
                 subqueries,
             } => {
-                if predicate.is_constant() {
-                    // TODO(vck): Maybe we can deal with this at compile time?
-                    let constant_evaluation = predicate.as_bool().map(|b| {
-                        if b {
+                match predicate {
+                    IntermediateExpr::Constant(ct) => {
+                        // TODO(vck): Maybe we can deal with this at compile time?
+                        if ct.as_bool() {
                             let cursor = self.execute_node(*source)?;
                             Ok(cursor)
                         } else {
                             let empty_iter = Vec::<ExecutionRow>::new().into_iter();
                             Ok(Box::from(empty_iter) as RVs)
                         }
-                    });
-
-                    return constant_evaluation.unwrap();
-                }
-
-                let cursor = self.execute_node(*source)?;
-
-                let mut inter_fork = self.interpreter.clone();
-
-                let expr = predicate.as_expr().unwrap().clone();
-
-                let iter = cursor.filter_map(move |row: ExecutionRow| {
-                    let evaluated = inter_fork.eval_with_row(&expr, &row);
-                    if let Ok(value) = evaluated
-                        && value.as_bool()
-                    {
-                        Some(row)
-                    } else {
-                        None
                     }
-                });
+                    IntermediateExpr::Expr { expr } => {
+                        let cursor = self.execute_node(*source)?;
 
-                Ok(Box::from(iter))
+                        let mut inter_fork = self.interpreter.clone();
+
+                        let iter = cursor.filter_map(move |row: ExecutionRow| {
+                            let evaluated = inter_fork.eval_with_row(&expr, &row);
+                            if let Ok(value) = evaluated
+                                && value.as_bool()
+                            {
+                                Some(row)
+                            } else {
+                                None
+                            }
+                        });
+
+                        Ok(Box::from(iter))
+                    }
+                }
             }
             Node::Projection { source, fields } => {
                 let cursor = self.execute_node(*source)?;
