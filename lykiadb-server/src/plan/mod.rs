@@ -397,9 +397,10 @@ impl From<PlannerError> for InputError {
                 "Make sure object names are unique within the same scope",
                 ident.span,
             ),
-            PlannerError::SelectAllWithAggregationNotAllowed(span) => {
-                ("Specify explicit projections instead of using SELECT *", *span)
-            }
+            PlannerError::SelectAllWithAggregationNotAllowed(span) => (
+                "Specify explicit projections instead of using SELECT *",
+                *span,
+            ),
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

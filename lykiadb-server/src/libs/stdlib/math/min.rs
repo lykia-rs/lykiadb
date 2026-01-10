@@ -5,7 +5,6 @@ pub(crate) struct MinAggregator {
     value: Option<f64>,
 }
 
-
 impl Aggregator for MinAggregator {
     fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {

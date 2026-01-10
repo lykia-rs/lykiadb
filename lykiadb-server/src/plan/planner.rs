@@ -10,7 +10,10 @@ use crate::{
 };
 
 use lykiadb_lang::ast::{
-    Spanned, expr::Expr, sql::{SqlProjection, SqlSelect, SqlSelectCore}, visitor::{ExprVisitor, VisitorMut}
+    Spanned,
+    expr::Expr,
+    sql::{SqlProjection, SqlSelect, SqlSelectCore},
+    visitor::{ExprVisitor, VisitorMut},
 };
 
 use super::{
@@ -161,11 +164,13 @@ impl<'a> Planner<'a> {
         };
 
         if !aggregates.is_empty() || !group_by.is_empty() {
-            if core.projection.iter().any(|p| matches!(p, SqlProjection::All { collection: _ })) {
+            if core
+                .projection
+                .iter()
+                .any(|p| matches!(p, SqlProjection::All { collection: _ }))
+            {
                 return Err(HaltReason::Error(ExecutionError::Plan(
-                    PlannerError::SelectAllWithAggregationNotAllowed(
-                        core.span
-                    ),
+                    PlannerError::SelectAllWithAggregationNotAllowed(core.span),
                 )));
             }
 
@@ -184,7 +189,6 @@ impl<'a> Planner<'a> {
                     subqueries,
                 }
             }
-
         } else if let Some(having) = &core.having {
             // Fail fast if there is a HAVING clause without aggregation.
             return Err(HaltReason::Error(ExecutionError::Plan(
@@ -579,7 +583,10 @@ mod tests {
                     alias: None,
                 },
                 SqlProjection::Expr {
-                    expr: Box::new(create_call_expr("avg", vec![create_identifier_expr("price")])),
+                    expr: Box::new(create_call_expr(
+                        "avg",
+                        vec![create_identifier_expr("price")],
+                    )),
                     alias: None,
                 },
             ],

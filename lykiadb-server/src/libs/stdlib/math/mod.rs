@@ -10,8 +10,8 @@ mod avg;
 mod count;
 mod max;
 mod min;
-mod sum;
 mod modulo;
+mod sum;
 
 lykia_module!(math, {
     avg => lykia_agg_fn!(avg, AvgAggregator),

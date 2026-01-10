@@ -117,7 +117,7 @@ impl<'a> PlanExecutor<'a> {
                                 };
                                 let key = alias
                                     .as_ref()
-                                    .and_then(|a| Some(a.to_string()))
+                                    .map(|a| a.to_string())
                                     .unwrap_or(expr.to_string());
 
                                 upstream.insert(GLOBAL_INTERNER.intern(&key), value);
@@ -130,37 +130,34 @@ impl<'a> PlanExecutor<'a> {
 
                 Ok(Box::from(iter))
             }
-            Node::EvalScan { source, filter } => {
-                match self.interpreter.eval(&source.expr) {
-                    Err(HaltReason::Error(err) ) => Err(err),
-                    Err(HaltReason::Return(value)) |
-                    Ok(value) => {
-                        let alias = source.alias.to_owned();
+            Node::EvalScan { source, filter } => match self.interpreter.eval(&source.expr) {
+                Err(HaltReason::Error(err)) => Err(err),
+                Err(HaltReason::Return(value)) | Ok(value) => {
+                    let alias = source.alias.to_owned();
 
-                        let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
+                    let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
 
-                        let mapper = move |v: RV| {
-                            let mut env = ExecutionRow::new();
-                            env.insert(sym_alias, v.clone());
-                            env
-                        };
+                    let mapper = move |v: RV| {
+                        let mut env = ExecutionRow::new();
+                        env.insert(sym_alias, v.clone());
+                        env
+                    };
 
-                        let iter = match value {
-                            RV::Array(arr) => {
-                                let c = arr.collect();
-                                c.into_iter().map(mapper)
-                            }
-                            _ => vec![value]
-                                .into_iter()
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                                .map(mapper),
-                        };
+                    let iter = match value {
+                        RV::Array(arr) => {
+                            let c = arr.collect();
+                            c.into_iter().map(mapper)
+                        }
+                        _ => vec![value]
+                            .into_iter()
+                            .collect::<Vec<_>>()
+                            .into_iter()
+                            .map(mapper),
+                    };
 
-                        Ok(Box::from(iter))
-                    }
+                    Ok(Box::from(iter))
                 }
-            }
+            },
             Node::Aggregate {
                 source,
                 group_by,

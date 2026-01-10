@@ -73,7 +73,10 @@ impl Shell {
                     println!("{str} (took {time:?})")
                 }
                 _ => {
-                    println!("{} (took {time:?})", serde_json::to_string_pretty(&value).unwrap())
+                    println!(
+                        "{} (took {time:?})",
+                        serde_json::to_string_pretty(&value).unwrap()
+                    )
                 }
             },
             Message::Response(Response::Error(err, time)) => {

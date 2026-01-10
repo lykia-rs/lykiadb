@@ -533,10 +533,14 @@ mod tests {
         }
 
         // Strings: value-based hashing
-        assert_ne!(hash(&RV::Str(Arc::new("hello".to_string()))), 
-                   hash(&RV::Str(Arc::new("world".to_string()))));
-        assert_eq!(hash(&RV::Str(Arc::new("test".to_string()))), 
-                   hash(&RV::Str(Arc::new("test".to_string()))));
+        assert_ne!(
+            hash(&RV::Str(Arc::new("hello".to_string()))),
+            hash(&RV::Str(Arc::new("world".to_string())))
+        );
+        assert_eq!(
+            hash(&RV::Str(Arc::new("test".to_string()))),
+            hash(&RV::Str(Arc::new("test".to_string())))
+        );
 
         // Numbers: value-based hashing
         assert_ne!(hash(&RV::Num(1.0)), hash(&RV::Num(2.0)));
@@ -566,7 +570,7 @@ mod tests {
         let arr1 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
         let arr2 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
         let arr3 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(3.0)]));
-        
+
         assert_eq!(hash(&arr1), hash(&arr2)); // Same content
         assert_ne!(hash(&arr1), hash(&arr3)); // Different content
     }
@@ -607,10 +611,14 @@ mod tests {
         }
 
         // Datatypes: value-based hashing via string representation
-        assert_ne!(hash(&RV::Datatype(Datatype::Str)), 
-                   hash(&RV::Datatype(Datatype::Num)));
-        assert_eq!(hash(&RV::Datatype(Datatype::Bool)), 
-                   hash(&RV::Datatype(Datatype::Bool)));
+        assert_ne!(
+            hash(&RV::Datatype(Datatype::Str)),
+            hash(&RV::Datatype(Datatype::Num))
+        );
+        assert_eq!(
+            hash(&RV::Datatype(Datatype::Bool)),
+            hash(&RV::Datatype(Datatype::Bool))
+        );
     }
 
     #[test]
@@ -619,14 +627,14 @@ mod tests {
 
         // This test verifies the fix for the GROUP BY performance issue
         // Numbers with different values must hash to different buckets
-        
+
         let mut groups: HashMap<RV, usize> = HashMap::new();
-        
+
         for i in 0..500 {
             let key = RV::Num(i as f64);
             *groups.entry(key).or_insert(0) += 1;
         }
-        
+
         // Should have 500 distinct hash buckets
         assert_eq!(groups.len(), 500);
     }
