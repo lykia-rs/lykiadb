@@ -90,15 +90,13 @@ mod tests {
         assert!(result.is_err());
 
         let err = result.unwrap_err();
-        extract!(HaltReason::Error(
-            ExecutionError::Interpret(
-                InterpretError::InvalidArgumentType {
-                    expected,
-                    ..
-                }
-            )
-        ), err);
-        
+        extract!(
+            HaltReason::Error(ExecutionError::Interpret(
+                InterpretError::InvalidArgumentType { expected, .. }
+            )),
+            err
+        );
+
         assert_eq!(expected, "number");
     }
 

@@ -54,7 +54,7 @@ impl TestRunner {
 #[macro_export]
 macro_rules! extract {
     ($pat: pat, $expr:expr) => {
-        let $pat = $expr else { 
+        let $pat = $expr else {
             panic!("Extract pattern did not match");
         };
     };

@@ -170,7 +170,7 @@ mod tests {
 
         // Verify math module contents
         extract!(Some(RV::Object(math_obj)), lib_map.get("math"));
-        
+
         assert_eq!(math_obj.len(), 2);
         assert!(math_obj.contains_key("add"));
         assert!(math_obj.contains_key("multiply"));

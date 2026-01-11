@@ -170,7 +170,7 @@ mod tests {
         assert_eq!(arr.len(), 2);
         assert_eq!(arr.get(0), RV::Num(1.0));
         assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
-    
+
         // Test object
         let object_result = nt_json_decode(
             &mut interpreter,

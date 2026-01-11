@@ -604,7 +604,9 @@ mod tests {
         // Check the projected value
         let symbol = GLOBAL_INTERNER.intern("projected");
 
-        assert!(matches!(rows[0].get(&symbol), Some(RV::Str(s)) if s.as_str() == "projected_value"));
+        assert!(
+            matches!(rows[0].get(&symbol), Some(RV::Str(s)) if s.as_str() == "projected_value")
+        );
 
         Ok(())
     }

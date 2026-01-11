@@ -272,6 +272,7 @@ mod tests {
             scope::tests::create_test_scope,
         },
     };
+    use lykiadb_common::extract;
     use lykiadb_lang::ast::{
         Literal, Span,
         expr::{
@@ -282,8 +283,6 @@ mod tests {
             },
         },
     };
-    use lykiadb_common::extract;
-
 
     /// Helper function to create a test planner instance
     pub fn create_test_planner() -> Planner<'static> {
@@ -297,8 +296,11 @@ mod tests {
             assert!($result.is_ok());
             let (intermediate_expr, subqueries) = $result.unwrap();
 
-            extract!(IntermediateExpr::Expr { expr: boxed_expr }, intermediate_expr);
-            
+            extract!(
+                IntermediateExpr::Expr { expr: boxed_expr },
+                intermediate_expr
+            );
+
             assert_eq!(*boxed_expr, *$expected_expr);
             assert_eq!(subqueries.len(), $expected_subquery_count);
         };
