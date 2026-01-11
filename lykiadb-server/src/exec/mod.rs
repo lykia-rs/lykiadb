@@ -202,7 +202,7 @@ impl<'a> PlanExecutor<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{engine::interpreter::tests::create_test_interpreter, value::environment::EnvironmentError};
+    use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
@@ -603,9 +603,8 @@ mod tests {
 
         // Check the projected value
         let symbol = GLOBAL_INTERNER.intern("projected");
-        let value = rows[0].get(&symbol).unwrap();
 
-        assert!(matches!(value, RV::Str(s) if s.as_str() == "projected_value"));
+        assert!(matches!(rows[0].get(&symbol), Some(RV::Str(s)) if s.as_str() == "projected_value"));
 
         Ok(())
     }
