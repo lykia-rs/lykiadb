@@ -282,6 +282,8 @@ mod tests {
             },
         },
     };
+    use lykiadb_common::extract;
+
 
     /// Helper function to create a test planner instance
     pub fn create_test_planner() -> Planner<'static> {
@@ -295,13 +297,9 @@ mod tests {
             assert!($result.is_ok());
             let (intermediate_expr, subqueries) = $result.unwrap();
 
-            match intermediate_expr {
-                IntermediateExpr::Expr { expr: boxed_expr } => {
-                    assert_eq!(*boxed_expr, *$expected_expr);
-                }
-                _ => panic!("Expected IntermediateExpr::Expr"),
-            }
-
+            extract!(IntermediateExpr::Expr { expr: boxed_expr }, intermediate_expr);
+            
+            assert_eq!(*boxed_expr, *$expected_expr);
             assert_eq!(subqueries.len(), $expected_subquery_count);
         };
     }

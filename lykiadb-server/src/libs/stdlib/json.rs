@@ -61,6 +61,7 @@ mod tests {
     use crate::engine::interpreter::tests::create_test_interpreter;
     use crate::util::alloc_shared;
     use crate::value::{array::RVArray, object::RVObject};
+    use lykiadb_common::extract;
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
@@ -117,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn test_json_decode() {
+    fn test_json_decode() -> Result<(), HaltReason> {
         let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
 
         // Test primitive values
@@ -162,16 +163,14 @@ mod tests {
             &mut interpreter,
             &Span::default(),
             &[RV::Str(Arc::new("[1.0, \"test\"]".to_string()))],
-        );
+        )?;
 
-        if let Ok(RV::Array(arr)) = array_result {
-            assert_eq!(arr.len(), 2);
-            assert_eq!(arr.get(0), RV::Num(1.0));
-            assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
-        } else {
-            panic!("Expected array result");
-        }
+        extract!(RV::Array(arr), array_result);
 
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr.get(0), RV::Num(1.0));
+        assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
+    
         // Test object
         let object_result = nt_json_decode(
             &mut interpreter,
@@ -179,15 +178,13 @@ mod tests {
             &[RV::Str(Arc::new(
                 "{\"key\": 123.0, \"msg\": \"value\"}".to_string(),
             ))],
-        );
+        )?;
 
-        if let Ok(RV::Object(obj)) = object_result {
-            assert_eq!(obj.len(), 2);
-            assert_eq!(obj.get("key"), Some(RV::Num(123.0)));
-            assert_eq!(obj.get("msg"), Some(RV::Str(Arc::new("value".to_string()))));
-        } else {
-            panic!("Expected object result");
-        }
+        extract!(RV::Object(obj), object_result);
+
+        assert_eq!(obj.len(), 2);
+        assert_eq!(obj.get("key"), Some(RV::Num(123.0)));
+        assert_eq!(obj.get("msg"), Some(RV::Str(Arc::new("value".to_string()))));
 
         // Test error cases
         assert!(matches!(
@@ -203,5 +200,7 @@ mod tests {
             ),
             Err(HaltReason::Error(_))
         ));
+
+        Ok(())
     }
 }

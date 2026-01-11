@@ -36,6 +36,8 @@ lykia_module!(bench, {
 
 #[cfg(test)]
 mod tests {
+    use lykiadb_common::extract;
+
     use crate::engine::{error::ExecutionError, interpreter::tests::create_test_interpreter};
 
     use super::*;
@@ -88,18 +90,16 @@ mod tests {
         assert!(result.is_err());
 
         let err = result.unwrap_err();
-        match err {
-            HaltReason::Error(interp_err) => match &interp_err {
-                ExecutionError::Interpret(InterpretError::InvalidArgumentType {
-                    span: _,
+        extract!(HaltReason::Error(
+            ExecutionError::Interpret(
+                InterpretError::InvalidArgumentType {
                     expected,
-                }) => {
-                    assert_eq!(expected, "number");
+                    ..
                 }
-                _ => panic!("Expected InvalidArgumentType error"),
-            },
-            _ => panic!("Expected InterpretError"),
-        }
+            )
+        ), err);
+        
+        assert_eq!(expected, "number");
     }
 
     #[test]

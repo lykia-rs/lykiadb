@@ -81,6 +81,7 @@ mod tests {
     use super::*;
     use crate::engine::interpreter::{HaltReason, Interpreter};
     use crate::value::callable::Function;
+    use lykiadb_common::extract;
     use lykiadb_lang::{ast::Span, types::Datatype};
 
     // Helper function to create a simple test callable
@@ -168,21 +169,17 @@ mod tests {
         assert!(lib_map.contains_key("string"));
 
         // Verify math module contents
-        if let Some(RV::Object(math_obj)) = lib_map.get("math") {
-            assert_eq!(math_obj.len(), 2);
-            assert!(math_obj.contains_key("add"));
-            assert!(math_obj.contains_key("multiply"));
-        } else {
-            panic!("Expected math module to be an object");
-        }
+        extract!(Some(RV::Object(math_obj)), lib_map.get("math"));
+        
+        assert_eq!(math_obj.len(), 2);
+        assert!(math_obj.contains_key("add"));
+        assert!(math_obj.contains_key("multiply"));
 
         // Verify string module contents
-        if let Some(RV::Object(string_obj)) = lib_map.get("string") {
-            assert_eq!(string_obj.len(), 1);
-            assert!(string_obj.contains_key("concat"));
-        } else {
-            panic!("Expected string module to be an object");
-        }
+        extract!(Some(RV::Object(string_obj)), lib_map.get("string"));
+
+        assert_eq!(string_obj.len(), 1);
+        assert!(string_obj.contains_key("concat"));
     }
 
     #[test]
