@@ -161,7 +161,7 @@ mod tests {
     };
 
     #[test]
-    fn test_collect_aggregates_simple_projection() {
+    fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -189,13 +189,15 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter).unwrap();
+        let result = collect_aggregates(&core, &mut interpreter)?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
+
+        Ok(())
     }
 
     #[test]
-    fn test_collect_aggregates_having_clause() {
+    fn test_collect_aggregates_having_clause() -> Result<(), HaltReason> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -220,9 +222,11 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter).unwrap();
+        let result = collect_aggregates(&core, &mut interpreter)?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
+
+        Ok(())
     }
 
     #[test]
@@ -266,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_aggregation_should_be_drained_after_each_visit() {
+    fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -285,12 +289,14 @@ mod tests {
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
-        let result1 = visitor.visit(&avg_call).unwrap();
+        let result1 = visitor.visit(&avg_call)?;
         assert_eq!(result1.len(), 1);
         assert_eq!(result1[0].name, "avg");
 
-        let result2 = visitor.visit(&avg_call).unwrap();
+        let result2 = visitor.visit(&avg_call)?;
         assert_eq!(result2.len(), 1);
         assert_eq!(result2[0].name, "avg");
+
+        Ok(())
     }
 }
