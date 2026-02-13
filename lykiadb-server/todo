@@ -25,14 +25,11 @@
 - Order by has to be outside of select core
 
 # planning.aggregation
-- max(avg(a), avg(b)) wouldn't work as nested aggregations are not supported
-- Downstream agg/group by fields must be referenced in projection
-- How to reference upstream fields???
-- Aggregation detector
-    - Context check (?)
+- max(avg(a), avg(b)) wouldn't work since nested aggregations are not supported
+- Group buckets should be accessible as in projection (currently shown as col_{i})
 
-# execution
-- execution an undefined function does not return an error
+# execution.generic
+- calling an undefined function does not return an error
 - execution_row 
     - should not be cloned before passing to inter_fork
     - pass by reference when possible
