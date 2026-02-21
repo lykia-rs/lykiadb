@@ -28,7 +28,7 @@ impl<'a> SqlExprReducer<'a> {
     }
 }
 
-impl<'a> ExprReducer<SqlSelect, HaltReason<'a>> for SqlExprReducer<'a> {
+impl<'scope, 'a> ExprReducer<SqlSelect, HaltReason<'a>> for SqlExprReducer<'scope> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'a>> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
