@@ -17,7 +17,7 @@ pub mod iterator;
 pub mod object;
 
 #[derive(Debug, Clone)]
-pub enum RV {
+pub enum RV<'v> {
     // Boolean-like values
     Undefined,
     Null,
@@ -37,15 +37,15 @@ pub enum RV {
     DocumentArray(bson::Array),
 
     // Engine types
-    Object(RVObject),
-    Array(RVArray),
-    Callable(RVCallable),
+    Object(RVObject<'v>),
+    Array(RVArray<'v>),
+    Callable(RVCallable<'v>),
     Datatype(Datatype),
 }
 
-impl Eq for RV {}
+impl<'v> Eq for RV<'v> {}
 
-impl std::hash::Hash for RV {
+impl<'v> std::hash::Hash for RV<'v> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         core::mem::discriminant(self).hash(state);
         match self {
@@ -97,8 +97,8 @@ impl std::hash::Hash for RV {
     }
 }
 
-impl From<RV> for Datatype {
-    fn from(rv: RV) -> Self {
+impl<'v> From<RV<'v>> for Datatype {
+    fn from(rv: RV<'v>) -> Self {
         match rv {
             RV::Datatype(t) => t,
             _ => Datatype::None,
@@ -106,7 +106,7 @@ impl From<RV> for Datatype {
     }
 }
 
-impl RV {
+impl<'v> RV<'v> {
     pub fn get_type(&self) -> Datatype {
         match &self {
             RV::Str(_) => Datatype::Str,
@@ -165,7 +165,7 @@ impl RV {
         }
     }
 
-    pub fn if_object(&self) -> Option<&RVObject> {
+    pub fn if_object(&self) -> Option<&RVObject<'v>> {
         match self {
             RV::Object(obj) => Some(obj),
             _ => None,
@@ -192,7 +192,7 @@ impl RV {
         self.as_bool().partial_cmp(&other)
     }
 
-    pub fn is_in(&self, other: &RV) -> RV {
+    pub fn is_in(&self, other: &RV<'v>) -> RV<'v> {
         match (self, other) {
             (RV::Str(lhs), RV::Str(rhs)) => RV::Bool(rhs.contains(lhs.as_str())),
             (lhs, RV::Array(rhs)) => RV::Bool(rhs.contains(lhs)),
@@ -201,12 +201,12 @@ impl RV {
         }
     }
 
-    pub fn not(&self) -> RV {
+    pub fn not(&self) -> RV<'v> {
         RV::Bool(!self.as_bool())
     }
 }
 
-impl Display for RV {
+impl<'v> Display for RV<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RV::Str(s) => write!(f, "{s}"),
@@ -246,7 +246,7 @@ impl Display for RV {
     }
 }
 
-impl Serialize for RV {
+impl<'v> Serialize for RV<'v> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -275,7 +275,7 @@ impl Serialize for RV {
     }
 }
 
-impl<'de> Deserialize<'de> for RV {
+impl<'de, 'v> Deserialize<'de> for RV<'v> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -304,7 +304,7 @@ impl<'de> Deserialize<'de> for RV {
     }
 }
 
-impl PartialEq for RV {
+impl<'v> PartialEq for RV<'v> {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
@@ -332,7 +332,7 @@ impl PartialEq for RV {
     }
 }
 
-impl PartialOrd for RV {
+impl<'v> PartialOrd for RV<'v> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
@@ -368,7 +368,7 @@ impl PartialOrd for RV {
     }
 }
 
-impl ops::Add for RV {
+impl<'v> ops::Add for RV<'v> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -393,7 +393,7 @@ impl ops::Add for RV {
     }
 }
 
-impl ops::Sub for RV {
+impl<'v> ops::Sub for RV<'v> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -408,7 +408,7 @@ impl ops::Sub for RV {
     }
 }
 
-impl ops::Mul for RV {
+impl<'v> ops::Mul for RV<'v> {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -423,7 +423,7 @@ impl ops::Mul for RV {
     }
 }
 
-impl ops::Div for RV {
+impl<'v> ops::Div for RV<'v> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {

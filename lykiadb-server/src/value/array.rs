@@ -4,17 +4,17 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct RVArray {
-    inner: Shared<Vec<RV>>,
+pub struct RVArray<'v> {
+    inner: Shared<Vec<RV<'v>>>,
 }
 
-impl Default for RVArray {
+impl<'v> Default for RVArray<'v> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RVArray {
+impl<'v> RVArray<'v> {
     pub fn new() -> Self {
         RVArray {
             inner: alloc_shared(Vec::new()),
@@ -29,25 +29,25 @@ impl RVArray {
         self.inner.read().unwrap().len()
     }
 
-    pub fn get(&self, index: usize) -> RV {
+    pub fn get(&self, index: usize) -> RV<'v> {
         self.inner.read().unwrap()[index].clone()
     }
 
-    pub fn contains(&self, value: &RV) -> bool {
+    pub fn contains(&self, value: &RV<'v>) -> bool {
         self.inner.read().unwrap().contains(value)
     }
 
-    pub fn insert(&mut self, value: RV) {
+    pub fn insert(&mut self, value: RV<'v>) {
         self.inner.write().unwrap().push(value);
     }
 
-    pub fn from_vec(vec: Vec<RV>) -> Self {
+    pub fn from_vec(vec: Vec<RV<'v>>) -> Self {
         RVArray {
             inner: alloc_shared(vec),
         }
     }
 
-    pub fn iter(&self) -> Box<dyn Iterator<Item = RV> + '_> {
+    pub fn iter(&self) -> Box<dyn Iterator<Item = RV<'v>> + '_> {
         let items = self
             .inner
             .read()
@@ -58,7 +58,7 @@ impl RVArray {
         Box::new(items.into_iter())
     }
 
-    pub fn collect(&self) -> Vec<RV> {
+    pub fn collect(&self) -> Vec<RV<'v>> {
         self.inner.read().unwrap().iter().cloned().collect()
     }
 }

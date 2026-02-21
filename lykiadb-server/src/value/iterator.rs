@@ -9,27 +9,26 @@ use crate::{
     value::{RV, object::RVObject},
 };
 
-pub type RVs = Box<dyn RVIterator>;
+pub type RVs<'v> = Box<dyn RVIterator<'v> + Send>;
 
-pub trait RVIterator: Iterator<Item = ExecutionRow> + DynClone {}
+pub trait RVIterator<'v>: Iterator<Item = ExecutionRow<'v>> + DynClone {}
 
-dyn_clone::clone_trait_object!(RVIterator);
-
-impl<I: Iterator<Item = ExecutionRow> + DynClone> RVIterator for I {}
+dyn_clone::clone_trait_object!(<'v> RVIterator<'v>);
+impl<'v, I: Iterator<Item = ExecutionRow<'v>> + DynClone> RVIterator<'v> for I {}
 
 #[derive(Debug, Clone)]
-pub struct ExecutionRow {
+pub struct ExecutionRow<'v> {
     pub keys: SmallVec<[Symbol; 4]>,
-    pub values: SmallVec<[RV; 4]>,
+    pub values: SmallVec<[RV<'v>; 4]>,
 }
 
-impl Default for ExecutionRow {
+impl<'v> Default for ExecutionRow<'v> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ExecutionRow {
+impl<'v> ExecutionRow<'v> {
     pub fn new() -> Self {
         ExecutionRow {
             keys: SmallVec::new(),
@@ -37,7 +36,7 @@ impl ExecutionRow {
         }
     }
 
-    pub fn get(&self, key: &Symbol) -> Option<&RV> {
+    pub fn get(&self, key: &Symbol) -> Option<&RV<'v>> {
         if let Some(pos) = self.keys.iter().position(|k| k == key) {
             self.values.get(pos)
         } else {
@@ -45,12 +44,12 @@ impl ExecutionRow {
         }
     }
 
-    pub fn insert(&mut self, key: Symbol, value: RV) {
+    pub fn insert(&mut self, key: Symbol, value: RV<'v>) {
         self.keys.push(key);
         self.values.push(value);
     }
 
-    pub fn as_value(&self) -> RV {
+    pub fn as_value(&self) -> RV<'v> {
         let mut map = RVObject::new();
         for (k, v) in self.keys.iter().zip(self.values.iter()) {
             map.insert(GLOBAL_INTERNER.resolve(*k).unwrap().to_string(), v.clone());
@@ -58,14 +57,14 @@ impl ExecutionRow {
         RV::Object(map)
     }
 
-    pub fn copy_to(&self, target: &mut ExecutionRow) {
+    pub fn copy_to(&self, target: &mut ExecutionRow<'v>) {
         for (k, v) in self.keys.iter().zip(self.values.iter()) {
             target.insert(*k, v.clone());
         }
     }
 }
 
-impl Display for ExecutionRow {
+impl<'v> Display for ExecutionRow<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut first = true;
         write!(f, "{{")?;

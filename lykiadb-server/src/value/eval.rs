@@ -2,7 +2,7 @@ use super::RV;
 use lykiadb_lang::ast::expr::Operation;
 
 #[inline(always)]
-pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
+pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operation) -> RV<'v> {
     /*
         TODO(vck):
             - Add support for object operations
@@ -20,8 +20,14 @@ pub fn eval_binary(left_eval: RV, right_eval: RV, operation: Operation) -> RV {
         Operation::Subtract => left_eval - right_eval,
         Operation::Multiply => left_eval * right_eval,
         Operation::Divide => left_eval / right_eval,
-        Operation::In => left_eval.is_in(&right_eval),
-        Operation::NotIn => left_eval.is_in(&right_eval).not(),
+        Operation::In => match left_eval.is_in(&right_eval) {
+            RV::Bool(a) => RV::Bool(a),
+            _ => RV::Undefined,
+        },
+        Operation::NotIn => match left_eval.is_in(&right_eval) {
+            RV::Bool(a) => RV::Bool(!a),
+            _ => RV::Undefined,
+        },
         // TODO: Implement operations:
         /*
            Operation::Like
@@ -1077,7 +1083,7 @@ mod property_tests {
     use proptest::prelude::*;
 
     // Strategy for generating RV values
-    fn rv_strategy() -> impl Strategy<Value = RV> {
+    fn rv_strategy<'v>() -> impl Strategy<Value = RV<'v>> {
         prop_oneof![
             Just(RV::Undefined),
             any::<bool>().prop_map(RV::Bool),
@@ -1090,7 +1096,7 @@ mod property_tests {
     }
 
     // Strategy for numeric RV values only
-    fn numeric_rv_strategy() -> impl Strategy<Value = RV> {
+    fn numeric_rv_strategy<'v>() -> impl Strategy<Value = RV<'v>> {
         prop_oneof![
             any::<bool>().prop_map(RV::Bool),
             any::<f64>()

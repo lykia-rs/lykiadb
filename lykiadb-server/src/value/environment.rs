@@ -7,9 +7,9 @@ use std::sync::{Arc, RwLock};
 
 use super::RV;
 #[derive(Debug)]
-pub struct EnvironmentFrame {
-    map: RwLock<FxHashMap<Symbol, RV>>,
-    pub parent: Option<Arc<EnvironmentFrame>>,
+pub struct EnvironmentFrame<'v> {
+    map: RwLock<FxHashMap<Symbol, RV<'v>>>,
+    pub parent: Option<Arc<EnvironmentFrame<'v>>>,
 }
 
 macro_rules! to_ancestor {
@@ -22,19 +22,19 @@ macro_rules! to_ancestor {
     }};
 }
 
-impl EnvironmentFrame {
-    pub fn new(parent: Option<Arc<EnvironmentFrame>>) -> EnvironmentFrame {
+impl<'v> EnvironmentFrame<'v> {
+    pub fn new(parent: Option<Arc<EnvironmentFrame<'v>>>) -> EnvironmentFrame<'v> {
         EnvironmentFrame {
             parent,
             map: RwLock::new(FxHashMap::default()),
         }
     }
 
-    pub fn define(&self, name: Symbol, value: RV) {
+    pub fn define(&self, name: Symbol, value: RV<'v>) {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV) -> Result<bool, HaltReason> {
+    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV<'v>) -> Result<bool, HaltReason> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
@@ -52,11 +52,11 @@ impl EnvironmentFrame {
     }
 
     pub fn assign_at(
-        env: &Arc<EnvironmentFrame>,
+        env: &Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: Symbol,
-        value: RV,
+        value: RV<'v>,
     ) -> Result<bool, HaltReason> {
         if distance == 0 {
             return env.assign(key, key_sym, value);
@@ -67,7 +67,7 @@ impl EnvironmentFrame {
         to_ancestor!(env, distance).assign(key, key_sym, value)
     }
 
-    pub fn read(&self, key: &str, key_sym: &Symbol) -> Result<RV, HaltReason> {
+    pub fn read(&self, key: &str, key_sym: &Symbol) -> Result<RV<'v>, HaltReason> {
         let guard = self.map.read().unwrap();
         if let Some(value) = guard.get(key_sym) {
             // TODO(vck): Remove clone
@@ -85,11 +85,11 @@ impl EnvironmentFrame {
     }
 
     pub fn read_at(
-        env: &Arc<EnvironmentFrame>,
+        env: &Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: &Symbol,
-    ) -> Result<RV, HaltReason> {
+    ) -> Result<RV<'v>, HaltReason> {
         if distance == 0 {
             return env.read(key, key_sym);
         }

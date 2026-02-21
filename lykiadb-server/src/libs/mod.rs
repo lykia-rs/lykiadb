@@ -4,13 +4,13 @@ use crate::value::{RV, callable::RVCallable, object::RVObject};
 
 pub mod stdlib;
 
-pub struct LykiaModule {
+pub struct LykiaModule<'v> {
     name: String,
-    map: FxHashMap<String, RV>,
+    map: FxHashMap<String, RV<'v>>,
     root: Vec<String>,
 }
 
-impl LykiaModule {
+impl<'v> LykiaModule<'v> {
     pub fn new(name: &str) -> Self {
         LykiaModule {
             name: name.to_owned(),
@@ -19,16 +19,16 @@ impl LykiaModule {
         }
     }
 
-    pub fn insert(&mut self, function_name: &str, callable: RVCallable) {
+    pub fn insert(&mut self, function_name: &str, callable: RVCallable<'v>) {
         self.map
             .insert(function_name.to_owned(), RV::Callable(callable));
     }
 
-    pub fn insert_raw(&mut self, name: &str, value: RV) {
+    pub fn insert_raw(&mut self, name: &str, value: RV<'v>) {
         self.map.insert(name.to_owned(), value);
     }
 
-    pub fn as_raw(&self) -> Vec<(String, RV)> {
+    pub fn as_raw(&self) -> Vec<(String, RV<'v>)> {
         let mut raw = Vec::new();
         raw.push((
             self.name.clone(),
@@ -50,20 +50,20 @@ impl LykiaModule {
     }
 }
 
-pub struct LykiaLibrary {
+pub struct LykiaLibrary<'v> {
     name: String,
-    mods: Vec<LykiaModule>,
+    mods: Vec<LykiaModule<'v>>,
 }
 
-impl LykiaLibrary {
-    pub fn new(name: &str, mods: Vec<LykiaModule>) -> Self {
+impl<'v> LykiaLibrary<'v> {
+    pub fn new(name: &str, mods: Vec<LykiaModule<'v>>) -> Self {
         LykiaLibrary {
             name: name.to_owned(),
             mods,
         }
     }
 
-    pub fn as_raw(&self) -> FxHashMap<String, RV> {
+    pub fn as_raw(&self) -> FxHashMap<String, RV<'v>> {
         let mut lib = FxHashMap::default();
         for modl in self.mods.iter() {
             let mod_defs = modl.as_raw();
@@ -86,7 +86,7 @@ mod tests {
 
     // Helper function to create a simple test callable
     fn create_test_callable(_name: &str) -> RVCallable {
-        fn test_fn(_: &mut Interpreter, _: &Span, _: &[RV]) -> Result<RV, HaltReason> {
+        fn test_fn<'v>(_: &mut Interpreter, _: &Span, _: &[RV<'v>]) -> Result<RV<'v>, HaltReason> {
             Ok(RV::Undefined)
         }
 
