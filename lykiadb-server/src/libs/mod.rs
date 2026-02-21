@@ -4,13 +4,13 @@ use crate::value::{RV, callable::RVCallable, object::RVObject};
 
 pub mod stdlib;
 
-pub struct LykiaModule {
+pub struct LykiaModule<'session> {
     name: String,
-    map: FxHashMap<String, RV>,
+    map: FxHashMap<String, RV<'session>>,
     root: Vec<String>,
 }
 
-impl LykiaModule {
+impl<'session> LykiaModule<'session> {
     pub fn new(name: &str) -> Self {
         LykiaModule {
             name: name.to_owned(),
@@ -19,16 +19,16 @@ impl LykiaModule {
         }
     }
 
-    pub fn insert(&mut self, function_name: &str, callable: RVCallable) {
+    pub fn insert(&mut self, function_name: &str, callable: RVCallable<'session>) {
         self.map
             .insert(function_name.to_owned(), RV::Callable(callable));
     }
 
-    pub fn insert_raw(&mut self, name: &str, value: RV) {
+    pub fn insert_raw(&mut self, name: &str, value: RV<'session>) {
         self.map.insert(name.to_owned(), value);
     }
 
-    pub fn as_raw(&self) -> Vec<(String, RV)> {
+    pub fn as_raw(&self) -> Vec<(String, RV<'session>)> {
         let mut raw = Vec::new();
         raw.push((
             self.name.clone(),
@@ -50,20 +50,20 @@ impl LykiaModule {
     }
 }
 
-pub struct LykiaLibrary {
+pub struct LykiaLibrary<'session> {
     name: String,
-    mods: Vec<LykiaModule>,
+    mods: Vec<LykiaModule<'session>>,
 }
 
-impl LykiaLibrary {
-    pub fn new(name: &str, mods: Vec<LykiaModule>) -> Self {
+impl<'session> LykiaLibrary<'session> {
+    pub fn new(name: &str, mods: Vec<LykiaModule<'session>>) -> Self {
         LykiaLibrary {
             name: name.to_owned(),
             mods,
         }
     }
 
-    pub fn as_raw(&self) -> FxHashMap<String, RV> {
+    pub fn as_raw(&self) -> FxHashMap<String, RV<'session>> {
         let mut lib = FxHashMap::default();
         for modl in self.mods.iter() {
             let mod_defs = modl.as_raw();
@@ -85,8 +85,8 @@ mod tests {
     use lykiadb_lang::{ast::Span, types::Datatype};
 
     // Helper function to create a simple test callable
-    fn create_test_callable(_name: &str) -> RVCallable {
-        fn test_fn(_: &mut Interpreter, _: &Span, _: &[RV]) -> Result<RV, HaltReason> {
+    fn create_test_callable(_name: &str) -> RVCallable<'static> {
+        fn test_fn(_: &mut Interpreter, _: &Span, _: &[RV<'static>]) -> Result<RV<'static>, HaltReason<'static>> {
             Ok(RV::Undefined)
         }
 

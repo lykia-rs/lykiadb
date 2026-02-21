@@ -14,11 +14,11 @@ use super::{Node, planner::Planner, scope::Scope};
 // - Subquery: A subquery that returns a set of data.
 // - Join: A join between two or more sources.
 // - Group: Cartesian product of two or more sources.
-pub fn build_from(
-    planner: &mut Planner,
+pub fn build_from<'session, 'exec>(
+    planner: &mut Planner<'session, 'exec>,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-) -> Result<Node, HaltReason> {
+) -> Result<Node<'exec>, HaltReason<'exec>> {
     let mut scope = Scope::new();
 
     let node = match from {

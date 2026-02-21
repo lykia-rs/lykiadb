@@ -6,11 +6,11 @@ use crate::{
     value::RV,
 };
 
-pub fn nt_print(
+pub fn nt_print<'exec>(
     _interpreter: &mut Interpreter,
     called_from: &Span,
     args: &[RV],
-) -> Result<RV, HaltReason> {
+) -> Result<RV<'exec>, HaltReason<'exec>> {
     for arg in args {
         print!("{arg:?} ");
     }

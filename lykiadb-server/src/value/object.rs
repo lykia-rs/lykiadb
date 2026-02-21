@@ -6,17 +6,17 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct RVObject {
-    inner: Shared<FxHashMap<String, RV>>,
+pub struct RVObject<'arena> {
+    inner: Shared<FxHashMap<String, RV<'arena>>>,
 }
 
-impl Default for RVObject {
+impl<'arena> Default for RVObject<'arena> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RVObject {
+impl<'arena> RVObject<'arena> {
     pub fn new() -> Self {
         RVObject {
             inner: alloc_shared(FxHashMap::default()),
@@ -31,7 +31,7 @@ impl RVObject {
         self.inner.read().unwrap().len()
     }
 
-    pub fn get(&self, key: &str) -> Option<RV> {
+    pub fn get(&self, key: &str) -> Option<RV<'arena>> {
         let r = self.inner.read().unwrap();
         if !r.contains_key(key) {
             return None;
@@ -40,7 +40,7 @@ impl RVObject {
         Some(cloned)
     }
 
-    pub fn insert(&mut self, key: String, value: RV) {
+    pub fn insert(&mut self, key: String, value: RV<'arena>) {
         self.inner.write().unwrap().insert(key, value);
     }
 
@@ -59,13 +59,13 @@ impl RVObject {
         Box::new(keys.into_iter())
     }
 
-    pub fn from_map(map: FxHashMap<String, RV>) -> Self {
+    pub fn from_map(map: FxHashMap<String, RV<'arena>>) -> Self {
         RVObject {
             inner: alloc_shared(map),
         }
     }
 
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, RV)> + '_> {
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, RV<'arena>)> + '_> {
         let items = self
             .inner
             .read()

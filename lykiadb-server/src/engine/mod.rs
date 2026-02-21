@@ -17,7 +17,6 @@ pub mod interpreter;
 pub struct Runtime {
     mode: RuntimeMode,
     source_processor: SourceProcessor,
-    interpreter: Interpreter,
 }
 
 #[derive(Eq, PartialEq)]
@@ -27,17 +26,17 @@ pub enum RuntimeMode {
 }
 
 impl Runtime {
-    pub fn new(mode: RuntimeMode, interpreter: Interpreter) -> Runtime {
+    pub fn new(mode: RuntimeMode) -> Runtime {
         Runtime {
             mode,
-            interpreter,
             source_processor: SourceProcessor::new(),
         }
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+        let mut interpreter = Interpreter::new(None, true);
         let program = Arc::from(self.source_processor.process(source)?);
-        let out = self.interpreter.interpret(program);
+        let out = interpreter.interpret(program);
 
         if self.mode == RuntimeMode::Repl {
             info!("{:?}", out);
@@ -47,29 +46,29 @@ impl Runtime {
     }
 }
 
-pub struct RuntimeTester {
-    out: Shared<Output>,
+pub struct RuntimeTester<'session> {
+    out: Shared<Output<'session>>,
     runtime: Runtime,
 }
 
-impl Default for RuntimeTester {
+impl Default for RuntimeTester<'static> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RuntimeTester {
-    pub fn new() -> RuntimeTester {
+impl RuntimeTester<'static> {
+    pub fn new() -> RuntimeTester<'static> {
         let out = alloc_shared(Output::new());
 
         RuntimeTester {
             out: out.clone(),
-            runtime: Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)),
+            runtime: Runtime::new(RuntimeMode::File),
         }
     }
 }
 
-impl TestHandler for RuntimeTester {
+impl TestHandler for RuntimeTester<'static> {
     fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
         assert!(
             case_parts.len() > 1,

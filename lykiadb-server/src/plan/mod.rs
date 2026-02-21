@@ -21,12 +21,12 @@ pub mod planner;
 mod scope;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum IntermediateExpr {
-    Constant(RV),
+pub enum IntermediateExpr<'exec> {
+    Constant(RV<'exec>),
     Expr { expr: Box<Expr> },
 }
 
-impl Display for IntermediateExpr {
+impl<'exec> Display for IntermediateExpr<'exec> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IntermediateExpr::Constant(rv) => write!(f, "{rv:?}"),
@@ -38,76 +38,76 @@ impl Display for IntermediateExpr {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Plan {
-    Select(Node),
+pub enum Plan<'exec> {
+    Select(Node<'exec>),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Node {
+pub enum Node<'exec> {
     Compound {
-        source: Box<Node>,
+        source: Box<Node<'exec>>,
         operator: SqlCompoundOperator,
-        right: Box<Node>,
+        right: Box<Node<'exec>>,
     },
 
     Aggregate {
-        source: Box<Node>,
-        group_by: Vec<IntermediateExpr>,
+        source: Box<Node<'exec>>,
+        group_by: Vec<IntermediateExpr<'exec>>,
         aggregates: Vec<Aggregation>,
     },
 
     Filter {
-        source: Box<Node>,
-        predicate: IntermediateExpr,
-        subqueries: Vec<Node>,
+        source: Box<Node<'exec>>,
+        predicate: IntermediateExpr<'exec>,
+        subqueries: Vec<Node<'exec>>,
     },
 
     Projection {
-        source: Box<Node>,
+        source: Box<Node<'exec>>,
         fields: Vec<SqlProjection>,
     },
 
     Limit {
-        source: Box<Node>,
+        source: Box<Node<'exec>>,
         limit: usize,
     },
 
     Offset {
-        source: Box<Node>,
+        source: Box<Node<'exec>>,
         offset: usize,
     },
 
     Order {
-        source: Box<Node>,
-        key: Vec<(IntermediateExpr, SqlOrdering)>,
+        source: Box<Node<'exec>>,
+        key: Vec<(IntermediateExpr<'exec>, SqlOrdering)>,
     },
 
     Scan {
         source: SqlCollectionIdentifier,
-        filter: Option<IntermediateExpr>,
+        filter: Option<IntermediateExpr<'exec>>,
     },
 
     EvalScan {
         source: SqlExpressionSource,
-        filter: Option<IntermediateExpr>,
+        filter: Option<IntermediateExpr<'exec>>,
     },
 
     Join {
-        left: Box<Node>,
+        left: Box<Node<'exec>>,
         join_type: SqlJoinType,
-        right: Box<Node>,
-        constraint: Option<IntermediateExpr>,
+        right: Box<Node<'exec>>,
+        constraint: Option<IntermediateExpr<'exec>>,
     },
 
     Subquery {
-        source: Box<Node>,
+        source: Box<Node<'exec>>,
         alias: Identifier,
     },
 
     Nothing,
 }
 
-impl Display for Plan {
+impl<'exec> Display for Plan<'exec> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Plan::Select(node) => write!(f, "{node}"),
@@ -115,7 +115,7 @@ impl Display for Plan {
     }
 }
 
-impl Node {
+impl<'exec> Node<'exec> {
     const TAB: &'static str = "  ";
     const NEWLINE: &'static str = "\n";
 
@@ -303,7 +303,7 @@ impl Node {
     }
 }
 
-impl Display for Node {
+impl<'exec> Display for Node<'exec> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._fmt_recursive(f, 0)
     }
