@@ -1,5 +1,4 @@
 use array::RVArray;
-use bson::decimal128;
 use callable::RVCallable;
 use lykiadb_lang::types::Datatype;
 use object::RVObject;
@@ -19,25 +18,29 @@ pub mod object;
 
 #[derive(Debug, Clone)]
 pub enum RV {
-    Str(Arc<String>),
+    // Boolean-like values
+    Undefined,
+    Null,
+    Bool(bool),
+
+    // Primitive values
     Int32(i32),
     Int64(i64),
     Double(f64),
-    Decimal128(decimal128::Decimal128),
-    Bool(bool),
+    Decimal128(bson::Decimal128),
+    DateTime(bson::DateTime),
+
+    // Reference types
+    // TODO: Replace them with references
+    Str(Arc<String>),
+    Document(bson::Document),
+    DocumentArray(bson::Array),
+
+    // Engine types
     Object(RVObject),
     Array(RVArray),
     Callable(RVCallable),
     Datatype(Datatype),
-    Undefined,
-    Null,
-    /*
-    Needed types:
-        DateTime,
-        BSON object,
-        BSON array,
-        Unicode String
-     */
 }
 
 impl Eq for RV {}
@@ -71,6 +74,21 @@ impl std::hash::Hash for RV {
             RV::Datatype(dtype) => {
                 // Hash the string representation of the datatype
                 dtype.to_string().hash(state);
+            }
+
+            RV::DateTime(date_time) => {
+                date_time.timestamp_millis().hash(state);
+            },
+            RV::Document(document) => {
+                // Hash the document by its pointer address
+                (document as *const _ as usize).hash(state);
+            },
+            RV::DocumentArray(bsons) => {
+                // Hash the array length and each document's pointer address
+                bsons.len().hash(state);
+                for doc in bsons {
+                    (doc as *const _ as usize).hash(state);
+                }
             }
             RV::Undefined | RV::Null => {
                 // Discriminant is enough for Undefined and Null
@@ -119,6 +137,9 @@ impl RV {
                 let output = Box::from(c.return_type.clone());
                 Datatype::Callable(input, output)
             }
+            RV::DateTime(_) => Datatype::DateTime,
+            RV::Document(_) => Datatype::Document,
+            RV::DocumentArray(_) => Datatype::DocumentArray,
             RV::Datatype(_) => Datatype::Datatype,
             RV::Undefined | RV::Null => Datatype::None,
         }
@@ -196,6 +217,9 @@ impl Display for RV {
             RV::Bool(b) => write!(f, "{b}"),
             RV::Undefined => write!(f, "undefined"),
             RV::Null => write!(f, "null"),
+            RV::DateTime(date_time) => write!(f, "{date_time}"),
+            RV::Document(_) => write!(f, "<Document>"),
+            RV::DocumentArray(_) => write!(f, "<DocumentArray>"),
             RV::Array(arr) => {
                 write!(f, "[")?;
                 for (i, item) in arr.iter().enumerate() {
