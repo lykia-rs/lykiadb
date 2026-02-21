@@ -28,7 +28,7 @@ lykia_lib!(
     vec![json(), time(), math(), dtype(), bench(), out(), arr()]
 );
 
-pub fn stdlib(out: Option<Shared<Output<'static>>>) -> FxHashMap<String, RV<'static>> {
+pub fn stdlib<'session>(out: Option<Shared<Output<'session>>>) -> FxHashMap<String, RV<'session>> {
     let mut std = std_core().as_raw();
 
     if let Some(out) = out {

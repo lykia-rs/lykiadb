@@ -80,7 +80,7 @@ pub enum Function<'arena> {
     Native {
         function: fn(&mut Interpreter, called_from: &Span, &[RV<'arena>]) -> Result<RV<'arena>, HaltReason<'arena>>,
     },
-    Stateful(Shared<dyn Stateful + Send + Sync>),
+    Stateful(Shared<dyn Stateful + Send + Sync + 'arena>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,
