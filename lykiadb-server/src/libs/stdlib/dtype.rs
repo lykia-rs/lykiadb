@@ -125,7 +125,9 @@ lykia_module!(dtype, {
     tuple => lykia_native_fn!(nt_tuple_of)
 }, {
     str => RV::Datatype(Datatype::Str),
-    num => RV::Datatype(Datatype::Num),
+    double => RV::Datatype(Datatype::Double),
+    int32 => RV::Datatype(Datatype::Int32),
+    int64 => RV::Datatype(Datatype::Int64),
     bool => RV::Datatype(Datatype::Bool),
     unit => RV::Datatype(Datatype::Unit),
     dtype => RV::Datatype(Datatype::Datatype),

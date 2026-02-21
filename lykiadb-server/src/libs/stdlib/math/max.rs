@@ -20,7 +20,7 @@ impl Aggregator for MaxAggregator {
 
     fn finalize(&self) -> crate::value::RV {
         if let Some(n) = self.value {
-            RV::Num(n)
+            RV::Double(n)
         } else {
             RV::Undefined
         }
@@ -35,18 +35,18 @@ mod tests {
     fn test_max_aggregator() {
         let mut agg = MaxAggregator::default();
 
-        agg.row(&RV::Num(10.0));
-        agg.row(&RV::Num(30.0));
-        agg.row(&RV::Num(20.0));
+        agg.row(&RV::Double(10.0));
+        agg.row(&RV::Double(30.0));
+        agg.row(&RV::Double(20.0));
 
-        assert_eq!(agg.finalize(), RV::Num(30.0));
+        assert_eq!(agg.finalize(), RV::Double(30.0));
     }
 
     #[test]
     fn test_max_aggregator_single_value() {
         let mut agg = MaxAggregator::default();
-        agg.row(&RV::Num(42.0));
-        assert_eq!(agg.finalize(), RV::Num(42.0));
+        agg.row(&RV::Double(42.0));
+        assert_eq!(agg.finalize(), RV::Double(42.0));
     }
 
     #[test]

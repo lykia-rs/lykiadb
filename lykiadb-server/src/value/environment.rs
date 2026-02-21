@@ -153,23 +153,23 @@ mod tests {
     #[test]
     fn test_read_basic() {
         let env_man = super::EnvironmentFrame::new(None);
-        env_man.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
+        env_man.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
         assert_eq!(
             env_man
                 .read("five", &GLOBAL_INTERNER.intern("five"))
                 .unwrap(),
-            RV::Num(5.0)
+            RV::Double(5.0)
         );
     }
 
     #[test]
     fn test_read_from_parent() {
         let root = super::EnvironmentFrame::new(None);
-        root.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
+        root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
         let child = super::EnvironmentFrame::new(Some(Arc::new(root)));
         assert_eq!(
             child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
-            RV::Num(5.0)
+            RV::Double(5.0)
         );
     }
 
@@ -177,22 +177,22 @@ mod tests {
     fn test_write_to_parent() {
         let root = Arc::new(super::EnvironmentFrame::new(None));
 
-        root.define(GLOBAL_INTERNER.intern("five"), RV::Num(5.0));
+        root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
 
         let child = super::EnvironmentFrame::new(Some(root.clone()));
 
         child
-            .assign("five", GLOBAL_INTERNER.intern("five"), RV::Num(5.1))
+            .assign("five", GLOBAL_INTERNER.intern("five"), RV::Double(5.1))
             .unwrap();
 
         assert_eq!(
             root.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
-            RV::Num(5.1)
+            RV::Double(5.1)
         );
 
         assert_eq!(
             child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
-            RV::Num(5.1)
+            RV::Double(5.1)
         );
     }
 
@@ -206,7 +206,7 @@ mod tests {
     fn test_assign_to_undefined_variable() {
         let env = super::EnvironmentFrame::new(None);
         assert!(
-            env.assign("five", GLOBAL_INTERNER.intern("five"), RV::Num(5.0))
+            env.assign("five", GLOBAL_INTERNER.intern("five"), RV::Double(5.0))
                 .is_err()
         );
     }

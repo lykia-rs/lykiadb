@@ -18,7 +18,7 @@ impl Aggregator for SumAggregator {
     }
 
     fn finalize(&self) -> crate::value::RV {
-        RV::Num(self.accumulator)
+        RV::Double(self.accumulator)
     }
 }
 
@@ -30,27 +30,27 @@ mod tests {
     fn test_sum_aggregator() {
         let mut agg = SumAggregator::default();
 
-        agg.row(&RV::Num(10.0));
-        agg.row(&RV::Num(20.0));
-        agg.row(&RV::Num(30.0));
+        agg.row(&RV::Double(10.0));
+        agg.row(&RV::Double(20.0));
+        agg.row(&RV::Double(30.0));
 
-        assert_eq!(agg.finalize(), RV::Num(60.0));
+        assert_eq!(agg.finalize(), RV::Double(60.0));
     }
 
     #[test]
     fn test_sum_aggregator_empty() {
         let agg = SumAggregator::default();
-        assert_eq!(agg.finalize(), RV::Num(0.0));
+        assert_eq!(agg.finalize(), RV::Double(0.0));
     }
 
     #[test]
     fn test_sum_aggregator_with_non_numbers() {
         let mut agg = SumAggregator::default();
 
-        agg.row(&RV::Num(10.0));
+        agg.row(&RV::Double(10.0));
         agg.row(&RV::Str(std::sync::Arc::new("not a number".to_string())));
-        agg.row(&RV::Num(20.0));
+        agg.row(&RV::Double(20.0));
 
-        assert_eq!(agg.finalize(), RV::Num(30.0));
+        assert_eq!(agg.finalize(), RV::Double(30.0));
     }
 }

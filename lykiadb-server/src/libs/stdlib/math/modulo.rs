@@ -11,7 +11,7 @@ pub fn nt_modulo(
     args: &[RV],
 ) -> Result<RV, HaltReason> {
     let dividend = match &args[0] {
-        RV::Num(n) => *n,
+        RV::Double(n) => *n,
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
@@ -24,7 +24,7 @@ pub fn nt_modulo(
     };
 
     let divisor = match &args[1] {
-        RV::Num(n) if *n != 0.0 => *n,
+        RV::Double(n) if *n != 0.0 => *n,
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
@@ -37,7 +37,7 @@ pub fn nt_modulo(
     };
 
     let result = dividend % divisor;
-    Ok(RV::Num(result))
+    Ok(RV::Double(result))
 }
 
 #[cfg(test)]
@@ -54,9 +54,9 @@ mod tests {
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
-            &[RV::Num(10.0), RV::Num(3.0)],
+            &[RV::Double(10.0), RV::Double(3.0)],
         );
-        assert_eq!(result, Ok(RV::Num(1.0)));
+        assert_eq!(result, Ok(RV::Double(1.0)));
     }
 
     #[test]
@@ -65,9 +65,9 @@ mod tests {
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
-            &[RV::Num(-10.0), RV::Num(3.0)],
+            &[RV::Double(-10.0), RV::Double(3.0)],
         );
-        assert_eq!(result, Ok(RV::Num(-1.0)));
+        assert_eq!(result, Ok(RV::Double(-1.0)));
     }
 
     #[test]
@@ -76,9 +76,9 @@ mod tests {
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
-            &[RV::Num(0.0), RV::Num(5.0)],
+            &[RV::Double(0.0), RV::Double(5.0)],
         );
-        assert_eq!(result, Ok(RV::Num(0.0)));
+        assert_eq!(result, Ok(RV::Double(0.0)));
     }
 
     #[test]
@@ -87,7 +87,7 @@ mod tests {
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
-            &[RV::Num(10.0), RV::Num(0.0)],
+            &[RV::Double(10.0), RV::Double(0.0)],
         );
         assert!(result.is_err());
     }
@@ -98,7 +98,7 @@ mod tests {
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
-            &[RV::Str(Arc::new("foo".to_string())), RV::Num(3.0)],
+            &[RV::Str(Arc::new("foo".to_string())), RV::Double(3.0)],
         );
         assert!(result.is_err());
     }

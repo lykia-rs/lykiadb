@@ -18,14 +18,29 @@ pub mod object;
 
 #[derive(Debug, Clone)]
 pub enum RV {
-    Str(Arc<String>),
-    Num(f64),
+    // Boolean-like values
+    Undefined,
+    Null,
     Bool(bool),
+
+    // Primitive values
+    Int32(i32),
+    Int64(i64),
+    Double(f64),
+    Decimal128(bson::Decimal128),
+    DateTime(bson::DateTime),
+
+    // Reference types
+    // TODO: Replace them with references
+    Str(Arc<String>),
+    Document(bson::Document),
+    DocumentArray(bson::Array),
+
+    // Engine types
     Object(RVObject),
     Array(RVArray),
     Callable(RVCallable),
     Datatype(Datatype),
-    Undefined,
 }
 
 impl Eq for RV {}
@@ -35,7 +50,10 @@ impl std::hash::Hash for RV {
         core::mem::discriminant(self).hash(state);
         match self {
             RV::Str(s) => s.hash(state),
-            RV::Num(n) => n.to_bits().hash(state),
+            RV::Double(n) => n.to_bits().hash(state),
+            RV::Int32(i) => i.hash(state),
+            RV::Int64(i) => i.hash(state),
+            RV::Decimal128(d) => d.to_string().hash(state),
             RV::Bool(b) => b.hash(state),
             RV::Object(obj) => {
                 // Hash the object by its pointer address
@@ -57,8 +75,23 @@ impl std::hash::Hash for RV {
                 // Hash the string representation of the datatype
                 dtype.to_string().hash(state);
             }
-            RV::Undefined => {
-                // Discriminant is enough for Undefined
+
+            RV::DateTime(date_time) => {
+                date_time.timestamp_millis().hash(state);
+            },
+            RV::Document(document) => {
+                // Hash the document by its pointer address
+                (document as *const _ as usize).hash(state);
+            },
+            RV::DocumentArray(bsons) => {
+                // Hash the array length and each document's pointer address
+                bsons.len().hash(state);
+                for doc in bsons {
+                    (doc as *const _ as usize).hash(state);
+                }
+            }
+            RV::Undefined | RV::Null => {
+                // Discriminant is enough for Undefined and Null
             }
         }
     }
@@ -77,7 +110,10 @@ impl RV {
     pub fn get_type(&self) -> Datatype {
         match &self {
             RV::Str(_) => Datatype::Str,
-            RV::Num(_) => Datatype::Num,
+            RV::Double(_) => Datatype::Double,
+            RV::Int32(_) => Datatype::Int32,
+            RV::Int64(_) => Datatype::Int64,
+            RV::Decimal128(_) => Datatype::Decimal128,
             RV::Bool(_) => Datatype::Bool,
             RV::Object(obj) => {
                 if obj.is_empty() {
@@ -101,14 +137,17 @@ impl RV {
                 let output = Box::from(c.return_type.clone());
                 Datatype::Callable(input, output)
             }
+            RV::DateTime(_) => Datatype::DateTime,
+            RV::Document(_) => Datatype::Document,
+            RV::DocumentArray(_) => Datatype::DocumentArray,
             RV::Datatype(_) => Datatype::Datatype,
-            RV::Undefined => Datatype::None,
+            RV::Undefined | RV::Null => Datatype::None,
         }
     }
 
     pub fn as_bool(&self) -> bool {
         match &self {
-            RV::Num(value) => !value.is_nan() && value.abs() > 0.0,
+            RV::Double(value) => !value.is_nan() && value.abs() > 0.0,
             RV::Str(value) => !value.is_empty(),
             RV::Bool(value) => *value,
             RV::Undefined => false,
@@ -118,7 +157,7 @@ impl RV {
 
     pub fn as_number(&self) -> Option<f64> {
         match self {
-            RV::Num(value) => Some(*value),
+            RV::Double(value) => Some(*value),
             RV::Bool(true) => Some(1.0),
             RV::Bool(false) => Some(0.0),
             RV::Str(s) => s.parse::<f64>().ok(),
@@ -171,9 +210,16 @@ impl Display for RV {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RV::Str(s) => write!(f, "{s}"),
-            RV::Num(n) => write!(f, "{n}"),
+            RV::Double(n) => write!(f, "{n}"),
+            RV::Int32(i) => write!(f, "{i}"),
+            RV::Int64(i) => write!(f, "{i}"),
+            RV::Decimal128(d) => write!(f, "{d}"),
             RV::Bool(b) => write!(f, "{b}"),
             RV::Undefined => write!(f, "undefined"),
+            RV::Null => write!(f, "null"),
+            RV::DateTime(date_time) => write!(f, "{date_time}"),
+            RV::Document(_) => write!(f, "<Document>"),
+            RV::DocumentArray(_) => write!(f, "<DocumentArray>"),
             RV::Array(arr) => {
                 write!(f, "[")?;
                 for (i, item) in arr.iter().enumerate() {
@@ -207,7 +253,7 @@ impl Serialize for RV {
     {
         match self {
             RV::Str(s) => serializer.serialize_str(s),
-            RV::Num(n) => serializer.serialize_f64(*n),
+            RV::Double(n) => serializer.serialize_f64(*n),
             RV::Bool(b) => serializer.serialize_bool(*b),
             RV::Undefined => serializer.serialize_none(),
             RV::Array(arr) => {
@@ -237,7 +283,7 @@ impl<'de> Deserialize<'de> for RV {
         let value = serde_json::Value::deserialize(deserializer)?;
         match value {
             serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
-            serde_json::Value::Number(n) => Ok(RV::Num(n.as_f64().unwrap())),
+            serde_json::Value::Number(n) => Ok(RV::Double(n.as_f64().unwrap())),
             serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
             serde_json::Value::Array(arr) => {
                 let mut vec = vec![];
@@ -267,17 +313,17 @@ impl PartialEq for RV {
             (RV::Undefined, _) | (_, RV::Undefined) => false,
             //
             (RV::Str(a), RV::Str(b)) => a == b,
-            (RV::Num(a), RV::Num(b)) => a == b,
+            (RV::Double(a), RV::Double(b)) => a == b,
             (RV::Bool(a), RV::Bool(b)) => a == b,
             //
-            (RV::Str(_), RV::Num(b)) => self.eq_str_num(*b),
-            (RV::Num(a), RV::Str(_)) => other.eq_str_num(*a),
+            (RV::Str(_), RV::Double(b)) => self.eq_str_num(*b),
+            (RV::Double(a), RV::Str(_)) => other.eq_str_num(*a),
             //
             (RV::Str(_), RV::Bool(b)) => self.eq_any_bool(*b),
             (RV::Bool(a), RV::Str(_)) => other.eq_any_bool(*a),
             //
-            (RV::Num(_), RV::Bool(b)) => self.eq_any_bool(*b),
-            (RV::Bool(a), RV::Num(_)) => other.eq_any_bool(*a),
+            (RV::Double(_), RV::Bool(b)) => self.eq_any_bool(*b),
+            (RV::Bool(a), RV::Double(_)) => other.eq_any_bool(*a),
             //
             (RV::Datatype(a), RV::Datatype(b)) => a == b,
             //
@@ -295,16 +341,16 @@ impl PartialOrd for RV {
             (RV::Undefined, _) | (_, RV::Undefined) => None,
             //
             (RV::Str(a), RV::Str(b)) => Some(a.cmp(b)),
-            (RV::Num(a), RV::Num(b)) => a.partial_cmp(b),
+            (RV::Double(a), RV::Double(b)) => a.partial_cmp(b),
             (RV::Bool(a), RV::Bool(b)) => a.partial_cmp(b),
             //
-            (RV::Str(a), RV::Num(b)) => {
+            (RV::Str(a), RV::Double(b)) => {
                 if let Ok(num) = a.parse::<f64>() {
                     return num.partial_cmp(b);
                 }
                 None
             }
-            (RV::Num(a), RV::Str(b)) => {
+            (RV::Double(a), RV::Str(b)) => {
                 if let Ok(num) = b.parse::<f64>() {
                     return a.partial_cmp(&num);
                 }
@@ -314,8 +360,8 @@ impl PartialOrd for RV {
             (RV::Str(_), RV::Bool(b)) => self.partial_cmp_str_bool(*b),
             (RV::Bool(a), RV::Str(_)) => other.partial_cmp_str_bool(*a),
             //
-            (RV::Num(num), RV::Bool(b)) => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
-            (RV::Bool(b), RV::Num(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
+            (RV::Double(num), RV::Bool(b)) => num.partial_cmp(&if *b { 1.0 } else { 0.0 }),
+            (RV::Bool(b), RV::Double(num)) => (if *b { 1.0 } else { 0.0 }).partial_cmp(num),
             //
             _ => None,
         }
@@ -328,16 +374,16 @@ impl ops::Add for RV {
     fn add(self, rhs: Self) -> Self::Output {
         match (&self, &rhs) {
             //
-            (RV::Bool(_), RV::Bool(_)) | (RV::Num(_), RV::Bool(_)) | (RV::Bool(_), RV::Num(_)) => {
-                RV::Num(self.as_number().unwrap() + rhs.as_number().unwrap())
+            (RV::Bool(_), RV::Bool(_)) | (RV::Double(_), RV::Bool(_)) | (RV::Bool(_), RV::Double(_)) => {
+                RV::Double(self.as_number().unwrap() + rhs.as_number().unwrap())
             }
 
-            (RV::Num(l), RV::Num(r)) => RV::Num(l + r),
+            (RV::Double(l), RV::Double(r)) => RV::Double(l + r),
             //
             (RV::Str(l), RV::Str(r)) => RV::Str(Arc::new(l.to_string() + &r.to_string())),
             //
-            (RV::Str(s), RV::Num(num)) => RV::Str(Arc::new(s.to_string() + &num.to_string())),
-            (RV::Num(num), RV::Str(s)) => RV::Str(Arc::new(num.to_string() + &s.to_string())),
+            (RV::Str(s), RV::Double(num)) => RV::Str(Arc::new(s.to_string() + &num.to_string())),
+            (RV::Double(num), RV::Str(s)) => RV::Str(Arc::new(num.to_string() + &s.to_string())),
             //
             (RV::Str(s), RV::Bool(bool)) => RV::Str(Arc::new(s.to_string() + &bool.to_string())),
             (RV::Bool(bool), RV::Str(s)) => RV::Str(Arc::new(bool.to_string() + &s.to_string())),
@@ -356,7 +402,7 @@ impl ops::Sub for RV {
             (l, r) => l
                 .as_number()
                 .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| RV::Num(a - b))
+                .map(|(a, b)| RV::Double(a - b))
                 .unwrap_or(RV::Undefined),
         }
     }
@@ -371,7 +417,7 @@ impl ops::Mul for RV {
             (l, r) => l
                 .as_number()
                 .and_then(|a| r.as_number().map(|b| (a, b)))
-                .map(|(a, b)| RV::Num(a * b))
+                .map(|(a, b)| RV::Double(a * b))
                 .unwrap_or(RV::Undefined),
         }
     }
@@ -390,7 +436,7 @@ impl ops::Div for RV {
                     if a == 0.0 && b == 0.0 {
                         RV::Undefined
                     } else {
-                        RV::Num(a / b)
+                        RV::Double(a / b)
                     }
                 })
                 .unwrap_or(RV::Undefined),
@@ -406,10 +452,10 @@ mod tests {
     #[test]
     fn test_rv_as_bool() {
         // Test numeric values
-        assert!(!RV::Num(0.0).as_bool());
-        assert!(RV::Num(1.0).as_bool());
-        assert!(RV::Num(-1.0).as_bool());
-        assert!(!RV::Num(f64::NAN).as_bool());
+        assert!(!RV::Double(0.0).as_bool());
+        assert!(RV::Double(1.0).as_bool());
+        assert!(RV::Double(-1.0).as_bool());
+        assert!(!RV::Double(f64::NAN).as_bool());
 
         // Test strings
         assert!(!RV::Str(Arc::new("".to_string())).as_bool());
@@ -432,9 +478,9 @@ mod tests {
     #[test]
     fn test_rv_as_number() {
         // Test numeric values
-        assert_eq!(RV::Num(42.0).as_number(), Some(42.0));
-        assert_eq!(RV::Num(-42.0).as_number(), Some(-42.0));
-        assert_eq!(RV::Num(0.0).as_number(), Some(0.0));
+        assert_eq!(RV::Double(42.0).as_number(), Some(42.0));
+        assert_eq!(RV::Double(-42.0).as_number(), Some(-42.0));
+        assert_eq!(RV::Double(0.0).as_number(), Some(0.0));
 
         // Test booleans
         assert_eq!(RV::Bool(true).as_number(), Some(1.0));
@@ -466,11 +512,11 @@ mod tests {
         assert_eq!(not_found.is_in(&haystack), RV::Bool(false));
 
         // Test array contains
-        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
+        let arr = vec![RV::Double(1.0), RV::Str(Arc::new("test".to_string()))];
         let array = RV::Array(RVArray::from_vec(arr));
 
-        assert_eq!(RV::Num(1.0).is_in(&array), RV::Bool(true));
-        assert_eq!(RV::Num(2.0).is_in(&array), RV::Bool(false));
+        assert_eq!(RV::Double(1.0).is_in(&array), RV::Bool(true));
+        assert_eq!(RV::Double(2.0).is_in(&array), RV::Bool(false));
         assert_eq!(
             RV::Str(Arc::new("test".to_string())).is_in(&array),
             RV::Bool(true)
@@ -478,7 +524,7 @@ mod tests {
 
         // Test object key contains
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(1.0));
+        map.insert("key".to_string(), RV::Double(1.0));
         let object = RV::Object(RVObject::from_map(map));
 
         assert_eq!(
@@ -495,8 +541,8 @@ mod tests {
     fn test_rv_not() {
         assert_eq!(RV::Bool(true).not(), RV::Bool(false));
         assert_eq!(RV::Bool(false).not(), RV::Bool(true));
-        assert_eq!(RV::Num(0.0).not(), RV::Bool(true));
-        assert_eq!(RV::Num(1.0).not(), RV::Bool(false));
+        assert_eq!(RV::Double(0.0).not(), RV::Bool(true));
+        assert_eq!(RV::Double(1.0).not(), RV::Bool(false));
         assert_eq!(RV::Str(Arc::new("".to_string())).not(), RV::Bool(true));
         assert_eq!(
             RV::Str(Arc::new("hello".to_string())).not(),
@@ -508,16 +554,16 @@ mod tests {
     #[test]
     fn test_rv_display() {
         assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "hello");
-        assert_eq!(RV::Num(42.0).to_string(), "42");
+        assert_eq!(RV::Double(42.0).to_string(), "42");
         assert_eq!(RV::Bool(true).to_string(), "true");
         assert_eq!(RV::Bool(false).to_string(), "false");
         assert_eq!(RV::Undefined.to_string(), "undefined");
 
-        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
+        let arr = vec![RV::Double(1.0), RV::Str(Arc::new("test".to_string()))];
         assert_eq!(RV::Array(RVArray::from_vec(arr)).to_string(), "[1, test]");
 
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(42.0));
+        map.insert("key".to_string(), RV::Double(42.0));
         assert_eq!(RV::Object(RVObject::from_map(map)).to_string(), "{key: 42}");
     }
 
@@ -543,9 +589,9 @@ mod tests {
         );
 
         // Numbers: value-based hashing
-        assert_ne!(hash(&RV::Num(1.0)), hash(&RV::Num(2.0)));
-        assert_ne!(hash(&RV::Num(10.0)), hash(&RV::Num(500.0)));
-        assert_eq!(hash(&RV::Num(42.0)), hash(&RV::Num(42.0)));
+        assert_ne!(hash(&RV::Double(1.0)), hash(&RV::Double(2.0)));
+        assert_ne!(hash(&RV::Double(10.0)), hash(&RV::Double(500.0)));
+        assert_eq!(hash(&RV::Double(42.0)), hash(&RV::Double(42.0)));
 
         // Booleans: value-based hashing
         assert_ne!(hash(&RV::Bool(true)), hash(&RV::Bool(false)));
@@ -567,9 +613,9 @@ mod tests {
         }
 
         // Arrays: content-based hashing
-        let arr1 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
-        let arr2 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(2.0)]));
-        let arr3 = RV::Array(RVArray::from_vec(vec![RV::Num(1.0), RV::Num(3.0)]));
+        let arr1 = RV::Array(RVArray::from_vec(vec![RV::Double(1.0), RV::Double(2.0)]));
+        let arr2 = RV::Array(RVArray::from_vec(vec![RV::Double(1.0), RV::Double(2.0)]));
+        let arr3 = RV::Array(RVArray::from_vec(vec![RV::Double(1.0), RV::Double(3.0)]));
 
         assert_eq!(hash(&arr1), hash(&arr2)); // Same content
         assert_ne!(hash(&arr1), hash(&arr3)); // Different content
@@ -588,11 +634,11 @@ mod tests {
 
         // Objects: pointer-based hashing (identity)
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(1.0));
+        map.insert("key".to_string(), RV::Double(1.0));
         let obj1 = RV::Object(RVObject::from_map(map));
 
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(1.0));
+        map.insert("key".to_string(), RV::Double(1.0));
         let obj2 = RV::Object(RVObject::from_map(map));
 
         // Different instances, even with same content, hash differently
@@ -613,7 +659,7 @@ mod tests {
         // Datatypes: value-based hashing via string representation
         assert_ne!(
             hash(&RV::Datatype(Datatype::Str)),
-            hash(&RV::Datatype(Datatype::Num))
+            hash(&RV::Datatype(Datatype::Double))
         );
         assert_eq!(
             hash(&RV::Datatype(Datatype::Bool)),
@@ -631,7 +677,7 @@ mod tests {
         let mut groups: HashMap<RV, usize> = HashMap::new();
 
         for i in 0..500 {
-            let key = RV::Num(i as f64);
+            let key = RV::Double(i as f64);
             *groups.entry(key).or_insert(0) += 1;
         }
 
