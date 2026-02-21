@@ -33,7 +33,7 @@ impl Runtime {
         }
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV, ExecutionError> {
+    pub fn interpret<'session>(&'session mut self, source: &str) -> Result<RV<'session>, ExecutionError> {
         let mut interpreter = Interpreter::new(None, true);
         let program = Arc::from(self.source_processor.process(source)?);
         let out = interpreter.interpret(program);
@@ -77,9 +77,7 @@ impl TestHandler for RuntimeTester<'static> {
 
         let mut errors: Vec<ExecutionError> = vec![];
 
-        let result = self.runtime.interpret(&case_parts[0]);
-
-        if let Err(err) = result {
+        if let Err(err) = self.runtime.interpret(&case_parts[0]) {
             errors.push(err);
         }
 
@@ -94,9 +92,7 @@ impl TestHandler for RuntimeTester<'static> {
                     stripped.trim()
                 );
             } else if let Some(stripped) = part.strip_prefix('>') {
-                let result = self.runtime.interpret(stripped.trim());
-
-                if let Err(err) = result {
+                if let Err(err) = self.runtime.interpret(stripped.trim()) {
                     errors.push(err);
                 }
             } else if flags.get("run") == Some(&"plan") {
