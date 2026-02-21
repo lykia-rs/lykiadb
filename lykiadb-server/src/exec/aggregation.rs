@@ -9,15 +9,15 @@ use crate::{
 
 pub(crate) struct Grouper<'v> {
     group_exprs: Vec<IntermediateExpr<'v>>,
-    aggregations: Vec<Aggregation>,
+    aggregations: Vec<Aggregation<'v>>,
     interpreter: Interpreter<'v>,
-    groups: FxHashMap<Vec<RV<'v>>, Vec<Box<dyn Aggregator>>>,
+    groups: FxHashMap<Vec<RV<'v>>, Vec<Box<dyn Aggregator<'v>>>>,
 }
 
 impl<'v> Grouper<'v> {
     pub fn new(
         group_exprs: Vec<IntermediateExpr<'v>>,
-        aggregators: Vec<Aggregation>,
+        aggregators: Vec<Aggregation<'v>>,
         interpreter: Interpreter<'v>,
     ) -> Grouper<'v> {
         Grouper {
@@ -28,7 +28,7 @@ impl<'v> Grouper<'v> {
         }
     }
 
-    pub fn row(&'v mut self, row: ExecutionRow<'v>) -> Result<(), HaltReason> {
+    pub fn row(&'v mut self, row: ExecutionRow<'v>) -> Result<(), HaltReason<'v>> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -81,7 +81,7 @@ impl<'v> Grouper<'v> {
     }
 }
 
-pub trait Aggregator {
-    fn row(&mut self, row: &RV);
-    fn finalize(&self) -> RV;
+pub trait Aggregator<'v> {
+    fn row(&mut self, row: &RV<'v>);
+    fn finalize(&self) -> RV<'v>;
 }

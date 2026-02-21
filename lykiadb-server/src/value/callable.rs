@@ -71,14 +71,14 @@ pub trait Stateful<'v> {
     fn call(&mut self, interpreter: &mut Interpreter<'v>, rv: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>;
 }
 
-pub type AggregatorFactory = fn() -> Box<dyn Aggregator + Send>;
+pub type AggregatorFactory<'v> = fn() -> Box<dyn Aggregator<'v> + Send>;
 
 #[derive(Clone)]
 pub enum Function<'v> {
     Native {
         function: fn(&mut Interpreter<'v>, called_from: &Span, &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>,
     },
-    Stateful(Shared<dyn Stateful<'v> + Send + Sync>),
+    Stateful(Shared<dyn Stateful<'v> + Send + Sync+ 'v>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,
@@ -87,7 +87,7 @@ pub enum Function<'v> {
     },
     Agg {
         name: String,
-        function: AggregatorFactory,
+        function: AggregatorFactory<'v>,
     },
 }
 

@@ -53,7 +53,7 @@ pub enum Node<'v> {
     Aggregate {
         source: Box<Node<'v>>,
         group_by: Vec<IntermediateExpr<'v>>,
-        aggregates: Vec<Aggregation>,
+        aggregates: Vec<Aggregation<'v>>,
     },
 
     Filter {
@@ -311,24 +311,24 @@ impl<'v> Display for Node<'v> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Eq, PartialEq, Hash)]
-pub struct Aggregation {
+pub struct Aggregation<'v> {
     pub name: String,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
-    pub callable: Option<AggregatorFactory>,
+    pub callable: Option<AggregatorFactory<'v>>,
     pub args: Vec<Expr>,
     pub call_expr: Expr,
     pub call_sign: String,
 }
 
-impl Aggregation {
+impl<'v> Aggregation<'v> {
     pub fn new(
         agg_name: &str,
-        agg_factory: &AggregatorFactory,
+        agg_factory: &AggregatorFactory<'v>,
         args: &Vec<Expr>,
         expr: &Expr,
-    ) -> Aggregation {
+    ) -> Aggregation<'v> {
         Aggregation {
             name: agg_name.to_string(),
             callable: Some(*agg_factory),
@@ -339,7 +339,7 @@ impl Aggregation {
     }
 }
 
-impl Display for Aggregation {
+impl<'v> Display for Aggregation<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

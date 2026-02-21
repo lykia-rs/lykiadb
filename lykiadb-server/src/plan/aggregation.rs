@@ -25,7 +25,7 @@ use super::PlannerError;
 pub fn collect_aggregates<'v>(
     core: &SqlSelectCore,
     interpreter: &mut Interpreter<'v>,
-) -> Result<Vec<Aggregation>, HaltReason<'v>> {
+) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
     let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
@@ -63,7 +63,7 @@ pub fn prevent_aggregates_in<'v>(
     expr: &Expr,
     in_clause: InClause,
     interpreter: &mut Interpreter<'v>,
-) -> Result<Vec<Aggregation>, HaltReason<'v>> {
+) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut collector = AggregationCollector::preventing(interpreter, in_clause);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
@@ -75,7 +75,7 @@ pub fn prevent_aggregates_in<'v>(
 
 struct AggregationCollector<'a, 'v> {
     in_call: u32,
-    accumulator: Vec<Aggregation>,
+    accumulator: Vec<Aggregation<'v>>,
     interpreter: &'a mut Interpreter<'v>,
     is_preventing: bool,
     in_clause: InClause,
@@ -103,7 +103,7 @@ impl<'a, 'v> AggregationCollector<'a, 'v> {
     }
 }
 
-impl<'a, 'v> ExprReducer<Aggregation, HaltReason<'v>> for AggregationCollector<'a, 'v> {
+impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollector<'a, 'v> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'v>> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
@@ -144,7 +144,7 @@ impl<'a, 'v> ExprReducer<Aggregation, HaltReason<'v>> for AggregationCollector<'
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason<'v>> {
+    fn finalize(&mut self) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
         Ok(self.accumulator.drain(..).collect())
     }
 }
