@@ -14,14 +14,14 @@ use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-pub struct RVCallable {
-    pub function: Arc<Function>,
+pub struct RVCallable<'v> {
+    pub function: Arc<Function<'v>>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
 
-impl RVCallable {
-    pub fn new(function: Function, input_type: Datatype, return_type: Datatype) -> Self {
+impl<'v> RVCallable<'v> {
+    pub fn new(function: Function<'v>, input_type: Datatype, return_type: Datatype) -> Self {
         RVCallable {
             function: Arc::new(function),
             parameter_types: input_type,
@@ -35,10 +35,10 @@ impl RVCallable {
 
     pub fn call(
         &self,
-        interpreter: &mut Interpreter,
+        interpreter: &mut Interpreter<'v>,
         called_from: &Span,
-        arguments: &[RV],
-    ) -> Result<RV, HaltReason> {
+        arguments: &[RV<'v>],
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         match &self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
@@ -67,22 +67,22 @@ impl RVCallable {
     }
 }
 
-pub trait Stateful {
-    fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
+pub trait Stateful<'v> {
+    fn call(&mut self, interpreter: &mut Interpreter<'v>, rv: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>;
 }
 
 pub type AggregatorFactory = fn() -> Box<dyn Aggregator + Send>;
 
 #[derive(Clone)]
-pub enum Function {
+pub enum Function<'v> {
     Native {
-        function: fn(&mut Interpreter, called_from: &Span, &[RV]) -> Result<RV, HaltReason>,
+        function: fn(&mut Interpreter<'v>, called_from: &Span, &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>,
     },
-    Stateful(Shared<dyn Stateful + Send + Sync>),
+    Stateful(Shared<dyn Stateful<'v> + Send + Sync>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,
-        closure: Arc<EnvironmentFrame>,
+        closure: Arc<EnvironmentFrame<'v>>,
         body: Arc<Vec<Stmt>>,
     },
     Agg {
@@ -91,7 +91,7 @@ pub enum Function {
     },
 }
 
-impl Function {
+impl<'v> Function<'v> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Native { .. } => write!(f, "<native_fn>"),
@@ -101,13 +101,13 @@ impl Function {
     }
 }
 
-impl Debug for Function {
+impl<'v> Debug for Function<'v> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }
 }
 
-impl Display for Function {
+impl<'v> Display for Function<'v> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }

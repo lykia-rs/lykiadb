@@ -6,12 +6,12 @@ use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
 use tokio::net::TcpStream;
 use tracing::{error, info};
 
-pub struct ServerSession {
+pub struct ServerSession<'v> {
     conn: TcpConnection,
-    runtime: Runtime,
+    runtime: Runtime<'v>,
 }
 
-impl ServerSession {
+impl<'v> ServerSession<'v> {
     pub fn new(stream: TcpStream) -> Self {
         ServerSession {
             conn: TcpConnection::new(stream),

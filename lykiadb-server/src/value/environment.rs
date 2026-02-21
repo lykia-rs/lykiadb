@@ -52,12 +52,12 @@ impl<'v> EnvironmentFrame<'v> {
     }
 
     pub fn assign_at(
-        env: &Arc<EnvironmentFrame<'v>>,
+        env: &'v Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: Symbol,
         value: RV<'v>,
-    ) -> Result<bool, HaltReason> {
+    ) -> Result<bool, HaltReason<'v>> {
         if distance == 0 {
             return env.assign(key, key_sym, value);
         }
@@ -85,11 +85,11 @@ impl<'v> EnvironmentFrame<'v> {
     }
 
     pub fn read_at(
-        env: &Arc<EnvironmentFrame<'v>>,
+        env: &'v Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: &Symbol,
-    ) -> Result<RV<'v>, HaltReason> {
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         if distance == 0 {
             return env.read(key, key_sym);
         }
