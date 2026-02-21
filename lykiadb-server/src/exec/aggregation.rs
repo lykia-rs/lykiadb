@@ -7,19 +7,19 @@ use crate::{
     value::{RV, iterator::ExecutionRow},
 };
 
-pub(crate) struct Grouper<'session, 'exec> where 'session: 'exec {
-    group_exprs: Vec<IntermediateExpr<'exec>>,
-    aggregations: Vec<Aggregation>,
-    interpreter: Interpreter<'session, 'exec>,
-    groups: FxHashMap<Vec<RV<'exec>>, Vec<Box<dyn Aggregator<'exec>>>>,
+pub(crate) struct Grouper<'session> {
+    group_exprs: Vec<IntermediateExpr<'session>>,
+    aggregations: Vec<Aggregation<'session>>,
+    interpreter: Interpreter<'session>,
+    groups: FxHashMap<Vec<RV<'session>>, Vec<Box<dyn Aggregator<'session>>>>,
 }
 
-impl<'session, 'exec> Grouper<'session, 'exec> {
+impl<'session> Grouper<'session> {
     pub fn new(
-        group_exprs: Vec<IntermediateExpr<'exec>>,
-        aggregators: Vec<Aggregation>,
-        interpreter: Interpreter<'session, 'exec>,
-    ) -> Grouper<'session, 'exec> {
+        group_exprs: Vec<IntermediateExpr<'session>>,
+        aggregators: Vec<Aggregation<'session>>,
+        interpreter: Interpreter<'session>,
+    ) -> Grouper<'session> {
         Grouper {
             group_exprs,
             aggregations: aggregators,
@@ -28,7 +28,7 @@ impl<'session, 'exec> Grouper<'session, 'exec> {
         }
     }
 
-    pub fn row(&mut self, row: ExecutionRow<'exec>) -> Result<(), HaltReason<'exec>> {
+    pub fn row(&mut self, row: ExecutionRow<'session>) -> Result<(), HaltReason<'session>> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -59,7 +59,7 @@ impl<'session, 'exec> Grouper<'session, 'exec> {
         Ok(())
     }
 
-    pub fn finalize(&self) -> Vec<ExecutionRow<'exec>> {
+    pub fn finalize(&self) -> Vec<ExecutionRow<'session>> {
         let mut rows = vec![];
 
         for (bucket, agg) in self.groups.iter() {

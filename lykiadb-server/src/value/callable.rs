@@ -14,14 +14,14 @@ use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-pub struct RVCallable<'arena> {
-    pub function: Arc<Function<'arena>>,
+pub struct RVCallable<'session> {
+    pub function: Arc<Function<'session>>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
 
-impl<'arena> RVCallable<'arena> {
-    pub fn new(function: Function<'arena>, input_type: Datatype, return_type: Datatype) -> Self {
+impl<'session> RVCallable<'session> {
+    pub fn new(function: Function<'session>, input_type: Datatype, return_type: Datatype) -> Self {
         RVCallable {
             function: Arc::new(function),
             parameter_types: input_type,
@@ -33,9 +33,9 @@ impl<'arena> RVCallable<'arena> {
         matches!(&*self.function, Function::Agg { .. })
     }
 
-    pub fn call<'session>(
+    pub fn call(
         &self,
-        interpreter: &'session mut Interpreter<'session, 'arena>,
+        interpreter: &'session mut Interpreter<'session>,
         called_from: &Span,
         arguments: &[RV<'session>],
     ) -> Result<RV<'session>, HaltReason<'session>> {
@@ -70,10 +70,10 @@ impl<'arena> RVCallable<'arena> {
 }
 
 pub trait Stateful {
-    fn call<'arena>(&mut self, interpreter: &mut Interpreter<'_, 'arena>, rv: &[RV<'arena>]) -> Result<RV<'arena>, HaltReason<'arena>>;
+    fn call<'session>(&mut self, interpreter: &mut Interpreter<'session>, rv: &[RV<'session>]) -> Result<RV<'session>, HaltReason<'session>>;
 }
 
-pub type AggregatorFactory<'exec> = fn() -> Box<dyn Aggregator<'exec> + Send>;
+pub type AggregatorFactory<'arena> = fn() -> Box<dyn Aggregator<'arena> + Send>;
 
 #[derive(Clone)]
 pub enum Function<'arena> {
