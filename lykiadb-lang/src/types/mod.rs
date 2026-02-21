@@ -4,7 +4,9 @@ use std::fmt::Display;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Datatype {
     Str,
-    Num,
+    Double,
+    Int32,
+    Int64,
     Bool,
     Object(FxHashMap<String, Datatype>),
     Array(Box<Datatype>),
@@ -20,7 +22,9 @@ impl Display for Datatype {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Datatype::Str => write!(f, "dtype::str"),
-            Datatype::Num => write!(f, "dtype::num"),
+            Datatype::Double => write!(f, "dtype::double"),
+            Datatype::Int32 => write!(f, "dtype::int32"),
+            Datatype::Int64 => write!(f, "dtype::int64"),
             Datatype::Bool => write!(f, "dtype::bool"),
             Datatype::Object(map) => {
                 write!(f, "dtype::object({{")?;

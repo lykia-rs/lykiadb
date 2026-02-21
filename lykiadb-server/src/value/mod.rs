@@ -19,6 +19,8 @@ pub mod object;
 #[derive(Debug, Clone)]
 pub enum RV {
     Str(Arc<String>),
+    Int32(i32),
+    Int64(i64),
     Double(f64),
     Bool(bool),
     Object(RVObject),
@@ -29,8 +31,6 @@ pub enum RV {
     Null,
     /*
     Needed types:
-        Int32(i32),
-        Int64(i64),
         Decimal128(decimal128::Decimal128),
         DateTime,
         BSON object,
@@ -62,6 +62,8 @@ impl std::hash::Hash for RV {
         match self {
             RV::Str(s) => s.hash(state),
             RV::Double(n) => n.to_bits().hash(state),
+            RV::Int32(i) => i.hash(state),
+            RV::Int64(i) => i.hash(state),
             RV::Bool(b) => b.hash(state),
             RV::Object(obj) => {
                 // Hash the object by its pointer address
@@ -103,7 +105,9 @@ impl RV {
     pub fn get_type(&self) -> Datatype {
         match &self {
             RV::Str(_) => Datatype::Str,
-            RV::Double(_) => Datatype::Num,
+            RV::Double(_) => Datatype::Double,
+            RV::Int32(_) => Datatype::Int32,
+            RV::Int64(_) => Datatype::Int64,
             RV::Bool(_) => Datatype::Bool,
             RV::Object(obj) => {
                 if obj.is_empty() {
@@ -198,6 +202,8 @@ impl Display for RV {
         match self {
             RV::Str(s) => write!(f, "{s}"),
             RV::Double(n) => write!(f, "{n}"),
+            RV::Int32(i) => write!(f, "{i}"),
+            RV::Int64(i) => write!(f, "{i}"),
             RV::Bool(b) => write!(f, "{b}"),
             RV::Undefined => write!(f, "undefined"),
             RV::Null => write!(f, "null"),
@@ -640,7 +646,7 @@ mod tests {
         // Datatypes: value-based hashing via string representation
         assert_ne!(
             hash(&RV::Datatype(Datatype::Str)),
-            hash(&RV::Datatype(Datatype::Num))
+            hash(&RV::Datatype(Datatype::Double))
         );
         assert_eq!(
             hash(&RV::Datatype(Datatype::Bool)),

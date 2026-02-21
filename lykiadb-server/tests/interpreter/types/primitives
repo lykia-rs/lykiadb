@@ -1,7 +1,7 @@
 #[name=numerical, run=interpreter]>
 
-testutil::print(dtype::of_(1) == dtype::num);
-testutil::print(dtype::of_(1.12) == dtype::num);
+testutil::print(dtype::of_(1) == dtype::double);
+testutil::print(dtype::of_(1.12) == dtype::double);
 testutil::print(dtype::of_(1) == dtype::str);
 testutil::print(dtype::of_(1));
 testutil::print(dtype::of_(1.12));
@@ -10,14 +10,14 @@ testutil::print(dtype::of_(1.12));
 true
 true
 false
-<Datatype, dtype::num>
-<Datatype, dtype::num>
+<Datatype, dtype::double>
+<Datatype, dtype::double>
 
 
 #[name=string, run=interpreter]>
 
 testutil::print(dtype::of_("1") == dtype::str);
-testutil::print(dtype::of_("1") == dtype::num);
+testutil::print(dtype::of_("1") == dtype::double);
 testutil::print(dtype::of_("1"));
 
 ---
@@ -45,7 +45,7 @@ false
 
 
 #[name=array, run=interpreter]>
-testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::num));
+testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::double));
 testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
 testutil::print(dtype::of_([1, 2, 3]));
 
@@ -53,20 +53,20 @@ testutil::print(dtype::of_([1, 2, 3]));
 
 true
 false
-<Datatype, dtype::array(dtype::num)>
+<Datatype, dtype::array(dtype::double)>
 
 
 #[name=object, run=interpreter]>
-testutil::print(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::num, b: dtype::num}));
-testutil::print(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::num)}));
+testutil::print(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::double, b: dtype::double}));
+testutil::print(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::double)}));
 testutil::print(dtype::of_({a: [1, 2, 3] }));
 testutil::print(dtype::of_({a: 1, b: 2}));
 ---
 
 true
 true
-<Datatype, dtype::object({a: dtype::array(dtype::num)})>
-<Datatype, dtype::object({b: dtype::num, a: dtype::num})>
+<Datatype, dtype::object({a: dtype::array(dtype::double)})>
+<Datatype, dtype::object({b: dtype::double, a: dtype::double})>
 
 
 #[name=callable, run=interpreter]>
@@ -82,9 +82,9 @@ false
 
 #[name=datatype, run=interpreter]>
 
-testutil::print(dtype::of_(dtype::num) == dtype::dtype);
-testutil::print(dtype::of_(dtype::num) == dtype::str);
-testutil::print(dtype::of_(dtype::num));
+testutil::print(dtype::of_(dtype::double) == dtype::dtype);
+testutil::print(dtype::of_(dtype::double) == dtype::str);
+testutil::print(dtype::of_(dtype::double));
 
 ---
 
