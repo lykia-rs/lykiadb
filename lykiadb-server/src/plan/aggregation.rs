@@ -22,15 +22,15 @@ use super::PlannerError;
 /// The aggregates are stored in a HashSet to avoid duplicates and then
 /// returned as a Vec<Aggregation>. For the time being, we only find
 /// aggregates in the projection and the having clause.
-pub fn collect_aggregates(
+pub fn collect_aggregates<'session, 'int>(
     core: &SqlSelectCore,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
-    let mut aggregates: HashSet<Aggregation> = HashSet::new();
+    interpreter: &'int mut Interpreter<'session>,
+) -> Result<Vec<Aggregation<'session>>, HaltReason<'session>>{
+    let mut aggregates: HashSet<Aggregation<'session>> = HashSet::new();
 
     let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
 
-    let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+    let mut visitor = ExprVisitor::new(&mut collector);
 
     for projection in &core.projection {
         if let SqlProjection::Expr { expr, .. } = projection {
@@ -41,9 +41,9 @@ pub fn collect_aggregates(
         }
     }
 
-    collector = AggregationCollector::collecting(interpreter, InClause::Having);
+    let mut collector = AggregationCollector::collecting(interpreter, InClause::Having);
 
-    visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
+    let mut visitor = ExprVisitor::new(&mut collector);
 
     if let Some(expr) = &core.having {
         let found = visitor.visit(expr)?;
@@ -52,18 +52,18 @@ pub fn collect_aggregates(
         }
     }
 
-    let mut no_dup: Vec<Aggregation> = aggregates.drain().collect();
+    let mut no_dup: Vec<Aggregation<'session>> = aggregates.drain().collect();
 
     no_dup.sort_by_key(|a| a.to_string());
 
     Ok(no_dup)
 }
 
-pub fn prevent_aggregates_in(
+pub fn prevent_aggregates_in<'session, 'int>(
     expr: &Expr,
     in_clause: InClause,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
+    interpreter: &'int mut Interpreter<'session>,
+) -> Result<Vec<Aggregation<'session>>, HaltReason<'session>> {
     let mut collector = AggregationCollector::preventing(interpreter, in_clause);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
@@ -73,16 +73,19 @@ pub fn prevent_aggregates_in(
     Ok(aggregates)
 }
 
-struct AggregationCollector<'a> {
+struct AggregationCollector<'session, 'int> {
     in_call: u32,
-    accumulator: Vec<Aggregation>,
-    interpreter: &'a mut Interpreter,
+    accumulator: Vec<Aggregation<'session>>,
+    interpreter: &'int mut Interpreter<'session>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
-impl<'a> AggregationCollector<'a> {
-    fn preventing(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+impl<'session, 'int> AggregationCollector<'session, 'int> {
+    fn preventing(
+        interpreter: &'int mut Interpreter<'session>,
+        in_clause: InClause,
+    ) -> AggregationCollector<'session, 'int> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -92,7 +95,10 @@ impl<'a> AggregationCollector<'a> {
         }
     }
 
-    fn collecting(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+    fn collecting(
+        interpreter: &'int mut Interpreter<'session>,
+        in_clause: InClause,
+    ) -> AggregationCollector<'session, 'int> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -103,8 +109,10 @@ impl<'a> AggregationCollector<'a> {
     }
 }
 
-impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
+impl<'session, 'int> ExprReducer<Aggregation<'session>, HaltReason<'session>>
+    for AggregationCollector<'session, 'int>
+{
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'session>> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
@@ -144,7 +152,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason> {
+    fn finalize(&mut self) -> Result<Vec<Aggregation<'session>>, HaltReason<'session>> {
         Ok(self.accumulator.drain(..).collect())
     }
 }
@@ -161,7 +169,7 @@ mod tests {
     };
 
     #[test]
-    fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason> {
+    fn test_collect_aggregates_simple_projection() {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -189,15 +197,14 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter)?;
+        let result = collect_aggregates(&core, &mut interpreter)
+            .expect("collecting aggregates should succeed");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
-
-        Ok(())
     }
 
     #[test]
-    fn test_collect_aggregates_having_clause() -> Result<(), HaltReason> {
+    fn test_collect_aggregates_having_clause() {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -222,11 +229,10 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter)?;
+        let result = collect_aggregates(&core, &mut interpreter)
+            .expect("collecting aggregates should succeed");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
-
-        Ok(())
     }
 
     #[test]
@@ -270,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason> {
+    fn test_aggregation_should_be_drained_after_each_visit() {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -289,14 +295,14 @@ mod tests {
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
-        let result1 = visitor.visit(&avg_call)?;
+        let result1 = visitor.visit(&avg_call)
+            .expect("first aggregation visit should succeed");
         assert_eq!(result1.len(), 1);
         assert_eq!(result1[0].name, "avg");
 
-        let result2 = visitor.visit(&avg_call)?;
+        let result2 = visitor.visit(&avg_call)
+            .expect("second aggregation visit should succeed");
         assert_eq!(result2.len(), 1);
         assert_eq!(result2[0].name, "avg");
-
-        Ok(())
     }
 }

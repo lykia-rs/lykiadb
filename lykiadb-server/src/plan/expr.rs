@@ -12,14 +12,14 @@ use lykiadb_lang::ast::{
 
 use super::PlannerError;
 
-pub struct SqlExprReducer<'exec> {
+pub struct SqlExprReducer<'scope> {
     subqueries: Vec<SqlSelect>,
     allow_subqueries: bool,
-    scope: &'exec Scope,
+    scope: &'scope Scope,
 }
 
-impl<'exec> SqlExprReducer<'exec> {
-    pub fn new(allow_subqueries: bool, scope: &'exec Scope) -> Self {
+impl<'scope> SqlExprReducer<'scope> {
+    pub fn new(allow_subqueries: bool, scope: &'scope Scope) -> Self {
         Self {
             subqueries: vec![],
             allow_subqueries,
@@ -28,8 +28,8 @@ impl<'exec> SqlExprReducer<'exec> {
     }
 }
 
-impl<'exec> ExprReducer<SqlSelect, HaltReason<'exec>> for SqlExprReducer<'exec> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'exec>> {
+impl<'session, 'scope> ExprReducer<SqlSelect, HaltReason<'session>> for SqlExprReducer<'scope> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'session>> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
                 Expr::Get { .. } => {
@@ -64,7 +64,7 @@ impl<'exec> ExprReducer<SqlSelect, HaltReason<'exec>> for SqlExprReducer<'exec> 
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason<'exec>> {
+    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason<'session>> {
         Ok(self.subqueries.clone())
     }
 }
