@@ -34,7 +34,7 @@ impl<'v> EnvironmentFrame<'v> {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV<'v>) -> Result<bool, HaltReason> {
+    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV<'v>) -> Result<bool, HaltReason<'v>> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
@@ -52,7 +52,7 @@ impl<'v> EnvironmentFrame<'v> {
     }
 
     pub fn assign_at(
-        env: &'v Arc<EnvironmentFrame<'v>>,
+        env: &Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: Symbol,
@@ -67,7 +67,7 @@ impl<'v> EnvironmentFrame<'v> {
         to_ancestor!(env, distance).assign(key, key_sym, value)
     }
 
-    pub fn read(&self, key: &str, key_sym: &Symbol) -> Result<RV<'v>, HaltReason> {
+    pub fn read(&self, key: &str, key_sym: &Symbol) -> Result<RV<'v>, HaltReason<'v>> {
         let guard = self.map.read().unwrap();
         if let Some(value) = guard.get(key_sym) {
             // TODO(vck): Remove clone
