@@ -1,25 +1,25 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::HaltReason,
+    engine::interpreter::{HaltReason, Interpreter},
     global::GLOBAL_INTERNER,
     plan::{Aggregation, IntermediateExpr},
     value::{RV, iterator::ExecutionRow},
 };
 
-pub(crate) struct Grouper {
-    group_exprs: Vec<IntermediateExpr>,
+pub(crate) struct Grouper<'session, 'exec> where 'session: 'exec {
+    group_exprs: Vec<IntermediateExpr<'exec>>,
     aggregations: Vec<Aggregation>,
-    interpreter: crate::engine::interpreter::Interpreter,
-    groups: FxHashMap<Vec<RV>, Vec<Box<dyn Aggregator>>>,
+    interpreter: Interpreter<'session, 'exec>,
+    groups: FxHashMap<Vec<RV<'exec>>, Vec<Box<dyn Aggregator<'exec>>>>,
 }
 
-impl Grouper {
+impl<'session, 'exec> Grouper<'session, 'exec> {
     pub fn new(
-        group_exprs: Vec<IntermediateExpr>,
+        group_exprs: Vec<IntermediateExpr<'exec>>,
         aggregators: Vec<Aggregation>,
-        interpreter: crate::engine::interpreter::Interpreter,
-    ) -> Grouper {
+        interpreter: Interpreter<'session, 'exec>,
+    ) -> Grouper<'session, 'exec> {
         Grouper {
             group_exprs,
             aggregations: aggregators,
@@ -28,7 +28,7 @@ impl Grouper {
         }
     }
 
-    pub fn row(&mut self, row: ExecutionRow) -> Result<(), HaltReason> {
+    pub fn row(&mut self, row: ExecutionRow<'exec>) -> Result<(), HaltReason<'exec>> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -59,7 +59,7 @@ impl Grouper {
         Ok(())
     }
 
-    pub fn finalize(&self) -> Vec<ExecutionRow> {
+    pub fn finalize(&self) -> Vec<ExecutionRow<'exec>> {
         let mut rows = vec![];
 
         for (bucket, agg) in self.groups.iter() {
@@ -81,7 +81,7 @@ impl Grouper {
     }
 }
 
-pub trait Aggregator {
-    fn row(&mut self, row: &RV);
-    fn finalize(&self) -> RV;
+pub trait Aggregator<'exec> {
+    fn row(&mut self, row: &RV<'exec>);
+    fn finalize(&self) -> RV<'exec>;
 }

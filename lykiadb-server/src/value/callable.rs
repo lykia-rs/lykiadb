@@ -14,14 +14,14 @@ use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-pub struct RVCallable {
-    pub function: Arc<Function>,
+pub struct RVCallable<'arena> {
+    pub function: Arc<Function<'arena>>,
     pub parameter_types: Datatype,
     pub return_type: Datatype,
 }
 
-impl RVCallable {
-    pub fn new(function: Function, input_type: Datatype, return_type: Datatype) -> Self {
+impl<'arena> RVCallable<'arena> {
+    pub fn new(function: Function<'arena>, input_type: Datatype, return_type: Datatype) -> Self {
         RVCallable {
             function: Arc::new(function),
             parameter_types: input_type,
@@ -33,12 +33,12 @@ impl RVCallable {
         matches!(&*self.function, Function::Agg { .. })
     }
 
-    pub fn call(
+    pub fn call<'session>(
         &self,
-        interpreter: &mut Interpreter,
+        interpreter: &'session mut Interpreter<'session, 'arena>,
         called_from: &Span,
-        arguments: &[RV],
-    ) -> Result<RV, HaltReason> {
+        arguments: &[RV<'session>],
+    ) -> Result<RV<'session>, HaltReason<'session>> {
         match &self.function.as_ref() {
             Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
             Function::Native { function } => function(interpreter, called_from, arguments),
@@ -55,7 +55,9 @@ impl RVCallable {
                     }
                 }
 
-                Ok(aggregator.finalize())
+                let finalized = aggregator.finalize();
+
+                Ok(finalized)
             }
             Function::UserDefined {
                 parameters,
@@ -68,30 +70,30 @@ impl RVCallable {
 }
 
 pub trait Stateful {
-    fn call(&mut self, interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason>;
+    fn call<'arena>(&mut self, interpreter: &mut Interpreter<'_, 'arena>, rv: &[RV<'arena>]) -> Result<RV<'arena>, HaltReason<'arena>>;
 }
 
-pub type AggregatorFactory = fn() -> Box<dyn Aggregator + Send>;
+pub type AggregatorFactory<'exec> = fn() -> Box<dyn Aggregator<'exec> + Send>;
 
 #[derive(Clone)]
-pub enum Function {
+pub enum Function<'arena> {
     Native {
-        function: fn(&mut Interpreter, called_from: &Span, &[RV]) -> Result<RV, HaltReason>,
+        function: fn(&mut Interpreter, called_from: &Span, &[RV<'arena>]) -> Result<RV<'arena>, HaltReason<'arena>>,
     },
     Stateful(Shared<dyn Stateful + Send + Sync>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,
-        closure: Arc<EnvironmentFrame>,
+        closure: Arc<EnvironmentFrame<'arena>>,
         body: Arc<Vec<Stmt>>,
     },
     Agg {
         name: String,
-        function: AggregatorFactory,
+        function: AggregatorFactory<'arena>,
     },
 }
 
-impl Function {
+impl<'arena> Function<'arena> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Function::Stateful(_) | Function::Native { .. } => write!(f, "<native_fn>"),
@@ -101,13 +103,13 @@ impl Function {
     }
 }
 
-impl Debug for Function {
+impl<'arena> Debug for Function<'arena> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }
 }
 
-impl Display for Function {
+impl<'arena> Display for Function<'arena> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt(f)
     }
