@@ -7,6 +7,7 @@ pub enum Datatype {
     Double,
     Int32,
     Int64,
+    Decimal128,
     Bool,
     Object(FxHashMap<String, Datatype>),
     Array(Box<Datatype>),
@@ -25,6 +26,7 @@ impl Display for Datatype {
             Datatype::Double => write!(f, "dtype::double"),
             Datatype::Int32 => write!(f, "dtype::int32"),
             Datatype::Int64 => write!(f, "dtype::int64"),
+            Datatype::Decimal128 => write!(f, "dtype::decimal128"),
             Datatype::Bool => write!(f, "dtype::bool"),
             Datatype::Object(map) => {
                 write!(f, "dtype::object({{")?;

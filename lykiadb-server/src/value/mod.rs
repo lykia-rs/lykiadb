@@ -1,4 +1,5 @@
 use array::RVArray;
+use bson::decimal128;
 use callable::RVCallable;
 use lykiadb_lang::types::Datatype;
 use object::RVObject;
@@ -22,6 +23,7 @@ pub enum RV {
     Int32(i32),
     Int64(i64),
     Double(f64),
+    Decimal128(decimal128::Decimal128),
     Bool(bool),
     Object(RVObject),
     Array(RVArray),
@@ -31,28 +33,12 @@ pub enum RV {
     Null,
     /*
     Needed types:
-        Decimal128(decimal128::Decimal128),
         DateTime,
         BSON object,
         BSON array,
         Unicode String
      */
 }
-
-
-/*
-
-    Str(Arc<String>),
-    Double(f64),
-    Bool(bool),
-    Object(RVObject),
-    Array(RVArray),
-    Callable(RVCallable),
-    Datatype(Datatype),
-    Null,
-
-*/
-
 
 impl Eq for RV {}
 
@@ -64,6 +50,7 @@ impl std::hash::Hash for RV {
             RV::Double(n) => n.to_bits().hash(state),
             RV::Int32(i) => i.hash(state),
             RV::Int64(i) => i.hash(state),
+            RV::Decimal128(d) => d.to_string().hash(state),
             RV::Bool(b) => b.hash(state),
             RV::Object(obj) => {
                 // Hash the object by its pointer address
@@ -108,6 +95,7 @@ impl RV {
             RV::Double(_) => Datatype::Double,
             RV::Int32(_) => Datatype::Int32,
             RV::Int64(_) => Datatype::Int64,
+            RV::Decimal128(_) => Datatype::Decimal128,
             RV::Bool(_) => Datatype::Bool,
             RV::Object(obj) => {
                 if obj.is_empty() {
@@ -204,6 +192,7 @@ impl Display for RV {
             RV::Double(n) => write!(f, "{n}"),
             RV::Int32(i) => write!(f, "{i}"),
             RV::Int64(i) => write!(f, "{i}"),
+            RV::Decimal128(d) => write!(f, "{d}"),
             RV::Bool(b) => write!(f, "{b}"),
             RV::Undefined => write!(f, "undefined"),
             RV::Null => write!(f, "null"),
