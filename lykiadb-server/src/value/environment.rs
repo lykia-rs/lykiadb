@@ -85,7 +85,7 @@ impl<'v> EnvironmentFrame<'v> {
     }
 
     pub fn read_at(
-        env: &'v Arc<EnvironmentFrame<'v>>,
+        env: &Arc<EnvironmentFrame<'v>>,
         distance: usize,
         key: &str,
         key_sym: &Symbol,

@@ -26,9 +26,9 @@ use std::sync::Arc;
 use std::vec;
 
 #[derive(PartialEq, Debug)]
-pub enum HaltReason {
+pub enum HaltReason<'v> {
     Error(ExecutionError),
-    Return(RV),
+    Return(RV<'v>),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -112,19 +112,19 @@ impl LoopStack {
 }
 
 #[derive(Clone)]
-pub struct Interpreter {
-    env: Arc<EnvironmentFrame>,
-    root_env: Arc<EnvironmentFrame>,
-    exec_row: Option<ExecutionRow>,
+pub struct Interpreter<'v> {
+    env: Arc<EnvironmentFrame<'v>>,
+    root_env: Arc<EnvironmentFrame<'v>>,
+    exec_row: Option<ExecutionRow<'v>>,
     //
     program: Option<Arc<Program>>,
-    output: Option<Shared<Output>>,
+    output: Option<Shared<Output<'v>>>,
     //
     loop_stack: LoopStack,
 }
 
-impl Interpreter {
-    pub fn new(out: Option<Shared<Output>>, with_stdlib: bool) -> Interpreter {
+impl<'v> Interpreter<'v> {
+    pub fn new(out: Option<Shared<Output<'v>>>, with_stdlib: bool) -> Interpreter<'v> {
         let root_env = Arc::new(EnvironmentFrame::new(None));
         if with_stdlib {
             let native_fns = stdlib(out.clone());
@@ -143,18 +143,18 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_with_row(&mut self, e: &Expr, exec_row: &ExecutionRow) -> Result<RV, HaltReason> {
+    pub fn eval_with_row(&mut self, e: &Expr, exec_row: &ExecutionRow<'v>) -> Result<RV<'v>, HaltReason<'v>> {
         self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
         self.clear_exec_row();
         evaluated
     }
 
-    pub fn eval(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+    pub fn eval(&mut self, e: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV, ExecutionError> {
+    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'v>, ExecutionError> {
         self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
         match out {
@@ -166,7 +166,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV, HaltReason> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
                 return Ok(RV::Double(-num));
@@ -182,14 +182,14 @@ impl Interpreter {
         lexpr: &Expr,
         rexpr: &Expr,
         operation: Operation,
-    ) -> Result<RV, HaltReason> {
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         let left_eval = self.visit_expr(lexpr)?;
         let right_eval = self.visit_expr(rexpr)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_exec_row(&mut self, exec_row: ExecutionRow) {
+    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'v>) {
         self.exec_row = Some(exec_row);
     }
 
@@ -205,7 +205,7 @@ impl Interpreter {
         GLOBAL_INTERNER.intern(string)
     }
 
-    fn get_from_row(&mut self, name: &str) -> Option<RV> {
+    fn get_from_row(&mut self, name: &str) -> Option<RV<'v>> {
         if let Some(exec_row) = &self.exec_row {
             if let Some(val) = exec_row.get(&self.intern_string(name)) {
                 return Some(val.clone());
@@ -214,7 +214,7 @@ impl Interpreter {
         None
     }
 
-    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV, HaltReason> {
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         if let Some(exec_row) = self.exec_row.as_ref()
             && let Some(val) = exec_row.get(&self.intern_string(name))
         {
@@ -232,10 +232,10 @@ impl Interpreter {
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<Stmt>,
-        closure: Arc<EnvironmentFrame>,
+        closure: Arc<EnvironmentFrame<'v>>,
         parameters: &[Symbol],
-        arguments: &[RV],
-    ) -> Result<RV, HaltReason> {
+        arguments: &[RV<'v>],
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, arg) in arguments.iter().enumerate() {
@@ -253,8 +253,8 @@ impl Interpreter {
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Arc<EnvironmentFrame>,
-    ) -> Result<RV, HaltReason> {
+        env_opt: Arc<EnvironmentFrame<'v>>,
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         let previous = std::mem::replace(&mut self.env, env_opt);
 
         let mut ret = Ok(RV::Undefined);
@@ -271,7 +271,7 @@ impl Interpreter {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV, HaltReason> {
+    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV<'v>, HaltReason<'v>> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Double(*n),
@@ -295,8 +295,8 @@ impl Interpreter {
     }
 }
 
-impl VisitorMut<RV, HaltReason> for Interpreter {
-    fn visit_expr(&mut self, e: &Expr) -> Result<RV, HaltReason> {
+impl<'v> VisitorMut<RV<'v>, HaltReason<'v>> for Interpreter<'v> {
+    fn visit_expr(&mut self, e: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
@@ -557,7 +557,8 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                         .unwrap()
                         .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                 }
-                let result = PlanExecutor::new(self).execute_plan(plan);
+                let mut executor = PlanExecutor::new(self);
+                let result = executor.execute_plan(plan);
 
                 match result {
                     Err(e) => Err(HaltReason::Error(e)),
@@ -572,7 +573,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
         }
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV, HaltReason> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'v>, HaltReason<'v>> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
@@ -671,18 +672,18 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
 }
 
 #[derive(Clone)]
-pub struct Output {
-    out: Vec<RV>,
+pub struct Output<'v> {
+    out: Vec<RV<'v>>,
 }
 
-impl Default for Output {
+impl<'v> Default for Output<'v> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Output {
-    pub fn new() -> Output {
+impl<'v> Output<'v> {
+    pub fn new() -> Output<'v> {
         Output { out: Vec::new() }
     }
 
@@ -690,11 +691,11 @@ impl Output {
         self.out.clear();
     }
 
-    pub fn push(&mut self, rv: RV) {
+    pub fn push(&mut self, rv: RV<'v>) {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: Vec<RV>) {
+    pub fn expect(&mut self, rv: Vec<RV<'v>>) {
         if rv.len() == 1 {
             if let Some(first) = rv.first() {
                 assert_eq!(
@@ -717,8 +718,8 @@ impl Output {
     }
 }
 
-impl Stateful for Output {
-    fn call(&mut self, _interpreter: &mut Interpreter, rv: &[RV]) -> Result<RV, HaltReason> {
+impl<'v> Stateful<'v> for Output<'v> {
+    fn call(&mut self, _interpreter: &mut Interpreter<'v>, rv: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>> {
         for item in rv {
             self.push(item.clone());
         }
