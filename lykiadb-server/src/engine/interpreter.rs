@@ -169,7 +169,7 @@ impl Interpreter {
     fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV, HaltReason> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_number() {
-                return Ok(RV::Num(-num));
+                return Ok(RV::Double(-num));
             }
             Ok(RV::Undefined)
         } else {
@@ -274,7 +274,7 @@ impl Interpreter {
     fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV, HaltReason> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
-            Literal::Num(n) => RV::Num(*n),
+            Literal::Num(n) => RV::Double(*n),
             Literal::Bool(b) => RV::Bool(*b),
             Literal::Undefined => RV::Undefined,
             Literal::Object(map) => {
@@ -437,7 +437,7 @@ impl VisitorMut<RV, HaltReason> for Interpreter {
                 let upper_eval = self.visit_expr(upper)?;
                 let subject_eval = self.visit_expr(subject)?;
 
-                if let (RV::Num(lower_num), RV::Num(upper_num), RV::Num(subject_num)) =
+                if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
                     (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
                 {
                     let min_num = lower_num.min(upper_num);

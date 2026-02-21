@@ -71,7 +71,7 @@ mod tests {
 
         // Test primitive values
         assert_eq!(
-            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]),
+            nt_json_encode(&mut interpreter, &Span::default(), &[RV::Double(42.0)]),
             Ok(RV::Str(Arc::new("42.0".to_string())))
         );
 
@@ -95,7 +95,7 @@ mod tests {
         );
 
         // Test array
-        let arr = vec![RV::Num(1.0), RV::Str(Arc::new("test".to_string()))];
+        let arr = vec![RV::Double(1.0), RV::Str(Arc::new("test".to_string()))];
         let array_rv = RV::Array(RVArray::from_vec(arr));
 
         assert_eq!(
@@ -105,7 +105,7 @@ mod tests {
 
         // Test object
         let mut map = FxHashMap::default();
-        map.insert("key".to_string(), RV::Num(123.0));
+        map.insert("key".to_string(), RV::Double(123.0));
         map.insert("msg".to_string(), RV::Str(Arc::new("value".to_string())));
         let object_rv = RV::Object(RVObject::from_map(map));
 
@@ -128,7 +128,7 @@ mod tests {
                 &Span::default(),
                 &[RV::Str(Arc::new("42.0".to_string()))]
             ),
-            Ok(RV::Num(42.0))
+            Ok(RV::Double(42.0))
         );
 
         assert_eq!(
@@ -168,7 +168,7 @@ mod tests {
         extract!(RV::Array(arr), array_result);
 
         assert_eq!(arr.len(), 2);
-        assert_eq!(arr.get(0), RV::Num(1.0));
+        assert_eq!(arr.get(0), RV::Double(1.0));
         assert_eq!(arr.get(1), RV::Str(Arc::new("test".to_string())));
 
         // Test object
@@ -183,12 +183,12 @@ mod tests {
         extract!(RV::Object(obj), object_result);
 
         assert_eq!(obj.len(), 2);
-        assert_eq!(obj.get("key"), Some(RV::Num(123.0)));
+        assert_eq!(obj.get("key"), Some(RV::Double(123.0)));
         assert_eq!(obj.get("msg"), Some(RV::Str(Arc::new("value".to_string()))));
 
         // Test error cases
         assert!(matches!(
-            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Num(42.0)]),
+            nt_json_decode(&mut interpreter, &Span::default(), &[RV::Double(42.0)]),
             Err(HaltReason::Error(_))
         ));
 

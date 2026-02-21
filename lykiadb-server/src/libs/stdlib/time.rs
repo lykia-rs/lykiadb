@@ -11,7 +11,7 @@ pub fn nt_clock(
     _args: &[RV],
 ) -> Result<RV, HaltReason> {
     if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
-        return Ok(RV::Num(n.as_secs_f64()));
+        return Ok(RV::Double(n.as_secs_f64()));
     }
     Ok(RV::Undefined)
 }
@@ -34,6 +34,6 @@ mod tests {
         // Test clock function
         let result = nt_clock(&mut interpreter, &Span::default(), &[]);
 
-        assert!(matches!(result, Ok(RV::Num(_))));
+        assert!(matches!(result, Ok(RV::Double(_))));
     }
 }

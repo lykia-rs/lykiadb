@@ -12,7 +12,7 @@ pub fn nt_create_arr(
     args: &[RV],
 ) -> Result<RV, HaltReason> {
     let size = match &args[0] {
-        RV::Num(n) if *n >= 0.0 && n.fract() == 0.0 => *n as usize,
+        RV::Double(n) if *n >= 0.0 && n.fract() == 0.0 => *n as usize,
         _ => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
@@ -27,7 +27,7 @@ pub fn nt_create_arr(
     // monotonically initialize array with undefined values
     let mut vec: Vec<RV> = Vec::with_capacity(size);
     for i in 0..size {
-        vec.push(RV::Num(i as f64));
+        vec.push(RV::Double(i as f64));
     }
 
     let arr = RV::Array(RVArray::from_vec(vec));
