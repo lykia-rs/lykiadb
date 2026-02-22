@@ -64,7 +64,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                             let cursor = self.execute_node(*source)?;
                             Ok(cursor)
                         } else {
-                            let empty_iter = Vec::<ExecutionRow>::new().into_iter();
+                            let empty_iter = Vec::<ExecutionRow<'v>>::new().into_iter();
                             Ok(Box::from(empty_iter) as RVs)
                         }
                     }
@@ -136,7 +136,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
 
                     let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
 
-                    let mapper = move |v: RV| {
+                    let mapper = move |v: RV<'v>| {
                         let mut env = ExecutionRow::new();
                         env.insert(sym_alias, v.clone());
                         env
