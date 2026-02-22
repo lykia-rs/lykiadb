@@ -74,7 +74,7 @@ impl<'a, 'v> Planner<'a, 'v> {
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>>{
+    ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, self.interpreter)?;
         }

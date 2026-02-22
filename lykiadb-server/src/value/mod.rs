@@ -78,11 +78,11 @@ impl<'v> std::hash::Hash for RV<'v> {
 
             RV::DateTime(date_time) => {
                 date_time.timestamp_millis().hash(state);
-            },
+            }
             RV::Document(document) => {
                 // Hash the document by its pointer address
                 (document as *const _ as usize).hash(state);
-            },
+            }
             RV::DocumentArray(bsons) => {
                 // Hash the array length and each document's pointer address
                 bsons.len().hash(state);
@@ -374,7 +374,9 @@ impl<'v> ops::Add for RV<'v> {
     fn add(self, rhs: Self) -> Self::Output {
         match (&self, &rhs) {
             //
-            (RV::Bool(_), RV::Bool(_)) | (RV::Double(_), RV::Bool(_)) | (RV::Bool(_), RV::Double(_)) => {
+            (RV::Bool(_), RV::Bool(_))
+            | (RV::Double(_), RV::Bool(_))
+            | (RV::Bool(_), RV::Double(_)) => {
                 RV::Double(self.as_number().unwrap() + rhs.as_number().unwrap())
             }
 

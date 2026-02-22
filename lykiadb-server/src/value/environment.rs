@@ -34,7 +34,12 @@ impl<'v> EnvironmentFrame<'v> {
         self.map.write().unwrap().insert(name, value);
     }
 
-    pub fn assign(&self, key: &str, key_sym: Symbol, value: RV<'v>) -> Result<bool, HaltReason<'v>> {
+    pub fn assign(
+        &self,
+        key: &str,
+        key_sym: Symbol,
+        value: RV<'v>,
+    ) -> Result<bool, HaltReason<'v>> {
         if self.map.read().unwrap().contains_key(&key_sym) {
             self.map.write().unwrap().insert(key_sym, value);
             return Ok(true);
