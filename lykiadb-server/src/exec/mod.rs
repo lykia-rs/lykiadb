@@ -9,7 +9,8 @@ use crate::{
     global::GLOBAL_INTERNER,
     plan::{IntermediateExpr, Node, Plan},
     value::{
-        RV, iterator::{ExecutionRow, RVs}
+        RV,
+        iterator::{ExecutionRow, RVs},
     },
 };
 

@@ -82,7 +82,10 @@ struct AggregationCollector<'a, 'v> {
 }
 
 impl<'a, 'v> AggregationCollector<'a, 'v> {
-    fn preventing(interpreter: &'a mut Interpreter<'v>, in_clause: InClause) -> AggregationCollector<'a, 'v> {
+    fn preventing(
+        interpreter: &'a mut Interpreter<'v>,
+        in_clause: InClause,
+    ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -92,7 +95,10 @@ impl<'a, 'v> AggregationCollector<'a, 'v> {
         }
     }
 
-    fn collecting(interpreter: &'a mut Interpreter<'v>, in_clause: InClause) -> AggregationCollector<'a, 'v> {
+    fn collecting(
+        interpreter: &'a mut Interpreter<'v>,
+        in_clause: InClause,
+    ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],

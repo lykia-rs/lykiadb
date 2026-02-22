@@ -143,7 +143,11 @@ impl<'v> Interpreter<'v> {
         }
     }
 
-    pub fn eval_with_row(&mut self, e: &Expr, exec_row: &ExecutionRow<'v>) -> Result<RV<'v>, HaltReason<'v>> {
+    pub fn eval_with_row(
+        &mut self,
+        e: &Expr,
+        exec_row: &ExecutionRow<'v>,
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
         self.clear_exec_row();
@@ -719,7 +723,11 @@ impl<'v> Output<'v> {
 }
 
 impl<'v> Stateful<'v> for Output<'v> {
-    fn call(&mut self, _interpreter: &mut Interpreter<'v>, rv: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>> {
+    fn call(
+        &mut self,
+        _interpreter: &mut Interpreter<'v>,
+        rv: &[RV<'v>],
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         for item in rv {
             self.push(item.clone());
         }
