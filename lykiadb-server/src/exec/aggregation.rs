@@ -28,7 +28,7 @@ impl<'v> Grouper<'v> {
         }
     }
 
-    pub fn row(&'v mut self, row: ExecutionRow<'v>) -> Result<(), HaltReason<'v>> {
+    pub fn row(&mut self, row: ExecutionRow<'v>) -> Result<(), HaltReason<'v>> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
@@ -59,7 +59,7 @@ impl<'v> Grouper<'v> {
         Ok(())
     }
 
-    pub fn finalize(&'v self) -> Vec<ExecutionRow<'v>> {
+    pub fn finalize(&self) -> Vec<ExecutionRow<'v>> {
         let mut rows = vec![];
 
         for (bucket, agg) in self.groups.iter() {
