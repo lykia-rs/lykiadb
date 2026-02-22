@@ -28,8 +28,8 @@ impl<'a> SqlExprReducer<'a> {
     }
 }
 
-impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
+impl<'scope, 'a> ExprReducer<SqlSelect, HaltReason<'a>> for SqlExprReducer<'scope> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'a>> {
         if matches!(visit, ExprVisitorNode::In) {
             match expr {
                 Expr::Get { .. } => {
@@ -64,7 +64,7 @@ impl<'a> ExprReducer<SqlSelect, HaltReason> for SqlExprReducer<'a> {
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason> {
+    fn finalize(&mut self) -> Result<Vec<SqlSelect>, HaltReason<'a>> {
         Ok(self.subqueries.clone())
     }
 }

@@ -9,23 +9,22 @@ use crate::{
     global::GLOBAL_INTERNER,
     plan::{IntermediateExpr, Node, Plan},
     value::{
-        RV,
-        iterator::{ExecutionRow, RVs},
+        RV, iterator::{ExecutionRow, RVs}
     },
 };
 
 pub mod aggregation;
 
-pub struct PlanExecutor<'a> {
-    interpreter: &'a mut Interpreter,
+pub struct PlanExecutor<'a, 'v> {
+    interpreter: &'a mut Interpreter<'v>,
 }
 
-impl<'a> PlanExecutor<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> PlanExecutor<'a> {
+impl<'a, 'v> PlanExecutor<'a, 'v> {
+    pub fn new(interpreter: &'a mut Interpreter<'v>) -> PlanExecutor<'a, 'v> {
         PlanExecutor { interpreter }
     }
 
-    pub fn execute_plan(&mut self, plan: Plan) -> Result<RVs, ExecutionError> {
+    pub fn execute_plan(&mut self, plan: Plan<'v>) -> Result<RVs<'v>, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
             Plan::Select(root) => {
@@ -35,7 +34,7 @@ impl<'a> PlanExecutor<'a> {
         }
     }
 
-    pub fn execute_node(&mut self, node: Node) -> Result<RVs, ExecutionError> {
+    pub fn execute_node(&mut self, node: Node<'v>) -> Result<RVs<'v>, ExecutionError> {
         match node {
             Node::Subquery { source, alias } => {
                 let cursor = self.execute_node(*source)?;
@@ -65,7 +64,7 @@ impl<'a> PlanExecutor<'a> {
                             let cursor = self.execute_node(*source)?;
                             Ok(cursor)
                         } else {
-                            let empty_iter = Vec::<ExecutionRow>::new().into_iter();
+                            let empty_iter = Vec::<ExecutionRow<'v>>::new().into_iter();
                             Ok(Box::from(empty_iter) as RVs)
                         }
                     }
@@ -137,7 +136,7 @@ impl<'a> PlanExecutor<'a> {
 
                     let sym_alias = GLOBAL_INTERNER.intern(&alias.to_string());
 
-                    let mapper = move |v: RV| {
+                    let mapper = move |v: RV<'v>| {
                         let mut env = ExecutionRow::new();
                         env.insert(sym_alias, v.clone());
                         env
@@ -208,7 +207,7 @@ mod tests {
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
-    fn create_test_executor() -> PlanExecutor<'static> {
+    fn create_test_executor() -> PlanExecutor<'static, 'static> {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
 
         PlanExecutor::new(interpreter)

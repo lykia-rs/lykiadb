@@ -21,12 +21,12 @@ pub mod planner;
 mod scope;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum IntermediateExpr {
-    Constant(RV),
+pub enum IntermediateExpr<'v> {
+    Constant(RV<'v>),
     Expr { expr: Box<Expr> },
 }
 
-impl Display for IntermediateExpr {
+impl<'v> Display for IntermediateExpr<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IntermediateExpr::Constant(rv) => write!(f, "{rv:?}"),
@@ -38,76 +38,76 @@ impl Display for IntermediateExpr {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Plan {
-    Select(Node),
+pub enum Plan<'v> {
+    Select(Node<'v>),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum Node {
+pub enum Node<'v> {
     Compound {
-        source: Box<Node>,
+        source: Box<Node<'v>>,
         operator: SqlCompoundOperator,
-        right: Box<Node>,
+        right: Box<Node<'v>>,
     },
 
     Aggregate {
-        source: Box<Node>,
-        group_by: Vec<IntermediateExpr>,
-        aggregates: Vec<Aggregation>,
+        source: Box<Node<'v>>,
+        group_by: Vec<IntermediateExpr<'v>>,
+        aggregates: Vec<Aggregation<'v>>,
     },
 
     Filter {
-        source: Box<Node>,
-        predicate: IntermediateExpr,
-        subqueries: Vec<Node>,
+        source: Box<Node<'v>>,
+        predicate: IntermediateExpr<'v>,
+        subqueries: Vec<Node<'v>>,
     },
 
     Projection {
-        source: Box<Node>,
+        source: Box<Node<'v>>,
         fields: Vec<SqlProjection>,
     },
 
     Limit {
-        source: Box<Node>,
+        source: Box<Node<'v>>,
         limit: usize,
     },
 
     Offset {
-        source: Box<Node>,
+        source: Box<Node<'v>>,
         offset: usize,
     },
 
     Order {
-        source: Box<Node>,
-        key: Vec<(IntermediateExpr, SqlOrdering)>,
+        source: Box<Node<'v>>,
+        key: Vec<(IntermediateExpr<'v>, SqlOrdering)>,
     },
 
     Scan {
         source: SqlCollectionIdentifier,
-        filter: Option<IntermediateExpr>,
+        filter: Option<IntermediateExpr<'v>>,
     },
 
     EvalScan {
         source: SqlExpressionSource,
-        filter: Option<IntermediateExpr>,
+        filter: Option<IntermediateExpr<'v>>,
     },
 
     Join {
-        left: Box<Node>,
+        left: Box<Node<'v>>,
         join_type: SqlJoinType,
-        right: Box<Node>,
-        constraint: Option<IntermediateExpr>,
+        right: Box<Node<'v>>,
+        constraint: Option<IntermediateExpr<'v>>,
     },
 
     Subquery {
-        source: Box<Node>,
+        source: Box<Node<'v>>,
         alias: Identifier,
     },
 
     Nothing,
 }
 
-impl Display for Plan {
+impl<'v> Display for Plan<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Plan::Select(node) => write!(f, "{node}"),
@@ -115,7 +115,7 @@ impl Display for Plan {
     }
 }
 
-impl Node {
+impl<'v> Node<'v> {
     const TAB: &'static str = "  ";
     const NEWLINE: &'static str = "\n";
 
@@ -303,7 +303,7 @@ impl Node {
     }
 }
 
-impl Display for Node {
+impl<'v> Display for Node<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._fmt_recursive(f, 0)
     }
@@ -311,24 +311,24 @@ impl Display for Node {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Eq, PartialEq, Hash)]
-pub struct Aggregation {
+pub struct Aggregation<'v> {
     pub name: String,
     #[serde(skip)]
     #[derivative(PartialEq = "ignore")]
     #[derivative(Hash = "ignore")]
-    pub callable: Option<AggregatorFactory>,
+    pub callable: Option<AggregatorFactory<'v>>,
     pub args: Vec<Expr>,
     pub call_expr: Expr,
     pub call_sign: String,
 }
 
-impl Aggregation {
+impl<'v> Aggregation<'v> {
     pub fn new(
         agg_name: &str,
-        agg_factory: &AggregatorFactory,
+        agg_factory: &AggregatorFactory<'v>,
         args: &Vec<Expr>,
         expr: &Expr,
-    ) -> Aggregation {
+    ) -> Aggregation<'v> {
         Aggregation {
             name: agg_name.to_string(),
             callable: Some(*agg_factory),
@@ -339,7 +339,7 @@ impl Aggregation {
     }
 }
 
-impl Display for Aggregation {
+impl<'v> Display for Aggregation<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

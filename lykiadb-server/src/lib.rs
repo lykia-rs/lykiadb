@@ -43,7 +43,7 @@ macro_rules! lykia_module {
         use $crate::libs::LykiaModule;
         use $crate::value::callable::RVCallable;
 
-        pub fn $name() -> LykiaModule {
+        pub fn $name<'v>() -> LykiaModule<'v> {
             let mut modl = LykiaModule::new(stringify!($name));
             $(
                 modl.insert(
@@ -77,7 +77,7 @@ macro_rules! lykia_lib {
     ($name: ident, $value: expr) => {
         use $crate::libs::LykiaLibrary;
 
-        pub fn $name() -> LykiaLibrary {
+        pub fn $name<'v>() -> LykiaLibrary<'v> {
             LykiaLibrary::new(stringify!($name), $value)
         }
     };

@@ -5,7 +5,7 @@ pub(crate) struct MinAggregator {
     value: Option<f64>,
 }
 
-impl Aggregator for MinAggregator {
+impl<'v> Aggregator<'v> for MinAggregator {
     fn row(&mut self, expr_val: &RV) {
         if let Some(n) = expr_val.as_number() {
             if self.value.is_none() {
@@ -18,7 +18,7 @@ impl Aggregator for MinAggregator {
         }
     }
 
-    fn finalize(&self) -> crate::value::RV {
+    fn finalize(&self) -> crate::value::RV<'v> {
         if let Some(n) = self.value {
             RV::Double(n)
         } else {

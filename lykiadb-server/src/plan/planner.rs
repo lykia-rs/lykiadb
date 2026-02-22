@@ -44,16 +44,16 @@ impl Display for InClause {
     }
 }
 
-pub struct Planner<'a> {
-    interpreter: &'a mut Interpreter,
+pub struct Planner<'a, 'v> {
+    interpreter: &'a mut Interpreter<'v>,
 }
 
-impl<'a> Planner<'a> {
-    pub fn new(interpreter: &'a mut Interpreter) -> Planner<'a> {
+impl<'a, 'v> Planner<'a, 'v> {
+    pub fn new(interpreter: &'a mut Interpreter<'v>) -> Planner<'a, 'v> {
         Planner { interpreter }
     }
 
-    pub fn build(&mut self, expr: &Expr) -> Result<Plan, HaltReason> {
+    pub fn build(&mut self, expr: &Expr) -> Result<Plan<'v>, HaltReason<'v>> {
         match expr {
             Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query)?);
@@ -63,7 +63,7 @@ impl<'a> Planner<'a> {
         }
     }
 
-    fn eval_constant(&mut self, expr: &Expr) -> Result<RV, HaltReason> {
+    fn eval_constant(&mut self, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         self.interpreter.visit_expr(expr)
     }
 
@@ -74,7 +74,7 @@ impl<'a> Planner<'a> {
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
-    ) -> Result<(IntermediateExpr, Vec<Node>), HaltReason> {
+    ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>>{
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, self.interpreter)?;
         }
@@ -85,14 +85,14 @@ impl<'a> Planner<'a> {
             scope,
         );
 
-        let mut visitor = ExprVisitor::<SqlSelect, HaltReason>::new(&mut reducer);
+        let mut visitor = ExprVisitor::<SqlSelect, HaltReason<'v>>::new(&mut reducer);
 
         let selects = visitor.visit(expr)?;
 
         let subqueries = selects
             .into_iter()
             .map(|select| self.build_select(&select))
-            .collect::<Result<Vec<Node>, HaltReason>>()?;
+            .collect::<Result<Vec<Node<'v>>, HaltReason<'v>>>()?;
 
         Ok((
             IntermediateExpr::Expr {
@@ -103,7 +103,7 @@ impl<'a> Planner<'a> {
     }
 }
 
-impl<'a> Planner<'a> {
+impl<'a, 'v> Planner<'a, 'v> {
     /*
 
     The data flow we built using SqlSelectCore is as follows:
@@ -125,7 +125,7 @@ impl<'a> Planner<'a> {
     +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
-    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node, HaltReason> {
+    fn build_select_core(&mut self, core: &SqlSelectCore) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node = Node::Nothing;
 
         let mut core_scope = Scope::new();
@@ -218,8 +218,8 @@ impl<'a> Planner<'a> {
         Ok(node)
     }
 
-    pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node, HaltReason> {
-        let mut node: Node = self.build_select_core(&query.core)?;
+    pub fn build_select(&mut self, query: &SqlSelect) -> Result<Node<'v>, HaltReason<'v>> {
+        let mut node: Node<'v> = self.build_select_core(&query.core)?;
         let mut root_scope = Scope::new();
 
         if let Some(order_by) = &query.order_by {
@@ -285,7 +285,7 @@ mod tests {
     };
 
     /// Helper function to create a test planner instance
-    pub fn create_test_planner() -> Planner<'static> {
+    pub fn create_test_planner() -> Planner<'static, 'static> {
         let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
         Planner::new(interpreter)
     }

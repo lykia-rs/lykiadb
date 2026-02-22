@@ -22,10 +22,10 @@ use super::PlannerError;
 /// The aggregates are stored in a HashSet to avoid duplicates and then
 /// returned as a Vec<Aggregation>. For the time being, we only find
 /// aggregates in the projection and the having clause.
-pub fn collect_aggregates(
+pub fn collect_aggregates<'v>(
     core: &SqlSelectCore,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
+    interpreter: &mut Interpreter<'v>,
+) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
     let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
@@ -59,11 +59,11 @@ pub fn collect_aggregates(
     Ok(no_dup)
 }
 
-pub fn prevent_aggregates_in(
+pub fn prevent_aggregates_in<'v>(
     expr: &Expr,
     in_clause: InClause,
-    interpreter: &mut Interpreter,
-) -> Result<Vec<Aggregation>, HaltReason> {
+    interpreter: &mut Interpreter<'v>,
+) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut collector = AggregationCollector::preventing(interpreter, in_clause);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
@@ -73,16 +73,16 @@ pub fn prevent_aggregates_in(
     Ok(aggregates)
 }
 
-struct AggregationCollector<'a> {
+struct AggregationCollector<'a, 'v> {
     in_call: u32,
-    accumulator: Vec<Aggregation>,
-    interpreter: &'a mut Interpreter,
+    accumulator: Vec<Aggregation<'v>>,
+    interpreter: &'a mut Interpreter<'v>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
-impl<'a> AggregationCollector<'a> {
-    fn preventing(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+impl<'a, 'v> AggregationCollector<'a, 'v> {
+    fn preventing(interpreter: &'a mut Interpreter<'v>, in_clause: InClause) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -92,7 +92,7 @@ impl<'a> AggregationCollector<'a> {
         }
     }
 
-    fn collecting(interpreter: &mut Interpreter, in_clause: InClause) -> AggregationCollector {
+    fn collecting(interpreter: &'a mut Interpreter<'v>, in_clause: InClause) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
@@ -103,8 +103,8 @@ impl<'a> AggregationCollector<'a> {
     }
 }
 
-impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
-    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason> {
+impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollector<'a, 'v> {
+    fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'v>> {
         if let Expr::Call { callee, args, .. } = expr {
             let callee_val = self.interpreter.eval(callee);
 
@@ -144,7 +144,7 @@ impl<'a> ExprReducer<Aggregation, HaltReason> for AggregationCollector<'a> {
         Ok(true)
     }
 
-    fn finalize(&mut self) -> Result<Vec<Aggregation>, HaltReason> {
+    fn finalize(&mut self) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
         Ok(self.accumulator.drain(..).collect())
     }
 }
@@ -161,7 +161,7 @@ mod tests {
     };
 
     #[test]
-    fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason> {
+    fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_collect_aggregates_having_clause() -> Result<(), HaltReason> {
+    fn test_collect_aggregates_having_clause() -> Result<(), HaltReason<'static>> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason> {
+    fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason<'static>> {
         let mut interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
