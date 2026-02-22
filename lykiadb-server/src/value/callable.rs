@@ -68,7 +68,11 @@ impl<'v> RVCallable<'v> {
 }
 
 pub trait Stateful<'v> {
-    fn call(&mut self, interpreter: &mut Interpreter<'v>, rv: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>;
+    fn call(
+        &mut self,
+        interpreter: &mut Interpreter<'v>,
+        rv: &[RV<'v>],
+    ) -> Result<RV<'v>, HaltReason<'v>>;
 }
 
 pub type AggregatorFactory<'v> = fn() -> Box<dyn Aggregator<'v> + Send>;
@@ -76,9 +80,13 @@ pub type AggregatorFactory<'v> = fn() -> Box<dyn Aggregator<'v> + Send>;
 #[derive(Clone)]
 pub enum Function<'v> {
     Native {
-        function: fn(&mut Interpreter<'v>, called_from: &Span, &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>>,
+        function: fn(
+            &mut Interpreter<'v>,
+            called_from: &Span,
+            &[RV<'v>],
+        ) -> Result<RV<'v>, HaltReason<'v>>,
     },
-    Stateful(Shared<dyn Stateful<'v> + Send + Sync+ 'v>),
+    Stateful(Shared<dyn Stateful<'v> + Send + Sync + 'v>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,

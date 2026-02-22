@@ -86,7 +86,11 @@ mod tests {
 
     // Helper function to create a simple test callable
     fn create_test_callable(_name: &str) -> RVCallable {
-        fn test_fn<'v>(_: &mut Interpreter<'v>, _: &Span, _: &[RV<'v>]) -> Result<RV<'v>, HaltReason<'v>> {
+        fn test_fn<'v>(
+            _: &mut Interpreter<'v>,
+            _: &Span,
+            _: &[RV<'v>],
+        ) -> Result<RV<'v>, HaltReason<'v>> {
             Ok(RV::Undefined)
         }
 
