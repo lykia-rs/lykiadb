@@ -7,19 +7,19 @@ use lykiadb_lang::ast::Span;
 use serde_json::json;
 use std::sync::Arc;
 
-pub fn nt_json_encode<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_json_encode<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))
 }
 
-pub fn nt_json_decode<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_json_decode<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     let json_str = match &args[0] {
         RV::Str(s) => s,
         _ => {

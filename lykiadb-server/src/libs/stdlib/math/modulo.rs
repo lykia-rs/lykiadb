@@ -5,11 +5,11 @@ use crate::{
     value::RV,
 };
 
-pub fn nt_modulo<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_modulo<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     let dividend = match &args[0] {
         RV::Double(n) => *n,
         _ => {

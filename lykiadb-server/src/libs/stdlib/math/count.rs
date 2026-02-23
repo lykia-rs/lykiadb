@@ -5,12 +5,12 @@ pub(crate) struct CountAggregator {
     count: usize,
 }
 
-impl<'v> Aggregator<'v> for CountAggregator {
+impl<'rv> Aggregator<'rv> for CountAggregator {
     fn row(&mut self, _expr_val: &RV) {
         self.count += 1;
     }
 
-    fn finalize(&self) -> crate::value::RV<'v> {
+    fn finalize(&self) -> crate::value::RV<'rv> {
         RV::Double(self.count as f64)
     }
 }

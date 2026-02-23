@@ -5,11 +5,11 @@ use crate::value::RV;
 use crate::{lykia_module, lykia_native_fn};
 use std::time;
 
-pub fn nt_clock<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_clock<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    _args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    _args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {
         return Ok(RV::Double(n.as_secs_f64()));
     }

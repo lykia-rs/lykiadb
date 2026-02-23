@@ -13,11 +13,11 @@ fn _calculate(n: f64) -> f64 {
     _calculate(n - 1.) + _calculate(n - 2.)
 }
 
-pub fn nt_fib<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_fib<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     if let RV::Double(n) = args[0] {
         return Ok(RV::Double(_calculate(n)));
     }
