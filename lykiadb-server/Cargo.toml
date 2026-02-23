@@ -9,7 +9,7 @@ lykiadb-lang = { path = "../lykiadb-lang" }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
-tokio = { version = "~1.35.1", features = [
+tokio = { version = "~1.49.0", features = [
     "macros",
     "rt",
     "rt-multi-thread",
@@ -19,7 +19,7 @@ tokio = { version = "~1.35.1", features = [
     "sync",
     "signal"
 ] }
-tokio-stream = { version = "~0.1.6", features = ["net"] }
+tokio-stream = { version = "~0.1.18", features = ["net"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 pretty_assertions = "1.4.1"

@@ -5,9 +5,9 @@ pub(crate) struct MaxAggregator {
     value: Option<f64>,
 }
 
-impl<'v> Aggregator<'v> for MaxAggregator {
+impl<'rv> Aggregator<'rv> for MaxAggregator {
     fn row(&mut self, expr_val: &RV) {
-        if let Some(n) = expr_val.as_number() {
+        if let Some(n) = expr_val.as_double() {
             if self.value.is_none() {
                 self.value = Some(n);
             } else if let Some(v) = self.value
@@ -18,7 +18,7 @@ impl<'v> Aggregator<'v> for MaxAggregator {
         }
     }
 
-    fn finalize(&self) -> crate::value::RV<'v> {
+    fn finalize(&self) -> crate::value::RV<'rv> {
         if let Some(n) = self.value {
             RV::Double(n)
         } else {

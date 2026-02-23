@@ -7,19 +7,19 @@ use crate::{
     value::{RV, object::RVObject},
 };
 
-pub fn nt_of<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_of<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     Ok(RV::Datatype(args[0].get_type()))
 }
 
-pub fn nt_array_of<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_array_of<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     match &args[0] {
         RV::Datatype(inner) => Ok(RV::Datatype(Datatype::Array(Box::new(inner.clone())))),
         _ => Err(HaltReason::Error(
@@ -32,11 +32,11 @@ pub fn nt_array_of<'v>(
     }
 }
 
-pub fn nt_callable_of<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_callable_of<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     match &args[0] {
         RV::Datatype(input) => match &args[1] {
             RV::Datatype(output) => Ok(RV::Datatype(Datatype::Callable(
@@ -61,11 +61,11 @@ pub fn nt_callable_of<'v>(
     }
 }
 
-pub fn nt_tuple_of<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_tuple_of<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     let mut inner = Vec::new();
     for arg in args {
         match arg {
@@ -84,7 +84,7 @@ pub fn nt_tuple_of<'v>(
     Ok(RV::Datatype(Datatype::Tuple(inner)))
 }
 
-fn object_rec<'v>(inner: &RVObject<'v>) -> Result<Datatype, HaltReason<'v>> {
+fn object_rec<'rv>(inner: &RVObject<'rv>) -> Result<Datatype, HaltReason<'rv>> {
     let mut type_map: FxHashMap<String, Datatype> = FxHashMap::default();
     for (key, value) in inner.iter() {
         match value {
@@ -100,11 +100,11 @@ fn object_rec<'v>(inner: &RVObject<'v>) -> Result<Datatype, HaltReason<'v>> {
     Ok(Datatype::Object(type_map))
 }
 
-pub fn nt_object_of<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_object_of<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     match &args[0] {
         RV::Object(inner) => Ok(RV::Datatype(object_rec(inner)?)),
         _ => Err(HaltReason::Error(

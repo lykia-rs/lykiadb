@@ -14,15 +14,15 @@ impl Default for AvgAggregator {
     }
 }
 
-impl<'v> Aggregator<'v> for AvgAggregator {
+impl<'rv> Aggregator<'rv> for AvgAggregator {
     fn row(&mut self, expr_val: &RV) {
-        if let Some(n) = expr_val.as_number() {
+        if let Some(n) = expr_val.as_double() {
             self.accumulator += n;
         }
         self.items += 1;
     }
 
-    fn finalize(&self) -> crate::value::RV<'v> {
+    fn finalize(&self) -> crate::value::RV<'rv> {
         if self.items == 0 {
             return RV::Double(0.0);
         }

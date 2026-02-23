@@ -6,11 +6,11 @@ use crate::{
     value::RV,
 };
 
-pub fn nt_print<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_print<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     for arg in args {
         print!("{arg:?} ");
     }

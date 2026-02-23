@@ -10,14 +10,14 @@ impl Default for SumAggregator {
     }
 }
 
-impl<'v> Aggregator<'v> for SumAggregator {
+impl<'rv> Aggregator<'rv> for SumAggregator {
     fn row(&mut self, expr_val: &RV) {
-        if let Some(n) = expr_val.as_number() {
+        if let Some(n) = expr_val.as_double() {
             self.accumulator += n;
         }
     }
 
-    fn finalize(&self) -> crate::value::RV<'v> {
+    fn finalize(&self) -> crate::value::RV<'rv> {
         RV::Double(self.accumulator)
     }
 }

@@ -6,11 +6,11 @@ use crate::{
     value::{RV, array::RVArray},
 };
 
-pub fn nt_create_arr<'v>(
-    _interpreter: &mut Interpreter<'v>,
+pub fn nt_create_arr<'rv>(
+    _interpreter: &mut Interpreter<'rv>,
     called_from: &Span,
-    args: &[RV<'v>],
-) -> Result<RV<'v>, HaltReason<'v>> {
+    args: &[RV<'rv>],
+) -> Result<RV<'rv>, HaltReason<'rv>> {
     let size = match &args[0] {
         RV::Double(n) if *n >= 0.0 && n.fract() == 0.0 => *n as usize,
         _ => {

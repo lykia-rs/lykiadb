@@ -172,7 +172,7 @@ impl<'v> Interpreter<'v> {
 
     fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr(expr)?.as_number() {
+            if let Some(num) = self.visit_expr(expr)?.as_double() {
                 return Ok(RV::Double(-num));
             }
             Ok(RV::Undefined)
