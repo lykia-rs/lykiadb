@@ -155,7 +155,7 @@ impl<'v> RV<'v> {
         }
     }
 
-    pub fn as_number(&self) -> Option<f64> {
+    pub fn as_double(&self) -> Option<f64> {
         match self {
             RV::Double(value) => Some(*value),
             RV::Bool(true) => Some(1.0),
@@ -186,7 +186,7 @@ impl<'v> RV<'v> {
     }
 
     pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
-        if let Some(num) = self.as_number() {
+        if let Some(num) = self.as_double() {
             return num.partial_cmp(&if other { 1.0 } else { 0.0 });
         }
         self.as_bool().partial_cmp(&other)
@@ -377,7 +377,7 @@ impl<'v> ops::Add for RV<'v> {
             (RV::Bool(_), RV::Bool(_))
             | (RV::Double(_), RV::Bool(_))
             | (RV::Bool(_), RV::Double(_)) => {
-                RV::Double(self.as_number().unwrap() + rhs.as_number().unwrap())
+                RV::Double(self.as_double().unwrap() + rhs.as_double().unwrap())
             }
 
             (RV::Double(l), RV::Double(r)) => RV::Double(l + r),
@@ -402,8 +402,8 @@ impl<'v> ops::Sub for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
+                .as_double()
+                .and_then(|a| r.as_double().map(|b| (a, b)))
                 .map(|(a, b)| RV::Double(a - b))
                 .unwrap_or(RV::Undefined),
         }
@@ -417,8 +417,8 @@ impl<'v> ops::Mul for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
+                .as_double()
+                .and_then(|a| r.as_double().map(|b| (a, b)))
                 .map(|(a, b)| RV::Double(a * b))
                 .unwrap_or(RV::Undefined),
         }
@@ -432,8 +432,8 @@ impl<'v> ops::Div for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_number()
-                .and_then(|a| r.as_number().map(|b| (a, b)))
+                .as_double()
+                .and_then(|a| r.as_double().map(|b| (a, b)))
                 .map(|(a, b)| {
                     if a == 0.0 && b == 0.0 {
                         RV::Undefined
@@ -478,29 +478,29 @@ mod tests {
     }
 
     #[test]
-    fn test_rv_as_number() {
+    fn test_rv_as_double() {
         // Test numeric values
-        assert_eq!(RV::Double(42.0).as_number(), Some(42.0));
-        assert_eq!(RV::Double(-42.0).as_number(), Some(-42.0));
-        assert_eq!(RV::Double(0.0).as_number(), Some(0.0));
+        assert_eq!(RV::Double(42.0).as_double(), Some(42.0));
+        assert_eq!(RV::Double(-42.0).as_double(), Some(-42.0));
+        assert_eq!(RV::Double(0.0).as_double(), Some(0.0));
 
         // Test booleans
-        assert_eq!(RV::Bool(true).as_number(), Some(1.0));
-        assert_eq!(RV::Bool(false).as_number(), Some(0.0));
+        assert_eq!(RV::Bool(true).as_double(), Some(1.0));
+        assert_eq!(RV::Bool(false).as_double(), Some(0.0));
 
         // Test strings
-        assert_eq!(RV::Str(Arc::new("42".to_string())).as_number(), Some(42.0));
+        assert_eq!(RV::Str(Arc::new("42".to_string())).as_double(), Some(42.0));
         assert_eq!(
-            RV::Str(Arc::new("-42".to_string())).as_number(),
+            RV::Str(Arc::new("-42".to_string())).as_double(),
             Some(-42.0)
         );
-        assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_number(), None);
-        assert_eq!(RV::Str(Arc::new("".to_string())).as_number(), None);
+        assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_double(), None);
+        assert_eq!(RV::Str(Arc::new("".to_string())).as_double(), None);
 
         // Test other types
-        assert_eq!(RV::Undefined.as_number(), None);
-        assert_eq!(RV::Array(RVArray::new()).as_number(), None);
-        assert_eq!(RV::Object(RVObject::new()).as_number(), None);
+        assert_eq!(RV::Undefined.as_double(), None);
+        assert_eq!(RV::Array(RVArray::new()).as_double(), None);
+        assert_eq!(RV::Object(RVObject::new()).as_double(), None);
     }
 
     #[test]

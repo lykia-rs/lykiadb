@@ -16,7 +16,7 @@ impl Default for AvgAggregator {
 
 impl<'rv> Aggregator<'rv> for AvgAggregator {
     fn row(&mut self, expr_val: &RV) {
-        if let Some(n) = expr_val.as_number() {
+        if let Some(n) = expr_val.as_double() {
             self.accumulator += n;
         }
         self.items += 1;

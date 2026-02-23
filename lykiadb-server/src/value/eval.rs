@@ -68,11 +68,11 @@ mod tests {
     }
 
     #[test]
-    fn test_as_number() {
-        assert_eq!((RV::Double(1.0)).as_number(), Some(1.0));
-        assert_eq!((RV::Bool(false)).as_number(), Some(0.0));
-        assert_eq!((RV::Bool(true)).as_number(), Some(1.0));
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_number(), None);
+    fn test_as_double() {
+        assert_eq!((RV::Double(1.0)).as_double(), Some(1.0));
+        assert_eq!((RV::Bool(false)).as_double(), Some(0.0));
+        assert_eq!((RV::Bool(true)).as_double(), Some(1.0));
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_double(), None);
     }
 
     #[test]
@@ -1149,7 +1149,7 @@ mod property_tests {
         fn adding_zero_is_identity(a in numeric_rv_strategy()) {
             let zero = RV::Double(0.0);
             let result = eval_binary(a.clone(), zero, Operation::Add);
-            if let Some(num) = a.as_number() {
+            if let Some(num) = a.as_double() {
                 prop_assert_eq!(result, RV::Double(num));
             }
         }
@@ -1159,7 +1159,7 @@ mod property_tests {
         fn multiplying_by_one_is_identity(a in numeric_rv_strategy()) {
             let one = RV::Double(1.0);
             let result = eval_binary(a.clone(), one, Operation::Multiply);
-            if let Some(num) = a.as_number() {
+            if let Some(num) = a.as_double() {
                 prop_assert_eq!(result, RV::Double(num));
             }
         }
@@ -1278,7 +1278,7 @@ mod property_tests {
             let zero = RV::Double(0.0);
             let result = eval_binary(a.clone(), zero, Operation::Divide);
 
-            if let Some(num) = a.as_number() {
+            if let Some(num) = a.as_double() {
                 if num == 0.0 {
                     // 0/0 should be undefined
                     prop_assert_eq!(result, RV::Undefined);
@@ -1297,7 +1297,7 @@ mod property_tests {
             let rv_bool = RV::Bool(b);
             let expected_num = if b { 1.0 } else { 0.0 };
 
-            prop_assert_eq!(rv_bool.as_number(), Some(expected_num));
+            prop_assert_eq!(rv_bool.as_double(), Some(expected_num));
 
             // Test in arithmetic operations
             let result = eval_binary(rv_bool, RV::Double(0.0), Operation::Add);
@@ -1336,7 +1336,7 @@ mod property_tests {
             let rv_bool = RV::Bool(bool_val);
             let expected_bool_as_num = if bool_val { 1.0 } else { 0.0 };
 
-            // num + bool should equal num + bool_as_number
+            // num + bool should equal num + bool_as_double
             let result1 = eval_binary(rv_num.clone(), rv_bool.clone(), Operation::Add);
             let result2 = eval_binary(rv_num, RV::Double(expected_bool_as_num), Operation::Add);
 

@@ -243,7 +243,7 @@ impl<'a, 'v> Planner<'a, 'v> {
                     source: Box::new(node),
                     offset: self
                         .eval_constant(offset)?
-                        .as_number()
+                        .as_double()
                         .expect("Offset is not correct")
                         .floor() as usize,
                 }
@@ -252,7 +252,7 @@ impl<'a, 'v> Planner<'a, 'v> {
                 source: Box::new(node),
                 limit: self
                     .eval_constant(&limit.count)?
-                    .as_number()
+                    .as_double()
                     .expect("Limit is not correct")
                     .floor() as usize,
             }

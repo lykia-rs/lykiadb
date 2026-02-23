@@ -7,7 +7,7 @@ pub(crate) struct MaxAggregator {
 
 impl<'rv> Aggregator<'rv> for MaxAggregator {
     fn row(&mut self, expr_val: &RV) {
-        if let Some(n) = expr_val.as_number() {
+        if let Some(n) = expr_val.as_double() {
             if self.value.is_none() {
                 self.value = Some(n);
             } else if let Some(v) = self.value
