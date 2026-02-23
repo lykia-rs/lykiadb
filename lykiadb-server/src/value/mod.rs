@@ -9,12 +9,15 @@ use std::fmt::Display;
 use std::ops;
 use std::sync::Arc;
 
+use crate::value::document::{DocumentArrayRef, DocumentRef};
+
 pub mod array;
 pub mod callable;
 pub mod environment;
 pub mod eval;
 pub mod iterator;
 pub mod object;
+pub mod document;
 
 #[derive(Debug, Clone)]
 pub enum RV<'v> {
@@ -33,8 +36,8 @@ pub enum RV<'v> {
     // Reference types
     // TODO: Replace them with references
     Str(Arc<String>),
-    Document(bson::Document),
-    DocumentArray(bson::Array),
+    Document(DocumentRef<'v>),
+    DocumentArray(DocumentArrayRef<'v>),
 
     // Engine types
     Object(RVObject<'v>),
@@ -75,20 +78,14 @@ impl<'v> std::hash::Hash for RV<'v> {
                 // Hash the string representation of the datatype
                 dtype.to_string().hash(state);
             }
-
             RV::DateTime(date_time) => {
                 date_time.timestamp_millis().hash(state);
             }
             RV::Document(document) => {
-                // Hash the document by its pointer address
-                (document as *const _ as usize).hash(state);
+                document.hash(state);
             }
-            RV::DocumentArray(bsons) => {
-                // Hash the array length and each document's pointer address
-                bsons.len().hash(state);
-                for doc in bsons {
-                    (doc as *const _ as usize).hash(state);
-                }
+            RV::DocumentArray(document_arr) => {
+                document_arr.hash(state);
             }
             RV::Undefined | RV::Null => {
                 // Discriminant is enough for Undefined and Null
