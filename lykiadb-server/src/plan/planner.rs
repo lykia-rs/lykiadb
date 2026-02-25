@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    engine::{
+    interpreter::{
         error::ExecutionError,
         interpreter::{HaltReason, Interpreter},
     },
@@ -265,7 +265,7 @@ impl<'a, 'v> Planner<'a, 'v> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        engine::interpreter::tests::create_test_interpreter,
+        interpreter::interpreter::tests::create_test_interpreter,
         plan::{
             IntermediateExpr,
             planner::{InClause, Planner},

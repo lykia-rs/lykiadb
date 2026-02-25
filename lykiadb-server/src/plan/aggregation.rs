@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    engine::{
+    interpreter::{
         error::ExecutionError,
         interpreter::{HaltReason, Interpreter},
     },
@@ -157,7 +157,7 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::interpreter::interpreter::tests::create_test_interpreter;
 
     use super::*;
     use lykiadb_lang::ast::{

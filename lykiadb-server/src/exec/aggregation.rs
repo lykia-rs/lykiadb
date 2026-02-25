@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
+    interpreter::interpreter::{HaltReason, Interpreter},
     global::GLOBAL_INTERNER,
     plan::{Aggregation, IntermediateExpr},
     value::{RV, iterator::ExecutionRow},

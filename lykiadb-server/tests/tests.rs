@@ -1,5 +1,5 @@
 mod planner {
-    use lykiadb_server::engine::RuntimeTester;
+    use lykiadb_server::interpreter::RuntimeTester;
     use test_each_file::test_each_file;
     test_each_file! {
         in "lykiadb-server/tests/planner" => {
@@ -11,7 +11,7 @@ mod planner {
 }
 
 mod interpreter {
-    use lykiadb_server::engine::RuntimeTester;
+    use lykiadb_server::interpreter::RuntimeTester;
     use test_each_file::test_each_file;
 
     test_each_file! {

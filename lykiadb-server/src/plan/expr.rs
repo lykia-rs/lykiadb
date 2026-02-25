@@ -1,5 +1,5 @@
 use crate::{
-    engine::{error::ExecutionError, interpreter::HaltReason},
+    interpreter::{error::ExecutionError, interpreter::HaltReason},
     plan::scope::Scope,
 };
 

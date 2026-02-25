@@ -1,5 +1,5 @@
-use crate::engine::interpreter::Interpreter;
-use crate::engine::{Runtime, RuntimeMode};
+use crate::interpreter::interpreter::Interpreter;
+use crate::interpreter::{Runtime, RuntimeMode};
 use ::std::time::Instant;
 use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};

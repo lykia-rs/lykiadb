@@ -79,7 +79,7 @@ impl<'rv> LykiaLibrary<'rv> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::interpreter::{HaltReason, Interpreter};
+    use crate::interpreter::interpreter::{HaltReason, Interpreter};
     use crate::value::callable::Function;
     use lykiadb_common::extract;
     use lykiadb_lang::{ast::Span, types::Datatype};

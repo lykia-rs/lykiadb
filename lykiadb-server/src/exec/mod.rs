@@ -1,7 +1,7 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
-    engine::{
+    interpreter::{
         error::ExecutionError,
         interpreter::{HaltReason, Interpreter},
     },
@@ -202,7 +202,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::interpreter::interpreter::tests::create_test_interpreter;
     use crate::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};

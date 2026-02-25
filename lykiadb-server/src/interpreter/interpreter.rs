@@ -810,7 +810,7 @@ impl From<InterpretError> for ExecutionError {
 #[cfg(test)]
 pub mod tests {
     use crate::{
-        engine::interpreter::{Interpreter, Output},
+        interpreter::interpreter::{Interpreter, Output},
         util::Shared,
     };
 

@@ -1,5 +1,5 @@
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    interpreter::interpreter::{HaltReason, InterpretError, Interpreter},
     lykia_module, lykia_native_fn,
     value::RV,
 };
@@ -57,8 +57,8 @@ lykia_module!(json, {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::interpreter::Output;
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::interpreter::interpreter::Output;
+    use crate::interpreter::interpreter::tests::create_test_interpreter;
     use crate::util::alloc_shared;
     use crate::value::{array::RVArray, object::RVObject};
     use lykiadb_common::extract;

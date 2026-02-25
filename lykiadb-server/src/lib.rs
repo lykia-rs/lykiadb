@@ -1,5 +1,5 @@
 pub mod comm;
-pub mod engine;
+pub mod interpreter;
 pub mod exec;
 pub mod global;
 pub mod libs;
