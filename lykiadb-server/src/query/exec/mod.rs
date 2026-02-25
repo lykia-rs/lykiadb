@@ -5,7 +5,7 @@ use crate::{
         error::ExecutionError,
         {HaltReason, Interpreter},
     },
-    exec::aggregation::Grouper,
+    query::exec::aggregation::Grouper,
     global::GLOBAL_INTERNER,
     query::plan::{IntermediateExpr, Node, Plan},
     value::{

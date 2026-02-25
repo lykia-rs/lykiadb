@@ -1,4 +1,4 @@
-use crate::{exec::aggregation::Aggregator, value::RV};
+use crate::{query::exec::aggregation::Aggregator, value::RV};
 
 pub(crate) struct SumAggregator {
     accumulator: f64,

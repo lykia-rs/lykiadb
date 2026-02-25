@@ -23,7 +23,7 @@ use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::exec::PlanExecutor;
+use crate::query::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
 use crate::query::plan::planner::Planner;

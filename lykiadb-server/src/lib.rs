@@ -1,6 +1,5 @@
 pub mod comm;
 pub mod interpreter;
-pub mod exec;
 pub mod global;
 pub mod libs;
 pub mod query;

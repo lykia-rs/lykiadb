@@ -2,7 +2,7 @@ use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
     interpreter::{HaltReason, Interpreter},
-    exec::aggregation::Aggregator,
+    query::exec::aggregation::Aggregator,
     util::Shared,
 };
 use interb::Symbol;
