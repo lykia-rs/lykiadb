@@ -3,7 +3,7 @@ pub mod interpreter;
 pub mod exec;
 pub mod global;
 pub mod libs;
-pub mod plan;
+pub mod query;
 pub mod util;
 pub mod value;
 

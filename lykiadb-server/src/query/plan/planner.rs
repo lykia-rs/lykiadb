@@ -3,9 +3,9 @@ use std::fmt::Display;
 use crate::{
     interpreter::{
         error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
+        {HaltReason, Interpreter},
     },
-    plan::{PlannerError, aggregation::prevent_aggregates_in},
+    query::plan::{PlannerError, aggregation::prevent_aggregates_in},
     value::RV,
 };
 
@@ -265,8 +265,8 @@ impl<'a, 'v> Planner<'a, 'v> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        interpreter::interpreter::tests::create_test_interpreter,
-        plan::{
+        interpreter::tests::create_test_interpreter,
+        query::plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
             scope::tests::create_test_scope,

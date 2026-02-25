@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
-use crate::plan::planner::Planner;
+use crate::query::plan::planner::Planner;
 use crate::util::Shared;
 use crate::value::callable::{Function, RVCallable, Stateful};
 use crate::value::environment::EnvironmentFrame;

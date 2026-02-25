@@ -5,7 +5,7 @@ use std::{
 };
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use lykiadb_server::interpreter::{Runtime, RuntimeMode, interpreter::Interpreter};
+use lykiadb_server::interpreter::{Runtime, RuntimeMode, Interpreter};
 
 fn runtime(filename: &str) {
     let file = File::open(filename).unwrap();

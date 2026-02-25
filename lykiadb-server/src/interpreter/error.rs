@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::{plan::PlannerError, value::environment::EnvironmentError};
+use crate::{query::plan::PlannerError, value::environment::EnvironmentError};
 
-use super::interpreter::InterpretError;
+use super::InterpretError;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use serde::{Deserialize, Serialize};

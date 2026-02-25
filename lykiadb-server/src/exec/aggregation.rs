@@ -1,9 +1,9 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    interpreter::interpreter::{HaltReason, Interpreter},
+    interpreter::{HaltReason, Interpreter},
     global::GLOBAL_INTERNER,
-    plan::{Aggregation, IntermediateExpr},
+    query::plan::{Aggregation, IntermediateExpr},
     value::{RV, iterator::ExecutionRow},
 };
 

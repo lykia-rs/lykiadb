@@ -3,11 +3,11 @@ use lykiadb_lang::ast::sql::SqlProjection;
 use crate::{
     interpreter::{
         error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
+        {HaltReason, Interpreter},
     },
     exec::aggregation::Grouper,
     global::GLOBAL_INTERNER,
-    plan::{IntermediateExpr, Node, Plan},
+    query::plan::{IntermediateExpr, Node, Plan},
     value::{
         RV,
         iterator::{ExecutionRow, RVs},
@@ -202,8 +202,8 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::interpreter::tests::create_test_interpreter;
-    use crate::plan::IntermediateExpr;
+    use crate::interpreter::tests::create_test_interpreter;
+    use crate::query::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;

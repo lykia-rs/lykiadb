@@ -1,6 +1,6 @@
 use crate::{
-    interpreter::{error::ExecutionError, interpreter::HaltReason},
-    plan::scope::Scope,
+    interpreter::{error::ExecutionError, HaltReason},
+    query::plan::scope::Scope,
 };
 
 use lykiadb_lang::ast::{

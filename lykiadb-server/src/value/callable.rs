@@ -1,7 +1,7 @@
 use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
-    interpreter::interpreter::{HaltReason, Interpreter},
+    interpreter::{HaltReason, Interpreter},
     exec::aggregation::Aggregator,
     util::Shared,
 };
