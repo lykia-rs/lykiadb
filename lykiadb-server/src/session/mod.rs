@@ -12,21 +12,21 @@ use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
 
 
-pub struct Runtime<'v> {
-    mode: RuntimeMode,
+pub struct Session<'v> {
+    mode: SessionMode,
     source_processor: SourceProcessor,
     interpreter: Interpreter<'v>,
 }
 
 #[derive(Eq, PartialEq)]
-pub enum RuntimeMode {
+pub enum SessionMode {
     Repl,
     File,
 }
 
-impl<'v> Runtime<'v> {
-    pub fn new(mode: RuntimeMode, interpreter: Interpreter<'v>) -> Runtime<'v> {
-        Runtime {
+impl<'v> Session<'v> {
+    pub fn new(mode: SessionMode, interpreter: Interpreter<'v>) -> Session<'v> {
+        Session {
             mode,
             interpreter,
             source_processor: SourceProcessor::new(),
@@ -37,7 +37,7 @@ impl<'v> Runtime<'v> {
         let program = Arc::from(self.source_processor.process(source)?);
         let out = self.interpreter.interpret(program);
 
-        if self.mode == RuntimeMode::Repl {
+        if self.mode == SessionMode::Repl {
             info!("{:?}", out);
         }
 
@@ -45,29 +45,29 @@ impl<'v> Runtime<'v> {
     }
 }
 
-pub struct RuntimeTester<'v> {
+pub struct SessionTester<'v> {
     out: Shared<Output<'v>>,
-    runtime: Runtime<'v>,
+    session: Session<'v>,
 }
 
-impl<'v> Default for RuntimeTester<'v> {
+impl<'v> Default for SessionTester<'v> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'v> RuntimeTester<'v> {
-    pub fn new() -> RuntimeTester<'v> {
+impl<'v> SessionTester<'v> {
+    pub fn new() -> SessionTester<'v> {
         let out = alloc_shared(Output::new());
 
-        RuntimeTester {
+        SessionTester {
             out: out.clone(),
-            runtime: Runtime::new(RuntimeMode::File, Interpreter::new(Some(out), true)),
+            session: Session::new(SessionMode::File, Interpreter::new(Some(out), true)),
         }
     }
 }
 
-impl<'v> TestHandler for RuntimeTester<'v> {
+impl<'v> TestHandler for SessionTester<'v> {
     fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
         assert!(
             case_parts.len() > 1,
@@ -76,7 +76,7 @@ impl<'v> TestHandler for RuntimeTester<'v> {
 
         let mut errors: Vec<ExecutionError> = vec![];
 
-        let result = self.runtime.interpret(&case_parts[0]);
+        let result = self.session.interpret(&case_parts[0]);
 
         if let Err(err) = result {
             errors.push(err);
@@ -93,7 +93,7 @@ impl<'v> TestHandler for RuntimeTester<'v> {
                     stripped.trim()
                 );
             } else if let Some(stripped) = part.strip_prefix('>') {
-                let result = self.runtime.interpret(stripped.trim());
+                let result = self.session.interpret(stripped.trim());
 
                 if let Err(err) = result {
                     errors.push(err);

@@ -39,7 +39,7 @@ impl ParserBenchmark {
     }
 }
 
-fn runtime() {
+fn session() {
     let content: String = "
     SELECT * FROM books b
     INNER JOIN
@@ -66,7 +66,7 @@ fn runtime() {
 
 fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("parsing");
-    group.bench_function("2-way join", |b| b.iter(runtime));
+    group.bench_function("2-way join", |b| b.iter(session));
     group.finish();
 }
 
