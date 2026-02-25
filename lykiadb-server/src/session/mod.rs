@@ -5,14 +5,14 @@ use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
 use tokio::net::TcpStream;
 use tracing::{error, info};
 
-pub struct ServerSession<'v> {
+pub struct Connection<'v> {
     conn: TcpConnection,
     runtime: Runtime<'v>,
 }
 
-impl<'v> ServerSession<'v> {
+impl<'v> Connection<'v> {
     pub fn new(stream: TcpStream) -> Self {
-        ServerSession {
+        Connection {
             conn: TcpConnection::new(stream),
             runtime: Runtime::new(RuntimeMode::File, Interpreter::new(None, true)),
         }

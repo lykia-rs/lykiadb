@@ -1,4 +1,4 @@
-pub mod comm;
+pub mod session;
 pub mod interpreter;
 pub mod global;
 pub mod libs;

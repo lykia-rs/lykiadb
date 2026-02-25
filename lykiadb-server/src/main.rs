@@ -1,4 +1,4 @@
-use lykiadb_server::comm::ServerSession;
+use lykiadb_server::session::Connection;
 use std::io::Error;
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt as _;
@@ -42,7 +42,7 @@ impl Server {
             while let Some(socket) = stream.try_next().await? {
                 let peer = socket.peer_addr()?;
                 tokio::spawn(async move {
-                    let mut session = ServerSession::new(socket);
+                    let mut session = Connection::new(socket);
                     info!("Client {} connected", peer);
                     session.handle().await;
                     info!("Client {} disconnected", peer);
