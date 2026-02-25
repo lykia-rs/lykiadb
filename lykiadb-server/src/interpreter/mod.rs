@@ -1,9 +1,9 @@
 use std::sync::Arc;
 use self::error::ExecutionError;
 use crate::{
-    util::Shared,
     value::RV,
 };
+use lykiadb_common::memory::Shared;
 use pretty_assertions::assert_eq;
 
 pub mod error;
@@ -815,9 +815,10 @@ impl From<InterpretError> for ExecutionError {
 
 #[cfg(test)]
 pub mod tests {
+    use lykiadb_common::memory::Shared;
+
     use crate::{
         interpreter::{Interpreter, Output},
-        util::Shared,
     };
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {

@@ -1,5 +1,6 @@
+use lykiadb_common::memory::{Shared, alloc_shared};
+
 use crate::{
-    util::{Shared, alloc_shared},
     value::RV,
 };
 

@@ -59,9 +59,9 @@ mod tests {
     use super::*;
     use crate::interpreter::Output;
     use crate::interpreter::tests::create_test_interpreter;
-    use crate::util::alloc_shared;
     use crate::value::{array::RVArray, object::RVObject};
     use lykiadb_common::extract;
+    use lykiadb_common::memory::alloc_shared;
     use rustc_hash::FxHashMap;
     use std::sync::Arc;
 

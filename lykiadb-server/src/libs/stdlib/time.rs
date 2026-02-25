@@ -22,10 +22,11 @@ lykia_module!(time, {
 
 #[cfg(test)]
 mod tests {
+    use lykiadb_common::memory::alloc_shared;
+
     use super::*;
     use crate::interpreter::Output;
     use crate::interpreter::tests::create_test_interpreter;
-    use crate::util::alloc_shared;
 
     #[test]
     fn test_nt_clock() {

@@ -3,7 +3,6 @@ pub mod interpreter;
 pub mod global;
 pub mod libs;
 pub mod query;
-pub mod util;
 pub mod value;
 
 #[macro_export]

@@ -1,11 +1,11 @@
 use crate::interpreter::error::ExecutionError;
 use crate::interpreter::{Interpreter, Output};
+use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
 
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    util::{Shared, alloc_shared},
     value::RV,
 };
 use lykiadb_common::testing::TestHandler;

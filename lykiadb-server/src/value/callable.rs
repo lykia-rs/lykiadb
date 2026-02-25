@@ -3,9 +3,9 @@ use super::environment::EnvironmentFrame;
 use crate::{
     interpreter::{HaltReason, Interpreter},
     query::exec::aggregation::Aggregator,
-    util::Shared,
 };
 use interb::Symbol;
+use lykiadb_common::memory::Shared;
 use lykiadb_lang::{
     ast::{Span, stmt::Stmt},
     types::Datatype,

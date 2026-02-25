@@ -42,10 +42,11 @@ pub fn nt_modulo<'rv>(
 
 #[cfg(test)]
 mod tests {
+    use lykiadb_common::memory::alloc_shared;
+
     use super::*;
     use crate::interpreter::Output;
     use crate::interpreter::tests::create_test_interpreter;
-    use crate::util::alloc_shared;
     use std::sync::Arc;
 
     #[test]
