@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use lykiadb_lang::ast::{Identifier, sql::SqlFrom};
 
-use super::PlannerError;
+use super::error::PlannerError;
 
 #[derive(Debug)]
 pub struct Scope {

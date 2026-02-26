@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    error::ExecutionError, interpreter::{HaltReason, Interpreter}, query::plan::{PlannerError, aggregation::prevent_aggregates_in}, value::RV
+    error::ExecutionError, interpreter::{HaltReason, Interpreter}, query::plan::{error::PlannerError, aggregation::prevent_aggregates_in}, value::RV
 };
 
 use lykiadb_lang::ast::{

@@ -11,7 +11,7 @@ use lykiadb_lang::ast::{
     visitor::{ExprReducer, ExprVisitor, ExprVisitorNode},
 };
 
-use super::PlannerError;
+use super::error::PlannerError;
 
 /// Collects all the aggregates from the projection and the having clause.
 /// The aggregates are stored in a HashSet to avoid duplicates and then

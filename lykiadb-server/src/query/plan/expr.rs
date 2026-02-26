@@ -9,7 +9,7 @@ use lykiadb_lang::ast::{
     visitor::{ExprReducer, ExprVisitorNode},
 };
 
-use super::PlannerError;
+use super::error::PlannerError;
 
 pub struct SqlExprReducer<'a> {
     subqueries: Vec<SqlSelect>,
