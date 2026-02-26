@@ -1,6 +1,4 @@
-use crate::{
-    error::ExecutionError, interpreter::HaltReason, query::plan::scope::Scope
-};
+use crate::{error::ExecutionError, interpreter::HaltReason, query::plan::scope::Scope};
 
 use lykiadb_lang::ast::{
     Spanned,

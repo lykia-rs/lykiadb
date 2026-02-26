@@ -3,12 +3,12 @@ use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
 use lykiadb_server::interpreter::Interpreter;
 use lykiadb_server::session::{Session, SessionMode};
-use tokio::net::TcpStream;
-use tracing::{error, info};
 use std::io::Error;
 use tokio::net::TcpListener;
+use tokio::net::TcpStream;
 use tokio_stream::StreamExt as _;
 use tokio_stream::wrappers::TcpListenerStream;
+use tracing::{error, info};
 
 const ASCII_ART: &str = r"
 $$\                 $$\       $$\           $$$$$$$\  $$$$$$$\

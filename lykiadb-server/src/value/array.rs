@@ -1,8 +1,6 @@
 use lykiadb_common::memory::{Shared, alloc_shared};
 
-use crate::{
-    value::RV,
-};
+use crate::value::RV;
 
 #[derive(Debug, Clone)]
 pub struct RVArray<'v> {

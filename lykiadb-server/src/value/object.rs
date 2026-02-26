@@ -1,9 +1,7 @@
 use lykiadb_common::memory::{Shared, alloc_shared};
 use rustc_hash::FxHashMap;
 
-use crate::{
-    value::RV,
-};
+use crate::value::RV;
 
 #[derive(Debug, Clone)]
 pub struct RVObject<'v> {

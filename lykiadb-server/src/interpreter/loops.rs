@@ -1,4 +1,3 @@
-
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum LoopState {
     Go,

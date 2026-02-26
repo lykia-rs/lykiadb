@@ -1,12 +1,13 @@
-use crate::{error::ExecutionError, interpreter::{Interpreter, Output}};
+use crate::{
+    error::ExecutionError,
+    interpreter::{Interpreter, Output},
+};
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    value::RV,
-};
+use crate::value::RV;
 use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
 

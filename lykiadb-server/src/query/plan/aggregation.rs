@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use crate::{
-    error::ExecutionError, interpreter::{HaltReason, Interpreter}, query::plan::{Aggregation, planner::InClause}, value::{RV, callable::Function}
+    error::ExecutionError,
+    interpreter::{HaltReason, Interpreter},
+    query::plan::{Aggregation, planner::InClause},
+    value::{RV, callable::Function},
 };
 
 use lykiadb_lang::ast::{
