@@ -1,33 +1,63 @@
-use std::fmt::{Display, Formatter, Result};
-
-use crate::{query::plan::PlannerError, value::environment::EnvironmentError};
-
-use super::InterpretError;
 use lykiadb_common::error::InputError;
-use lykiadb_lang::LangError;
+use lykiadb_lang::ast::Span;
 use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-pub enum ExecutionError {
-    Lang(LangError),
-    Interpret(InterpretError),
-    Environment(EnvironmentError),
-    Plan(PlannerError),
+#[derive(thiserror::Error, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+pub enum InterpretError {
+    #[error("Expression is not callable at {span:?}")]
+    NotCallable { span: Span },
+    #[error("Unexpected statement at {span:?}")]
+    UnexpectedStatement { span: Span },
+    #[error("Property '{property}' not found at {span:?}")]
+    PropertyNotFound { span: Span, property: String },
+    #[error("Only select expressions can be explained.")]
+    InvalidExplainTarget { span: Span },
+    #[error("Range can only be created with numbers.")]
+    InvalidRangeExpression { span: Span },
+    #[error("Only objects have properties.")]
+    InvalidPropertyAccess { span: Span, value_str: String },
+    #[error("Argument type mismatch. Expected {expected:?}")]
+    InvalidArgumentType { span: Span, expected: String },
+    #[error("No program loaded in interpreter.")]
+    NoProgramLoaded,
 }
 
-impl Display for ExecutionError {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{self:?}")
-    }
-}
+impl From<InterpretError> for InputError {
+    fn from(value: InterpretError) -> Self {
+        let (hint, sp) = match &value {
+            InterpretError::NotCallable { span } => (
+                "Ensure the expression evaluates to a callable function",
+                *span,
+            ),
+            InterpretError::UnexpectedStatement { span } => (
+                "Check if the statement is used in the correct context",
+                *span,
+            ),
+            InterpretError::PropertyNotFound { span, .. } => {
+                ("Verify the property name exists on the object", *span)
+            }
+            InterpretError::InvalidExplainTarget { span, .. } => {
+                ("Try replacing this with a SELECT expression", *span)
+            }
+            InterpretError::InvalidRangeExpression { span } => (
+                "Ensure that the range expression is built with numbers",
+                *span,
+            ),
+            InterpretError::InvalidPropertyAccess { span, value_str } => (
+                &format!(
+                    "Ensure that the highlighted expression evaluates to an object: {value_str}"
+                ) as &str,
+                *span,
+            ),
+            InterpretError::InvalidArgumentType { span, .. } => {
+                ("Check that the argument matches the expected types", *span)
+            }
+            InterpretError::NoProgramLoaded => (
+                "Load a program into the interpreter before execution",
+                Span::default(),
+            ),
+        };
 
-impl ExecutionError {
-    pub fn generalize(self) -> InputError {
-        match self {
-            ExecutionError::Lang(lang_error) => lang_error.into(),
-            ExecutionError::Interpret(interpret_error) => interpret_error.into(),
-            ExecutionError::Plan(planner_error) => planner_error.into(),
-            ExecutionError::Environment(env_error) => env_error.into(),
-        }
+        InputError::new(&value.to_string(), hint, Some(sp.into()))
     }
 }

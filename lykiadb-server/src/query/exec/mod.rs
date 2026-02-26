@@ -1,17 +1,12 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
-    interpreter::{
-        error::ExecutionError,
-        {HaltReason, Interpreter},
-    },
-    query::exec::aggregation::Grouper,
-    global::GLOBAL_INTERNER,
-    query::plan::{IntermediateExpr, Node, Plan},
-    value::{
+    error::ExecutionError, global::GLOBAL_INTERNER, interpreter::{
+        HaltReason, Interpreter
+    }, query::{exec::aggregation::Grouper, plan::{IntermediateExpr, Node, Plan}}, value::{
         RV,
         iterator::{ExecutionRow, RVs},
-    },
+    }
 };
 
 pub mod aggregation;

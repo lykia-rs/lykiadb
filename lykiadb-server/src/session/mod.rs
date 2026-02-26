@@ -1,5 +1,4 @@
-use crate::interpreter::error::ExecutionError;
-use crate::interpreter::{Interpreter, Output};
+use crate::{error::ExecutionError, interpreter::{Interpreter, Output}};
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
 
@@ -10,7 +9,6 @@ use crate::{
 };
 use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
-
 
 pub struct Session<'v> {
     mode: SessionMode,

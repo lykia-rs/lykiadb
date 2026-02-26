@@ -4,6 +4,7 @@ pub mod global;
 pub mod libs;
 pub mod query;
 pub mod value;
+pub mod error;
 
 #[macro_export]
 macro_rules! assert_plan {
