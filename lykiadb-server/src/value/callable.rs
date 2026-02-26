@@ -2,7 +2,6 @@ use super::RV;
 use super::environment::EnvironmentFrame;
 use crate::{
     interpreter::{HaltReason, Interpreter},
-    query::exec::aggregation::Aggregator,
 };
 use interb::Symbol;
 use lykiadb_common::memory::Shared;
@@ -12,6 +11,12 @@ use lykiadb_lang::{
 };
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
+
+pub trait Aggregator<'v> {
+    fn row(&mut self, row: &RV<'v>);
+    fn finalize(&self) -> RV<'v>;
+}
+
 
 #[derive(Clone, Debug)]
 pub struct RVCallable<'v> {

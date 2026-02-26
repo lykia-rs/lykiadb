@@ -1,4 +1,4 @@
-use crate::{query::exec::aggregation::Aggregator, value::RV};
+use crate::value::{RV, callable::Aggregator};
 
 pub(crate) struct AvgAggregator {
     accumulator: f64,
