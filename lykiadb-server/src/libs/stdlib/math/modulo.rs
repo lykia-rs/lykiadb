@@ -1,7 +1,7 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    interpreter::{HaltReason, error::InterpretError, Interpreter},
     value::RV,
 };
 
@@ -42,10 +42,11 @@ pub fn nt_modulo<'rv>(
 
 #[cfg(test)]
 mod tests {
+    use lykiadb_common::memory::alloc_shared;
+
     use super::*;
-    use crate::engine::interpreter::Output;
-    use crate::engine::interpreter::tests::create_test_interpreter;
-    use crate::util::alloc_shared;
+    use crate::interpreter::Output;
+    use crate::interpreter::tests::create_test_interpreter;
     use std::sync::Arc;
 
     #[test]

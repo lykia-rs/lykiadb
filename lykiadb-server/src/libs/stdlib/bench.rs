@@ -1,7 +1,7 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, InterpretError, Interpreter},
+    interpreter::{HaltReason, error::InterpretError, Interpreter},
     lykia_module, lykia_native_fn,
     value::RV,
 };
@@ -38,7 +38,7 @@ lykia_module!(bench, {
 mod tests {
     use lykiadb_common::extract;
 
-    use crate::engine::{error::ExecutionError, interpreter::tests::create_test_interpreter};
+    use crate::{error::ExecutionError, interpreter::tests::create_test_interpreter};
 
     use super::*;
 

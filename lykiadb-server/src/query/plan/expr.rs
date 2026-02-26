@@ -1,6 +1,5 @@
 use crate::{
-    engine::{error::ExecutionError, interpreter::HaltReason},
-    plan::scope::Scope,
+    error::ExecutionError, interpreter::HaltReason, query::plan::scope::Scope
 };
 
 use lykiadb_lang::ast::{
@@ -10,7 +9,7 @@ use lykiadb_lang::ast::{
     visitor::{ExprReducer, ExprVisitorNode},
 };
 
-use super::PlannerError;
+use super::error::PlannerError;
 
 pub struct SqlExprReducer<'a> {
     subqueries: Vec<SqlSelect>,

@@ -1,6 +1,6 @@
 use lykiadb_lang::ast::Span;
 
-use crate::engine::interpreter::{HaltReason, Interpreter};
+use crate::interpreter::{HaltReason, Interpreter};
 use crate::value::RV;
 use crate::{lykia_module, lykia_native_fn};
 use std::time;
@@ -22,10 +22,11 @@ lykia_module!(time, {
 
 #[cfg(test)]
 mod tests {
+    use lykiadb_common::memory::alloc_shared;
+
     use super::*;
-    use crate::engine::interpreter::Output;
-    use crate::engine::interpreter::tests::create_test_interpreter;
-    use crate::util::alloc_shared;
+    use crate::interpreter::Output;
+    use crate::interpreter::tests::create_test_interpreter;
 
     #[test]
     fn test_nt_clock() {

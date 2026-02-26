@@ -5,16 +5,16 @@ use std::{
 };
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use lykiadb_server::engine::{Runtime, RuntimeMode, interpreter::Interpreter};
+use lykiadb_server::{interpreter::Interpreter, session::{Session, SessionMode}};
 
-fn runtime(filename: &str) {
+fn session(filename: &str) {
     let file = File::open(filename).unwrap();
     let mut content: String = String::new();
     BufReader::new(file)
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
-    let mut runtime = Runtime::new(RuntimeMode::File, Interpreter::new(None, true));
-    runtime.interpret(&content).unwrap();
+    let mut session = Session::new(SessionMode::File, Interpreter::new(None, true));
+    session.interpret(&content).unwrap();
 }
 
 fn bench(c: &mut Criterion) {
@@ -29,19 +29,19 @@ fn bench(c: &mut Criterion) {
     let base = concat!(env!("CARGO_MANIFEST_DIR"), "/benches/scripts/");
 
     group.bench_function("scan_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{base}scan_square.ly"))));
+        b.iter(|| session(black_box(&format!("{base}scan_square.ly"))));
     });
 
     group.bench_function("loop_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{base}loop_square.ly"))));
+        b.iter(|| session(black_box(&format!("{base}loop_square.ly"))));
     });
 
     group.bench_function("filter_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{base}filter_square.ly"))));
+        b.iter(|| session(black_box(&format!("{base}filter_square.ly"))));
     });
 
     group.bench_function("loop_if_square", |b| {
-        b.iter(|| runtime(black_box(&format!("{base}loop_if_square.ly"))));
+        b.iter(|| session(black_box(&format!("{base}loop_if_square.ly"))));
     });
 
     group.finish();

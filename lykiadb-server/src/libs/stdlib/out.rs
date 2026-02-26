@@ -1,7 +1,7 @@
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
+    interpreter::{HaltReason, Interpreter},
     lykia_module, lykia_native_fn,
     value::RV,
 };

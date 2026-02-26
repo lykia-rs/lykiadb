@@ -1,7 +1,7 @@
+use lykiadb_common::memory::{Shared, alloc_shared};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    util::{Shared, alloc_shared},
     value::RV,
 };
 

@@ -1,4 +1,4 @@
-use crate::engine::{error::ExecutionError, interpreter::HaltReason};
+use crate::{error::ExecutionError, interpreter::HaltReason};
 use interb::Symbol;
 use lykiadb_common::error::InputError;
 use rustc_hash::FxHashMap;

@@ -1,12 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    engine::{
-        error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
-    },
-    plan::{PlannerError, aggregation::prevent_aggregates_in},
-    value::RV,
+    error::ExecutionError, interpreter::{HaltReason, Interpreter}, query::plan::{error::PlannerError, aggregation::prevent_aggregates_in}, value::RV
 };
 
 use lykiadb_lang::ast::{
@@ -265,8 +260,8 @@ impl<'a, 'v> Planner<'a, 'v> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        engine::interpreter::tests::create_test_interpreter,
-        plan::{
+        interpreter::tests::create_test_interpreter,
+        query::plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
             scope::tests::create_test_scope,

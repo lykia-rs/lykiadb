@@ -1,8 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::{plan::PlannerError, value::environment::EnvironmentError};
+use crate::{interpreter::error::InterpretError, query::plan::error::PlannerError, interpreter::environment::EnvironmentError};
 
-use super::interpreter::InterpretError;
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
 use serde::{Deserialize, Serialize};
@@ -29,5 +28,17 @@ impl ExecutionError {
             ExecutionError::Plan(planner_error) => planner_error.into(),
             ExecutionError::Environment(env_error) => env_error.into(),
         }
+    }
+}
+
+impl From<LangError> for ExecutionError {
+    fn from(err: LangError) -> Self {
+        ExecutionError::Lang(err)
+    }
+}
+
+impl From<InterpretError> for ExecutionError {
+    fn from(err: InterpretError) -> Self {
+        ExecutionError::Interpret(err)
     }
 }

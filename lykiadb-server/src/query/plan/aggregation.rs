@@ -1,12 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    engine::{
-        error::ExecutionError,
-        interpreter::{HaltReason, Interpreter},
-    },
-    plan::{Aggregation, planner::InClause},
-    value::{RV, callable::Function},
+    error::ExecutionError, interpreter::{HaltReason, Interpreter}, query::plan::{Aggregation, planner::InClause}, value::{RV, callable::Function}
 };
 
 use lykiadb_lang::ast::{
@@ -16,7 +11,7 @@ use lykiadb_lang::ast::{
     visitor::{ExprReducer, ExprVisitor, ExprVisitorNode},
 };
 
-use super::PlannerError;
+use super::error::PlannerError;
 
 /// Collects all the aggregates from the projection and the having clause.
 /// The aggregates are stored in a HashSet to avoid duplicates and then
@@ -157,7 +152,7 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::interpreter::tests::create_test_interpreter;
+    use crate::interpreter::tests::create_test_interpreter;
 
     use super::*;
     use lykiadb_lang::ast::{

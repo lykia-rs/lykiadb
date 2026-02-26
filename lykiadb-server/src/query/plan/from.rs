@@ -1,6 +1,5 @@
 use crate::{
-    engine::{error::ExecutionError, interpreter::HaltReason},
-    plan::planner::InClause,
+    error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause
 };
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};

@@ -1,10 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    engine::interpreter::{HaltReason, Interpreter},
-    global::GLOBAL_INTERNER,
-    plan::{Aggregation, IntermediateExpr},
-    value::{RV, iterator::ExecutionRow},
+    global::GLOBAL_INTERNER, interpreter::{HaltReason, Interpreter}, query::plan::{Aggregation, IntermediateExpr}, value::{RV, callable::Aggregator, iterator::ExecutionRow}
 };
 
 pub(crate) struct Grouper<'v> {
@@ -79,9 +76,4 @@ impl<'v> Grouper<'v> {
 
         rows
     }
-}
-
-pub trait Aggregator<'v> {
-    fn row(&mut self, row: &RV<'v>);
-    fn finalize(&self) -> RV<'v>;
 }

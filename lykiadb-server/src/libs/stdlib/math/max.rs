@@ -1,4 +1,4 @@
-use crate::{exec::aggregation::Aggregator, value::RV};
+use crate::value::{RV, callable::Aggregator};
 
 #[derive(Default)]
 pub(crate) struct MaxAggregator {
