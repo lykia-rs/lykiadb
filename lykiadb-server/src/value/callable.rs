@@ -1,7 +1,5 @@
 use super::RV;
-use crate::{
-    interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame},
-};
+use crate::interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame};
 use interb::Symbol;
 use lykiadb_common::memory::Shared;
 use lykiadb_lang::{
@@ -15,7 +13,6 @@ pub trait Aggregator<'v> {
     fn row(&mut self, row: &RV<'v>);
     fn finalize(&self) -> RV<'v>;
 }
-
 
 #[derive(Clone, Debug)]
 pub struct RVCallable<'v> {

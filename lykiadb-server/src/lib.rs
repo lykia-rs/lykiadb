@@ -1,10 +1,10 @@
-pub mod session;
-pub mod interpreter;
+pub mod error;
 pub mod global;
+pub mod interpreter;
 pub mod libs;
 pub mod query;
+pub mod session;
 pub mod value;
-pub mod error;
 
 #[macro_export]
 macro_rules! assert_plan {

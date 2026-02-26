@@ -1,5 +1,5 @@
 use crate::{
-    interpreter::{HaltReason, error::InterpretError, Interpreter},
+    interpreter::{HaltReason, Interpreter, error::InterpretError},
     lykia_module, lykia_native_fn,
     value::RV,
 };

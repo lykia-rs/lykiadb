@@ -1,16 +1,14 @@
-use std::sync::Arc;
 use crate::error::ExecutionError;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::loops::{LoopStack, LoopState};
-use crate::{
-    value::RV,
-};
+use crate::value::RV;
 use lykiadb_common::memory::Shared;
 use pretty_assertions::assert_eq;
+use std::sync::Arc;
 
-pub mod error;
 pub mod environment;
+pub mod error;
 mod loops;
 
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -21,13 +19,13 @@ use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
-use crate::query::exec::PlanExecutor;
 use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
+use crate::query::exec::PlanExecutor;
 use crate::query::plan::planner::Planner;
 use crate::value::callable::{Function, RVCallable, Stateful};
+use crate::value::eval::eval_binary;
 use crate::value::iterator::ExecutionRow;
-use crate::value::{eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};
 use interb::Symbol;
 use std::vec;
@@ -97,7 +95,11 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn eval_unary(
+        &mut self,
+        operation: &Operation,
+        expr: &Expr,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_double() {
                 return Ok(RV::Double(-num));
@@ -145,7 +147,11 @@ impl<'sess> Interpreter<'sess> {
         None
     }
 
-    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn look_up_variable(
+        &mut self,
+        name: &str,
+        expr: &Expr,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if let Some(exec_row) = self.exec_row.as_ref()
             && let Some(val) = exec_row.get(&self.intern_string(name))
         {
@@ -666,9 +672,7 @@ impl<'v> Stateful<'v> for Output<'v> {
 pub mod tests {
     use lykiadb_common::memory::Shared;
 
-    use crate::{
-        interpreter::{Interpreter, Output},
-    };
+    use crate::interpreter::{Interpreter, Output};
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
         Interpreter::new(out, true)

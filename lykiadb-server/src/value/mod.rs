@@ -13,10 +13,10 @@ use crate::value::document::{DocumentArrayRef, DocumentRef};
 
 pub mod array;
 pub mod callable;
+pub mod document;
 pub mod eval;
 pub mod iterator;
 pub mod object;
-pub mod document;
 
 #[derive(Debug, Clone)]
 pub enum RV<'v> {

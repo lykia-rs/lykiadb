@@ -13,13 +13,12 @@ use serde::{Deserialize, Serialize};
 use crate::value::{RV, callable::AggregatorFactory};
 use derivative::Derivative;
 
-pub mod planner;
-pub mod error;
 mod aggregation;
+pub mod error;
 mod expr;
 mod from;
+pub mod planner;
 mod scope;
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr<'v> {
