@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use self::error::ExecutionError;
+use crate::interpreter::loops::{LoopStack, LoopState};
 use crate::{
     value::RV,
 };
@@ -7,6 +8,7 @@ use lykiadb_common::memory::Shared;
 use pretty_assertions::assert_eq;
 
 pub mod error;
+mod loops;
 
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
@@ -37,100 +39,20 @@ pub enum HaltReason<'v> {
     Return(RV<'v>),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub enum LoopState {
-    Go,
-    Broken,
-    Continue,
-    Function,
-}
-
 #[derive(Clone)]
-struct LoopStack {
-    ongoing_loops: Vec<LoopState>,
-}
-
-impl LoopStack {
-    pub fn new() -> LoopStack {
-        LoopStack {
-            ongoing_loops: vec![],
-        }
-    }
-
-    pub fn push_fn(&mut self) {
-        self.ongoing_loops.push(LoopState::Function);
-    }
-
-    pub fn pop_fn(&mut self) {
-        if self.ongoing_loops.last() == Some(&LoopState::Function) {
-            self.ongoing_loops.pop();
-        }
-    }
-
-    pub fn push_loop(&mut self, state: LoopState) {
-        self.ongoing_loops.push(state);
-    }
-
-    pub fn pop_loop(&mut self) {
-        if self.is_loops_empty() {
-            return;
-        }
-        self.ongoing_loops.pop();
-    }
-
-    pub fn is_loops_empty(&self) -> bool {
-        self.ongoing_loops.is_empty() || self.ongoing_loops.last() == Some(&LoopState::Function)
-    }
-
-    pub fn get_last_loop(&self) -> Option<&LoopState> {
-        if self.is_loops_empty() {
-            return None;
-        }
-        self.ongoing_loops.last()
-    }
-
-    pub fn set_last_loop(&mut self, to: LoopState) {
-        if self.ongoing_loops.is_empty() {
-            return;
-        }
-        self.pop_loop();
-        self.push_loop(to);
-    }
-
-    fn is_loop_at(&self, state: LoopState) -> bool {
-        let last_loop = *self.get_last_loop().unwrap();
-        last_loop == state
-    }
-
-    fn set_loop_state(&mut self, to: LoopState, from: Option<LoopState>) -> bool {
-        if from.is_none() {
-            return if !self.is_loops_empty() {
-                self.set_last_loop(to);
-                true
-            } else {
-                false
-            };
-        } else if self.is_loop_at(from.unwrap()) {
-            self.set_last_loop(to);
-        }
-        true
-    }
-}
-
-#[derive(Clone)]
-pub struct Interpreter<'v> {
-    env: Arc<EnvironmentFrame<'v>>,
-    root_env: Arc<EnvironmentFrame<'v>>,
-    exec_row: Option<ExecutionRow<'v>>,
+pub struct Interpreter<'sess> {
+    env: Arc<EnvironmentFrame<'sess>>,
+    root_env: Arc<EnvironmentFrame<'sess>>,
+    exec_row: Option<ExecutionRow<'sess>>,
     //
     program: Option<Arc<Program>>,
-    output: Option<Shared<Output<'v>>>,
+    output: Option<Shared<Output<'sess>>>,
     //
     loop_stack: LoopStack,
 }
 
-impl<'v> Interpreter<'v> {
-    pub fn new(out: Option<Shared<Output<'v>>>, with_stdlib: bool) -> Interpreter<'v> {
+impl<'sess> Interpreter<'sess> {
+    pub fn new(out: Option<Shared<Output<'sess>>>, with_stdlib: bool) -> Interpreter<'sess> {
         let root_env = Arc::new(EnvironmentFrame::new(None));
         if with_stdlib {
             let native_fns = stdlib(out.clone());
@@ -152,19 +74,19 @@ impl<'v> Interpreter<'v> {
     pub fn eval_with_row(
         &mut self,
         e: &Expr,
-        exec_row: &ExecutionRow<'v>,
-    ) -> Result<RV<'v>, HaltReason<'v>> {
+        exec_row: &ExecutionRow<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.set_exec_row(exec_row.clone());
         let evaluated = self.visit_expr(e);
         self.clear_exec_row();
         evaluated
     }
 
-    pub fn eval(&mut self, e: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
+    pub fn eval(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.visit_expr(e)
     }
 
-    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'v>, ExecutionError> {
+    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
         self.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
         match out {
@@ -176,7 +98,7 @@ impl<'v> Interpreter<'v> {
         }
     }
 
-    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
+    fn eval_unary(&mut self, operation: &Operation, expr: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         if *operation == Operation::Subtract {
             if let Some(num) = self.visit_expr(expr)?.as_double() {
                 return Ok(RV::Double(-num));
@@ -192,14 +114,14 @@ impl<'v> Interpreter<'v> {
         lexpr: &Expr,
         rexpr: &Expr,
         operation: Operation,
-    ) -> Result<RV<'v>, HaltReason<'v>> {
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let left_eval = self.visit_expr(lexpr)?;
         let right_eval = self.visit_expr(rexpr)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'v>) {
+    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'sess>) {
         self.exec_row = Some(exec_row);
     }
 
@@ -215,7 +137,7 @@ impl<'v> Interpreter<'v> {
         GLOBAL_INTERNER.intern(string)
     }
 
-    fn get_from_row(&mut self, name: &str) -> Option<RV<'v>> {
+    fn get_from_row(&mut self, name: &str) -> Option<RV<'sess>> {
         if let Some(exec_row) = &self.exec_row {
             if let Some(val) = exec_row.get(&self.intern_string(name)) {
                 return Some(val.clone());
@@ -224,7 +146,7 @@ impl<'v> Interpreter<'v> {
         None
     }
 
-    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
+    fn look_up_variable(&mut self, name: &str, expr: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         if let Some(exec_row) = self.exec_row.as_ref()
             && let Some(val) = exec_row.get(&self.intern_string(name))
         {
@@ -242,10 +164,10 @@ impl<'v> Interpreter<'v> {
     pub fn user_fn_call(
         &mut self,
         statements: &Vec<Stmt>,
-        closure: Arc<EnvironmentFrame<'v>>,
+        closure: Arc<EnvironmentFrame<'sess>>,
         parameters: &[Symbol],
-        arguments: &[RV<'v>],
-    ) -> Result<RV<'v>, HaltReason<'v>> {
+        arguments: &[RV<'sess>],
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
         for (i, arg) in arguments.iter().enumerate() {
@@ -263,8 +185,8 @@ impl<'v> Interpreter<'v> {
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Arc<EnvironmentFrame<'v>>,
-    ) -> Result<RV<'v>, HaltReason<'v>> {
+        env_opt: Arc<EnvironmentFrame<'sess>>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let previous = std::mem::replace(&mut self.env, env_opt);
 
         let mut ret = Ok(RV::Undefined);
@@ -281,7 +203,7 @@ impl<'v> Interpreter<'v> {
         ret
     }
 
-    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV<'v>, HaltReason<'v>> {
+    fn literal_to_rv(&mut self, literal: &Literal) -> Result<RV<'sess>, HaltReason<'sess>> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Double(*n),
@@ -305,8 +227,8 @@ impl<'v> Interpreter<'v> {
     }
 }
 
-impl<'v> VisitorMut<RV<'v>, HaltReason<'v>> for Interpreter<'v> {
-    fn visit_expr(&mut self, e: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
+impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
+    fn visit_expr(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
@@ -583,7 +505,7 @@ impl<'v> VisitorMut<RV<'v>, HaltReason<'v>> for Interpreter<'v> {
         }
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'v>, HaltReason<'v>> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'sess>, HaltReason<'sess>> {
         if !self.loop_stack.is_loops_empty()
             && *self.loop_stack.get_last_loop().unwrap() != LoopState::Go
         {
