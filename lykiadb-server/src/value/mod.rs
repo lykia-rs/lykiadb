@@ -13,7 +13,6 @@ use crate::value::document::{DocumentArrayRef, DocumentRef};
 
 pub mod array;
 pub mod callable;
-pub mod environment;
 pub mod eval;
 pub mod iterator;
 pub mod object;

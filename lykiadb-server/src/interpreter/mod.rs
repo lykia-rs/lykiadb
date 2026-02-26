@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use crate::error::ExecutionError;
+use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::loops::{LoopStack, LoopState};
 use crate::{
@@ -9,6 +10,7 @@ use lykiadb_common::memory::Shared;
 use pretty_assertions::assert_eq;
 
 pub mod error;
+pub mod environment;
 mod loops;
 
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
@@ -24,7 +26,6 @@ use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
 use crate::query::plan::planner::Planner;
 use crate::value::callable::{Function, RVCallable, Stateful};
-use crate::value::environment::EnvironmentFrame;
 use crate::value::iterator::ExecutionRow;
 use crate::value::{eval::eval_binary};
 use crate::value::{array::RVArray, object::RVObject};

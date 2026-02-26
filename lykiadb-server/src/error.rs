@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 
-use crate::{interpreter::error::InterpretError, query::plan::error::PlannerError, value::environment::EnvironmentError};
+use crate::{interpreter::error::InterpretError, query::plan::error::PlannerError, interpreter::environment::EnvironmentError};
 
 use lykiadb_common::error::InputError;
 use lykiadb_lang::LangError;
