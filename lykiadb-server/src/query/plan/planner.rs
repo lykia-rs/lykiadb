@@ -11,7 +11,7 @@ use lykiadb_lang::ast::{
     Spanned,
     expr::Expr,
     sql::{SqlProjection, SqlSelect, SqlSelectCore},
-    visitor::{ExprVisitor, VisitorMut},
+    visitor::ExprVisitor,
 };
 
 use super::{

@@ -14,7 +14,6 @@ pub mod output;
 
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
@@ -235,8 +234,8 @@ impl<'sess> Interpreter<'sess> {
     }
 }
 
-impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
-    fn visit_expr(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
+impl<'sess> Interpreter<'sess> {
+    pub fn visit_expr(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
