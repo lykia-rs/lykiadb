@@ -103,8 +103,6 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    
-
     pub fn eval(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.visit_expr(e)
     }
@@ -151,8 +149,6 @@ impl<'sess> Interpreter<'sess> {
     fn intern_string(&self, string: &str) -> Symbol {
         GLOBAL_INTERNER.intern(string)
     }
-
-    
 
     fn look_up_variable(
         &mut self,

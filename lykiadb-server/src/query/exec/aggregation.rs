@@ -34,7 +34,9 @@ impl<'v> Grouper<'v> {
         for group_expr in self.group_exprs.iter() {
             bucket.push(match group_expr {
                 IntermediateExpr::Constant(val) => val.clone(),
-                IntermediateExpr::Expr { expr } => self.interpreter.eval_with_exec_row(expr, &row)?,
+                IntermediateExpr::Expr { expr } => {
+                    self.interpreter.eval_with_exec_row(expr, &row)?
+                }
             });
         }
 
