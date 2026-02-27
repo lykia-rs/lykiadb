@@ -50,6 +50,40 @@ pub struct Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
+    pub fn eval_with_exec_row(
+        &mut self,
+        e: &Expr,
+        exec_row: &ExecutionRow<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
+        self.set_exec_row(exec_row.clone());
+        let evaluated = self.visit_expr(e);
+        self.clear_exec_row();
+        evaluated
+    }
+
+    fn get_from_exec_row(&mut self, name: &str) -> Option<RV<'sess>> {
+        if let Some(exec_row) = &self.exec_row {
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
+    }
+
+    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'sess>) {
+        self.exec_row = Some(exec_row);
+    }
+
+    pub fn clear_exec_row(&mut self) {
+        self.exec_row = None;
+    }
+
+    pub fn has_exec_row(&self) -> bool {
+        self.exec_row.is_some()
+    }
+}
+
+impl<'sess> Interpreter<'sess> {
     pub fn new(out: Option<Shared<Output<'sess>>>, with_stdlib: bool) -> Interpreter<'sess> {
         let root_env = Arc::new(EnvironmentFrame::new(None));
         if with_stdlib {
@@ -69,16 +103,7 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    pub fn eval_with_row(
-        &mut self,
-        e: &Expr,
-        exec_row: &ExecutionRow<'sess>,
-    ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.set_exec_row(exec_row.clone());
-        let evaluated = self.visit_expr(e);
-        self.clear_exec_row();
-        evaluated
-    }
+    
 
     pub fn eval(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.visit_expr(e)
@@ -123,30 +148,11 @@ impl<'sess> Interpreter<'sess> {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'sess>) {
-        self.exec_row = Some(exec_row);
-    }
-
-    pub fn clear_exec_row(&mut self) {
-        self.exec_row = None;
-    }
-
-    pub fn has_exec_row(&self) -> bool {
-        self.exec_row.is_some()
-    }
-
     fn intern_string(&self, string: &str) -> Symbol {
         GLOBAL_INTERNER.intern(string)
     }
 
-    fn get_from_row(&mut self, name: &str) -> Option<RV<'sess>> {
-        if let Some(exec_row) = &self.exec_row {
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Some(val.clone());
-            }
-        }
-        None
-    }
+    
 
     fn look_up_variable(
         &mut self,
@@ -295,7 +301,7 @@ impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
                 let eval = self.visit_expr(callee)?;
                 if let RV::Callable(callable) = eval {
                     if self.has_exec_row() && callable.is_agg() {
-                        let value = self.get_from_row(&e.sign());
+                        let value = self.get_from_exec_row(&e.sign());
 
                         if let Some(value) = value {
                             return Ok(value);
