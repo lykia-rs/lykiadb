@@ -45,8 +45,7 @@ mod tests {
     use lykiadb_common::memory::alloc_shared;
 
     use super::*;
-    use crate::interpreter::Output;
-    use crate::interpreter::tests::create_test_interpreter;
+    use crate::interpreter::{output::Output, tests::create_test_interpreter};
     use std::sync::Arc;
 
     #[test]

@@ -57,7 +57,7 @@ lykia_module!(json, {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::Output;
+    use crate::interpreter::output::Output;
     use crate::interpreter::tests::create_test_interpreter;
     use crate::value::{array::RVArray, object::RVObject};
     use lykiadb_common::extract;

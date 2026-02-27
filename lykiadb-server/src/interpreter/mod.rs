@@ -2,14 +2,15 @@ use crate::error::ExecutionError;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::loops::{LoopStack, LoopState};
+use crate::interpreter::output::Output;
 use crate::value::RV;
 use lykiadb_common::memory::Shared;
-use pretty_assertions::assert_eq;
 use std::sync::Arc;
 
 pub mod environment;
 pub mod error;
 mod loops;
+pub mod output;
 
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
@@ -608,54 +609,7 @@ impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
     }
 }
 
-#[derive(Clone)]
-pub struct Output<'v> {
-    out: Vec<RV<'v>>,
-}
-
-impl<'v> Default for Output<'v> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'v> Output<'v> {
-    pub fn new() -> Output<'v> {
-        Output { out: Vec::new() }
-    }
-
-    pub fn clear(&mut self) {
-        self.out.clear();
-    }
-
-    pub fn push(&mut self, rv: RV<'v>) {
-        self.out.push(rv);
-    }
-
-    pub fn expect(&mut self, rv: Vec<RV<'v>>) {
-        if rv.len() == 1 {
-            if let Some(first) = rv.first() {
-                assert_eq!(
-                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
-                    first.to_string()
-                );
-            }
-        }
-        assert_eq!(self.out, rv)
-    }
-    // TODO(vck): Remove this
-    pub fn expect_str(&mut self, rv: Vec<String>) {
-        assert_eq!(
-            self.out
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>(),
-            rv
-        )
-    }
-}
-
-impl<'v> Stateful<'v> for Output<'v> {
+impl<'v> Stateful<'v> for output::Output<'v> {
     fn call(
         &mut self,
         _interpreter: &mut Interpreter<'v>,

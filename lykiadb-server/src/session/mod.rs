@@ -1,6 +1,6 @@
 use crate::{
     error::ExecutionError,
-    interpreter::{Interpreter, Output},
+    interpreter::{Interpreter, output::Output},
 };
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
