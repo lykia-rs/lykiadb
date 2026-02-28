@@ -20,7 +20,7 @@ use rustc_hash::FxHashMap;
 use crate::value::iterator::ExecutionRow;
 
 #[derive(Clone)]
-pub struct ExprEngine<'sess> {
+pub struct ProgramState<'sess> {
     env: Arc<EnvironmentFrame<'sess>>,
     exec_row: Shared<Option<ExecutionRow<'sess>>>,
     // Static fields:
@@ -28,34 +28,7 @@ pub struct ExprEngine<'sess> {
     program: Option<Arc<Program>>,
 }
 
-
-impl<'sess> ExprEngine<'sess> {
-    pub fn eval_with_exec_row(
-        &self,
-        e: &Expr,
-        exec_row: &ExecutionRow<'sess>,
-    ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.exec_row.write().unwrap().replace(exec_row.clone());
-        let evaluated = self.visit_expr(e);
-        self.exec_row.write().unwrap().take();
-        evaluated
-    }
-
-    fn get_from_exec_row(&self, name: &str) -> Option<RV<'sess>> {
-        if let Some(exec_row) = &*self.exec_row.read().unwrap() {
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Some(val.clone());
-            }
-        }
-        None
-    }
-
-    pub fn has_exec_row(&self) -> bool {
-        self.exec_row.read().unwrap().is_some()
-    }
-}
-
-impl<'sess> ExprEngine<'sess> {
+impl<'sess> ProgramState<'sess> {
     pub fn new(env: Arc<EnvironmentFrame<'sess>>, root_env: Arc<EnvironmentFrame<'sess>>, program: Arc<Program>) -> Self {
         Self {
             env,
@@ -64,25 +37,72 @@ impl<'sess> ExprEngine<'sess> {
             program: Some(program),
         }
     }
+}
+
+#[derive(Clone)]
+pub struct StatefulExprEngine<'sess> {
+    state: ProgramState<'sess>,
+}
+
+impl<'sess> StatefulExprEngine<'sess> {
+    pub fn new(state: ProgramState<'sess>) -> Self {
+        Self { state }
+    }
 
     pub fn eval(&self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.visit_expr(e)
+        ExprEngine.eval(e, &self.state)
+    }
+
+    pub fn eval_with_exec_row(
+        &self,
+        e: &Expr,
+        exec_row: ExecutionRow<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
+        self.state.exec_row.write().unwrap().replace(exec_row);
+        let evaluated = self.eval(e);
+        self.state.exec_row.write().unwrap().take();
+        evaluated
     }
 }
 
-impl<'sess> ExprEngine<'sess> {
+#[derive(Clone)]
+pub struct ExprEngine;
+
+impl<'sess> ExprEngine {
+    fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
+        if let Some(exec_row) = &*state.exec_row.read().unwrap() {
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
+    }
+
+    pub fn has_exec_row(&self, state: &ProgramState<'sess>) -> bool {
+        state.exec_row.read().unwrap().is_some()
+    }
+}
+
+impl<'sess> ExprEngine {
+    pub fn eval(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+        self.visit_expr(e, state)
+    }
+}
+
+impl<'sess> ExprEngine {
     fn eval_unary(
         &self,
         operation: &Operation,
         expr: &Expr,
+        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.visit_expr(expr)?.as_double() {
+            if let Some(num) = self.eval(expr, state)?.as_double() {
                 return Ok(RV::Double(-num));
             }
             Ok(RV::Undefined)
         } else {
-            Ok(RV::Bool(!self.visit_expr(expr)?.as_bool()))
+            Ok(RV::Bool(!self.eval(expr, state)?.as_bool()))
         }
     }
 
@@ -91,9 +111,10 @@ impl<'sess> ExprEngine<'sess> {
         lexpr: &Expr,
         rexpr: &Expr,
         operation: Operation,
+        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        let left_eval = self.visit_expr(lexpr)?;
-        let right_eval = self.visit_expr(rexpr)?;
+        let left_eval = self.eval(lexpr, state)?;
+        let right_eval = self.eval(rexpr, state)?;
 
         Ok(eval_binary(left_eval, right_eval, operation))
     }
@@ -106,22 +127,23 @@ impl<'sess> ExprEngine<'sess> {
         &self,
         name: &str,
         expr: &Expr,
+        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        if let Some(exec_row) = &*self.exec_row.read().unwrap()
+        if let Some(exec_row) = &*state.exec_row.read().unwrap()
             && let Some(val) = exec_row.get(&self.intern_string(name))
         {
             return Ok(val.clone());
         }
 
-        let distance = self.program.as_ref().and_then(|x| x.get_distance(expr));
+        let distance = state.program.as_ref().and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
-            EnvironmentFrame::read_at(&self.env, unwrapped, name, &self.intern_string(name))
+            EnvironmentFrame::read_at(&state.env, unwrapped, name, &self.intern_string(name))
         } else {
-            self.root_env.read(name, &self.intern_string(name))
+            state.root_env.read(name, &self.intern_string(name))
         }
     }
 
-    fn literal_to_rv(&self, literal: &Literal) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn literal_to_rv(&self, literal: &Literal, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Double(*n),
@@ -130,41 +152,41 @@ impl<'sess> ExprEngine<'sess> {
             Literal::Object(map) => {
                 let mut new_map = FxHashMap::default();
                 for (k, v) in map.iter() {
-                    new_map.insert(k.clone(), self.visit_expr(v)?);
+                    new_map.insert(k.clone(), self.eval(v, state)?);
                 }
                 RV::Object(RVObject::from_map(new_map))
             }
             Literal::Array(arr) => {
                 let collected = arr
                     .iter()
-                    .map(|x| self.visit_expr(x))
+                    .map(|x| self.eval(x, state))
                     .collect::<Result<Vec<RV>, HaltReason>>()?;
                 RV::Array(RVArray::from_vec(collected))
             }
         })
     }
 
-    fn visit_expr(&self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn visit_expr(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
-            Expr::Literal { value, .. } => self.literal_to_rv(value),
-            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
+            Expr::Literal { value, .. } => self.literal_to_rv(value, state),
+            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e, state),
             Expr::Unary {
                 operation, expr, ..
-            } => self.eval_unary(operation, expr),
+            } => self.eval_unary(operation, expr, state),
             Expr::Binary {
                 operation,
                 left,
                 right,
                 ..
-            } => self.eval_binary(left, right, *operation),
-            Expr::Grouping { expr, .. } => self.visit_expr(expr),
+            } => self.eval_binary(left, right, *operation, state),
+            Expr::Grouping { expr, .. } => self.eval(expr, state),
             Expr::Logical {
                 left,
                 operation,
                 right,
                 ..
             } => {
-                let is_true = self.visit_expr(left)?.as_bool();
+                let is_true = self.eval(left, state)?.as_bool();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -172,10 +194,10 @@ impl<'sess> ExprEngine<'sess> {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(self.visit_expr(right)?.as_bool()))
+                Ok(RV::Bool(self.eval(right, state)?.as_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = self
+                let distance = state
                     .program
                     .as_ref()
                     .ok_or(HaltReason::Error(ExecutionError::Interpret(
@@ -183,18 +205,18 @@ impl<'sess> ExprEngine<'sess> {
                     )))?
                     .get_distance(e);
 
-                let evaluated = self.visit_expr(expr)?;
+                let evaluated = self.eval(expr, state)?;
                 let dst_symbol = self.intern_string(&dst.name);
                 if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
-                        &self.env,
+                        &state.env,
                         distance_unv,
                         &dst.name,
                         dst_symbol,
                         evaluated.clone(),
                     )
                 } else {
-                    self.root_env
+                    state.root_env
                         .assign(&dst.name, dst_symbol, evaluated.clone())
                 }?;
                 Ok(evaluated)
@@ -202,10 +224,10 @@ impl<'sess> ExprEngine<'sess> {
             Expr::Call {
                 callee, args, span, ..
             } => {
-                let eval = self.visit_expr(callee)?;
+                let eval = self.eval(callee, state)?;
                 if let RV::Callable(callable) = eval {
-                    if self.has_exec_row() && callable.is_agg() {
-                        let value = self.get_from_exec_row(&e.sign());
+                    if self.has_exec_row(state) && callable.is_agg() {
+                        let value = self.get_from_exec_row(&e.sign(), state);
 
                         if let Some(value) = value {
                             return Ok(value);
@@ -217,10 +239,10 @@ impl<'sess> ExprEngine<'sess> {
                     let mut args_evaluated: Vec<RV> = vec![];
 
                     for arg in args.iter() {
-                        args_evaluated.push(self.visit_expr(arg)?);
+                        args_evaluated.push(self.eval(arg, state)?);
                     }
 
-                    let val = callable.call(self, span, args_evaluated.as_slice());
+                    let val = callable.call(state, span, args_evaluated.as_slice());
 
                     match val {
                         Err(HaltReason::Return(ret_val)) => Ok(ret_val),
@@ -257,7 +279,7 @@ impl<'sess> ExprEngine<'sess> {
                     name: self.intern_string(fn_name),
                     body: Arc::clone(body),
                     parameters: param_identifiers,
-                    closure: self.env.clone(),
+                    closure: state.env.clone(),
                 };
 
                 // TODO(vck): Type evaluation should be moved to a pre-execution phase
@@ -265,7 +287,7 @@ impl<'sess> ExprEngine<'sess> {
 
                 if let Some(Identifier { name, .. }) = name {
                     // TODO(vck): Callable shouldn't be cloned here
-                    self.env.define(self.intern_string(name), callable.clone());
+                    state.env.define(self.intern_string(name), callable.clone());
                 }
 
                 Ok(callable)
@@ -278,9 +300,9 @@ impl<'sess> ExprEngine<'sess> {
                 span,
                 ..
             } => {
-                let lower_eval = self.visit_expr(lower)?;
-                let upper_eval = self.visit_expr(upper)?;
-                let subject_eval = self.visit_expr(subject)?;
+                let lower_eval = self.eval(lower, state)?;
+                let upper_eval = self.eval(upper, state)?;
+                let subject_eval = self.eval(subject, state)?;
 
                 if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
                     (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
@@ -308,7 +330,7 @@ impl<'sess> ExprEngine<'sess> {
                 span,
                 id,
             } => {
-                let root = self.look_up_variable(&head.name, e);
+                let root = self.look_up_variable(&head.name, e, state);
 
                 if tail.is_empty() {
                     return root;
@@ -346,7 +368,7 @@ impl<'sess> ExprEngine<'sess> {
             Expr::Get {
                 object, name, span, ..
             } => {
-                let object_eval = self.visit_expr(object)?;
+                let object_eval = self.eval(object, state)?;
                 if let RV::Object(map) = object_eval {
                     let v = map.get(&name.name.clone());
                     if let Some(v) = v {
@@ -376,9 +398,9 @@ impl<'sess> ExprEngine<'sess> {
                 span,
                 ..
             } => {
-                let object_eval = self.visit_expr(object)?;
+                let object_eval = self.eval(object, state)?;
                 if let RV::Object(mut map) = object_eval {
-                    let evaluated = self.visit_expr(value)?;
+                    let evaluated = self.eval(value, state)?;
                     map.insert(name.name.to_string(), evaluated.clone());
                     Ok(evaluated)
                 } else {

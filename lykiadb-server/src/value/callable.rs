@@ -1,10 +1,9 @@
 use super::RV;
-use crate::interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame};
+use crate::interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame, expr::ProgramState};
 use interb::Symbol;
 use lykiadb_common::memory::Shared;
 use lykiadb_lang::{
-    ast::{Span, stmt::Stmt},
-    types::Datatype,
+    ast::{Span, stmt::Stmt}, types::Datatype
 };
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
@@ -36,7 +35,7 @@ impl<'v> RVCallable<'v> {
 
     pub fn call(
         &self,
-        interpreter: &mut Interpreter<'v>,
+        state: &ProgramState<'v>,
         called_from: &Span,
         arguments: &[RV<'v>],
     ) -> Result<RV<'v>, HaltReason<'v>> {

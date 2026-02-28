@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     error::ExecutionError,
-    interpreter::{HaltReason, expr::ExprEngine},
+    interpreter::{HaltReason, expr::{StatefulExprEngine}},
     query::plan::{aggregation::prevent_aggregates_in, error::PlannerError},
     value::RV,
 };
@@ -42,12 +42,13 @@ impl Display for InClause {
     }
 }
 
-pub struct Planner<'a, 'v> {
-    expr_engine: &'a ExprEngine<'v>,
+pub struct Planner<'v> {
+    expr_engine: StatefulExprEngine<'v>,
 }
 
-impl<'a, 'v> Planner<'a, 'v> {
-    pub fn new(expr_engine: &'a ExprEngine<'v>) -> Planner<'a, 'v> {
+impl<'v> Planner<'v> {
+    pub fn new(expr_engine: StatefulExprEngine<'v>) -> Planner<'v> {
+
         Planner { expr_engine }
     }
 
@@ -74,7 +75,7 @@ impl<'a, 'v> Planner<'a, 'v> {
         allow_aggregates: bool,
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
-            prevent_aggregates_in(expr, in_clause, self.expr_engine)?;
+            prevent_aggregates_in(expr, in_clause, &self.expr_engine)?;
         }
 
         let mut reducer: SqlExprReducer = SqlExprReducer::new(
@@ -101,7 +102,7 @@ impl<'a, 'v> Planner<'a, 'v> {
     }
 }
 
-impl<'a, 'v> Planner<'a, 'v> {
+impl<'v> Planner<'v> {
     /*
 
     The data flow we built using SqlSelectCore is as follows:
@@ -147,7 +148,7 @@ impl<'a, 'v> Planner<'a, 'v> {
             }
         }
 
-        let aggregates = collect_aggregates(core, self.expr_engine)?;
+        let aggregates = collect_aggregates(core, &self.expr_engine)?;
 
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
@@ -283,7 +284,7 @@ mod tests {
     };
 
     /// Helper function to create a test planner instance
-    pub fn create_test_planner() -> Planner<'static, 'static> {
+    pub fn create_test_planner() -> Planner<'static> {
         let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
         Planner::new(interpreter.get_expr_engine())
     }

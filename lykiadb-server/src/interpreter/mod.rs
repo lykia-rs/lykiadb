@@ -1,7 +1,7 @@
 use crate::error::ExecutionError;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
-use crate::interpreter::expr::ExprEngine;
+use crate::interpreter::expr::{ExprEngine, ProgramState, StatefulExprEngine};
 use crate::interpreter::output::Output;
 use crate::value::RV;
 use lykiadb_common::memory::Shared;
@@ -12,15 +12,12 @@ pub mod error;
 pub mod expr;
 pub mod output;
 
-use lykiadb_lang::ast::expr::Expr;
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::parser::program::Program;
 
 use crate::global::GLOBAL_INTERNER;
 use crate::libs::stdlib::stdlib;
-use crate::query::plan::planner::Planner;
 use crate::value::callable::Stateful;
-use crate::value::iterator::ExecutionRow;
 use interb::Symbol;
 
 #[derive(PartialEq, Debug)]
@@ -33,8 +30,6 @@ pub enum HaltReason<'v> {
 pub struct Interpreter<'sess> {
     env: Arc<EnvironmentFrame<'sess>>,
     root_env: Arc<EnvironmentFrame<'sess>>,
-    exec_row: Option<ExecutionRow<'sess>>,
-    expr_engine: Option<ExprEngine<'sess>>,
     //
     program: Option<Arc<Program>>,
     output: Option<Shared<Output<'sess>>>,
@@ -55,15 +50,13 @@ impl<'sess> Interpreter<'sess> {
             root_env,
             program: None,
             output: out,
-            exec_row: None,
-            expr_engine: None,
         }
     }
 
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
         self.program = Some(program.clone());
-        self.expr_engine = Some(ExprEngine::new(self.root_env.clone(), self.root_env.clone(), program.clone()));
-        let out = self.visit_stmt(&program.get_root());
+        let state = ProgramState::new(self.env.clone(), self.root_env.clone(), program.clone());
+        let out = self.visit_stmt(&program.get_root(), &state);
         match out {
             Ok(val) => Ok(val),
             Err(err) => match err {
@@ -73,8 +66,8 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    pub fn get_expr_engine(&self) -> &ExprEngine<'sess> {
-        self.expr_engine.as_ref().unwrap()
+    pub fn get_expr_engine(&self) -> StatefulExprEngine<'sess> {
+        StatefulExprEngine::new(ProgramState::new(self.env.clone(), self.root_env.clone(), self.program.clone().unwrap()))
     }
 }
 
@@ -85,6 +78,7 @@ impl<'sess> Interpreter<'sess> {
         closure: Arc<EnvironmentFrame<'sess>>,
         parameters: &[Symbol],
         arguments: &[RV<'sess>],
+        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
@@ -97,20 +91,21 @@ impl<'sess> Interpreter<'sess> {
             fn_env.define(parameters[i], arg.clone());
         }
 
-        self.execute_block(statements, Arc::new(fn_env))
+        self.execute_block(statements, Arc::new(fn_env), state)
     }
 
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
         env_opt: Arc<EnvironmentFrame<'sess>>,
+        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let previous = std::mem::replace(&mut self.env, env_opt);
 
         let mut ret = Ok(RV::Undefined);
 
         for statement in statements {
-            ret = self.visit_stmt(statement);
+            ret = self.visit_stmt(statement, state);
             if ret.is_err() {
                 break;
             }
@@ -125,24 +120,25 @@ impl<'sess> Interpreter<'sess> {
         GLOBAL_INTERNER.intern(string)
     }
 
-    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'sess>, HaltReason<'sess>> {
-        let expr_engine = self.expr_engine.as_ref().unwrap();
+    fn visit_stmt(&mut self, s: &Stmt, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+        let expr_engine = ExprEngine;
 
         match s {
             Stmt::Program { body: stmts, .. } => {
-                return self.execute_block(stmts, self.env.clone());
+                return self.execute_block(stmts, self.env.clone(), state);
             }
             Stmt::Expression { expr, .. } => {
-                return expr_engine.eval(expr);
+                return expr_engine.eval(expr, state);
             }
             Stmt::Declaration { dst, expr, .. } => {
-                let evaluated = expr_engine.eval(expr)?;
+                let evaluated = expr_engine.eval(expr, state)?;
                 self.env.define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
                     stmts,
                     Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))),
+                    state,
                 );
             }
             Stmt::If {
@@ -151,10 +147,10 @@ impl<'sess> Interpreter<'sess> {
                 r#else_body: r#else,
                 ..
             } => {
-                if expr_engine.eval(condition)?.as_bool() {
-                    self.visit_stmt(body)?;
+                if expr_engine.eval(condition, state)?.as_bool() {
+                    self.visit_stmt(body, state)?;
                 } else if let Some(else_stmt) = r#else {
-                    self.visit_stmt(else_stmt)?;
+                    self.visit_stmt(else_stmt, state)?;
                 }
             }
             Stmt::Loop {
@@ -175,7 +171,7 @@ impl<'sess> Interpreter<'sess> {
             }
             Stmt::Return { expr, .. } => {
                 if let Some(expr) = expr {
-                    let ret = expr_engine.eval(expr)?;
+                    let ret = expr_engine.eval(expr,state)?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
