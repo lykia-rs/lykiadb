@@ -20,7 +20,7 @@ pub struct PlanExecutor;
 
 impl<'v> PlanExecutor {
     pub fn new() -> PlanExecutor{
-        PlanExecutor { }
+        PlanExecutor
     }
 
     pub fn execute_plan(&mut self, plan: Plan<'v>, expr_engine: &'v StatefulExprEngine<'v>) -> Result<RVs<'v>, ExecutionError> {

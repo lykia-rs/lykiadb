@@ -3,9 +3,11 @@ use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::expr::{ExprEngine, StatefulExprEngine};
 use crate::interpreter::output::Output;
+use crate::query::QueryEngine;
 use crate::value::RV;
 use crate::value::iterator::ExecutionRow;
 use lykiadb_common::memory::Shared;
+use lykiadb_lang::ast::expr::Expr;
 use std::sync::Arc;
 
 pub mod environment;
@@ -202,21 +204,20 @@ impl<'sess> Interpreter<'sess> {
                 return Err(HaltReason::Return(RV::Undefined));
             }
             Stmt::Explain { expr, span } => {
-                // TODO(LYK-28)
-                /* if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let mut planner = Planner::new(self);
-                    let plan = planner.build(expr)?;
-                    if let Some(out) = &self.output {
+                let mut qe = QueryEngine::new(self.get_expr_engine());
+                if matches!(expr.as_ref(), Expr::Select { .. }) {
+                    let plan = &qe.explain(expr)?;
+                    if let Some(out) = &self.state.output {
                         out.write()
                             .unwrap()
                             .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
                     }
                     return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
-                } else {*/
+                } else {
                     return Err(HaltReason::Error(
                         InterpretError::InvalidExplainTarget { span: *span }.into(),
                     ));
-                //}
+                }
             }
         }
         Ok(RV::Undefined)
