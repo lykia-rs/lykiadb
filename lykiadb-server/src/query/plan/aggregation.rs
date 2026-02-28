@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
     error::ExecutionError,
-    interpreter::{HaltReason, Interpreter},
+    interpreter::{HaltReason, expr::ExprEngine},
     query::plan::{Aggregation, planner::InClause},
     value::{RV, callable::Function},
 };
@@ -22,11 +22,11 @@ use super::error::PlannerError;
 /// aggregates in the projection and the having clause.
 pub fn collect_aggregates<'v>(
     core: &SqlSelectCore,
-    interpreter: &mut Interpreter<'v>,
+    expr_engine: &ExprEngine<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
-    let mut collector = AggregationCollector::collecting(interpreter, InClause::Projection);
+    let mut collector = AggregationCollector::collecting(expr_engine, InClause::Projection);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -39,7 +39,7 @@ pub fn collect_aggregates<'v>(
         }
     }
 
-    collector = AggregationCollector::collecting(interpreter, InClause::Having);
+    collector = AggregationCollector::collecting(expr_engine, InClause::Having);
 
     visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -60,9 +60,10 @@ pub fn collect_aggregates<'v>(
 pub fn prevent_aggregates_in<'v>(
     expr: &Expr,
     in_clause: InClause,
-    interpreter: &mut Interpreter<'v>,
+    expr_engine: &ExprEngine<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
-    let mut collector = AggregationCollector::preventing(interpreter, in_clause);
+    let _ = expr_engine;
+    let mut collector = AggregationCollector::preventing(expr_engine, in_clause);
 
     let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -74,33 +75,33 @@ pub fn prevent_aggregates_in<'v>(
 struct AggregationCollector<'a, 'v> {
     in_call: u32,
     accumulator: Vec<Aggregation<'v>>,
-    interpreter: &'a mut Interpreter<'v>,
+    expr_engine: &'a ExprEngine<'v>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
 impl<'a, 'v> AggregationCollector<'a, 'v> {
     fn preventing(
-        interpreter: &'a mut Interpreter<'v>,
+        expr_engine: &'a ExprEngine<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
-            interpreter,
+            expr_engine,
             is_preventing: true,
             in_clause,
         }
     }
 
     fn collecting(
-        interpreter: &'a mut Interpreter<'v>,
+        expr_engine: &'a ExprEngine<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
             in_call: 0,
             accumulator: vec![],
-            interpreter,
+            expr_engine,
             is_preventing: false,
             in_clause,
         }
@@ -110,7 +111,7 @@ impl<'a, 'v> AggregationCollector<'a, 'v> {
 impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollector<'a, 'v> {
     fn visit(&mut self, expr: &Expr, visit: ExprVisitorNode) -> Result<bool, HaltReason<'v>> {
         if let Expr::Call { callee, args, .. } = expr {
-            let callee_val = self.interpreter.eval(callee);
+            let callee_val = self.expr_engine.eval(callee);
 
             if let Ok(RV::Callable(callable)) = &callee_val
                 && let Function::Agg {
@@ -193,7 +194,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter)?;
+        let result = collect_aggregates(&core, interpreter.get_expr_engine())?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -226,7 +227,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &mut interpreter)?;
+        let result = collect_aggregates(&core, interpreter.get_expr_engine())?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -260,7 +261,7 @@ mod tests {
         };
 
         let mut collector =
-            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
+            AggregationCollector::collecting(interpreter.get_expr_engine(), InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -289,7 +290,7 @@ mod tests {
         };
 
         let mut collector =
-            AggregationCollector::collecting(&mut interpreter, InClause::Projection);
+            AggregationCollector::collecting(interpreter.get_expr_engine(), InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 

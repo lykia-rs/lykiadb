@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     error::ExecutionError,
-    interpreter::{HaltReason, Interpreter},
+    interpreter::{HaltReason, expr::ExprEngine},
     query::plan::{aggregation::prevent_aggregates_in, error::PlannerError},
     value::RV,
 };
@@ -43,12 +43,12 @@ impl Display for InClause {
 }
 
 pub struct Planner<'a, 'v> {
-    interpreter: &'a mut Interpreter<'v>,
+    expr_engine: &'a ExprEngine<'v>,
 }
 
 impl<'a, 'v> Planner<'a, 'v> {
-    pub fn new(interpreter: &'a mut Interpreter<'v>) -> Planner<'a, 'v> {
-        Planner { interpreter }
+    pub fn new(expr_engine: &'a ExprEngine<'v>) -> Planner<'a, 'v> {
+        Planner { expr_engine }
     }
 
     pub fn build(&mut self, expr: &Expr) -> Result<Plan<'v>, HaltReason<'v>> {
@@ -62,7 +62,7 @@ impl<'a, 'v> Planner<'a, 'v> {
     }
 
     fn eval_constant(&mut self, expr: &Expr) -> Result<RV<'v>, HaltReason<'v>> {
-        self.interpreter.visit_expr(expr)
+        self.expr_engine.eval(expr)
     }
 
     pub fn build_expr(
@@ -74,7 +74,7 @@ impl<'a, 'v> Planner<'a, 'v> {
         allow_aggregates: bool,
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
-            prevent_aggregates_in(expr, in_clause, self.interpreter)?;
+            prevent_aggregates_in(expr, in_clause, self.expr_engine)?;
         }
 
         let mut reducer: SqlExprReducer = SqlExprReducer::new(
@@ -147,7 +147,7 @@ impl<'a, 'v> Planner<'a, 'v> {
             }
         }
 
-        let aggregates = collect_aggregates(core, self.interpreter)?;
+        let aggregates = collect_aggregates(core, self.expr_engine)?;
 
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
@@ -285,7 +285,7 @@ mod tests {
     /// Helper function to create a test planner instance
     pub fn create_test_planner() -> Planner<'static, 'static> {
         let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
-        Planner::new(interpreter)
+        Planner::new(interpreter.get_expr_engine())
     }
 
     // Helper macro to assert the result of build_expr
