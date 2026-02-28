@@ -3,6 +3,7 @@ use crate::global::GLOBAL_INTERNER;
 use crate::interpreter::HaltReason;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
+use crate::interpreter::output::Output;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -21,20 +22,23 @@ use crate::value::iterator::ExecutionRow;
 
 #[derive(Clone)]
 pub struct ProgramState<'sess> {
-    env: Arc<EnvironmentFrame<'sess>>,
-    exec_row: Shared<Option<ExecutionRow<'sess>>>,
+    pub env: Arc<EnvironmentFrame<'sess>>,
+    pub exec_row: Shared<Option<ExecutionRow<'sess>>>,
+    // Output
+    pub output: Option<Shared<Output<'sess>>>,
     // Static fields:
-    root_env: Arc<EnvironmentFrame<'sess>>,
-    program: Option<Arc<Program>>,
+    pub root_env: Arc<EnvironmentFrame<'sess>>,
+    pub program: Option<Arc<Program>>,
 }
 
 impl<'sess> ProgramState<'sess> {
-    pub fn new(env: Arc<EnvironmentFrame<'sess>>, root_env: Arc<EnvironmentFrame<'sess>>, program: Arc<Program>) -> Self {
+    pub fn new(env: Arc<EnvironmentFrame<'sess>>, root_env: Arc<EnvironmentFrame<'sess>>, program: Option<Arc<Program>>, output: Option<Shared<Output<'sess>>>) -> Self {
         Self {
             env,
             root_env,
             exec_row: Shared::new(None.into()),
-            program: Some(program),
+            program,
+            output,
         }
     }
 }

@@ -39,9 +39,10 @@ impl<'v> RVCallable<'v> {
         called_from: &Span,
         arguments: &[RV<'v>],
     ) -> Result<RV<'v>, HaltReason<'v>> {
+        let mut interpreter = Interpreter::from_state(state);
         match &self.function.as_ref() {
-            Function::Stateful(stateful) => stateful.write().unwrap().call(interpreter, arguments),
-            Function::Native { function } => function(interpreter, called_from, arguments),
+            Function::Stateful(stateful) => stateful.write().unwrap().call(&mut interpreter, arguments),
+            Function::Native { function } => function(&mut interpreter, called_from, arguments),
             Function::Agg { function, .. } => {
                 let mut aggregator = function();
 

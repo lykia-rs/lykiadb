@@ -28,11 +28,7 @@ pub enum HaltReason<'v> {
 
 #[derive(Clone)]
 pub struct Interpreter<'sess> {
-    env: Arc<EnvironmentFrame<'sess>>,
-    root_env: Arc<EnvironmentFrame<'sess>>,
-    //
-    program: Option<Arc<Program>>,
-    output: Option<Shared<Output<'sess>>>,
+    state: ProgramState<'sess>,
 }
 
 impl<'sess> Interpreter<'sess> {
@@ -46,17 +42,17 @@ impl<'sess> Interpreter<'sess> {
             }
         }
         Interpreter {
-            env: root_env.clone(),
-            root_env,
-            program: None,
-            output: out,
+            state: ProgramState::new(
+                root_env.clone(), 
+                root_env.clone(), 
+                None,
+                 out),
         }
     }
 
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
-        self.program = Some(program.clone());
-        let state = ProgramState::new(self.env.clone(), self.root_env.clone(), program.clone());
-        let out = self.visit_stmt(&program.get_root(), &state);
+        self.state.program = Some(program.clone());
+        let out = self.visit_stmt(&program.get_root(), &self.state.clone());
         match out {
             Ok(val) => Ok(val),
             Err(err) => match err {
@@ -67,7 +63,13 @@ impl<'sess> Interpreter<'sess> {
     }
 
     pub fn get_expr_engine(&self) -> StatefulExprEngine<'sess> {
-        StatefulExprEngine::new(ProgramState::new(self.env.clone(), self.root_env.clone(), self.program.clone().unwrap()))
+        StatefulExprEngine::new(self.state.clone())
+    }
+    
+    pub fn from_state(state: &ProgramState<'sess>) -> Interpreter<'sess> {
+        Interpreter {
+            state: state.clone(),
+        }
     }
 }
 
@@ -78,7 +80,6 @@ impl<'sess> Interpreter<'sess> {
         closure: Arc<EnvironmentFrame<'sess>>,
         parameters: &[Symbol],
         arguments: &[RV<'sess>],
-        state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
 
@@ -91,27 +92,28 @@ impl<'sess> Interpreter<'sess> {
             fn_env.define(parameters[i], arg.clone());
         }
 
-        self.execute_block(statements, Arc::new(fn_env), state)
+        self.execute_block(statements, Arc::new(fn_env))
     }
 
     fn execute_block(
         &mut self,
         statements: &Vec<Stmt>,
-        env_opt: Arc<EnvironmentFrame<'sess>>,
-        state: &ProgramState<'sess>,
+        env_override: Arc<EnvironmentFrame<'sess>>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        let previous = std::mem::replace(&mut self.env, env_opt);
+        let previous = std::mem::replace(&mut self.state.env, env_override);
 
         let mut ret = Ok(RV::Undefined);
 
+        let state = self.state.clone();
+
         for statement in statements {
-            ret = self.visit_stmt(statement, state);
+            ret = self.visit_stmt(statement, &state);
             if ret.is_err() {
                 break;
             }
         }
 
-        self.env = previous;
+        self.state.env = previous;
 
         ret
     }
@@ -125,20 +127,19 @@ impl<'sess> Interpreter<'sess> {
 
         match s {
             Stmt::Program { body: stmts, .. } => {
-                return self.execute_block(stmts, self.env.clone(), state);
+                return self.execute_block(stmts, self.state.env.clone());
             }
             Stmt::Expression { expr, .. } => {
                 return expr_engine.eval(expr, state);
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = expr_engine.eval(expr, state)?;
-                self.env.define(self.intern_string(&dst.name), evaluated);
+                self.state.env.define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
                     stmts,
-                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.env)))),
-                    state,
+                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.state.env)))),
                 );
             }
             Stmt::If {
@@ -159,15 +160,15 @@ impl<'sess> Interpreter<'sess> {
                 post,
                 ..
             } => {
-                // TODO(LYK-28)
-                /*while condition.is_none()
-                        || expr_engine.eval(condition.as_ref().unwrap())?.as_bool()
+                
+                while condition.is_none()
+                        || expr_engine.eval(condition.as_ref().unwrap(), state)?.as_bool()
                 {
-                    self.visit_stmt(body)?;
+                    self.visit_stmt(body, state)?;
                     if let Some(post_id) = post {
-                        self.visit_stmt(post_id)?;
+                        self.visit_stmt(post_id, state)?;
                     }
-                }*/
+                }
             }
             Stmt::Return { expr, .. } => {
                 if let Some(expr) = expr {
