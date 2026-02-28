@@ -204,9 +204,10 @@ impl<'sess> Interpreter<'sess> {
                 return Err(HaltReason::Return(RV::Undefined));
             }
             Stmt::Explain { expr, span } => {
-                let mut qe = QueryEngine::new(self.get_expr_engine());
                 if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let plan = &qe.explain(expr)?;
+                    let expr_engine = self.get_expr_engine();
+                    let mut query_engine = QueryEngine::new();
+                    let plan = &query_engine.explain(expr, &expr_engine)?;
                     if let Some(out) = &self.state.output {
                         out.write()
                             .unwrap()

@@ -3,6 +3,7 @@ use crate::global::GLOBAL_INTERNER;
 use crate::interpreter::{HaltReason, ProgramState};
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
+use crate::query::QueryEngine;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -395,29 +396,10 @@ impl<'sess> ExprEngine {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                // TODO(LYK-28)
-                /*let mut planner = Planner::new(self);
-                let plan = planner.build(e)?;
-                if let Some(out) = &self.output {
-                    out.write()
-                        .unwrap()
-                        .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-                }
-                let mut executor = PlanExecutor::new(self);
-                let result = executor.execute_plan(plan);
-
-                match result {
-                    Err(e) => Err(HaltReason::Error(e)),
-                    Ok(cursor) => {
-                        let intermediate = cursor
-                            .map(|row: ExecutionRow| row.as_value())
-                            .collect::<Vec<RV>>();
-                        Ok(RV::Array(RVArray::from_vec(intermediate)))
-                    }
-                }*/
-                Err(HaltReason::Error(
-                    InterpretError::NoProgramLoaded.into(),
-                ))
+                let expr_engine = StatefulExprEngine::new(state.clone());
+                let mut query_engine = QueryEngine::new();
+                let result = query_engine.execute(e, &expr_engine)?;
+                Ok(result)
             }
         }
     }
