@@ -75,7 +75,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                         let mut inter_fork = self.interpreter.clone();
 
                         let iter = cursor.filter_map(move |row: ExecutionRow| {
-                            let evaluated = inter_fork.eval_with_row(&expr, &row);
+                            let evaluated = inter_fork.eval_with_exec_row(&expr, &row);
                             if let Ok(value) = evaluated
                                 && value.as_bool()
                             {
@@ -110,7 +110,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = inter_fork.eval_with_row(expr, &downstream);
+                                let evaluated = inter_fork.eval_with_exec_row(expr, &downstream);
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => RV::Undefined,

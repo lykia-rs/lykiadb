@@ -2,18 +2,18 @@ use crate::error::ExecutionError;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::loops::{LoopStack, LoopState};
+use crate::interpreter::output::Output;
 use crate::value::RV;
 use lykiadb_common::memory::Shared;
-use pretty_assertions::assert_eq;
 use std::sync::Arc;
 
 pub mod environment;
 pub mod error;
 mod loops;
+pub mod output;
 
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::ast::visitor::VisitorMut;
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::parser::program::Program;
 use lykiadb_lang::types::Datatype;
@@ -49,6 +49,40 @@ pub struct Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
+    pub fn eval_with_exec_row(
+        &mut self,
+        e: &Expr,
+        exec_row: &ExecutionRow<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
+        self.set_exec_row(exec_row.clone());
+        let evaluated = self.visit_expr(e);
+        self.clear_exec_row();
+        evaluated
+    }
+
+    fn get_from_exec_row(&mut self, name: &str) -> Option<RV<'sess>> {
+        if let Some(exec_row) = &self.exec_row {
+            if let Some(val) = exec_row.get(&self.intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
+    }
+
+    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'sess>) {
+        self.exec_row = Some(exec_row);
+    }
+
+    pub fn clear_exec_row(&mut self) {
+        self.exec_row = None;
+    }
+
+    pub fn has_exec_row(&self) -> bool {
+        self.exec_row.is_some()
+    }
+}
+
+impl<'sess> Interpreter<'sess> {
     pub fn new(out: Option<Shared<Output<'sess>>>, with_stdlib: bool) -> Interpreter<'sess> {
         let root_env = Arc::new(EnvironmentFrame::new(None));
         if with_stdlib {
@@ -66,17 +100,6 @@ impl<'sess> Interpreter<'sess> {
             output: out,
             exec_row: None,
         }
-    }
-
-    pub fn eval_with_row(
-        &mut self,
-        e: &Expr,
-        exec_row: &ExecutionRow<'sess>,
-    ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.set_exec_row(exec_row.clone());
-        let evaluated = self.visit_expr(e);
-        self.clear_exec_row();
-        evaluated
     }
 
     pub fn eval(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
@@ -122,29 +145,8 @@ impl<'sess> Interpreter<'sess> {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    pub fn set_exec_row(&mut self, exec_row: ExecutionRow<'sess>) {
-        self.exec_row = Some(exec_row);
-    }
-
-    pub fn clear_exec_row(&mut self) {
-        self.exec_row = None;
-    }
-
-    pub fn has_exec_row(&self) -> bool {
-        self.exec_row.is_some()
-    }
-
     fn intern_string(&self, string: &str) -> Symbol {
         GLOBAL_INTERNER.intern(string)
-    }
-
-    fn get_from_row(&mut self, name: &str) -> Option<RV<'sess>> {
-        if let Some(exec_row) = &self.exec_row {
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Some(val.clone());
-            }
-        }
-        None
     }
 
     fn look_up_variable(
@@ -232,8 +234,8 @@ impl<'sess> Interpreter<'sess> {
     }
 }
 
-impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
-    fn visit_expr(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
+impl<'sess> Interpreter<'sess> {
+    pub fn visit_expr(&mut self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value),
             Expr::Variable { name, .. } => self.look_up_variable(&name.name, e),
@@ -294,7 +296,7 @@ impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
                 let eval = self.visit_expr(callee)?;
                 if let RV::Callable(callable) = eval {
                     if self.has_exec_row() && callable.is_agg() {
-                        let value = self.get_from_row(&e.sign());
+                        let value = self.get_from_exec_row(&e.sign());
 
                         if let Some(value) = value {
                             return Ok(value);
@@ -608,54 +610,7 @@ impl<'sess> VisitorMut<RV<'sess>, HaltReason<'sess>> for Interpreter<'sess> {
     }
 }
 
-#[derive(Clone)]
-pub struct Output<'v> {
-    out: Vec<RV<'v>>,
-}
-
-impl<'v> Default for Output<'v> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'v> Output<'v> {
-    pub fn new() -> Output<'v> {
-        Output { out: Vec::new() }
-    }
-
-    pub fn clear(&mut self) {
-        self.out.clear();
-    }
-
-    pub fn push(&mut self, rv: RV<'v>) {
-        self.out.push(rv);
-    }
-
-    pub fn expect(&mut self, rv: Vec<RV<'v>>) {
-        if rv.len() == 1 {
-            if let Some(first) = rv.first() {
-                assert_eq!(
-                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
-                    first.to_string()
-                );
-            }
-        }
-        assert_eq!(self.out, rv)
-    }
-    // TODO(vck): Remove this
-    pub fn expect_str(&mut self, rv: Vec<String>) {
-        assert_eq!(
-            self.out
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>(),
-            rv
-        )
-    }
-}
-
-impl<'v> Stateful<'v> for Output<'v> {
+impl<'v> Stateful<'v> for output::Output<'v> {
     fn call(
         &mut self,
         _interpreter: &mut Interpreter<'v>,

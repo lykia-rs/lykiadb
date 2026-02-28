@@ -1,7 +1,6 @@
 use crate::ast::Span;
 use crate::ast::expr::Expr;
 use crate::ast::stmt::Stmt;
-use crate::ast::visitor::VisitorMut;
 use crate::ast::{Identifier, Literal};
 use crate::{Locals, Scopes};
 use lykiadb_common::error::InputError;
@@ -85,7 +84,7 @@ impl<'a> Resolver<'a> {
     }
 }
 
-impl VisitorMut<(), ResolveError> for Resolver<'_> {
+impl Resolver<'_> {
     fn visit_expr(&mut self, e: &Expr) -> Result<(), ResolveError> {
         match e {
             Expr::Literal { value, span, .. } => match value {
