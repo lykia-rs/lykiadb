@@ -18,7 +18,7 @@ impl<'q> QueryEngine {
         }
     }
 
-    pub fn execute<'v>(&mut self, e: &Expr, exec_ctx: &'v ExecutionContext<'v>) -> Result<RV<'v>, HaltReason<'v>> {
+    pub fn execute<'v>(&mut self, e: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<RV<'v>, HaltReason<'v>> {
         let plan = self.planner.build(e, exec_ctx)?;
         let result = self.executor.execute_plan(plan, exec_ctx);
 

@@ -8,19 +8,19 @@ use crate::{
     value::{RV, callable::Aggregator, iterator::ExecutionRow},
 };
 
-pub(crate) struct Grouper<'v> {
+pub(crate) struct Grouper<'v, 'q> {
     group_exprs: Vec<IntermediateExpr<'v>>,
     aggregations: Vec<Aggregation<'v>>,
-    exec_ctx: &'v ExecutionContext<'v>,
+    exec_ctx: &'q ExecutionContext<'v>,
     groups: FxHashMap<Vec<RV<'v>>, Vec<Box<dyn Aggregator<'v>>>>,
 }
 
-impl<'v> Grouper<'v> {
+impl<'v, 'q> Grouper<'v, 'q> {
     pub fn new(
         group_exprs: Vec<IntermediateExpr<'v>>,
         aggregators: Vec<Aggregation<'v>>,
-        exec_ctx: &'v ExecutionContext<'v>,
-    ) -> Grouper<'v> {
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Grouper<'v, 'q> {
         Grouper {
             group_exprs,
             aggregations: aggregators,
