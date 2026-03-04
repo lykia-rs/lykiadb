@@ -56,7 +56,7 @@ impl<'sess> Interpreter<'sess> {
 
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
         self.state.program = Some(program.clone());
-        let out = self.visit_stmt(&program.get_root(), &self.state.clone());
+        let out = self.visit_stmt(&program.get_root());
         match out {
             Ok(val) => Ok(val),
             Err(err) => match err {
@@ -111,7 +111,7 @@ impl<'sess> Interpreter<'sess> {
         let state = self.state.clone();
 
         for statement in statements {
-            ret = self.visit_stmt(statement, &state);
+            ret = self.visit_stmt(statement);
             if ret.is_err() {
                 break;
             }
@@ -126,7 +126,7 @@ impl<'sess> Interpreter<'sess> {
         GLOBAL_INTERNER.intern(string)
     }
 
-    fn visit_stmt(&mut self, s: &Stmt, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'sess>, HaltReason<'sess>> {
         let expr_engine = ExprEngine;
 
         match s {
@@ -134,10 +134,10 @@ impl<'sess> Interpreter<'sess> {
                 return self.execute_block(stmts, self.state.env.clone());
             }
             Stmt::Expression { expr, .. } => {
-                return expr_engine.eval(expr, state);
+                return expr_engine.eval(expr, &self.state);
             }
             Stmt::Declaration { dst, expr, .. } => {
-                let evaluated = expr_engine.eval(expr, state)?;
+                let evaluated = expr_engine.eval(expr, &self.state)?;
                 self.state.env.define(self.intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
@@ -152,10 +152,10 @@ impl<'sess> Interpreter<'sess> {
                 r#else_body: r#else,
                 ..
             } => {
-                if expr_engine.eval(condition, state)?.as_bool() {
-                    self.visit_stmt(body, state)?;
+                if expr_engine.eval(condition, &self.state)?.as_bool() {
+                    self.visit_stmt(body)?;
                 } else if let Some(else_stmt) = r#else {
-                    self.visit_stmt(else_stmt, state)?;
+                    self.visit_stmt(else_stmt)?;
                 }
             }
             Stmt::Loop {
@@ -166,26 +166,26 @@ impl<'sess> Interpreter<'sess> {
             } => {
                 
                 while condition.is_none()
-                        || expr_engine.eval(condition.as_ref().unwrap(), state)?.as_bool()
+                        || expr_engine.eval(condition.as_ref().unwrap(), &self.state)?.as_bool()
                 {
-                    self.visit_stmt(body, state)?;
+                    self.visit_stmt(body)?;
                     if let Some(post_id) = post {
-                        self.visit_stmt(post_id, state)?;
+                        self.visit_stmt(post_id)?;
                     }
                 }
             }
             Stmt::Return { expr, .. } => {
                 if let Some(expr) = expr {
-                    let ret = expr_engine.eval(expr,state)?;
+                    let ret = expr_engine.eval(expr, &self.state)?;
                     return Err(HaltReason::Return(ret));
                 }
                 return Err(HaltReason::Return(RV::Undefined));
             }
             Stmt::Explain { expr, span } => {
                 if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let expr_engine = self.get_exec_ctx();
+                    let exec_ctx = self.get_exec_ctx();
                     let mut query_engine = QueryEngine::new();
-                    let plan = &query_engine.explain(expr, &expr_engine)?;
+                    let plan = &query_engine.explain(expr, &exec_ctx)?;
                     if let Some(out) = &self.state.output {
                         out.write()
                             .unwrap()
