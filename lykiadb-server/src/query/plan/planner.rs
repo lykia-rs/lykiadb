@@ -41,12 +41,12 @@ impl Display for InClause {
 
 pub struct Planner;
 
-impl<'v> Planner {
+impl<'v, 'q> Planner {
     pub fn new() -> Planner {
         Planner
     }
 
-    pub fn build(&mut self, expr: &Expr, exec_ctx: &'v ExecutionContext<'v>) -> Result<Plan<'v>, HaltReason<'v>> {
+    pub fn build(&mut self, expr: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<Plan<'v>, HaltReason<'v>> {
         match expr {
             Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query, exec_ctx)?);
@@ -56,7 +56,7 @@ impl<'v> Planner {
         }
     }
 
-    fn eval_constant(&mut self, expr: &Expr, exec_ctx: &'v ExecutionContext<'v>) -> Result<RV<'v>, HaltReason<'v>> {
+    fn eval_constant(&mut self, expr: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<RV<'v>, HaltReason<'v>> {
         exec_ctx.eval(expr)
     }
 
@@ -67,7 +67,7 @@ impl<'v> Planner {
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool, 
-        exec_ctx: &'v ExecutionContext<'v>
+        exec_ctx: &'q ExecutionContext<'v>
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, &exec_ctx)?;
@@ -97,7 +97,7 @@ impl<'v> Planner {
     }
 }
 
-impl<'v> Planner {
+impl<'v, 'q> Planner {
     /*
 
     The data flow we built using SqlSelectCore is as follows:
@@ -119,7 +119,7 @@ impl<'v> Planner {
     +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
-    fn build_select_core(&mut self, core: &SqlSelectCore, exec_ctx: &'v ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
+    fn build_select_core(&mut self, core: &SqlSelectCore, exec_ctx: &'q ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node = Node::Nothing;
 
         let mut core_scope = Scope::new();
@@ -213,7 +213,7 @@ impl<'v> Planner {
         Ok(node)
     }
 
-    pub fn build_select(&mut self, query: &SqlSelect, exec_ctx: &'v ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
+    pub fn build_select(&mut self, query: &SqlSelect, exec_ctx: &'q ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node<'v> = self.build_select_core(&query.core, exec_ctx)?;
         let mut root_scope = Scope::new();
 

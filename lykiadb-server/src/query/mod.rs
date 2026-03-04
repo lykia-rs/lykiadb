@@ -10,7 +10,7 @@ pub struct QueryEngine {
     executor: PlanExecutor,
 }
 
-impl QueryEngine {
+impl<'q> QueryEngine {
     pub fn new() -> Self {
         QueryEngine {
             planner: Planner::new(),
@@ -33,7 +33,7 @@ impl QueryEngine {
         }
     }
 
-    pub fn explain<'v>(&mut self, e: &Expr, exec_ctx: &'v ExecutionContext<'v>) -> Result<Plan<'v>, HaltReason<'v>> {
+    pub fn explain<'v>(&mut self, e: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<Plan<'v>, HaltReason<'v>> {
         self.planner.build(e, exec_ctx)
     }
 }

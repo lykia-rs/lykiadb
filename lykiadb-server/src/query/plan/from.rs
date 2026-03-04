@@ -11,11 +11,11 @@ use super::{Node, planner::Planner, scope::Scope};
 // - Subquery: A subquery that returns a set of data.
 // - Join: A join between two or more sources.
 // - Group: Cartesian product of two or more sources.
-pub fn build_from<'v>(
+pub fn build_from<'v, 'q>(
     planner: &mut Planner,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-    exec_ctx: &'v ExecutionContext<'v>,
+    exec_ctx: &'q ExecutionContext<'v>,
 ) -> Result<Node<'v>, HaltReason<'v>> {
     let mut scope = Scope::new();
 
