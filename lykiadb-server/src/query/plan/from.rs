@@ -1,4 +1,4 @@
-use crate::{error::ExecutionError, interpreter::{HaltReason, expr::StatefulExprEngine}, query::plan::planner::InClause};
+use crate::{error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause, session::context::ExecutionContext};
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
 
@@ -15,7 +15,7 @@ pub fn build_from<'v>(
     planner: &mut Planner,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-    expr_engine: &'v StatefulExprEngine<'v>,
+    exec_ctx: &'v ExecutionContext<'v>,
 ) -> Result<Node<'v>, HaltReason<'v>> {
     let mut scope = Scope::new();
 
@@ -46,7 +46,7 @@ pub fn build_from<'v>(
         // via the Select's alias.
         SqlFrom::Select { subquery, alias } => {
             let node = Node::Subquery {
-                source: Box::new(planner.build_select(subquery, expr_engine)?),
+                source: Box::new(planner.build_select(subquery, exec_ctx)?),
                 alias: alias.clone(),
             };
 
@@ -61,12 +61,12 @@ pub fn build_from<'v>(
         // Each source will be accessible by its alias, no merging takes place.
         SqlFrom::Group { values } => {
             let mut froms = values.iter();
-            let mut node = build_from(planner, froms.next().unwrap(), &mut scope, expr_engine)?;
+            let mut node = build_from(planner, froms.next().unwrap(), &mut scope, exec_ctx)?;
             for right in froms {
                 node = Node::Join {
                     left: Box::new(node),
                     join_type: SqlJoinType::Cross,
-                    right: Box::new(build_from(planner, right, &mut scope, expr_engine)?),
+                    right: Box::new(build_from(planner, right, &mut scope, exec_ctx)?),
                     constraint: None,
                 }
             }
@@ -83,13 +83,13 @@ pub fn build_from<'v>(
         } => {
             let constraint = constraint
                 .as_ref()
-                .map(|x| planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, expr_engine))
+                .map(|x| planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, exec_ctx))
                 .transpose()?;
 
             Ok(Node::Join {
-                left: Box::new(build_from(planner, left, &mut scope, expr_engine)?),
+                left: Box::new(build_from(planner, left, &mut scope, exec_ctx)?),
                 join_type: join_type.clone(),
-                right: Box::new(build_from(planner, right, &mut scope, expr_engine)?),
+                right: Box::new(build_from(planner, right, &mut scope, exec_ctx)?),
                 constraint: constraint.map(|x| x.0),
             })
         }

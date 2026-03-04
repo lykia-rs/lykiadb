@@ -4,6 +4,7 @@ use crate::interpreter::{HaltReason, ProgramState};
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::query::QueryEngine;
+use crate::session::context::ExecutionContext;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -16,33 +17,6 @@ use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
-use crate::value::iterator::ExecutionRow;
-
-#[derive(Clone)]
-pub struct StatefulExprEngine<'sess> {
-    state: ProgramState<'sess>,
-}
-
-impl<'sess> StatefulExprEngine<'sess> {
-    pub fn new(state: ProgramState<'sess>) -> Self {
-        Self { state }
-    }
-
-    pub fn eval(&self, e: &Expr) -> Result<RV<'sess>, HaltReason<'sess>> {
-        ExprEngine.eval(e, &self.state)
-    }
-
-    pub fn eval_with_exec_row(
-        &self,
-        e: &Expr,
-        exec_row: ExecutionRow<'sess>,
-    ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.state.exec_row.write().unwrap().replace(exec_row);
-        let evaluated = self.eval(e);
-        self.state.exec_row.write().unwrap().take();
-        evaluated
-    }
-}
 
 #[derive(Clone)]
 pub struct ExprEngine;
@@ -396,9 +370,9 @@ impl<'sess> ExprEngine {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let expr_engine = StatefulExprEngine::new(state.clone());
+                let exec_ctx = ExecutionContext::new(state.clone());
                 let mut query_engine = QueryEngine::new();
-                let result = query_engine.execute(e, &expr_engine)?;
+                let result = query_engine.execute(e, &exec_ctx)?;
                 Ok(result)
             }
         }
