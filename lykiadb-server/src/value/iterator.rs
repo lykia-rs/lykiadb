@@ -9,12 +9,12 @@ use crate::{
     value::{RV, object::RVObject},
 };
 
-pub type RVs<'v> = Box<dyn RVIterator<'v> + Send>;
+pub type RVs<'v, 'q> = Box<dyn RVIterator<'v, 'q> + Send>;
 
-pub trait RVIterator<'v>: Iterator<Item = ExecutionRow<'v>> + DynClone + 'v {}
+pub trait RVIterator<'v, 'q>: Iterator<Item = ExecutionRow<'v>> + DynClone + 'q {}
 
-dyn_clone::clone_trait_object!(<'v> RVIterator<'v>);
-impl<'v, I: Iterator<Item = ExecutionRow<'v>> + DynClone + 'v> RVIterator<'v> for I {}
+dyn_clone::clone_trait_object!(<'v, 'q> RVIterator<'v, 'q>);
+impl<'v, 'q, I: Iterator<Item = ExecutionRow<'v>> + DynClone + 'q> RVIterator<'v, 'q> for I {}
 
 #[derive(Debug, Clone)]
 pub struct ExecutionRow<'v> {

@@ -27,8 +27,6 @@ impl StmtParser {
         match_next!(self, cparser, &kw!(While), while_statement);
         match_next!(self, cparser, &kw!(For), for_statement);
         match_next!(self, cparser, &kw!(Loop), loop_statement);
-        match_next!(self, cparser, &kw!(Break), break_statement);
-        match_next!(self, cparser, &kw!(Continue), continue_statement);
         match_next!(self, cparser, &kw!(Return), return_statement);
         match_next!(self, cparser, &skw!(Explain), explain_statement);
         if cparser.peek_next_all_of(&[sym!(LeftBrace), Identifier { dollar: false }, sym!(Colon)])
@@ -194,18 +192,6 @@ impl StmtParser {
             body: statements.clone(),
             span: cparser.get_merged_span(&opening_brace.span, &closing_brace.span),
         }))
-    }
-
-    fn break_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
-        let tok = cparser.peek_bw(1);
-        cparser.expect(&sym!(Semicolon))?;
-        Ok(Box::new(Stmt::Break { span: tok.span }))
-    }
-
-    fn continue_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {
-        let tok = cparser.peek_bw(1);
-        cparser.expect(&sym!(Semicolon))?;
-        Ok(Box::new(Stmt::Continue { span: tok.span }))
     }
 
     fn explain_statement(&mut self, cparser: &mut Parser) -> ParseResult<Box<Stmt>> {

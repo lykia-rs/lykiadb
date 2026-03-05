@@ -1,44 +1,38 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
-    error::ExecutionError,
-    global::GLOBAL_INTERNER,
-    interpreter::{HaltReason, Interpreter},
-    query::{
+    error::ExecutionError, global::GLOBAL_INTERNER, interpreter::HaltReason, query::{
         exec::aggregation::Grouper,
         plan::{IntermediateExpr, Node, Plan},
-    },
-    value::{
+    }, session::context::ExecutionContext, value::{
         RV,
         iterator::{ExecutionRow, RVs},
-    },
+    }
 };
 
 pub mod aggregation;
 
-pub struct PlanExecutor<'a, 'v> {
-    interpreter: &'a mut Interpreter<'v>,
-}
+pub struct PlanExecutor;
 
-impl<'a, 'v> PlanExecutor<'a, 'v> {
-    pub fn new(interpreter: &'a mut Interpreter<'v>) -> PlanExecutor<'a, 'v> {
-        PlanExecutor { interpreter }
+impl<'v, 'q> PlanExecutor {
+    pub fn new() -> PlanExecutor{
+        PlanExecutor
     }
 
-    pub fn execute_plan(&mut self, plan: Plan<'v>) -> Result<RVs<'v>, ExecutionError> {
+    pub fn execute_plan(&mut self, plan: Plan<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
             Plan::Select(root) => {
                 // Execute scan plan
-                self.execute_node(root.clone())
+                self.execute_node(root.clone(), exec_ctx)
             }
         }
     }
 
-    pub fn execute_node(&mut self, node: Node<'v>) -> Result<RVs<'v>, ExecutionError> {
+    pub fn execute_node(&mut self, node: Node<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
         match node {
             Node::Subquery { source, alias } => {
-                let cursor = self.execute_node(*source)?;
+                let cursor = self.execute_node(*source, exec_ctx)?;
 
                 let iter = cursor.map(move |row: ExecutionRow| {
                     let mut upstream = ExecutionRow::new();
@@ -50,9 +44,9 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                 Ok(Box::from(iter))
             }
             Node::Offset { source, offset } => {
-                Ok(Box::from(self.execute_node(*source)?.skip(offset)))
+                Ok(Box::from(self.execute_node(*source, exec_ctx)?.skip(offset)))
             }
-            Node::Limit { source, limit } => Ok(Box::from(self.execute_node(*source)?.take(limit))),
+            Node::Limit { source, limit } => Ok(Box::from(self.execute_node(*source, exec_ctx)?.take(limit))),
             Node::Filter {
                 source,
                 predicate,
@@ -62,7 +56,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                     IntermediateExpr::Constant(ct) => {
                         // TODO(vck): Maybe we can deal with this at compile time?
                         if ct.as_bool() {
-                            let cursor = self.execute_node(*source)?;
+                            let cursor = self.execute_node(*source, exec_ctx)?;
                             Ok(cursor)
                         } else {
                             let empty_iter = Vec::<ExecutionRow<'v>>::new().into_iter();
@@ -70,12 +64,10 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                         }
                     }
                     IntermediateExpr::Expr { expr } => {
-                        let cursor = self.execute_node(*source)?;
-
-                        let mut inter_fork = self.interpreter.clone();
+                        let cursor = self.execute_node(*source, exec_ctx)?;
 
                         let iter = cursor.filter_map(move |row: ExecutionRow| {
-                            let evaluated = inter_fork.eval_with_exec_row(&expr, &row);
+                            let evaluated = &exec_ctx.eval_with_exec_row(&expr, row.clone());
                             if let Ok(value) = evaluated
                                 && value.as_bool()
                             {
@@ -90,9 +82,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                 }
             }
             Node::Projection { source, fields } => {
-                let cursor = self.execute_node(*source)?;
-
-                let mut inter_fork = self.interpreter.clone();
+                let cursor = self.execute_node(*source, exec_ctx)?;
 
                 let iter = cursor.map(move |downstream: ExecutionRow| {
                     let mut upstream = ExecutionRow::new();
@@ -110,17 +100,17 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = inter_fork.eval_with_exec_row(expr, &downstream);
+                                let evaluated = &exec_ctx.eval_with_exec_row(expr, downstream.clone());
                                 let value = match evaluated {
                                     Ok(v) => v,
-                                    Err(_) => RV::Undefined,
+                                    Err(_) => &RV::Undefined,
                                 };
                                 let key = alias
                                     .as_ref()
                                     .map(|a| a.to_string())
                                     .unwrap_or(expr.to_string());
 
-                                upstream.insert(GLOBAL_INTERNER.intern(&key), value);
+                                upstream.insert(GLOBAL_INTERNER.intern(&key), value.clone());
                             }
                         }
                     }
@@ -130,7 +120,7 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
 
                 Ok(Box::from(iter))
             }
-            Node::EvalScan { source, filter } => match self.interpreter.eval(&source.expr) {
+            Node::EvalScan { source, filter } => match exec_ctx.eval(&source.expr) {
                 Err(HaltReason::Error(err)) => Err(err),
                 Err(HaltReason::Return(value)) | Ok(value) => {
                     let alias = source.alias.to_owned();
@@ -163,11 +153,10 @@ impl<'a, 'v> PlanExecutor<'a, 'v> {
                 group_by,
                 aggregates,
             } => {
-                let inter_fork = self.interpreter.clone();
 
-                let mut grouper = Grouper::new(group_by, aggregates, inter_fork);
+                let mut grouper = Grouper::new(group_by, aggregates, exec_ctx);
 
-                let cursor = self.execute_node(*source)?;
+                let cursor = self.execute_node(*source, exec_ctx)?;
 
                 for row in cursor {
                     if let Err(e) = grouper.row(row) {
@@ -208,10 +197,10 @@ mod tests {
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
-    fn create_test_executor() -> PlanExecutor<'static, 'static> {
+    fn create_test_executor() -> (PlanExecutor, &'static ExecutionContext<'static>) {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-
-        PlanExecutor::new(interpreter)
+        let exec_ctx: &mut ExecutionContext<'_> = Box::leak(Box::new(interpreter.get_exec_ctx()));
+        (PlanExecutor::new(), exec_ctx)
     }
 
     fn create_test_identifier(name: &str) -> Identifier {
@@ -229,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_execute_plan_select() {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create a simple EvalScan node
         let eval_source = lykiadb_lang::ast::sql::SqlExpressionSource {
@@ -244,13 +233,13 @@ mod tests {
 
         let plan = Plan::Select(node);
 
-        let result = executor.execute_plan(plan);
+        let result = executor.execute_plan(plan, exec_ctx);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_execute_node_evalscan_with_array() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create an EvalScan node with an array literal
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -269,7 +258,7 @@ mod tests {
             filter: None,
         };
 
-        let result = executor.execute_node(node);
+        let result = executor.execute_node(node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -281,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_evalscan_with_single_value() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create an EvalScan node with a single value
         let value_expr = create_literal_expr(Literal::Str(Arc::new("test_value".to_string())));
@@ -296,7 +285,7 @@ mod tests {
             filter: None,
         };
 
-        let result = executor.execute_node(node);
+        let result = executor.execute_node(node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -312,7 +301,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_limit() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node (EvalScan with array)
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -339,7 +328,7 @@ mod tests {
             limit: 2,
         };
 
-        let result = executor.execute_node(limit_node);
+        let result = executor.execute_node(limit_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -354,7 +343,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_offset() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node (EvalScan with array)
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -381,7 +370,7 @@ mod tests {
             offset: 2,
         };
 
-        let result = executor.execute_node(offset_node);
+        let result = executor.execute_node(offset_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -397,7 +386,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_subquery() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node (EvalScan with array)
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -421,7 +410,7 @@ mod tests {
             alias: create_test_identifier("sub"),
         };
 
-        let result = executor.execute_node(subquery_node);
+        let result = executor.execute_node(subquery_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -457,7 +446,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_filter_constant_true() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -482,7 +471,7 @@ mod tests {
             subqueries: vec![],
         };
 
-        let result = executor.execute_node(filter_node);
+        let result = executor.execute_node(filter_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -494,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_filter_constant_false() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -519,7 +508,7 @@ mod tests {
             subqueries: vec![],
         };
 
-        let result = executor.execute_node(filter_node);
+        let result = executor.execute_node(filter_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -531,7 +520,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_projection_all() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -555,7 +544,7 @@ mod tests {
             fields: vec![SqlProjection::All { collection: None }],
         };
 
-        let result = executor.execute_node(projection_node);
+        let result = executor.execute_node(projection_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -567,7 +556,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_projection_expr() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr =
@@ -594,7 +583,7 @@ mod tests {
             }],
         };
 
-        let result = executor.execute_node(projection_node);
+        let result = executor.execute_node(projection_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -613,7 +602,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_evalscan_empty_array() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create an EvalScan node with an empty array
         let array_expr = create_literal_expr(Literal::Array(vec![]));
@@ -628,7 +617,7 @@ mod tests {
             filter: None,
         };
 
-        let result = executor.execute_node(node);
+        let result = executor.execute_node(node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -640,7 +629,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_limit_larger_than_available() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node with 2 items
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -664,7 +653,7 @@ mod tests {
             limit: 10,
         };
 
-        let result = executor.execute_node(limit_node);
+        let result = executor.execute_node(limit_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -677,7 +666,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_limit_zero() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -701,7 +690,7 @@ mod tests {
             limit: 0,
         };
 
-        let result = executor.execute_node(limit_node);
+        let result = executor.execute_node(limit_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -713,7 +702,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_offset_larger_than_available() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node with 2 items
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -737,7 +726,7 @@ mod tests {
             offset: 10,
         };
 
-        let result = executor.execute_node(offset_node);
+        let result = executor.execute_node(offset_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -750,7 +739,7 @@ mod tests {
 
     #[test]
     fn test_execute_node_projection_all_with_collection() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node
         let array_expr =
@@ -774,7 +763,7 @@ mod tests {
             }],
         };
 
-        let result = executor.execute_node(projection_node);
+        let result = executor.execute_node(projection_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -786,7 +775,7 @@ mod tests {
 
     #[test]
     fn test_complex_plan_execution() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create a complex plan with multiple nodes: EvalScan -> Filter -> Limit
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -823,7 +812,7 @@ mod tests {
         // Create the final plan
         let plan = Plan::Select(limit_node);
 
-        let result = executor.execute_plan(plan);
+        let result = executor.execute_plan(plan, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -836,7 +825,7 @@ mod tests {
 
     #[test]
     fn test_complex_plan_with_offset_and_projection() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create a plan with: EvalScan -> Offset -> Projection -> Subquery
         let array_expr = create_literal_expr(Literal::Array(vec![
@@ -873,7 +862,7 @@ mod tests {
             alias: create_test_identifier("wrapped"),
         };
 
-        let result = executor.execute_node(subquery_node);
+        let result = executor.execute_node(subquery_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -892,7 +881,7 @@ mod tests {
 
     #[test]
     fn test_evalscan_with_different_value_types() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Test with boolean value
         let bool_expr = create_literal_expr(Literal::Bool(true));
@@ -907,7 +896,7 @@ mod tests {
             filter: None,
         };
 
-        let result = executor.execute_node(node);
+        let result = executor.execute_node(node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;
@@ -923,7 +912,7 @@ mod tests {
 
     #[test]
     fn test_projection_expr_with_undefined_result() -> Result<(), ExecutionError> {
-        let mut executor = create_test_executor();
+        let (mut executor, exec_ctx) = create_test_executor();
 
         // Create source node with one item
         let array_expr =
@@ -948,7 +937,7 @@ mod tests {
             }],
         };
 
-        let result = executor.execute_node(projection_node);
+        let result = executor.execute_node(projection_node, exec_ctx);
         assert!(result.is_ok());
 
         let iterator = result?;

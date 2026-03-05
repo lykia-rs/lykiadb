@@ -2,28 +2,29 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     global::GLOBAL_INTERNER,
-    interpreter::{HaltReason, Interpreter},
+    interpreter::HaltReason,
     query::plan::{Aggregation, IntermediateExpr},
+    session::context::ExecutionContext,
     value::{RV, callable::Aggregator, iterator::ExecutionRow},
 };
 
-pub(crate) struct Grouper<'v> {
+pub(crate) struct Grouper<'v, 'q> {
     group_exprs: Vec<IntermediateExpr<'v>>,
     aggregations: Vec<Aggregation<'v>>,
-    interpreter: Interpreter<'v>,
+    exec_ctx: &'q ExecutionContext<'v>,
     groups: FxHashMap<Vec<RV<'v>>, Vec<Box<dyn Aggregator<'v>>>>,
 }
 
-impl<'v> Grouper<'v> {
+impl<'v, 'q> Grouper<'v, 'q> {
     pub fn new(
         group_exprs: Vec<IntermediateExpr<'v>>,
         aggregators: Vec<Aggregation<'v>>,
-        interpreter: Interpreter<'v>,
-    ) -> Grouper<'v> {
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Grouper<'v, 'q> {
         Grouper {
             group_exprs,
             aggregations: aggregators,
-            interpreter,
+            exec_ctx,
             groups: FxHashMap::default(),
         }
     }
@@ -35,7 +36,7 @@ impl<'v> Grouper<'v> {
             bucket.push(match group_expr {
                 IntermediateExpr::Constant(val) => val.clone(),
                 IntermediateExpr::Expr { expr } => {
-                    self.interpreter.eval_with_exec_row(expr, &row)?
+                    self.exec_ctx.eval_with_exec_row(expr, row.clone())?
                 }
             });
         }
@@ -53,7 +54,7 @@ impl<'v> Grouper<'v> {
         let bucket_value = self.groups.get_mut(&bucket).unwrap();
 
         for (idx, agg) in self.aggregations.iter().enumerate() {
-            let val = self.interpreter.eval_with_exec_row(&agg.args[0], &row)?;
+            let val = self.exec_ctx.eval_with_exec_row(&agg.args[0], row.clone())?;
 
             bucket_value[idx].as_mut().row(&val);
         }

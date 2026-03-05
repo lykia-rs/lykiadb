@@ -23,20 +23,6 @@ pub enum Stmt {
         #[derivative(Hash = "ignore")]
         span: Span,
     },
-    #[serde(rename = "Stmt::Break")]
-    Break {
-        #[serde(skip)]
-        #[derivative(PartialEq = "ignore")]
-        #[derivative(Hash = "ignore")]
-        span: Span,
-    },
-    #[serde(rename = "Stmt::Continue")]
-    Continue {
-        #[serde(skip)]
-        #[derivative(PartialEq = "ignore")]
-        #[derivative(Hash = "ignore")]
-        span: Span,
-    },
     #[serde(rename = "Stmt::Block")]
     Block {
         body: Vec<Stmt>,
@@ -97,8 +83,6 @@ impl Spanned for Stmt {
         match self {
             Stmt::Program { span, .. } => *span,
             Stmt::Expression { span, .. } => *span,
-            Stmt::Break { span, .. } => *span,
-            Stmt::Continue { span, .. } => *span,
             Stmt::Block { span, .. } => *span,
             Stmt::Declaration { span, .. } => *span,
             Stmt::If { span, .. } => *span,

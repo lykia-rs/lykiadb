@@ -196,7 +196,6 @@ impl Resolver<'_> {
                 self.resolve_stmts(stmts)?;
                 self.end_scope();
             }
-            Stmt::Break { .. } | Stmt::Continue { .. } => (),
             Stmt::Expression { expr, .. } => {
                 self.resolve_expr(expr)?;
             }
