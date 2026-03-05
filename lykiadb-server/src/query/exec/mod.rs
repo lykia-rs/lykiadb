@@ -5,10 +5,8 @@ use crate::{
     global::GLOBAL_INTERNER,
     interpreter::HaltReason,
     query::{
-        exec::aggregation::Grouper,
-        plan::{IntermediateExpr, Node, Plan},
+        context::QueryExecutionContext, exec::aggregation::Grouper, plan::{IntermediateExpr, Node, Plan}
     },
-    session::context::ExecutionContext,
     value::{
         RV,
         iterator::{ExecutionRow, RVs},
@@ -33,7 +31,7 @@ impl<'v, 'q> PlanExecutor {
     pub fn execute_plan(
         &mut self,
         plan: Plan<'v>,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<RVs<'v, 'q>, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
@@ -47,7 +45,7 @@ impl<'v, 'q> PlanExecutor {
     pub fn execute_node(
         &mut self,
         node: Node<'v>,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<RVs<'v, 'q>, ExecutionError> {
         match node {
             Node::Subquery { source, alias } => {
@@ -218,9 +216,9 @@ mod tests {
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
-    fn create_test_executor() -> (PlanExecutor, &'static ExecutionContext<'static>) {
+    fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-        let exec_ctx: &mut ExecutionContext<'_> = Box::leak(Box::new(interpreter.get_exec_ctx()));
+        let exec_ctx: &mut QueryExecutionContext<'_> = Box::leak(Box::new(interpreter.get_query_exec_ctx()));
         (PlanExecutor::new(), exec_ctx)
     }
 

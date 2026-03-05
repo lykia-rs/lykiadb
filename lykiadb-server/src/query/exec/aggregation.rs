@@ -3,15 +3,14 @@ use rustc_hash::FxHashMap;
 use crate::{
     global::GLOBAL_INTERNER,
     interpreter::HaltReason,
-    query::plan::{Aggregation, IntermediateExpr},
-    session::context::ExecutionContext,
+    query::{context::QueryExecutionContext, plan::{Aggregation, IntermediateExpr}},
     value::{RV, callable::Aggregator, iterator::ExecutionRow},
 };
 
 pub(crate) struct Grouper<'v, 'q> {
     group_exprs: Vec<IntermediateExpr<'v>>,
     aggregations: Vec<Aggregation<'v>>,
-    exec_ctx: &'q ExecutionContext<'v>,
+    exec_ctx: &'q QueryExecutionContext<'v>,
     groups: FxHashMap<Vec<RV<'v>>, Vec<Box<dyn Aggregator<'v>>>>,
 }
 
@@ -19,7 +18,7 @@ impl<'v, 'q> Grouper<'v, 'q> {
     pub fn new(
         group_exprs: Vec<IntermediateExpr<'v>>,
         aggregators: Vec<Aggregation<'v>>,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Grouper<'v, 'q> {
         Grouper {
             group_exprs,

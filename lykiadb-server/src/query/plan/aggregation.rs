@@ -3,8 +3,7 @@ use std::collections::HashSet;
 use crate::{
     error::ExecutionError,
     interpreter::HaltReason,
-    query::plan::{Aggregation, planner::InClause},
-    session::context::ExecutionContext,
+    query::{context::QueryExecutionContext, plan::{Aggregation, planner::InClause}},
     value::{RV, callable::Function},
 };
 
@@ -23,7 +22,7 @@ use super::error::PlannerError;
 /// aggregates in the projection and the having clause.
 pub fn collect_aggregates<'v>(
     core: &SqlSelectCore,
-    exec_ctx: &ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
@@ -61,7 +60,7 @@ pub fn collect_aggregates<'v>(
 pub fn prevent_aggregates_in<'v>(
     expr: &Expr,
     in_clause: InClause,
-    exec_ctx: &ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let _ = exec_ctx;
     let mut collector = AggregationCollector::preventing(exec_ctx, in_clause);
@@ -76,14 +75,14 @@ pub fn prevent_aggregates_in<'v>(
 struct AggregationCollector<'a, 'v> {
     in_call: u32,
     accumulator: Vec<Aggregation<'v>>,
-    exec_ctx: &'a ExecutionContext<'v>,
+    exec_ctx: &'a QueryExecutionContext<'v>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
 impl<'a, 'v> AggregationCollector<'a, 'v> {
     fn preventing(
-        exec_ctx: &'a ExecutionContext<'v>,
+        exec_ctx: &'a QueryExecutionContext<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
@@ -96,7 +95,7 @@ impl<'a, 'v> AggregationCollector<'a, 'v> {
     }
 
     fn collecting(
-        exec_ctx: &'a ExecutionContext<'v>,
+        exec_ctx: &'a QueryExecutionContext<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
@@ -195,7 +194,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &interpreter.get_exec_ctx())?;
+        let result = collect_aggregates(&core, &interpreter.get_query_exec_ctx())?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -228,7 +227,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &interpreter.get_exec_ctx())?;
+        let result = collect_aggregates(&core, &interpreter.get_query_exec_ctx())?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -261,7 +260,7 @@ mod tests {
             id: 0,
         };
 
-        let engine = interpreter.get_exec_ctx();
+        let engine = interpreter.get_query_exec_ctx();
 
         let mut collector = AggregationCollector::collecting(&engine, InClause::Projection);
 
@@ -291,7 +290,7 @@ mod tests {
             id: 0,
         };
 
-        let engine = interpreter.get_exec_ctx();
+        let engine = interpreter.get_query_exec_ctx();
 
         let mut collector = AggregationCollector::collecting(&engine, InClause::Projection);
 

@@ -1,6 +1,5 @@
 use crate::{
-    error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause,
-    session::context::ExecutionContext,
+    error::ExecutionError, interpreter::HaltReason, query::{context::QueryExecutionContext, plan::planner::InClause},
 };
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
@@ -18,7 +17,7 @@ pub fn build_from<'v>(
     planner: &mut Planner,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-    exec_ctx: &ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Node<'v>, HaltReason<'v>> {
     let mut scope = Scope::new();
 

@@ -4,7 +4,7 @@ use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
 use crate::interpreter::{HaltReason, ProgramState};
 use crate::query::QueryEngine;
-use crate::session::context::ExecutionContext;
+use crate::query::context::QueryExecutionContext;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -376,7 +376,7 @@ impl<'sess> ExprEngine {
             | Expr::Insert { .. }
             | Expr::Update { .. }
             | Expr::Delete { .. } => {
-                let exec_ctx = ExecutionContext::new(state.clone());
+                let exec_ctx = QueryExecutionContext::new(state.clone());
                 let mut query_engine = QueryEngine::new();
                 let result = query_engine.execute(e, &exec_ctx)?;
                 Ok(result)

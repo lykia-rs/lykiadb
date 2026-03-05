@@ -4,7 +4,7 @@ use crate::interpreter::error::InterpretError;
 use crate::interpreter::expr::ExprEngine;
 use crate::interpreter::output::Output;
 use crate::query::QueryEngine;
-use crate::session::context::ExecutionContext;
+use crate::query::context::QueryExecutionContext;
 use crate::session::state::ProgramState;
 use crate::value::RV;
 use lykiadb_common::memory::Shared;
@@ -62,8 +62,8 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    pub fn get_exec_ctx(&self) -> ExecutionContext<'sess> {
-        ExecutionContext::new(self.state.clone())
+    pub fn get_query_exec_ctx(&self) -> QueryExecutionContext<'sess> {
+        QueryExecutionContext::new(self.state.clone())
     }
 
     pub fn from_state(state: &ProgramState<'sess>) -> Interpreter<'sess> {
@@ -174,7 +174,7 @@ impl<'sess> Interpreter<'sess> {
             }
             Stmt::Explain { expr, span } => {
                 if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let exec_ctx = self.get_exec_ctx();
+                    let exec_ctx = self.get_query_exec_ctx();
                     let mut query_engine = QueryEngine::new();
                     let plan = &query_engine.explain(expr, &exec_ctx)?;
                     if let Some(out) = &self.state.output {

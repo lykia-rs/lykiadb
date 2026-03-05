@@ -3,8 +3,7 @@ use std::fmt::Display;
 use crate::{
     error::ExecutionError,
     interpreter::HaltReason,
-    query::plan::{aggregation::prevent_aggregates_in, error::PlannerError},
-    session::context::ExecutionContext,
+    query::{context::QueryExecutionContext, plan::{aggregation::prevent_aggregates_in, error::PlannerError}},
     value::RV,
 };
 
@@ -59,7 +58,7 @@ impl<'v, 'q> Planner {
     pub fn build(
         &mut self,
         expr: &Expr,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<Plan<'v>, HaltReason<'v>> {
         match expr {
             Expr::Select { query, .. } => {
@@ -73,7 +72,7 @@ impl<'v, 'q> Planner {
     fn eval_constant(
         &mut self,
         expr: &Expr,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<RV<'v>, HaltReason<'v>> {
         exec_ctx.eval(expr)
     }
@@ -85,7 +84,7 @@ impl<'v, 'q> Planner {
         scope: &mut Scope,
         allow_subqueries: bool,
         allow_aggregates: bool,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, exec_ctx)?;
@@ -140,7 +139,7 @@ impl<'v, 'q> Planner {
     fn build_select_core(
         &mut self,
         core: &SqlSelectCore,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node = Node::Nothing;
 
@@ -257,7 +256,7 @@ impl<'v, 'q> Planner {
     pub fn build_select(
         &mut self,
         query: &SqlSelect,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node<'v> = self.build_select_core(&query.core, exec_ctx)?;
         let mut root_scope = Scope::new();
@@ -312,12 +311,11 @@ impl<'v, 'q> Planner {
 mod tests {
     use crate::{
         interpreter::tests::create_test_interpreter,
-        query::plan::{
+        query::{context::QueryExecutionContext, plan::{
             IntermediateExpr,
             planner::{InClause, Planner},
             scope::tests::create_test_scope,
-        },
-        session::context::ExecutionContext,
+        }},
     };
     use lykiadb_common::extract;
     use lykiadb_lang::ast::{
@@ -332,10 +330,10 @@ mod tests {
     };
 
     /// Helper function to create a test planner instance
-    fn create_test_planner() -> (Planner, &'static ExecutionContext<'static>) {
+    fn create_test_planner() -> (Planner, &'static QueryExecutionContext<'static>) {
         let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
-        let exec_ctx: &'static ExecutionContext<'static> =
-            Box::leak(Box::new(interpreter.get_exec_ctx()));
+        let exec_ctx: &'static QueryExecutionContext<'static> =
+            Box::leak(Box::new(interpreter.get_query_exec_ctx()));
         (Planner, exec_ctx)
     }
 

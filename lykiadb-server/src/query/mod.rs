@@ -3,19 +3,14 @@ use lykiadb_lang::ast::expr::Expr;
 use crate::{
     interpreter::HaltReason,
     query::{
-        exec::PlanExecutor,
-        plan::{Plan, planner::Planner},
+        context::QueryExecutionContext, exec::PlanExecutor, plan::{Plan, planner::Planner}
     },
-    session::context::ExecutionContext,
-    value::{
-        RV,
-        array::RVArray,
-        iterator::ExecutionRow,
-    },
+    value::{RV, array::RVArray, iterator::ExecutionRow},
 };
 
 pub mod exec;
 pub mod plan;
+pub mod context;
 
 pub struct QueryEngine {
     planner: Planner,
@@ -39,7 +34,7 @@ impl<'q> QueryEngine {
     pub fn execute<'v>(
         &mut self,
         e: &Expr,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<RV<'v>, HaltReason<'v>> {
         let plan = self.planner.build(e, exec_ctx)?;
         let result = self.executor.execute_plan(plan, exec_ctx);
@@ -58,7 +53,7 @@ impl<'q> QueryEngine {
     pub fn explain<'v>(
         &mut self,
         e: &Expr,
-        exec_ctx: &'q ExecutionContext<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<Plan<'v>, HaltReason<'v>> {
         self.planner.build(e, exec_ctx)
     }

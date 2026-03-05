@@ -5,11 +5,11 @@ use crate::{interpreter::expr::ExprEngine, session::state::ProgramState};
 use lykiadb_lang::ast::expr::Expr;
 
 #[derive(Clone)]
-pub struct ExecutionContext<'sess> {
+pub struct QueryExecutionContext<'sess> {
     state: ProgramState<'sess>,
 }
 
-impl<'sess> ExecutionContext<'sess> {
+impl<'sess> QueryExecutionContext<'sess> {
     pub fn new(state: ProgramState<'sess>) -> Self {
         Self { state }
     }
