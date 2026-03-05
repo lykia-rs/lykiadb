@@ -3,7 +3,10 @@ use std::fmt::Display;
 use crate::{
     error::ExecutionError,
     interpreter::HaltReason,
-    query::{context::QueryExecutionContext, plan::{aggregation::prevent_aggregates_in, error::PlannerError}},
+    query::{
+        context::QueryExecutionContext,
+        plan::{aggregation::prevent_aggregates_in, error::PlannerError},
+    },
     value::RV,
 };
 
@@ -311,11 +314,14 @@ impl<'v, 'q> Planner {
 mod tests {
     use crate::{
         interpreter::tests::create_test_interpreter,
-        query::{context::QueryExecutionContext, plan::{
-            IntermediateExpr,
-            planner::{InClause, Planner},
-            scope::tests::create_test_scope,
-        }},
+        query::{
+            context::QueryExecutionContext,
+            plan::{
+                IntermediateExpr,
+                planner::{InClause, Planner},
+                scope::tests::create_test_scope,
+            },
+        },
     };
     use lykiadb_common::extract;
     use lykiadb_lang::ast::{

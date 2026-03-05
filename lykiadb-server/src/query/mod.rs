@@ -3,14 +3,16 @@ use lykiadb_lang::ast::expr::Expr;
 use crate::{
     interpreter::HaltReason,
     query::{
-        context::QueryExecutionContext, exec::PlanExecutor, plan::{Plan, planner::Planner}
+        context::QueryExecutionContext,
+        exec::PlanExecutor,
+        plan::{Plan, planner::Planner},
     },
     value::{RV, array::RVArray, iterator::ExecutionRow},
 };
 
+pub mod context;
 pub mod exec;
 pub mod plan;
-pub mod context;
 
 pub struct QueryEngine {
     planner: Planner,

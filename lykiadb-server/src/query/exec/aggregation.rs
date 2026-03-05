@@ -3,7 +3,10 @@ use rustc_hash::FxHashMap;
 use crate::{
     global::GLOBAL_INTERNER,
     interpreter::HaltReason,
-    query::{context::QueryExecutionContext, plan::{Aggregation, IntermediateExpr}},
+    query::{
+        context::QueryExecutionContext,
+        plan::{Aggregation, IntermediateExpr},
+    },
     value::{RV, callable::Aggregator, iterator::ExecutionRow},
 };
 

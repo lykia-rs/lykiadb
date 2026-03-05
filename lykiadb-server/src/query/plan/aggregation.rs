@@ -3,7 +3,10 @@ use std::collections::HashSet;
 use crate::{
     error::ExecutionError,
     interpreter::HaltReason,
-    query::{context::QueryExecutionContext, plan::{Aggregation, planner::InClause}},
+    query::{
+        context::QueryExecutionContext,
+        plan::{Aggregation, planner::InClause},
+    },
     value::{RV, callable::Function},
 };
 

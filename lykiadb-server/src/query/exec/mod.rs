@@ -5,7 +5,9 @@ use crate::{
     global::GLOBAL_INTERNER,
     interpreter::HaltReason,
     query::{
-        context::QueryExecutionContext, exec::aggregation::Grouper, plan::{IntermediateExpr, Node, Plan}
+        context::QueryExecutionContext,
+        exec::aggregation::Grouper,
+        plan::{IntermediateExpr, Node, Plan},
     },
     value::{
         RV,
@@ -218,7 +220,8 @@ mod tests {
 
     fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {
         let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-        let exec_ctx: &mut QueryExecutionContext<'_> = Box::leak(Box::new(interpreter.get_query_exec_ctx()));
+        let exec_ctx: &mut QueryExecutionContext<'_> =
+            Box::leak(Box::new(interpreter.get_query_exec_ctx()));
         (PlanExecutor::new(), exec_ctx)
     }
 
