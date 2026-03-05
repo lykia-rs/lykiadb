@@ -45,6 +45,12 @@ impl Display for InClause {
 
 pub struct Planner;
 
+impl<'v, 'q> Default for Planner {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'v, 'q> Planner {
     pub fn new() -> Planner {
         Planner
@@ -82,7 +88,7 @@ impl<'v, 'q> Planner {
         exec_ctx: &'q ExecutionContext<'v>,
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
-            prevent_aggregates_in(expr, in_clause, &exec_ctx)?;
+            prevent_aggregates_in(expr, in_clause, exec_ctx)?;
         }
 
         let mut reducer: SqlExprReducer = SqlExprReducer::new(

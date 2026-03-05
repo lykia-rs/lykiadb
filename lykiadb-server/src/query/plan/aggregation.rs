@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_having_clause() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_nested_aggregates_not_allowed() {
-        let mut interpreter = create_test_interpreter(None);
+        let interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let interpreter = create_test_interpreter(None);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {

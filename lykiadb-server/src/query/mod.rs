@@ -10,7 +10,7 @@ use crate::{
     value::{
         RV,
         array::RVArray,
-        iterator::{ExecutionRow, RVIterator, RVs},
+        iterator::ExecutionRow,
     },
 };
 
@@ -20,6 +20,12 @@ pub mod plan;
 pub struct QueryEngine {
     planner: Planner,
     executor: PlanExecutor,
+}
+
+impl<'q> Default for QueryEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<'q> QueryEngine {

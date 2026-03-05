@@ -19,6 +19,12 @@ pub mod aggregation;
 
 pub struct PlanExecutor;
 
+impl<'v, 'q> Default for PlanExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'v, 'q> PlanExecutor {
     pub fn new() -> PlanExecutor {
         PlanExecutor
