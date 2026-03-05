@@ -19,7 +19,7 @@ impl<'v, 'q> PlanExecutor {
         PlanExecutor
     }
 
-    pub fn execute_plan(&mut self, plan: Plan<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v>, ExecutionError> {
+    pub fn execute_plan(&mut self, plan: Plan<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
             Plan::Select(root) => {
@@ -29,7 +29,7 @@ impl<'v, 'q> PlanExecutor {
         }
     }
 
-    pub fn execute_node(&mut self, node: Node<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v>, ExecutionError> {
+    pub fn execute_node(&mut self, node: Node<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
         match node {
             Node::Subquery { source, alias } => {
                 let cursor = self.execute_node(*source, exec_ctx)?;
