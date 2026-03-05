@@ -63,7 +63,7 @@ impl<'v> RVCallable<'v> {
                 closure,
                 body,
                 ..
-            } => interpreter.user_fn_call(body, closure.clone(), parameters, arguments),
+            } => interpreter.call_udf(body, closure.clone(), parameters, arguments),
         }
     }
 }

@@ -19,7 +19,7 @@ pub mod output;
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::parser::program::Program;
 
-use crate::global::GLOBAL_INTERNER;
+use crate::global::{GLOBAL_INTERNER, intern_string};
 use crate::libs::stdlib::stdlib;
 use crate::value::callable::Stateful;
 use interb::Symbol;
@@ -78,7 +78,7 @@ impl<'sess> Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
-    pub fn user_fn_call(
+    pub fn call_udf(
         &mut self,
         statements: &Vec<Stmt>,
         closure: Arc<EnvironmentFrame<'sess>>,
@@ -108,8 +108,6 @@ impl<'sess> Interpreter<'sess> {
 
         let mut ret = Ok(RV::Undefined);
 
-        let state = self.state.clone();
-
         for statement in statements {
             ret = self.visit_stmt(statement);
             if ret.is_err() {
@@ -120,10 +118,6 @@ impl<'sess> Interpreter<'sess> {
         self.state.env = previous;
 
         ret
-    }
-
-    fn intern_string(&self, string: &str) -> Symbol {
-        GLOBAL_INTERNER.intern(string)
     }
 
     fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'sess>, HaltReason<'sess>> {
@@ -138,7 +132,7 @@ impl<'sess> Interpreter<'sess> {
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = expr_engine.eval(expr, &self.state)?;
-                self.state.env.define(self.intern_string(&dst.name), evaluated);
+                self.state.env.define(intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
