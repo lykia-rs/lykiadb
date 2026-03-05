@@ -1,8 +1,4 @@
-for (var $i = 0; $i < 100; $i = $i + 1) {
-
-    if ($i <= 50) {
-        continue;
-    }
+for (var $i = 0; $i < 50; $i = $i + 1) {
 
     var $square = {
         "p": $i * $i,
