@@ -1,8 +1,8 @@
 use crate::error::ExecutionError;
 use crate::global::intern_string;
-use crate::interpreter::{HaltReason, ProgramState};
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
+use crate::interpreter::{HaltReason, ProgramState};
 use crate::query::QueryEngine;
 use crate::session::context::ExecutionContext;
 use crate::value::RV;
@@ -12,8 +12,8 @@ use crate::value::eval::eval_binary;
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
+use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
@@ -21,7 +21,11 @@ use rustc_hash::FxHashMap;
 pub struct ExprEngine;
 
 impl<'sess> ExprEngine {
-    pub fn eval(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    pub fn eval(
+        &self,
+        e: &Expr,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.visit_expr(e, state)
     }
 }
@@ -56,7 +60,6 @@ impl<'sess> ExprEngine {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-
     fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
         if let Some(exec_row) = &*state.exec_row.read().unwrap() {
             if let Some(val) = exec_row.get(&intern_string(name)) {
@@ -90,7 +93,11 @@ impl<'sess> ExprEngine {
         }
     }
 
-    fn literal_to_rv(&self, literal: &Literal, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn literal_to_rv(
+        &self,
+        literal: &Literal,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Double(*n),
@@ -113,7 +120,11 @@ impl<'sess> ExprEngine {
         })
     }
 
-    fn visit_expr(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn visit_expr(
+        &self,
+        e: &Expr,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value, state),
             Expr::Variable { name, .. } => self.lookup_variable(&name.name, e, state),
@@ -163,7 +174,8 @@ impl<'sess> ExprEngine {
                         evaluated.clone(),
                     )
                 } else {
-                    state.root_env
+                    state
+                        .root_env
                         .assign(&dst.name, dst_symbol, evaluated.clone())
                 }?;
                 Ok(evaluated)

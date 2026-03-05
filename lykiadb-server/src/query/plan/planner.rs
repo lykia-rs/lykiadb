@@ -1,7 +1,11 @@
 use std::fmt::Display;
 
 use crate::{
-    error::ExecutionError, interpreter::HaltReason, query::plan::{aggregation::prevent_aggregates_in, error::PlannerError}, session::context::ExecutionContext, value::RV
+    error::ExecutionError,
+    interpreter::HaltReason,
+    query::plan::{aggregation::prevent_aggregates_in, error::PlannerError},
+    session::context::ExecutionContext,
+    value::RV,
 };
 
 use lykiadb_lang::ast::{
@@ -46,7 +50,11 @@ impl<'v, 'q> Planner {
         Planner
     }
 
-    pub fn build(&mut self, expr: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<Plan<'v>, HaltReason<'v>> {
+    pub fn build(
+        &mut self,
+        expr: &Expr,
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Result<Plan<'v>, HaltReason<'v>> {
         match expr {
             Expr::Select { query, .. } => {
                 let plan = Plan::Select(self.build_select(query, exec_ctx)?);
@@ -56,7 +64,11 @@ impl<'v, 'q> Planner {
         }
     }
 
-    fn eval_constant(&mut self, expr: &Expr, exec_ctx: &'q ExecutionContext<'v>) -> Result<RV<'v>, HaltReason<'v>> {
+    fn eval_constant(
+        &mut self,
+        expr: &Expr,
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Result<RV<'v>, HaltReason<'v>> {
         exec_ctx.eval(expr)
     }
 
@@ -66,8 +78,8 @@ impl<'v, 'q> Planner {
         in_clause: InClause,
         scope: &mut Scope,
         allow_subqueries: bool,
-        allow_aggregates: bool, 
-        exec_ctx: &'q ExecutionContext<'v>
+        allow_aggregates: bool,
+        exec_ctx: &'q ExecutionContext<'v>,
     ) -> Result<(IntermediateExpr<'v>, Vec<Node<'v>>), HaltReason<'v>> {
         if !allow_aggregates {
             prevent_aggregates_in(expr, in_clause, &exec_ctx)?;
@@ -119,7 +131,11 @@ impl<'v, 'q> Planner {
     +---------------+   (union)   +---------------+   (except)    +---------------+
 
     */
-    fn build_select_core(&mut self, core: &SqlSelectCore, exec_ctx: &'q ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
+    fn build_select_core(
+        &mut self,
+        core: &SqlSelectCore,
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node = Node::Nothing;
 
         let mut core_scope = Scope::new();
@@ -149,8 +165,14 @@ impl<'v, 'q> Planner {
         let group_by = if let Some(group_by) = &core.group_by {
             let mut keys = vec![];
             for key in group_by {
-                let (expr, _) =
-                    self.build_expr(key, InClause::GroupBy, &mut core_scope, false, false, exec_ctx)?;
+                let (expr, _) = self.build_expr(
+                    key,
+                    InClause::GroupBy,
+                    &mut core_scope,
+                    false,
+                    false,
+                    exec_ctx,
+                )?;
                 keys.push(expr);
             }
             keys
@@ -176,8 +198,14 @@ impl<'v, 'q> Planner {
             };
 
             if let Some(having) = &core.having {
-                let (expr, subqueries): (IntermediateExpr, Vec<Node>) =
-                    self.build_expr(having, InClause::Having, &mut core_scope, true, true, exec_ctx)?;
+                let (expr, subqueries): (IntermediateExpr, Vec<Node>) = self.build_expr(
+                    having,
+                    InClause::Having,
+                    &mut core_scope,
+                    true,
+                    true,
+                    exec_ctx,
+                )?;
                 node = Node::Filter {
                     source: Box::new(node),
                     predicate: expr,
@@ -194,7 +222,14 @@ impl<'v, 'q> Planner {
         if core.projection.as_slice() != [SqlProjection::All { collection: None }] {
             for projection in &core.projection {
                 if let SqlProjection::Expr { expr, .. } = projection {
-                    self.build_expr(expr, InClause::Projection, &mut core_scope, false, true, exec_ctx)?;
+                    self.build_expr(
+                        expr,
+                        InClause::Projection,
+                        &mut core_scope,
+                        false,
+                        true,
+                        exec_ctx,
+                    )?;
                 }
             }
             node = Node::Projection {
@@ -213,7 +248,11 @@ impl<'v, 'q> Planner {
         Ok(node)
     }
 
-    pub fn build_select(&mut self, query: &SqlSelect, exec_ctx: &'q ExecutionContext<'v>) -> Result<Node<'v>, HaltReason<'v>> {
+    pub fn build_select(
+        &mut self,
+        query: &SqlSelect,
+        exec_ctx: &'q ExecutionContext<'v>,
+    ) -> Result<Node<'v>, HaltReason<'v>> {
         let mut node: Node<'v> = self.build_select_core(&query.core, exec_ctx)?;
         let mut root_scope = Scope::new();
 
@@ -221,8 +260,14 @@ impl<'v, 'q> Planner {
             let mut order_key = vec![];
 
             for key in order_by {
-                let (expr, _) =
-                    self.build_expr(&key.expr, InClause::OrderBy, &mut root_scope, false, true, exec_ctx)?;
+                let (expr, _) = self.build_expr(
+                    &key.expr,
+                    InClause::OrderBy,
+                    &mut root_scope,
+                    false,
+                    true,
+                    exec_ctx,
+                )?;
                 order_key.push((expr, key.ordering.clone()));
             }
 
@@ -265,7 +310,8 @@ mod tests {
             IntermediateExpr,
             planner::{InClause, Planner},
             scope::tests::create_test_scope,
-        }, session::context::ExecutionContext,
+        },
+        session::context::ExecutionContext,
     };
     use lykiadb_common::extract;
     use lykiadb_lang::ast::{
@@ -282,7 +328,8 @@ mod tests {
     /// Helper function to create a test planner instance
     fn create_test_planner() -> (Planner, &'static ExecutionContext<'static>) {
         let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
-        let exec_ctx: &'static ExecutionContext<'static> = Box::leak(Box::new(interpreter.get_exec_ctx()));
+        let exec_ctx: &'static ExecutionContext<'static> =
+            Box::leak(Box::new(interpreter.get_exec_ctx()));
         (Planner, exec_ctx)
     }
 
@@ -320,7 +367,14 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_string_expr("hello");
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -342,7 +396,14 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_field_path_expr("user", vec!["name"]);
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -353,7 +414,14 @@ mod tests {
         let mut scope = create_test_scope();
         let expr = create_call_expr("upper", vec![create_string_expr("hello")]);
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -427,7 +495,14 @@ mod tests {
             id: 0,
         };
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -476,7 +551,14 @@ mod tests {
         // Create an aggregate function call like AVG(*)
         let expr = create_call_expr("avg", vec![create_identifier_expr("*")]);
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }
@@ -512,7 +594,14 @@ mod tests {
             )],
         );
 
-        let result = planner.build_expr(&expr, InClause::Projection, &mut scope, false, true, exec_ctx);
+        let result = planner.build_expr(
+            &expr,
+            InClause::Projection,
+            &mut scope,
+            false,
+            true,
+            exec_ctx,
+        );
 
         assert_build_expr_result!(result, &expr, 0);
     }

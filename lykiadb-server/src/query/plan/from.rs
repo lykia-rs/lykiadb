@@ -1,4 +1,7 @@
-use crate::{error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause, session::context::ExecutionContext};
+use crate::{
+    error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause,
+    session::context::ExecutionContext,
+};
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
 
@@ -83,7 +86,9 @@ pub fn build_from<'v, 'q>(
         } => {
             let constraint = constraint
                 .as_ref()
-                .map(|x| planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, exec_ctx))
+                .map(|x| {
+                    planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, exec_ctx)
+                })
                 .transpose()?;
 
             Ok(Node::Join {

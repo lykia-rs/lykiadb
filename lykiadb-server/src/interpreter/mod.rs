@@ -46,11 +46,7 @@ impl<'sess> Interpreter<'sess> {
             }
         }
         Interpreter {
-            state: ProgramState::new(
-                root_env.clone(), 
-                root_env.clone(), 
-                None,
-                 out),
+            state: ProgramState::new(root_env.clone(), root_env.clone(), None, out),
         }
     }
 
@@ -69,7 +65,7 @@ impl<'sess> Interpreter<'sess> {
     pub fn get_exec_ctx(&self) -> ExecutionContext<'sess> {
         ExecutionContext::new(self.state.clone())
     }
-    
+
     pub fn from_state(state: &ProgramState<'sess>) -> Interpreter<'sess> {
         Interpreter {
             state: state.clone(),
@@ -158,9 +154,10 @@ impl<'sess> Interpreter<'sess> {
                 post,
                 ..
             } => {
-                
                 while condition.is_none()
-                        || expr_engine.eval(condition.as_ref().unwrap(), &self.state)?.as_bool()
+                    || expr_engine
+                        .eval(condition.as_ref().unwrap(), &self.state)?
+                        .as_bool()
                 {
                     self.visit_stmt(body)?;
                     if let Some(post_id) = post {

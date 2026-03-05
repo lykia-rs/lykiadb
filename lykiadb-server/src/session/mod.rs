@@ -11,8 +11,8 @@ use crate::value::RV;
 use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
 
-pub mod state;
 pub mod context;
+pub mod state;
 
 pub struct Session<'v> {
     mode: SessionMode,

@@ -17,7 +17,12 @@ pub struct ProgramState<'sess> {
 }
 
 impl<'sess> ProgramState<'sess> {
-    pub fn new(env: Arc<EnvironmentFrame<'sess>>, root_env: Arc<EnvironmentFrame<'sess>>, program: Option<Arc<Program>>, output: Option<Shared<Output<'sess>>>) -> Self {
+    pub fn new(
+        env: Arc<EnvironmentFrame<'sess>>,
+        root_env: Arc<EnvironmentFrame<'sess>>,
+        program: Option<Arc<Program>>,
+        output: Option<Shared<Output<'sess>>>,
+    ) -> Self {
         Self {
             env,
             root_env,

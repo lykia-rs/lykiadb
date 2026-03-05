@@ -54,7 +54,9 @@ impl<'v, 'q> Grouper<'v, 'q> {
         let bucket_value = self.groups.get_mut(&bucket).unwrap();
 
         for (idx, agg) in self.aggregations.iter().enumerate() {
-            let val = self.exec_ctx.eval_with_exec_row(&agg.args[0], row.clone())?;
+            let val = self
+                .exec_ctx
+                .eval_with_exec_row(&agg.args[0], row.clone())?;
 
             bucket_value[idx].as_mut().row(&val);
         }

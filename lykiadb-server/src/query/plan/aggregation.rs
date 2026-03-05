@@ -1,7 +1,11 @@
 use std::collections::HashSet;
 
 use crate::{
-    error::ExecutionError, interpreter::HaltReason, query::plan::{Aggregation, planner::InClause}, session::context::ExecutionContext, value::{RV, callable::Function}
+    error::ExecutionError,
+    interpreter::HaltReason,
+    query::plan::{Aggregation, planner::InClause},
+    session::context::ExecutionContext,
+    value::{RV, callable::Function},
 };
 
 use lykiadb_lang::ast::{
@@ -256,11 +260,10 @@ mod tests {
             span: Span::default(),
             id: 0,
         };
-        
+
         let engine = interpreter.get_exec_ctx();
 
-        let mut collector =
-            AggregationCollector::collecting(&engine, InClause::Projection);
+        let mut collector = AggregationCollector::collecting(&engine, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -290,8 +293,7 @@ mod tests {
 
         let engine = interpreter.get_exec_ctx();
 
-        let mut collector =
-            AggregationCollector::collecting(&engine, InClause::Projection);
+        let mut collector = AggregationCollector::collecting(&engine, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
