@@ -68,7 +68,10 @@ impl<'v> Connection<'v> {
     pub fn new(stream: TcpStream) -> Self {
         Connection {
             conn: TcpConnection::new(stream),
-            session: Session::new(SessionMode::File, Interpreter::from_state(&ProgramState::new(None, true))),
+            session: Session::new(
+                SessionMode::File,
+                Interpreter::from_state(&ProgramState::new(None, true)),
+            ),
         }
     }
 

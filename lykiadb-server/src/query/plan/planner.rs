@@ -313,14 +313,15 @@ impl<'v, 'q> Planner {
 #[cfg(test)]
 mod tests {
     use crate::{
-        execution::state::ProgramState, query::{
+        execution::state::ProgramState,
+        query::{
             context::QueryExecutionContext,
             plan::{
                 IntermediateExpr,
                 planner::{InClause, Planner},
                 scope::tests::create_test_scope,
             },
-        }
+        },
     };
     use lykiadb_common::extract;
     use lykiadb_lang::ast::{
@@ -338,8 +339,7 @@ mod tests {
     fn create_test_planner() -> (Planner, &'static QueryExecutionContext<'static>) {
         let state = ProgramState::new(None, true);
         let ctx = QueryExecutionContext::new(state);
-        let exec_ctx: &'static QueryExecutionContext<'static> =
-            Box::leak(Box::new(ctx));
+        let exec_ctx: &'static QueryExecutionContext<'static> = Box::leak(Box::new(ctx));
         (Planner, exec_ctx)
     }
 

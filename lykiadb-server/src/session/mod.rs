@@ -1,5 +1,6 @@
 use crate::{
-    execution::{error::ExecutionError, state::ProgramState}, interpreter::{Interpreter, output::Output}
+    execution::{error::ExecutionError, state::ProgramState},
+    interpreter::{Interpreter, output::Output},
 };
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
@@ -60,8 +61,9 @@ impl<'v> SessionTester<'v> {
 
         SessionTester {
             out: out.clone(),
-            session: Session::new(SessionMode::File, Interpreter::from_state(
-                &ProgramState::new(Some(out), true))
+            session: Session::new(
+                SessionMode::File,
+                Interpreter::from_state(&ProgramState::new(Some(out), true)),
             ),
         }
     }

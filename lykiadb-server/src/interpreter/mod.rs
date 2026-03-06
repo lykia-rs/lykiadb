@@ -1,7 +1,7 @@
-use crate::execution::error::ExecutionError;
 use crate::execution::dispatching::dispatch_query_explain;
-use crate::execution::state::ProgramState;
+use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
+use crate::execution::state::ProgramState;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::expr::ExprEngine;
 use crate::value::RV;
@@ -12,10 +12,10 @@ pub mod error;
 pub mod expr;
 pub mod output;
 
-use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::parser::program::Program;
 use crate::value::callable::Stateful;
 use interb::Symbol;
+use lykiadb_lang::ast::stmt::Stmt;
+use lykiadb_lang::parser::program::Program;
 
 #[derive(PartialEq, Debug)]
 pub enum HaltReason<'v> {
@@ -147,7 +147,9 @@ impl<'sess> Interpreter<'sess> {
                 }
                 return Err(HaltReason::Return(RV::Undefined));
             }
-            Stmt::Explain { expr, span } => return dispatch_query_explain(expr, span, self.state.clone()),
+            Stmt::Explain { expr, span } => {
+                return dispatch_query_explain(expr, span, self.state.clone());
+            }
         }
         Ok(RV::Undefined)
     }
@@ -170,7 +172,10 @@ impl<'v> Stateful<'v> for output::Output<'v> {
 pub mod tests {
     use lykiadb_common::memory::Shared;
 
-    use crate::{execution::state::ProgramState, interpreter::{Interpreter, output::Output}};
+    use crate::{
+        execution::state::ProgramState,
+        interpreter::{Interpreter, output::Output},
+    };
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
         let state = ProgramState::new(out, true);

@@ -1,10 +1,10 @@
 use crate::execution::dispatching::dispatch_query_execute;
 use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
+use crate::execution::state::ProgramState;
 use crate::interpreter::HaltReason;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
-use crate::execution::state::ProgramState;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -375,7 +375,7 @@ impl<'sess> ExprEngine {
             Expr::Select { span, .. }
             | Expr::Insert { span, .. }
             | Expr::Update { span, .. }
-            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, state.clone())
+            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, state.clone()),
         }
     }
 }
