@@ -1,4 +1,8 @@
-use crate::{error::ExecutionError, interpreter::HaltReason, query::plan::planner::InClause, session::context::ExecutionContext};
+use crate::{
+    execution::error::ExecutionError,
+    interpreter::HaltReason,
+    query::{context::QueryExecutionContext, plan::planner::InClause},
+};
 
 use lykiadb_lang::ast::sql::{SqlFrom, SqlJoinType, SqlSource};
 
@@ -11,11 +15,11 @@ use super::{Node, planner::Planner, scope::Scope};
 // - Subquery: A subquery that returns a set of data.
 // - Join: A join between two or more sources.
 // - Group: Cartesian product of two or more sources.
-pub fn build_from<'v, 'q>(
+pub fn build_from<'v>(
     planner: &mut Planner,
     from: &SqlFrom,
     parent_scope: &mut Scope,
-    exec_ctx: &'q ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Node<'v>, HaltReason<'v>> {
     let mut scope = Scope::new();
 
@@ -83,7 +87,9 @@ pub fn build_from<'v, 'q>(
         } => {
             let constraint = constraint
                 .as_ref()
-                .map(|x| planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, exec_ctx))
+                .map(|x| {
+                    planner.build_expr(x, InClause::JoinOn, &mut scope, false, false, exec_ctx)
+                })
                 .transpose()?;
 
             Ok(Node::Join {

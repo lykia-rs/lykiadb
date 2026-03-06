@@ -1,14 +1,10 @@
-use crate::error::ExecutionError;
+use crate::execution::dispatching::dispatch_query_explain;
+use crate::execution::error::ExecutionError;
+use crate::execution::global::intern_string;
+use crate::execution::state::ProgramState;
 use crate::interpreter::environment::EnvironmentFrame;
-use crate::interpreter::error::InterpretError;
 use crate::interpreter::expr::ExprEngine;
-use crate::interpreter::output::Output;
-use crate::query::QueryEngine;
-use crate::session::context::ExecutionContext;
-use crate::session::state::ProgramState;
 use crate::value::RV;
-use lykiadb_common::memory::Shared;
-use lykiadb_lang::ast::expr::Expr;
 use std::sync::Arc;
 
 pub mod environment;
@@ -16,13 +12,10 @@ pub mod error;
 pub mod expr;
 pub mod output;
 
-use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::parser::program::Program;
-
-use crate::global::GLOBAL_INTERNER;
-use crate::libs::stdlib::stdlib;
 use crate::value::callable::Stateful;
 use interb::Symbol;
+use lykiadb_lang::ast::stmt::Stmt;
+use lykiadb_lang::parser::program::Program;
 
 #[derive(PartialEq, Debug)]
 pub enum HaltReason<'v> {
@@ -36,24 +29,6 @@ pub struct Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
-    pub fn new(out: Option<Shared<Output<'sess>>>, with_stdlib: bool) -> Interpreter<'sess> {
-        let root_env = Arc::new(EnvironmentFrame::new(None));
-        if with_stdlib {
-            let native_fns = stdlib(out.clone());
-
-            for (name, value) in native_fns {
-                root_env.define(GLOBAL_INTERNER.intern(&name), value);
-            }
-        }
-        Interpreter {
-            state: ProgramState::new(
-                root_env.clone(), 
-                root_env.clone(), 
-                None,
-                 out),
-        }
-    }
-
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
         self.state.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -66,10 +41,6 @@ impl<'sess> Interpreter<'sess> {
         }
     }
 
-    pub fn get_exec_ctx(&self) -> ExecutionContext<'sess> {
-        ExecutionContext::new(self.state.clone())
-    }
-    
     pub fn from_state(state: &ProgramState<'sess>) -> Interpreter<'sess> {
         Interpreter {
             state: state.clone(),
@@ -78,7 +49,7 @@ impl<'sess> Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
-    pub fn user_fn_call(
+    pub fn call_udf(
         &mut self,
         statements: &Vec<Stmt>,
         closure: Arc<EnvironmentFrame<'sess>>,
@@ -108,8 +79,6 @@ impl<'sess> Interpreter<'sess> {
 
         let mut ret = Ok(RV::Undefined);
 
-        let state = self.state.clone();
-
         for statement in statements {
             ret = self.visit_stmt(statement);
             if ret.is_err() {
@@ -120,10 +89,6 @@ impl<'sess> Interpreter<'sess> {
         self.state.env = previous;
 
         ret
-    }
-
-    fn intern_string(&self, string: &str) -> Symbol {
-        GLOBAL_INTERNER.intern(string)
     }
 
     fn visit_stmt(&mut self, s: &Stmt) -> Result<RV<'sess>, HaltReason<'sess>> {
@@ -138,7 +103,7 @@ impl<'sess> Interpreter<'sess> {
             }
             Stmt::Declaration { dst, expr, .. } => {
                 let evaluated = expr_engine.eval(expr, &self.state)?;
-                self.state.env.define(self.intern_string(&dst.name), evaluated);
+                self.state.env.define(intern_string(&dst.name), evaluated);
             }
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
@@ -164,9 +129,10 @@ impl<'sess> Interpreter<'sess> {
                 post,
                 ..
             } => {
-                
                 while condition.is_none()
-                        || expr_engine.eval(condition.as_ref().unwrap(), &self.state)?.as_bool()
+                    || expr_engine
+                        .eval(condition.as_ref().unwrap(), &self.state)?
+                        .as_bool()
                 {
                     self.visit_stmt(body)?;
                     if let Some(post_id) = post {
@@ -182,21 +148,7 @@ impl<'sess> Interpreter<'sess> {
                 return Err(HaltReason::Return(RV::Undefined));
             }
             Stmt::Explain { expr, span } => {
-                if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let exec_ctx = self.get_exec_ctx();
-                    let mut query_engine = QueryEngine::new();
-                    let plan = &query_engine.explain(expr, &exec_ctx)?;
-                    if let Some(out) = &self.state.output {
-                        out.write()
-                            .unwrap()
-                            .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-                    }
-                    return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
-                } else {
-                    return Err(HaltReason::Error(
-                        InterpretError::InvalidExplainTarget { span: *span }.into(),
-                    ));
-                }
+                return dispatch_query_explain(expr, span, self.state.clone());
             }
         }
         Ok(RV::Undefined)
@@ -220,9 +172,13 @@ impl<'v> Stateful<'v> for output::Output<'v> {
 pub mod tests {
     use lykiadb_common::memory::Shared;
 
-    use crate::interpreter::{Interpreter, Output};
+    use crate::{
+        execution::state::ProgramState,
+        interpreter::{Interpreter, output::Output},
+    };
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
-        Interpreter::new(out, true)
+        let state = ProgramState::new(out, true);
+        Interpreter::from_state(&state)
     }
 }

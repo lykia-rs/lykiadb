@@ -1,7 +1,13 @@
 use std::collections::HashSet;
 
 use crate::{
-    error::ExecutionError, interpreter::HaltReason, query::plan::{Aggregation, planner::InClause}, session::context::ExecutionContext, value::{RV, callable::Function}
+    execution::error::ExecutionError,
+    interpreter::HaltReason,
+    query::{
+        context::QueryExecutionContext,
+        plan::{Aggregation, planner::InClause},
+    },
+    value::{RV, callable::Function},
 };
 
 use lykiadb_lang::ast::{
@@ -19,7 +25,7 @@ use super::error::PlannerError;
 /// aggregates in the projection and the having clause.
 pub fn collect_aggregates<'v>(
     core: &SqlSelectCore,
-    exec_ctx: &ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let mut aggregates: HashSet<Aggregation> = HashSet::new();
 
@@ -57,7 +63,7 @@ pub fn collect_aggregates<'v>(
 pub fn prevent_aggregates_in<'v>(
     expr: &Expr,
     in_clause: InClause,
-    exec_ctx: &ExecutionContext<'v>,
+    exec_ctx: &QueryExecutionContext<'v>,
 ) -> Result<Vec<Aggregation<'v>>, HaltReason<'v>> {
     let _ = exec_ctx;
     let mut collector = AggregationCollector::preventing(exec_ctx, in_clause);
@@ -72,14 +78,14 @@ pub fn prevent_aggregates_in<'v>(
 struct AggregationCollector<'a, 'v> {
     in_call: u32,
     accumulator: Vec<Aggregation<'v>>,
-    exec_ctx: &'a ExecutionContext<'v>,
+    exec_ctx: &'a QueryExecutionContext<'v>,
     is_preventing: bool,
     in_clause: InClause,
 }
 
 impl<'a, 'v> AggregationCollector<'a, 'v> {
     fn preventing(
-        exec_ctx: &'a ExecutionContext<'v>,
+        exec_ctx: &'a QueryExecutionContext<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
@@ -92,7 +98,7 @@ impl<'a, 'v> AggregationCollector<'a, 'v> {
     }
 
     fn collecting(
-        exec_ctx: &'a ExecutionContext<'v>,
+        exec_ctx: &'a QueryExecutionContext<'v>,
         in_clause: InClause,
     ) -> AggregationCollector<'a, 'v> {
         AggregationCollector {
@@ -153,7 +159,7 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 
 #[cfg(test)]
 mod tests {
-    use crate::interpreter::tests::create_test_interpreter;
+    use crate::execution::state::ProgramState;
 
     use super::*;
     use lykiadb_lang::ast::{
@@ -164,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let state = ProgramState::new(None, true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -191,7 +197,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &interpreter.get_exec_ctx())?;
+        let result = collect_aggregates(&core, &QueryExecutionContext::new(state))?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -200,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_having_clause() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let state = ProgramState::new(None, true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -224,7 +230,7 @@ mod tests {
             span: Span::default(),
         };
 
-        let result = collect_aggregates(&core, &interpreter.get_exec_ctx())?;
+        let result = collect_aggregates(&core, &QueryExecutionContext::new(state))?;
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "avg");
 
@@ -233,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_nested_aggregates_not_allowed() {
-        let mut interpreter = create_test_interpreter(None);
+        let state = ProgramState::new(None, true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -256,11 +262,10 @@ mod tests {
             span: Span::default(),
             id: 0,
         };
-        
-        let engine = interpreter.get_exec_ctx();
 
-        let mut collector =
-            AggregationCollector::collecting(&engine, InClause::Projection);
+        let ctx = QueryExecutionContext::new(state);
+
+        let mut collector = AggregationCollector::collecting(&ctx, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
@@ -275,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(None);
+        let state = ProgramState::new(None, true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -288,10 +293,9 @@ mod tests {
             id: 0,
         };
 
-        let engine = interpreter.get_exec_ctx();
+        let ctx = QueryExecutionContext::new(state);
 
-        let mut collector =
-            AggregationCollector::collecting(&engine, InClause::Projection);
+        let mut collector = AggregationCollector::collecting(&ctx, InClause::Projection);
 
         let mut visitor = ExprVisitor::<Aggregation, HaltReason>::new(&mut collector);
 
