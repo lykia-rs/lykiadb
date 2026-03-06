@@ -1,10 +1,11 @@
 use crate::error::ExecutionError;
 use crate::global::intern_string;
+use crate::interpreter::HaltReason;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
-use crate::interpreter::{HaltReason, ProgramState};
 use crate::query::QueryEngine;
 use crate::query::context::QueryExecutionContext;
+use crate::session::state::ProgramState;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
