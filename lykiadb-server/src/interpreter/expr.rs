@@ -375,7 +375,7 @@ impl<'sess> ExprEngine {
             Expr::Select { span, .. }
             | Expr::Insert { span, .. }
             | Expr::Update { span, .. }
-            | Expr::Delete { span, .. } => dispatch_query_execute(&e, span, state.clone())
+            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, state.clone())
         }
     }
 }

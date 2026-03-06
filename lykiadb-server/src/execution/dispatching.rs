@@ -20,11 +20,11 @@ pub fn dispatch_query_explain<'sess>(expr: &Expr, span: &Span, state: ProgramSta
                 .unwrap()
                 .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
         }
-        return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
+        Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))))
     } else {
-        return Err(HaltReason::Error(
+        Err(HaltReason::Error(
             InterpretError::InvalidExplainTarget { span: *span }.into(),
-        ));
+        ))
     }
 }
 

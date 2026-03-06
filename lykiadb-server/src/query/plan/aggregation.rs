@@ -159,7 +159,7 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 
 #[cfg(test)]
 mod tests {
-    use crate::{interpreter::tests::create_test_interpreter, execution::state::ProgramState};
+    use crate::execution::state::ProgramState;
 
     use super::*;
     use lykiadb_lang::ast::{

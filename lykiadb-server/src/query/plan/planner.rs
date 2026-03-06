@@ -313,7 +313,7 @@ impl<'v, 'q> Planner {
 #[cfg(test)]
 mod tests {
     use crate::{
-        execution::state::ProgramState, interpreter::tests::create_test_interpreter, query::{
+        execution::state::ProgramState, query::{
             context::QueryExecutionContext,
             plan::{
                 IntermediateExpr,
