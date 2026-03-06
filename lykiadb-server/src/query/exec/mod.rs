@@ -1,8 +1,8 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
-    error::ExecutionError,
-    global::GLOBAL_INTERNER,
+    execution::error::ExecutionError,
+    execution::global::GLOBAL_INTERNER,
     interpreter::HaltReason,
     query::{
         context::QueryExecutionContext,
@@ -212,16 +212,16 @@ impl<'v, 'q> PlanExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::tests::create_test_interpreter;
+    use crate::execution::state::ProgramState;
     use crate::query::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
     fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {
-        let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
+        let state = ProgramState::new(None, true);
         let exec_ctx: &mut QueryExecutionContext<'_> =
-            Box::leak(Box::new(interpreter.get_query_exec_ctx()));
+            Box::leak(Box::new(QueryExecutionContext::new(state)));
         (PlanExecutor::new(), exec_ctx)
     }
 

@@ -38,7 +38,7 @@ lykia_module!(bench, {
 mod tests {
     use lykiadb_common::extract;
 
-    use crate::{error::ExecutionError, interpreter::tests::create_test_interpreter};
+    use crate::{execution::error::ExecutionError, interpreter::tests::create_test_interpreter};
 
     use super::*;
 

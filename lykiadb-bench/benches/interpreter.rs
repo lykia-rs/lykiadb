@@ -6,8 +6,7 @@ use std::{
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lykiadb_server::{
-    interpreter::Interpreter,
-    session::{Session, SessionMode},
+    execution::state::ProgramState, interpreter::Interpreter, session::{Session, SessionMode}
 };
 
 fn session(filename: &str) {
@@ -16,7 +15,7 @@ fn session(filename: &str) {
     BufReader::new(file)
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
-    let mut session = Session::new(SessionMode::File, Interpreter::new(None, true));
+    let mut session = Session::new(SessionMode::File, Interpreter::from_state(&ProgramState::new(None, true)));
     session.interpret(&content).unwrap();
 }
 

@@ -1,7 +1,6 @@
 use super::RV;
 use crate::{
-    interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame},
-    session::state::ProgramState,
+    execution::state::ProgramState, interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame}
 };
 use interb::Symbol;
 use lykiadb_common::memory::Shared;

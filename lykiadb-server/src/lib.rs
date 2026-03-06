@@ -1,5 +1,4 @@
-pub mod error;
-pub mod global;
+pub mod execution;
 pub mod interpreter;
 pub mod libs;
 pub mod query;

@@ -1,14 +1,10 @@
-use crate::error::ExecutionError;
+use crate::execution::error::ExecutionError;
+use crate::execution::dispatching::dispatch_explain;
+use crate::execution::state::ProgramState;
+use crate::execution::global::intern_string;
 use crate::interpreter::environment::EnvironmentFrame;
-use crate::interpreter::error::InterpretError;
 use crate::interpreter::expr::ExprEngine;
-use crate::interpreter::output::Output;
-use crate::query::QueryEngine;
-use crate::query::context::QueryExecutionContext;
-use crate::session::state::ProgramState;
 use crate::value::RV;
-use lykiadb_common::memory::Shared;
-use lykiadb_lang::ast::expr::Expr;
 use std::sync::Arc;
 
 pub mod environment;
@@ -18,9 +14,6 @@ pub mod output;
 
 use lykiadb_lang::ast::stmt::Stmt;
 use lykiadb_lang::parser::program::Program;
-
-use crate::global::{GLOBAL_INTERNER, intern_string};
-use crate::libs::stdlib::stdlib;
 use crate::value::callable::Stateful;
 use interb::Symbol;
 
@@ -36,20 +29,6 @@ pub struct Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
-    pub fn new(out: Option<Shared<Output<'sess>>>, with_stdlib: bool) -> Interpreter<'sess> {
-        let root_env = Arc::new(EnvironmentFrame::new(None));
-        if with_stdlib {
-            let native_fns = stdlib(out.clone());
-
-            for (name, value) in native_fns {
-                root_env.define(GLOBAL_INTERNER.intern(&name), value);
-            }
-        }
-        Interpreter {
-            state: ProgramState::new(root_env.clone(), root_env.clone(), None, out),
-        }
-    }
-
     pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
         self.state.program = Some(program.clone());
         let out = self.visit_stmt(&program.get_root());
@@ -60,10 +39,6 @@ impl<'sess> Interpreter<'sess> {
                 HaltReason::Error(interpret_err) => Err(interpret_err),
             },
         }
-    }
-
-    pub fn get_query_exec_ctx(&self) -> QueryExecutionContext<'sess> {
-        QueryExecutionContext::new(self.state.clone())
     }
 
     pub fn from_state(state: &ProgramState<'sess>) -> Interpreter<'sess> {
@@ -172,23 +147,7 @@ impl<'sess> Interpreter<'sess> {
                 }
                 return Err(HaltReason::Return(RV::Undefined));
             }
-            Stmt::Explain { expr, span } => {
-                if matches!(expr.as_ref(), Expr::Select { .. }) {
-                    let exec_ctx = self.get_query_exec_ctx();
-                    let mut query_engine = QueryEngine::new();
-                    let plan = &query_engine.explain(expr, &exec_ctx)?;
-                    if let Some(out) = &self.state.output {
-                        out.write()
-                            .unwrap()
-                            .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-                    }
-                    return Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))));
-                } else {
-                    return Err(HaltReason::Error(
-                        InterpretError::InvalidExplainTarget { span: *span }.into(),
-                    ));
-                }
-            }
+            Stmt::Explain { expr, span } => return dispatch_explain(expr, span, self.state.clone()),
         }
         Ok(RV::Undefined)
     }
@@ -211,9 +170,10 @@ impl<'v> Stateful<'v> for output::Output<'v> {
 pub mod tests {
     use lykiadb_common::memory::Shared;
 
-    use crate::interpreter::{Interpreter, Output};
+    use crate::{execution::state::ProgramState, interpreter::{Interpreter, output::Output}};
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
-        Interpreter::new(out, true)
+        let state = ProgramState::new(out, true);
+        Interpreter::from_state(&state)
     }
 }

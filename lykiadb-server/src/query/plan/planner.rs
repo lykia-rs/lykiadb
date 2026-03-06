@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    error::ExecutionError,
+    execution::error::ExecutionError,
     interpreter::HaltReason,
     query::{
         context::QueryExecutionContext,
@@ -313,15 +313,14 @@ impl<'v, 'q> Planner {
 #[cfg(test)]
 mod tests {
     use crate::{
-        interpreter::tests::create_test_interpreter,
-        query::{
+        execution::state::ProgramState, interpreter::tests::create_test_interpreter, query::{
             context::QueryExecutionContext,
             plan::{
                 IntermediateExpr,
                 planner::{InClause, Planner},
                 scope::tests::create_test_scope,
             },
-        },
+        }
     };
     use lykiadb_common::extract;
     use lykiadb_lang::ast::{
@@ -337,9 +336,10 @@ mod tests {
 
     /// Helper function to create a test planner instance
     fn create_test_planner() -> (Planner, &'static QueryExecutionContext<'static>) {
-        let interpreter = Box::leak(Box::new(create_test_interpreter(None)));
+        let state = ProgramState::new(None, true);
+        let ctx = QueryExecutionContext::new(state);
         let exec_ctx: &'static QueryExecutionContext<'static> =
-            Box::leak(Box::new(interpreter.get_query_exec_ctx()));
+            Box::leak(Box::new(ctx));
         (Planner, exec_ctx)
     }
 

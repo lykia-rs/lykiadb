@@ -1,6 +1,7 @@
 use ::std::time::Instant;
 use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
+use lykiadb_server::execution::state::ProgramState;
 use lykiadb_server::interpreter::Interpreter;
 use lykiadb_server::session::{Session, SessionMode};
 use std::io::Error;
@@ -67,7 +68,7 @@ impl<'v> Connection<'v> {
     pub fn new(stream: TcpStream) -> Self {
         Connection {
             conn: TcpConnection::new(stream),
-            session: Session::new(SessionMode::File, Interpreter::new(None, true)),
+            session: Session::new(SessionMode::File, Interpreter::from_state(&ProgramState::new(None, true))),
         }
     }
 

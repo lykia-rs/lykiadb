@@ -5,8 +5,7 @@ use interb::Symbol;
 use smallvec::SmallVec;
 
 use crate::{
-    global::GLOBAL_INTERNER,
-    value::{RV, object::RVObject},
+    execution::global::GLOBAL_INTERNER, value::{RV, object::RVObject}
 };
 
 pub type RVs<'v, 'q> = Box<dyn RVIterator<'v, 'q> + Send>;

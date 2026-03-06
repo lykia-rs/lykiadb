@@ -1,5 +1,5 @@
 use crate::{
-    error::ExecutionError,
+    execution::error::ExecutionError,
     interpreter::HaltReason,
     query::{context::QueryExecutionContext, plan::planner::InClause},
 };

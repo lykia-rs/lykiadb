@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    global::GLOBAL_INTERNER,
+    execution::global::GLOBAL_INTERNER,
     interpreter::HaltReason,
     query::{
         context::QueryExecutionContext,
