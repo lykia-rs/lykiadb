@@ -1,10 +1,9 @@
+use crate::execution::dispatching::dispatch_query_execute;
 use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
 use crate::interpreter::HaltReason;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
-use crate::query::QueryEngine;
-use crate::query::context::QueryExecutionContext;
 use crate::execution::state::ProgramState;
 use crate::value::RV;
 use crate::value::array::RVArray;
@@ -373,15 +372,10 @@ impl<'sess> ExprEngine {
                     ))
                 }
             }
-            Expr::Select { .. }
-            | Expr::Insert { .. }
-            | Expr::Update { .. }
-            | Expr::Delete { .. } => {
-                let exec_ctx = QueryExecutionContext::new(state.clone());
-                let mut query_engine = QueryEngine::new();
-                let result = query_engine.execute(e, &exec_ctx)?;
-                Ok(result)
-            }
+            Expr::Select { span, .. }
+            | Expr::Insert { span, .. }
+            | Expr::Update { span, .. }
+            | Expr::Delete { span, .. } => dispatch_query_execute(&e, span, state.clone())
         }
     }
 }

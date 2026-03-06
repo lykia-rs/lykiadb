@@ -1,5 +1,5 @@
 use crate::execution::error::ExecutionError;
-use crate::execution::dispatching::dispatch_explain;
+use crate::execution::dispatching::dispatch_query_explain;
 use crate::execution::state::ProgramState;
 use crate::execution::global::intern_string;
 use crate::interpreter::environment::EnvironmentFrame;
@@ -147,7 +147,7 @@ impl<'sess> Interpreter<'sess> {
                 }
                 return Err(HaltReason::Return(RV::Undefined));
             }
-            Stmt::Explain { expr, span } => return dispatch_explain(expr, span, self.state.clone()),
+            Stmt::Explain { expr, span } => return dispatch_query_explain(expr, span, self.state.clone()),
         }
         Ok(RV::Undefined)
     }
