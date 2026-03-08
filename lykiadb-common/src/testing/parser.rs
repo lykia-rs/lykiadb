@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub enum Block {
     /// Code to interpret (everything that is *not* a directive).
     Input(String),
-    /// `@expect { … }` – expected standard output.
+    /// `@expect { … }` – expected *accumulated* standard output.
     Expect(String),
     /// `@expect_err { … }` – expected *accumulated* error output.
     ExpectErr(String),
