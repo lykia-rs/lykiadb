@@ -95,12 +95,12 @@ impl TestRunner {
         {
             let stdout = std::io::stdout();
             let mut handle = stdout.lock();
-            let _ = write!(handle, "{}", buf);
+            let _ = write!(handle, "{buf}");
             let _ = handle.flush();
         }
 
         if failed > 0 {
-            panic!("{} test(s) failed, {} passed", failed, passed);
+            panic!("{failed} test(s) failed, {passed} passed");
         }
     }
 }

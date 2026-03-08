@@ -3,11 +3,8 @@ use std::collections::HashMap;
 /// A single block inside a `@test` body.
 #[derive(Debug, PartialEq, Clone)]
 pub enum Block {
-    /// Code to interpret (everything that is *not* a directive).
     Input(String),
-    /// `@expect { … }` – expected *accumulated* standard output.
     Expect(String),
-    /// `@expect_err { … }` – expected *accumulated* error output.
     ExpectErr(String),
 }
 
@@ -138,7 +135,7 @@ impl TestLangParser {
         Ok(s)
     }
 
-    /// `@set(key = "value")` – the `@set` keyword has already been consumed.
+    /// `@set(key = "value")` the `@set` keyword has already been consumed.
     fn parse_set(&mut self) -> ParseResult<(String, String)> {
         self.expect_char('(')?;
         self.skip_ws();
@@ -393,7 +390,7 @@ pub(crate) fn flatten_items(
                 let child_prefix = if prefix.is_empty() {
                     name.clone()
                 } else {
-                    format!("{}.{}", prefix, name)
+                    format!("{prefix}.{name}")
                 };
                 out.extend(flatten_items(children, &merged, &child_prefix));
             }

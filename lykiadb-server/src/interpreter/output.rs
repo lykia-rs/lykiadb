@@ -4,12 +4,12 @@ use pretty_assertions::{Comparison, StrComparison};
 
 /// Build a `TestFailure` from a structural diff of two `Debug` values.
 pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
-    TestFailure(format!("{}", Comparison::new(left, right)))
+    TestFailure(Comparison::new(left, right).to_string())
 }
 
 /// Build a `TestFailure` from a string diff of two string-like values.
 pub(crate) fn str_diff(left: &str, right: &str) -> TestFailure {
-    TestFailure(format!("{}", StrComparison::new(left, right)))
+    TestFailure(StrComparison::new(left, right).to_string())
 }
 
 #[derive(Clone)]
