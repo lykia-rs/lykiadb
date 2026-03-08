@@ -372,6 +372,7 @@ impl TestLangParser {
 pub(crate) fn flatten_items(
     items: &[SuiteItem],
     inherited: &HashMap<String, String>,
+    prefix: &str,
 ) -> Vec<TestCase> {
     let mut out = Vec::new();
     for item in items {
@@ -379,12 +380,22 @@ pub(crate) fn flatten_items(
             SuiteItem::Test(tc) => {
                 let mut flags = inherited.clone();
                 flags.extend(tc.flags.clone());
-                out.push(TestCase { name: tc.name.clone(), flags, blocks: tc.blocks.clone() });
+                let full_name = if prefix.is_empty() {
+                    tc.name.clone()
+                } else {
+                    format!("{}.{}", prefix, tc.name)
+                };
+                out.push(TestCase { name: full_name, flags, blocks: tc.blocks.clone() });
             }
-            SuiteItem::Group { flags, children, .. } => {
+            SuiteItem::Group { name, flags, children, .. } => {
                 let mut merged = inherited.clone();
                 merged.extend(flags.clone());
-                out.extend(flatten_items(children, &merged));
+                let child_prefix = if prefix.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{}.{}", prefix, name)
+                };
+                out.extend(flatten_items(children, &merged, &child_prefix));
             }
         }
     }
@@ -425,7 +436,7 @@ mod tests {
 
     fn flat(src: &str) -> Vec<TestCase> {
         let items = TestLangParser::new(src).parse().expect("parse failed");
-        flatten_items(&items, &HashMap::new())
+        flatten_items(&items, &HashMap::new(), "")
     }
 
     fn flags_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {

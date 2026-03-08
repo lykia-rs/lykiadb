@@ -1,5 +1,16 @@
 use crate::value::RV;
-use pretty_assertions::assert_eq;
+use lykiadb_common::testing::TestFailure;
+use pretty_assertions::{Comparison, StrComparison};
+
+/// Build a `TestFailure` from a structural diff of two `Debug` values.
+pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
+    TestFailure(format!("{}", Comparison::new(left, right)))
+}
+
+/// Build a `TestFailure` from a string diff of two string-like values.
+pub(crate) fn str_diff(left: &str, right: &str) -> TestFailure {
+    TestFailure(format!("{}", StrComparison::new(left, right)))
+}
 
 #[derive(Clone)]
 pub struct Output<'v> {
@@ -25,25 +36,19 @@ impl<'v> Output<'v> {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: Vec<RV<'v>>) {
-        if rv.len() == 1 {
-            if let Some(first) = rv.first() {
-                assert_eq!(
-                    self.out.first().unwrap_or(&RV::Undefined).to_string(),
-                    first.to_string()
-                );
-            }
+    pub fn expect(&mut self, rv: Vec<RV<'v>>) -> Result<(), TestFailure> {
+        if self.out != rv {
+            return Err(diff(&self.out, &rv));
         }
-        assert_eq!(self.out, rv)
+        Ok(())
     }
+
     // TODO(vck): Remove this
-    pub fn expect_str(&mut self, rv: Vec<String>) {
-        assert_eq!(
-            self.out
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>(),
-            rv
-        )
+    pub fn expect_str(&mut self, rv: Vec<String>) -> Result<(), TestFailure> {
+        let actual: Vec<String> = self.out.iter().map(|x| x.to_string()).collect();
+        if actual != rv {
+            return Err(str_diff(&actual.join("\n"), &rv.join("\n")));
+        }
+        Ok(())
     }
 }

@@ -8,9 +8,8 @@ use tracing::info;
 use std::sync::Arc;
 
 use crate::value::RV;
-use lykiadb_common::testing::{Block, TestCase, TestHandler, dedent};
+use lykiadb_common::testing::{Block, TestCase, TestFailure, TestHandler, dedent};
 use lykiadb_lang::SourceProcessor;
-use pretty_assertions::assert_eq;
 
 pub struct Session<'v> {
     mode: SessionMode,
@@ -71,7 +70,7 @@ impl<'v> SessionTester<'v> {
 }
 
 impl<'v> TestHandler for SessionTester<'v> {
-    fn run_case(&mut self, case: TestCase) {
+    fn run_case(&mut self, case: TestCase) -> Result<(), TestFailure> {
         let run_mode = case.flags.get("run").map(|s| s.as_str()).unwrap_or("");
         let mut errors: Vec<ExecutionError> = vec![];
 
@@ -88,27 +87,28 @@ impl<'v> TestHandler for SessionTester<'v> {
                         self.out
                             .write()
                             .unwrap()
-                            .expect(vec![RV::Str(Arc::new(expected))]);
+                            .expect(vec![RV::Str(Arc::new(expected))])?;
                     } else {
                         let lines: Vec<String> = expected
                             .split('\n')
                             .map(|l| l.to_string())
                             .collect();
-                        self.out.write().unwrap().expect_str(lines);
+                        self.out.write().unwrap().expect_str(lines)?;
                     }
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);
-                    assert_eq!(
-                        errors
-                            .iter()
-                            .map(|x| x.to_string())
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                        expected
-                    );
+                    let actual = errors
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n");
+                    if actual != expected {
+                        return Err(crate::interpreter::output::str_diff(&actual, &expected));
+                    }
                 }
             }
         }
+        Ok(())
     }
 }
