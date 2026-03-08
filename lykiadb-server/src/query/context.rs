@@ -1,15 +1,15 @@
 use crate::interpreter::HaltReason;
-use crate::{interpreter::expr::ExprEngine, session::state::ProgramState};
 use crate::value::RV;
-use lykiadb_lang::ast::expr::{Expr};
 use crate::value::iterator::ExecutionRow;
+use crate::{execution::state::ProgramState, interpreter::expr::ExprEngine};
+use lykiadb_lang::ast::expr::Expr;
 
 #[derive(Clone)]
-pub struct ExecutionContext<'sess> {
+pub struct QueryExecutionContext<'sess> {
     state: ProgramState<'sess>,
 }
 
-impl<'sess> ExecutionContext<'sess> {
+impl<'sess> QueryExecutionContext<'sess> {
     pub fn new(state: ProgramState<'sess>) -> Self {
         Self { state }
     }

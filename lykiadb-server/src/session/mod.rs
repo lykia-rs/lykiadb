@@ -1,5 +1,5 @@
 use crate::{
-    error::ExecutionError,
+    execution::{error::ExecutionError, state::ProgramState},
     interpreter::{Interpreter, output::Output},
 };
 use lykiadb_common::memory::{Shared, alloc_shared};
@@ -10,9 +10,6 @@ use std::{collections::HashMap, sync::Arc};
 use crate::value::RV;
 use lykiadb_common::testing::TestHandler;
 use lykiadb_lang::SourceProcessor;
-
-pub mod state;
-pub mod context;
 
 pub struct Session<'v> {
     mode: SessionMode,
@@ -64,7 +61,10 @@ impl<'v> SessionTester<'v> {
 
         SessionTester {
             out: out.clone(),
-            session: Session::new(SessionMode::File, Interpreter::new(Some(out), true)),
+            session: Session::new(
+                SessionMode::File,
+                Interpreter::from_state(&ProgramState::new(Some(out), true)),
+            ),
         }
     }
 }

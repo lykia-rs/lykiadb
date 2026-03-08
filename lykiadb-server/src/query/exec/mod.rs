@@ -1,25 +1,40 @@
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
-    error::ExecutionError, global::GLOBAL_INTERNER, interpreter::HaltReason, query::{
+    execution::error::ExecutionError,
+    execution::global::GLOBAL_INTERNER,
+    interpreter::HaltReason,
+    query::{
+        context::QueryExecutionContext,
         exec::aggregation::Grouper,
         plan::{IntermediateExpr, Node, Plan},
-    }, session::context::ExecutionContext, value::{
+    },
+    value::{
         RV,
         iterator::{ExecutionRow, RVs},
-    }
+    },
 };
 
 pub mod aggregation;
 
 pub struct PlanExecutor;
 
+impl<'v, 'q> Default for PlanExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'v, 'q> PlanExecutor {
-    pub fn new() -> PlanExecutor{
+    pub fn new() -> PlanExecutor {
         PlanExecutor
     }
 
-    pub fn execute_plan(&mut self, plan: Plan<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
+    pub fn execute_plan(
+        &mut self,
+        plan: Plan<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
+    ) -> Result<RVs<'v, 'q>, ExecutionError> {
         // Placeholder for plan execution logic
         match plan {
             Plan::Select(root) => {
@@ -29,7 +44,11 @@ impl<'v, 'q> PlanExecutor {
         }
     }
 
-    pub fn execute_node(&mut self, node: Node<'v>, exec_ctx: &'q ExecutionContext<'v>) -> Result<RVs<'v, 'q>, ExecutionError> {
+    pub fn execute_node(
+        &mut self,
+        node: Node<'v>,
+        exec_ctx: &'q QueryExecutionContext<'v>,
+    ) -> Result<RVs<'v, 'q>, ExecutionError> {
         match node {
             Node::Subquery { source, alias } => {
                 let cursor = self.execute_node(*source, exec_ctx)?;
@@ -43,10 +62,12 @@ impl<'v, 'q> PlanExecutor {
 
                 Ok(Box::from(iter))
             }
-            Node::Offset { source, offset } => {
-                Ok(Box::from(self.execute_node(*source, exec_ctx)?.skip(offset)))
+            Node::Offset { source, offset } => Ok(Box::from(
+                self.execute_node(*source, exec_ctx)?.skip(offset),
+            )),
+            Node::Limit { source, limit } => {
+                Ok(Box::from(self.execute_node(*source, exec_ctx)?.take(limit)))
             }
-            Node::Limit { source, limit } => Ok(Box::from(self.execute_node(*source, exec_ctx)?.take(limit))),
             Node::Filter {
                 source,
                 predicate,
@@ -100,7 +121,8 @@ impl<'v, 'q> PlanExecutor {
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated = &exec_ctx.eval_with_exec_row(expr, downstream.clone());
+                                let evaluated =
+                                    &exec_ctx.eval_with_exec_row(expr, downstream.clone());
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => &RV::Undefined,
@@ -153,7 +175,6 @@ impl<'v, 'q> PlanExecutor {
                 group_by,
                 aggregates,
             } => {
-
                 let mut grouper = Grouper::new(group_by, aggregates, exec_ctx);
 
                 let cursor = self.execute_node(*source, exec_ctx)?;
@@ -191,15 +212,16 @@ impl<'v, 'q> PlanExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::tests::create_test_interpreter;
+    use crate::execution::state::ProgramState;
     use crate::query::plan::IntermediateExpr;
     use crate::value::RV;
     use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
-    fn create_test_executor() -> (PlanExecutor, &'static ExecutionContext<'static>) {
-        let interpreter = Box::leak(Box::from(create_test_interpreter(None)));
-        let exec_ctx: &mut ExecutionContext<'_> = Box::leak(Box::new(interpreter.get_exec_ctx()));
+    fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {
+        let state = ProgramState::new(None, true);
+        let exec_ctx: &mut QueryExecutionContext<'_> =
+            Box::leak(Box::new(QueryExecutionContext::new(state)));
         (PlanExecutor::new(), exec_ctx)
     }
 

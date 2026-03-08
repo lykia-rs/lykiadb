@@ -1,10 +1,10 @@
-use crate::error::ExecutionError;
-use crate::global::GLOBAL_INTERNER;
-use crate::interpreter::{HaltReason, ProgramState};
+use crate::execution::dispatching::dispatch_query_execute;
+use crate::execution::error::ExecutionError;
+use crate::execution::global::intern_string;
+use crate::execution::state::ProgramState;
+use crate::interpreter::HaltReason;
 use crate::interpreter::environment::EnvironmentFrame;
 use crate::interpreter::error::InterpretError;
-use crate::query::QueryEngine;
-use crate::session::context::ExecutionContext;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
@@ -12,9 +12,8 @@ use crate::value::eval::eval_binary;
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use interb::Symbol;
-use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
+use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
 
@@ -22,22 +21,11 @@ use rustc_hash::FxHashMap;
 pub struct ExprEngine;
 
 impl<'sess> ExprEngine {
-    fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
-        if let Some(exec_row) = &*state.exec_row.read().unwrap() {
-            if let Some(val) = exec_row.get(&self.intern_string(name)) {
-                return Some(val.clone());
-            }
-        }
-        None
-    }
-
-    pub fn has_exec_row(&self, state: &ProgramState<'sess>) -> bool {
-        state.exec_row.read().unwrap().is_some()
-    }
-}
-
-impl<'sess> ExprEngine {
-    pub fn eval(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    pub fn eval(
+        &self,
+        e: &Expr,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         self.visit_expr(e, state)
     }
 }
@@ -72,31 +60,44 @@ impl<'sess> ExprEngine {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
-    fn intern_string(&self, string: &str) -> Symbol {
-        GLOBAL_INTERNER.intern(string)
+    fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
+        if let Some(exec_row) = &*state.exec_row.read().unwrap() {
+            if let Some(val) = exec_row.get(&intern_string(name)) {
+                return Some(val.clone());
+            }
+        }
+        None
     }
 
-    fn look_up_variable(
+    fn has_exec_row(&self, state: &ProgramState<'sess>) -> bool {
+        state.exec_row.read().unwrap().is_some()
+    }
+
+    fn lookup_variable(
         &self,
         name: &str,
         expr: &Expr,
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if let Some(exec_row) = &*state.exec_row.read().unwrap()
-            && let Some(val) = exec_row.get(&self.intern_string(name))
+            && let Some(val) = exec_row.get(&intern_string(name))
         {
             return Ok(val.clone());
         }
 
         let distance = state.program.as_ref().and_then(|x| x.get_distance(expr));
         if let Some(unwrapped) = distance {
-            EnvironmentFrame::read_at(&state.env, unwrapped, name, &self.intern_string(name))
+            EnvironmentFrame::read_at(&state.env, unwrapped, name, &intern_string(name))
         } else {
-            state.root_env.read(name, &self.intern_string(name))
+            state.root_env.read(name, &intern_string(name))
         }
     }
 
-    fn literal_to_rv(&self, literal: &Literal, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn literal_to_rv(
+        &self,
+        literal: &Literal,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         Ok(match literal {
             Literal::Str(s) => RV::Str(Arc::clone(s)),
             Literal::Num(n) => RV::Double(*n),
@@ -119,10 +120,14 @@ impl<'sess> ExprEngine {
         })
     }
 
-    fn visit_expr(&self, e: &Expr, state: &ProgramState<'sess>) -> Result<RV<'sess>, HaltReason<'sess>> {
+    fn visit_expr(
+        &self,
+        e: &Expr,
+        state: &ProgramState<'sess>,
+    ) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
             Expr::Literal { value, .. } => self.literal_to_rv(value, state),
-            Expr::Variable { name, .. } => self.look_up_variable(&name.name, e, state),
+            Expr::Variable { name, .. } => self.lookup_variable(&name.name, e, state),
             Expr::Unary {
                 operation, expr, ..
             } => self.eval_unary(operation, expr, state),
@@ -159,7 +164,7 @@ impl<'sess> ExprEngine {
                     .get_distance(e);
 
                 let evaluated = self.eval(expr, state)?;
-                let dst_symbol = self.intern_string(&dst.name);
+                let dst_symbol = intern_string(&dst.name);
                 if let Some(distance_unv) = distance {
                     EnvironmentFrame::assign_at(
                         &state.env,
@@ -169,7 +174,8 @@ impl<'sess> ExprEngine {
                         evaluated.clone(),
                     )
                 } else {
-                    state.root_env
+                    state
+                        .root_env
                         .assign(&dst.name, dst_symbol, evaluated.clone())
                 }?;
                 Ok(evaluated)
@@ -225,11 +231,11 @@ impl<'sess> ExprEngine {
 
                 let param_identifiers = parameters
                     .iter()
-                    .map(|(x, _)| self.intern_string(&x.name))
+                    .map(|(x, _)| intern_string(&x.name))
                     .collect();
 
                 let fun = Function::UserDefined {
-                    name: self.intern_string(fn_name),
+                    name: intern_string(fn_name),
                     body: Arc::clone(body),
                     parameters: param_identifiers,
                     closure: state.env.clone(),
@@ -240,7 +246,7 @@ impl<'sess> ExprEngine {
 
                 if let Some(Identifier { name, .. }) = name {
                     // TODO(vck): Callable shouldn't be cloned here
-                    state.env.define(self.intern_string(name), callable.clone());
+                    state.env.define(intern_string(name), callable.clone());
                 }
 
                 Ok(callable)
@@ -283,7 +289,7 @@ impl<'sess> ExprEngine {
                 span,
                 id,
             } => {
-                let root = self.look_up_variable(&head.name, e, state);
+                let root = self.lookup_variable(&head.name, e, state);
 
                 if tail.is_empty() {
                     return root;
@@ -366,15 +372,10 @@ impl<'sess> ExprEngine {
                     ))
                 }
             }
-            Expr::Select { .. }
-            | Expr::Insert { .. }
-            | Expr::Update { .. }
-            | Expr::Delete { .. } => {
-                let exec_ctx = ExecutionContext::new(state.clone());
-                let mut query_engine = QueryEngine::new();
-                let result = query_engine.execute(e, &exec_ctx)?;
-                Ok(result)
-            }
+            Expr::Select { span, .. }
+            | Expr::Insert { span, .. }
+            | Expr::Update { span, .. }
+            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, state.clone()),
         }
     }
 }

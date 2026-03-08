@@ -1,4 +1,4 @@
-use crate::{error::ExecutionError, interpreter::HaltReason};
+use crate::{execution::error::ExecutionError, interpreter::HaltReason};
 use interb::Symbol;
 use lykiadb_common::error::InputError;
 use rustc_hash::FxHashMap;
@@ -153,7 +153,7 @@ impl From<EnvironmentError> for InputError {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{global::GLOBAL_INTERNER, value::RV};
+    use crate::{execution::global::GLOBAL_INTERNER, value::RV};
 
     #[test]
     fn test_read_basic() {

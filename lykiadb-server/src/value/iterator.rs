@@ -5,7 +5,7 @@ use interb::Symbol;
 use smallvec::SmallVec;
 
 use crate::{
-    global::GLOBAL_INTERNER,
+    execution::global::GLOBAL_INTERNER,
     value::{RV, object::RVObject},
 };
 

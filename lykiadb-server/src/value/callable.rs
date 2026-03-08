@@ -1,9 +1,13 @@
 use super::RV;
-use crate::{interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame}, session::state::ProgramState};
+use crate::{
+    execution::state::ProgramState,
+    interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame},
+};
 use interb::Symbol;
 use lykiadb_common::memory::Shared;
 use lykiadb_lang::{
-    ast::{Span, stmt::Stmt}, types::Datatype
+    ast::{Span, stmt::Stmt},
+    types::Datatype,
 };
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
@@ -41,7 +45,9 @@ impl<'v> RVCallable<'v> {
     ) -> Result<RV<'v>, HaltReason<'v>> {
         let mut interpreter = Interpreter::from_state(state);
         match &self.function.as_ref() {
-            Function::Stateful(stateful) => stateful.write().unwrap().call(&mut interpreter, arguments),
+            Function::Stateful(stateful) => {
+                stateful.write().unwrap().call(&mut interpreter, arguments)
+            }
             Function::Native { function } => function(&mut interpreter, called_from, arguments),
             Function::Agg { function, .. } => {
                 let mut aggregator = function();
@@ -63,7 +69,7 @@ impl<'v> RVCallable<'v> {
                 closure,
                 body,
                 ..
-            } => interpreter.user_fn_call(body, closure.clone(), parameters, arguments),
+            } => interpreter.call_udf(body, closure.clone(), parameters, arguments),
         }
     }
 }
