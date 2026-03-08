@@ -5,10 +5,10 @@ use crate::{
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::value::RV;
-use lykiadb_common::testing::TestHandler;
+use lykiadb_common::testing::{Block, TestCase, TestHandler, dedent};
 use lykiadb_lang::SourceProcessor;
 
 pub struct Session<'v> {
@@ -70,47 +70,43 @@ impl<'v> SessionTester<'v> {
 }
 
 impl<'v> TestHandler for SessionTester<'v> {
-    fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
-        assert!(
-            case_parts.len() > 1,
-            "Expected at least one input/output pair"
-        );
-
+    fn run_case(&mut self, case: TestCase) {
+        let run_mode = case.flags.get("run").map(|s| s.as_str()).unwrap_or("");
         let mut errors: Vec<ExecutionError> = vec![];
 
-        let result = self.session.interpret(&case_parts[0]);
-
-        if let Err(err) = result {
-            errors.push(err);
-        }
-
-        for part in &case_parts[1..] {
-            if let Some(stripped) = part.strip_prefix("err") {
-                assert_eq!(
-                    errors
-                        .iter()
-                        .map(|x| x.to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n"),
-                    stripped.trim()
-                );
-            } else if let Some(stripped) = part.strip_prefix('>') {
-                let result = self.session.interpret(stripped.trim());
-
-                if let Err(err) = result {
-                    errors.push(err);
+        for block in case.blocks {
+            match block {
+                Block::Input(code) => {
+                    if let Err(err) = self.session.interpret(&dedent(&code)) {
+                        errors.push(err);
+                    }
                 }
-            } else if flags.get("run") == Some(&"plan") {
-                // TODO(vck): Remove this
-                self.out
-                    .write()
-                    .unwrap()
-                    .expect(vec![RV::Str(Arc::new(part.to_string()))]);
-            } else {
-                self.out
-                    .write()
-                    .unwrap()
-                    .expect_str(part.split('\n').map(|x| x.to_string()).collect());
+                Block::Expect(raw) => {
+                    let expected = dedent(&raw);
+                    if run_mode == "plan" {
+                        self.out
+                            .write()
+                            .unwrap()
+                            .expect(vec![RV::Str(Arc::new(expected))]);
+                    } else {
+                        let lines: Vec<String> = expected
+                            .split('\n')
+                            .map(|l| l.to_string())
+                            .collect();
+                        self.out.write().unwrap().expect_str(lines);
+                    }
+                }
+                Block::ExpectErr(raw) => {
+                    let expected = dedent(&raw);
+                    assert_eq!(
+                        errors
+                            .iter()
+                            .map(|x| x.to_string())
+                            .collect::<Vec<String>>()
+                            .join("\n"),
+                        expected
+                    );
+                }
             }
         }
     }

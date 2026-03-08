@@ -1,5 +1,11 @@
+mod parser;
+
+pub use parser::{Block, ParseError, TestCase, dedent};
+use parser::{flatten_items, TestLangParser};
+use std::collections::HashMap;
+
 pub trait TestHandler {
-    fn run_case(&mut self, case_parts: Vec<String>, flags: std::collections::HashMap<&str, &str>);
+    fn run_case(&mut self, case: TestCase);
 }
 
 pub struct TestRunner {
@@ -12,41 +18,15 @@ impl TestRunner {
     }
 
     pub fn test_file(&mut self, input: &str) {
-        let parts: Vec<&str> = input.split("#[").collect();
+        let items = TestLangParser::new(input)
+            .parse()
+            .expect("Failed to parse test file");
 
-        for part in parts[1..].iter() {
+        let cases = flatten_items(&items, &HashMap::new());
+
+        for case in cases {
             let mut handler = (self.handler_fn)();
-
-            let directives_and_input = part.trim();
-
-            let directives_end = directives_and_input
-                .find('>')
-                .unwrap_or(directives_and_input.len());
-
-            let rest = directives_and_input[directives_end + 1..]
-                .trim()
-                .to_string();
-
-            let flags = directives_and_input[..directives_end - 1]
-                .trim()
-                .split(',')
-                .map(|flag| {
-                    let kv: Vec<&str> = flag.split('=').collect();
-                    (kv[0].trim(), kv[1].trim())
-                })
-                .fold(std::collections::HashMap::new(), |mut acc, (k, v)| {
-                    acc.insert(k, v);
-                    acc
-                });
-
-            let case_parts = rest.split("---").map(|x| x.trim().to_string()).collect();
-
-            match flags.get("run") {
-                Some(&"plan") | Some(&"interpreter") => {
-                    handler.run_case(case_parts, flags.clone());
-                }
-                _ => panic!("Unknown directive"),
-            }
+            handler.run_case(case);
         }
     }
 }
