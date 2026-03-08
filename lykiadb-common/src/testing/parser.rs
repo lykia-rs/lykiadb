@@ -28,8 +28,14 @@ pub(crate) enum SuiteItem {
 
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
-    UnexpectedEof { context: String },
-    UnexpectedToken { position: usize, expected: String, got: String },
+    UnexpectedEof {
+        context: String,
+    },
+    UnexpectedToken {
+        position: usize,
+        expected: String,
+        got: String,
+    },
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -41,7 +47,10 @@ pub(crate) struct TestLangParser {
 
 impl TestLangParser {
     pub fn new(input: &str) -> Self {
-        TestLangParser { chars: input.chars().collect(), pos: 0 }
+        TestLangParser {
+            chars: input.chars().collect(),
+            pos: 0,
+        }
     }
 
     fn cur(&self) -> Option<char> {
@@ -116,7 +125,7 @@ impl TestLangParser {
                 None => {
                     return Err(ParseError::UnexpectedEof {
                         context: "inside braced block".into(),
-                    })
+                    });
                 }
                 Some('{') => {
                     depth += 1;
@@ -150,7 +159,7 @@ impl TestLangParser {
                 None => {
                     return Err(ParseError::UnexpectedEof {
                         context: "inside @set string value".into(),
-                    })
+                    });
                 }
                 Some('"') => break,
                 Some(c) => value.push(c),
@@ -172,7 +181,7 @@ impl TestLangParser {
                 None => {
                     return Err(ParseError::UnexpectedEof {
                         context: "inside @test body".into(),
-                    })
+                    });
                 }
 
                 Some('@') => {
@@ -228,9 +237,7 @@ impl TestLangParser {
     }
 
     /// Body of a `@group` block.  The opening `{` has already been consumed.
-    fn parse_group_body(
-        &mut self,
-    ) -> ParseResult<(HashMap<String, String>, Vec<SuiteItem>)> {
+    fn parse_group_body(&mut self) -> ParseResult<(HashMap<String, String>, Vec<SuiteItem>)> {
         let mut flags: HashMap<String, String> = HashMap::new();
         let mut children: Vec<SuiteItem> = Vec::new();
 
@@ -240,7 +247,7 @@ impl TestLangParser {
                 None => {
                     return Err(ParseError::UnexpectedEof {
                         context: "inside @group body".into(),
-                    })
+                    });
                 }
 
                 Some('#') => self.skip_line(),
@@ -268,8 +275,7 @@ impl TestLangParser {
                             self.skip_ws();
                             let name = self.parse_ident();
                             self.expect_char('{')?;
-                            let (sub_flags, sub_children) =
-                                self.parse_group_body()?;
+                            let (sub_flags, sub_children) = self.parse_group_body()?;
                             children.push(SuiteItem::Group {
                                 name,
                                 flags: sub_flags,
@@ -281,7 +287,7 @@ impl TestLangParser {
                                 position: self.pos,
                                 expected: "set, test, or group".into(),
                                 got: other.to_string(),
-                            })
+                            });
                         }
                     }
                 }
@@ -296,7 +302,7 @@ impl TestLangParser {
                         position: self.pos,
                         expected: "@directive or }".into(),
                         got: c.to_string(),
-                    })
+                    });
                 }
             }
         }
@@ -332,8 +338,7 @@ impl TestLangParser {
                             self.skip_ws();
                             let name = self.parse_ident();
                             self.expect_char('{')?;
-                            let (grp_flags, children) =
-                                self.parse_group_body()?;
+                            let (grp_flags, children) = self.parse_group_body()?;
                             items.push(SuiteItem::Group {
                                 name,
                                 flags: grp_flags,
@@ -345,7 +350,7 @@ impl TestLangParser {
                                 position: self.pos,
                                 expected: "test or group".into(),
                                 got: other.to_string(),
-                            })
+                            });
                         }
                     }
                 }
@@ -355,7 +360,7 @@ impl TestLangParser {
                         position: self.pos,
                         expected: "@directive or EOF".into(),
                         got: c.to_string(),
-                    })
+                    });
                 }
             }
         }
@@ -382,9 +387,18 @@ pub(crate) fn flatten_items(
                 } else {
                     format!("{}.{}", prefix, tc.name)
                 };
-                out.push(TestCase { name: full_name, flags, blocks: tc.blocks.clone() });
+                out.push(TestCase {
+                    name: full_name,
+                    flags,
+                    blocks: tc.blocks.clone(),
+                });
             }
-            SuiteItem::Group { name, flags, children, .. } => {
+            SuiteItem::Group {
+                name,
+                flags,
+                children,
+                ..
+            } => {
                 let mut merged = inherited.clone();
                 merged.extend(flags.clone());
                 let child_prefix = if prefix.is_empty() {
@@ -412,7 +426,13 @@ pub fn dedent(s: &str) -> String {
 
     let dedented = lines
         .iter()
-        .map(|l| if l.len() >= min_indent { &l[min_indent..] } else { l.trim_start() })
+        .map(|l| {
+            if l.len() >= min_indent {
+                &l[min_indent..]
+            } else {
+                l.trim_start()
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -437,7 +457,10 @@ mod tests {
     }
 
     fn flags_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
@@ -447,7 +470,10 @@ mod tests {
 
     #[test]
     fn dedent_preserves_relative_indent() {
-        assert_eq!(dedent("\n    - outer\n      - inner\n"), "- outer\n  - inner");
+        assert_eq!(
+            dedent("\n    - outer\n      - inner\n"),
+            "- outer\n  - inner"
+        );
     }
 
     #[test]
@@ -518,7 +544,10 @@ mod tests {
     fn parse_nested_group_flags_merged() {
         let src = "@group outer {\n    @set(run = \"plan\")\n    @group inner {\n        @set(extra = \"yes\")\n        @test t { code @expect { x } }\n    }\n}";
         let cases = flat(src);
-        assert_eq!(cases[0].flags, flags_map(&[("run", "plan"), ("extra", "yes")]));
+        assert_eq!(
+            cases[0].flags,
+            flags_map(&[("run", "plan"), ("extra", "yes")])
+        );
     }
 
     #[test]

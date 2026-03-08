@@ -89,10 +89,8 @@ impl<'v> TestHandler for SessionTester<'v> {
                             .unwrap()
                             .expect(vec![RV::Str(Arc::new(expected))])?;
                     } else {
-                        let lines: Vec<String> = expected
-                            .split('\n')
-                            .map(|l| l.to_string())
-                            .collect();
+                        let lines: Vec<String> =
+                            expected.split('\n').map(|l| l.to_string()).collect();
                         self.out.write().unwrap().expect_str(lines)?;
                     }
                 }

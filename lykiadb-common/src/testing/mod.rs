@@ -1,7 +1,7 @@
 mod parser;
 
 pub use parser::{Block, ParseError, TestCase, dedent};
-use parser::{flatten_items, TestLangParser};
+use parser::{TestLangParser, flatten_items};
 use std::collections::HashMap;
 use std::fmt;
 use std::io::Write;
@@ -24,7 +24,6 @@ fn file_prefix(filename: &str) -> String {
     let rel: std::path::PathBuf = components[rel_start..].iter().collect();
     rel.with_extension("").to_string_lossy().into_owned()
 }
-
 
 #[derive(Debug)]
 pub struct TestFailure(pub String);
@@ -81,11 +80,15 @@ impl TestRunner {
             let mut handler = (self.handler_fn)();
             match handler.run_case(case) {
                 Ok(()) => {
-                    buf.push_str(&format!("[{BOLD}{GREEN}PASS{RESET}] {test_name}{file_tag}\n"));
+                    buf.push_str(&format!(
+                        "[{BOLD}{GREEN}PASS{RESET}] {test_name}{file_tag}\n"
+                    ));
                     passed += 1;
                 }
                 Err(TestFailure(diff)) => {
-                    buf.push_str(&format!("[{BOLD}{RED}FAIL{RESET}] {test_name}{file_tag}\n{diff}\n"));
+                    buf.push_str(&format!(
+                        "[{BOLD}{RED}FAIL{RESET}] {test_name}{file_tag}\n{diff}\n"
+                    ));
                     failed += 1;
                 }
             }
