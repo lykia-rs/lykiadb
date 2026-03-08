@@ -1,0 +1,141 @@
+@group resolving_read {
+    @set(run = "interpreter")
+
+    @test resolving_read_0 {
+        var $a = "global";
+        {
+            function $show_a() {
+                testutil::print($a);
+            };
+        
+            $show_a();
+            var $a = "block";
+            $show_a();
+        }
+
+        @expect {
+            global
+            global
+        }
+    }
+
+    @test resolving_read_1 {
+        var $a = "global";
+        {
+            function $show_a() {
+                testutil::print($a);
+            };
+        
+            $show_a();
+            var $a = "block";
+            $show_a();
+        
+            function $show_b() {
+                testutil::print($a);
+            };
+        
+            $show_b();
+        }
+
+        @expect {
+            global
+            global
+            block
+        }
+    }
+
+    @test resolving_read_2 {
+        {
+            var $a = "global";
+            {
+                function $show_a() {
+                    testutil::print($a);
+                };
+            
+                $show_a();
+                var $a = "block";
+                $show_a();
+            }
+        }
+
+        @expect {
+            global
+            global
+        }
+    }
+
+    @test resolve_object {
+        var $text = 'outer $text';
+                
+        var $a = {
+            my_fun: function() {
+                function $pre_define() {
+                    testutil::print($text);
+                };
+                $pre_define();
+        
+                var $text = 'inner $text';
+        
+                function $post_define() {
+                    testutil::print($text);
+                };
+                $post_define();
+            }
+        };
+        
+        $a.my_fun();
+
+        @expect {
+            outer $text
+            inner $text
+        }
+    }
+
+    @test resolve_deeper_object {
+        var $text = 'outer $text';
+                
+        var $a = {
+            b: {
+                c0: {
+                    my_fun: function() {
+                        function $pre_define() {
+                            testutil::print($text);
+                        };
+                        $pre_define();
+        
+                        var $text = 'c0 inner $text';
+        
+                        function $post_define() {
+                            testutil::print($text);
+                        };
+                        $post_define();
+                    }
+                },
+                c1: {
+                    my_fun: function() {
+                        function $pre_define() {
+                            testutil::print($text);
+                        };
+                        $pre_define();
+        
+                        var $text = 'c1 inner $text';
+        
+                        function $post_define() {
+                            testutil::print($text);
+                        };
+                        $post_define();
+                    }
+                }
+            }
+        };
+        $a.b.c0.my_fun();
+        $a.b.c1.my_fun();
+
+        @expect {
+            outer $text
+            c0 inner $text
+            outer $text
+            c1 inner $text
+        }
+    }
+}

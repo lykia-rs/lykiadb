@@ -1,0 +1,283 @@
+@group expr {
+    @set(run = "interpreter")
+
+    @test unary_evaluation {
+        testutil::print(-2);
+        testutil::print(-(-2));
+        testutil::print(!3);
+        testutil::print(!!3);
+        testutil::print(!!!3);
+
+        @expect {
+            -2
+            2
+            false
+            true
+            false
+        }
+    }
+
+    @test binary_evaluation {
+        testutil::print(5-(-2));
+        testutil::print((5 + 2) * 4);
+        testutil::print(5 + 2 * 4);
+        testutil::print((13 + 4) * (7 + 3));
+        testutil::print(-5-2);
+
+        @expect {
+            7
+            28
+            13
+            170
+            -7
+        }
+    }
+
+    @test logical_evaluation {
+        testutil::print(5 && 1);
+        testutil::print(5 || 1);
+        testutil::print(5 && 0);
+        testutil::print(5 || 0);
+        testutil::print(!(5 || 0));
+        testutil::print(!(5 || 0) || 1);
+        testutil::print(!(5 || 0) || (1 && 0));
+
+        @expect {
+            true
+            true
+            false
+            true
+            false
+            true
+            false
+        }
+    }
+
+    @test get_evaluation {
+        var $obj = {
+            name: "John",
+            age: 30,
+            address: {
+                city: "New York",
+                zip: 10001
+            }
+        };
+        
+        testutil::print($obj.name);
+        testutil::print($obj.age);
+        testutil::print($obj.address.city);
+        testutil::print($obj.address.zip);
+
+        @expect {
+            John
+            30
+            New York
+            10001
+        }
+    }
+
+    @test get_errors {
+        var $obj = {
+            name: "John"
+        };
+        
+        testutil::print($obj.age);
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+        }
+
+        testutil::print($obj.address.city);
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+        }
+
+        testutil::print(undefined.prop);
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
+        }
+
+        testutil::print(5.prop);
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 22, line: 0, line_end: 0 }, value_str: "5" })
+        }
+
+        testutil::print("string".length);
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 22, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 31, line: 0, line_end: 0 }, value_str: "string" })
+        }
+    }
+
+    @test set_evaluation {
+        var $obj = {
+            name: "John",
+            age: 30,
+            address: {
+                city: "New York",
+                zip: 10001
+            }
+        };
+        
+        $obj.name = "Jane";
+        testutil::print($obj.name);
+        
+        $obj.age = 31;
+        testutil::print($obj.age);
+        
+        $obj.address.city = "Boston";
+        testutil::print($obj.address.city);
+        
+        $obj.newProp = "test";
+        testutil::print($obj.newProp);
+
+        @expect {
+            Jane
+            31
+            Boston
+            test
+        }
+    }
+
+    @test set_errors {
+        var $obj = {
+            name: "John"
+        };
+        
+        $obj.address.city = "Boston";
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+        }
+
+        undefined.prop = "test";
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+        }
+
+        5.prop = "test";
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
+        }
+
+        "string".prop = "test";
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "string" })
+        }
+
+        undefined.prop = "test";
+
+        @expect_err {
+            Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "string" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+        }
+    }
+
+    @test between_evaluation {
+        var $x = 5;
+        testutil::print($x between 1 and 10);
+        testutil::print($x between 5 and 10);
+        testutil::print($x between 1 and 5);
+        testutil::print($x between 6 and 10);
+        testutil::print($x between 0 and 4);
+        
+        testutil::print($x not between 1 and 10);
+        testutil::print($x not between 5 and 10);
+        testutil::print($x not between 1 and 5);
+        testutil::print($x not between 6 and 10);
+        testutil::print($x not between 0 and 4);
+
+        @expect {
+            true
+            true
+            true
+            false
+            false
+            false
+            false
+            false
+            true
+            true
+        }
+    }
+
+    @test between_errors {
+        testutil::print(5 between "1" and 10);
+
+        @expect_err {
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+        }
+
+        testutil::print(5 between 1 and "10");
+
+        @expect_err {
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+        }
+
+        testutil::print("5" between 1 and 10);
+
+        @expect_err {
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+        }
+    }
+
+    @test obj_assignment {
+        var $object = {};
+        $object.test = 1;
+        
+        testutil::print($object.test == 1);
+
+        @expect {
+            true
+        }
+    }
+
+    @test obj_assignment {
+        var $object = {};
+        $object.level_one = {};
+        $object.level_one.level_two = {};
+        $object.level_one.level_two.level_three = {};
+        
+        $object.level_one.title = "1";
+        $object.level_one.level_two.title = "2";
+        $object.level_one.level_two.level_three.title = "3";
+        
+        testutil::print($object.level_one.title);
+        testutil::print($object.level_one.level_two.title);
+        testutil::print($object.level_one.level_two.level_three.title);
+
+        @expect {
+            1
+            2
+            3
+        }
+    }
+}

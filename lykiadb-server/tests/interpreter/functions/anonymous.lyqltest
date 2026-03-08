@@ -1,0 +1,52 @@
+@group anonymous {
+    @set(run = "interpreter")
+
+    @test anonymous_fn_0 {
+        var $pr = function $a() {
+            testutil::print("hello");
+        };
+        
+        $pr();
+        $a();
+
+        @expect {
+            hello
+            hello
+        }
+    }
+
+    @test anonymous_fn_1_iife {
+        (function $a() {
+            testutil::print("hello");
+        })();
+        
+        $a();
+
+        @expect {
+            hello
+            hello
+        }
+    }
+
+    @test anonymous_fn_2 {
+        var $pr = function() {
+            testutil::print("hello");
+        };
+        
+        $pr();
+
+        @expect {
+            hello
+        }
+    }
+
+    @test anonymous_fn_3_iife {
+        (function() {
+            testutil::print("hello");
+        })();
+
+        @expect {
+            hello
+        }
+    }
+}

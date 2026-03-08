@@ -1,0 +1,72 @@
+@group nested {
+    @set(run = "interpreter")
+
+    @test nested_0 {
+        var $a = "global a";
+        var $b = "global b";
+        var $c = "global c";
+        {
+            var $a = "outer a";
+            var $b = "outer b";
+            {
+                var $a = "inner a";
+                testutil::print($a);
+                testutil::print($b);
+                testutil::print($c);
+            }
+            testutil::print($a);
+            testutil::print($b);
+            testutil::print($c);
+        }
+        testutil::print($a);
+        testutil::print($b);
+        testutil::print($c);
+
+        @expect {
+            inner a
+            outer b
+            global c
+            outer a
+            outer b
+            global c
+            global a
+            global b
+            global c
+        }
+    }
+
+    @test nested_1 {
+        function $fn_block() {
+            var $a = "global";
+            {
+                var $a = "block";
+                testutil::print($a);
+            }
+            testutil::print($a);
+        };
+        
+        $fn_block();
+        testutil::print($a);
+
+        @expect {
+            block
+            global
+        }
+
+        @expect_err {
+            Environment(Other { message: "Variable '$a' was not found" })
+        }
+
+        testutil::print($a);
+
+        @expect {
+            block
+            global
+        }
+
+        @expect_err {
+            Environment(Other { message: "Variable '$a' was not found" })
+            Environment(Other { message: "Variable '$a' was not found" })
+        }
+    }
+}
