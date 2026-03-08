@@ -10,6 +10,7 @@ use std::sync::Arc;
 use crate::value::RV;
 use lykiadb_common::testing::{Block, TestCase, TestHandler, dedent};
 use lykiadb_lang::SourceProcessor;
+use pretty_assertions::assert_eq;
 
 pub struct Session<'v> {
     mode: SessionMode,
