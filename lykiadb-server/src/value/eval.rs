@@ -1546,16 +1546,21 @@ mod property_tests {
             a in (-1e6..1e6_f64).prop_map(RV::Double),
             b in (-1e6..1e6_f64).prop_map(RV::Double)
         ) {
+            // Capture b's magnitude before it is moved, so we can include it in the
+            // tolerance calculation.  The rounding error in (a + b) - b is driven by
+            // the magnitude of both operands, not just a.
+            let b_abs = if let RV::Double(bv) = &b { bv.abs() } else { 0.0 };
+
             // (a + b) - b should equal a
             let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
             let difference = eval_binary(sum, b, Operation::Subtract);
 
             if let (RV::Double(original), RV::Double(result)) = (a, difference) {
                 let diff = (original - result).abs();
-                // Use a more generous tolerance that accounts for the inherent limitations of floating-point arithmetic
-                // The tolerance needs to scale with the magnitude of the numbers involved
-                let scale = original.abs().max(1.0);
-                let tolerance = f64::EPSILON * scale * 100.0; // More generous multiplier
+                // Scale tolerance by the largest magnitude involved in the computation so
+                // that cases where |b| >> |a| do not cause spurious failures.
+                let scale = original.abs().max(b_abs).max(1.0);
+                let tolerance = f64::EPSILON * scale * 100.0;
                 prop_assert!(diff <= tolerance,
                     "Subtraction should be inverse of addition within floating-point precision: {} vs {}, diff: {}, tolerance: {}",
                     original, result, diff, tolerance);
