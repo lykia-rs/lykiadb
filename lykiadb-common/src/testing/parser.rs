@@ -187,6 +187,12 @@ impl TestLangParser {
                             self.expect_char('{')?;
                             blocks.push(Block::Expect(self.parse_braced()?));
                         }
+                    } else if kw == "test" || kw == "group" {
+                        return Err(ParseError::UnexpectedToken {
+                            position: self.pos,
+                            expected: "@expect or code".into(),
+                            got: format!("@{kw}"),
+                        });
                     } else {
                         cur_input.push('@');
                         cur_input.push_str(&kw);
@@ -608,6 +614,22 @@ mod tests {
         assert!(matches!(
             TestLangParser::new("@test foo { }").parse(),
             Err(ParseError::NoAssertions { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_test_nested_in_test() {
+        assert!(matches!(
+            TestLangParser::new("@test outer { @test inner { @expect { x } } @expect { y } }").parse(),
+            Err(ParseError::UnexpectedToken { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_group_nested_in_test() {
+        assert!(matches!(
+            TestLangParser::new("@test outer { @group g { } @expect { y } }").parse(),
+            Err(ParseError::UnexpectedToken { .. })
         ));
     }
 
