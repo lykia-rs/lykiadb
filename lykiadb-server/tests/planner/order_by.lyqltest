@@ -1,0 +1,32 @@
+@set(run = "plan")
+@group order_by {
+
+    @test simple {
+        EXPLAIN SELECT * FROM books b order by title;
+
+        @expect {
+            - order [(title, Asc)]
+              - scan [books as b]
+        }
+    }
+
+    @test multiple {
+        EXPLAIN SELECT * FROM books b order by title, id desc;
+
+        @expect {
+            - order [(title, Asc), (id, Desc)]
+              - scan [books as b]
+        }
+    }
+
+    @test compound {
+        EXPLAIN SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
+
+        @expect {
+            - order [(title, Asc), (id, Desc)]
+              - compound [type=Union]
+                - scan [books as books]
+                - scan [books as books]
+        }
+    }
+}

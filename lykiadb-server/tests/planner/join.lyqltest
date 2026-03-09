@@ -1,0 +1,54 @@
+@set(run = "plan")
+@group join {
+
+    @test two_way_simple {
+        EXPLAIN SELECT * FROM books b
+            INNER JOIN categories c ON b.category_id = c.id
+            WHERE c.name = 'Science';
+
+        @expect {
+            - filter [(c.name IsEqual Str("Science"))]
+              - join [type=Inner, (b.category_id IsEqual c.id)]
+                - scan [books as b]
+                - scan [categories as c]
+        }
+    }
+
+    @test three_way_simple {
+        EXPLAIN SELECT * FROM books b
+            INNER JOIN categories c ON b.category_id = c.id
+            INNER JOIN publishers AS p ON b.publisher_id = p.id
+            WHERE p.name = 'Springer';
+
+        @expect {
+            - filter [(p.name IsEqual Str("Springer"))]
+              - join [type=Inner, (b.publisher_id IsEqual p.id)]
+                - join [type=Inner, (b.category_id IsEqual c.id)]
+                  - scan [books as b]
+                  - scan [categories as c]
+                - scan [publishers as p]
+        }
+    }
+
+    @test three_way_reordered {
+        EXPLAIN SELECT * FROM books b
+            INNER JOIN
+            (
+              categories c
+              INNER JOIN
+              publishers AS p
+              ON b.category_id = c.id
+            )
+            ON b.publisher_id = p.id
+            WHERE p.name = 'Springer';
+
+        @expect {
+            - filter [(p.name IsEqual Str("Springer"))]
+              - join [type=Inner, (b.publisher_id IsEqual p.id)]
+                - scan [books as b]
+                - join [type=Inner, (b.category_id IsEqual c.id)]
+                  - scan [categories as c]
+                  - scan [publishers as p]
+        }
+    }
+}

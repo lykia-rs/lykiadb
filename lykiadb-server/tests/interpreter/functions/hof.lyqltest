@@ -1,0 +1,51 @@
+@set(run = "interpreter")
+@group hof {
+
+    @test higher_order_0 {
+        function $f($x, $q) {
+            $x($q);
+        };
+        
+        function $g($q) {
+            testutil::print($q);
+        };
+        
+        for (var $i = 0; $i < 10; $i = $i + 1) {
+            $f($g, $i);
+        }
+
+        @expect {
+            0
+            1
+            2
+            3
+            4
+            5
+            6
+            7
+            8
+            9
+        }
+    }
+
+    @test higher_order_1 {
+        function $make_counter() {
+        
+            var $i = 0;
+            function $count() {
+                $i = $i + 1;
+                testutil::print($i);
+            };
+        
+            return $count;
+        };
+        var $count = $make_counter();
+        $count();
+        $count();
+
+        @expect {
+            1
+            2
+        }
+    }
+}

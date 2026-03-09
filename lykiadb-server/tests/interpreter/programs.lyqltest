@@ -1,0 +1,33 @@
+@set(run = "interpreter")
+@group programs {
+
+    @test multiple_programs {
+        function $resolved_first() {
+            var $a = "global";
+            {
+                function $show_a() {
+                    testutil::print($a);
+                };
+            
+                $show_a();
+                var $a = "block";
+                $show_a();
+            }
+        };
+        $resolved_first();
+
+        @expect {
+            global
+            global
+        }
+
+        $resolved_first();
+
+        @expect {
+            global
+            global
+            global
+            global
+        }
+    }
+}

@@ -1,10 +1,12 @@
 mod planner {
     use lykiadb_server::session::SessionTester;
-    use test_each_file::test_each_file;
-    test_each_file! {
+    use test_each_file::test_each_path;
+    test_each_path! {
         in "lykiadb-server/tests/planner" => {
-            |input| {
-                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new()))).test_file(input)
+            |path: &std::path::Path| {
+                let input = std::fs::read_to_string(path).expect("Failed to read test file");
+                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new())))
+                    .test_file_named(path.to_str().unwrap_or(""), &input)
             }
         }
     }
@@ -12,12 +14,14 @@ mod planner {
 
 mod interpreter {
     use lykiadb_server::session::SessionTester;
-    use test_each_file::test_each_file;
+    use test_each_file::test_each_path;
 
-    test_each_file! {
+    test_each_path! {
         in "lykiadb-server/tests/interpreter" => {
-            |input| {
-                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new()))).test_file(input)
+            |path: &std::path::Path| {
+                let input = std::fs::read_to_string(path).expect("Failed to read test file");
+                lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new())))
+                    .test_file_named(path.to_str().unwrap_or(""), &input)
             }
         }
     }

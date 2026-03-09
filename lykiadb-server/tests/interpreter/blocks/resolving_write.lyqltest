@@ -1,0 +1,64 @@
+@set(run = "interpreter")
+@group resolving_write {
+
+    @test resolving_write_0 {
+        var $a = "global";
+        {
+            function $show_a() {
+                testutil::print($a);
+            };
+        
+            var $a = "block";
+            
+            function $show_b() {
+                testutil::print($a);
+            };
+        
+            
+            $show_a();
+            $show_b();
+            
+            $a = "test";
+            
+            $show_a();
+            $show_b();
+        }
+
+        @expect {
+            global
+            block
+            global
+            test
+        }
+    }
+
+    @test resolving_write_1 {
+        var $a = "global";
+        {
+            var $show_a = function() {
+                testutil::print($a);
+            };
+        
+            var $a = "block";
+            
+            var $show_b = function() {
+                testutil::print($a);
+            };
+        
+            $show_a();
+            $show_b();
+        
+            $a = "test";
+        
+            $show_a();
+            $show_b();
+        }
+
+        @expect {
+            global
+            block
+            global
+            test
+        }
+    }
+}

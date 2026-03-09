@@ -5,10 +5,10 @@ use crate::{
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::value::RV;
-use lykiadb_common::testing::TestHandler;
+use lykiadb_common::testing::{Block, TestCase, TestFailure, TestHandler, dedent};
 use lykiadb_lang::SourceProcessor;
 
 pub struct Session<'v> {
@@ -70,48 +70,60 @@ impl<'v> SessionTester<'v> {
 }
 
 impl<'v> TestHandler for SessionTester<'v> {
-    fn run_case(&mut self, case_parts: Vec<String>, flags: HashMap<&str, &str>) {
-        assert!(
-            case_parts.len() > 1,
-            "Expected at least one input/output pair"
-        );
-
+    fn run_case(&mut self, case: TestCase) -> Result<(), TestFailure> {
+        let run_mode = case.flags.get("run").map(|s| s.as_str()).unwrap_or("");
         let mut errors: Vec<ExecutionError> = vec![];
 
-        let result = self.session.interpret(&case_parts[0]);
-
-        if let Err(err) = result {
-            errors.push(err);
-        }
-
-        for part in &case_parts[1..] {
-            if let Some(stripped) = part.strip_prefix("err") {
-                assert_eq!(
-                    errors
+        for block in case.blocks {
+            match block {
+                Block::Input(code) => {
+                    if let Err(err) = self.session.interpret(&dedent(&code)) {
+                        errors.push(err);
+                    }
+                }
+                Block::Expect(raw) => {
+                    let expected = dedent(&raw);
+                    if run_mode == "plan" {
+                        self.out
+                            .write()
+                            .unwrap()
+                            .expect(vec![RV::Str(Arc::new(expected))])?;
+                    } else {
+                        let lines: Vec<String> =
+                            expected.split('\n').map(|l| l.to_string()).collect();
+                        self.out.write().unwrap().expect_str(lines)?;
+                    }
+                }
+                Block::ExpectErr(raw) => {
+                    let expected = dedent(&raw);
+                    let actual = errors
                         .iter()
                         .map(|x| x.to_string())
                         .collect::<Vec<String>>()
-                        .join("\n"),
-                    stripped.trim()
-                );
-            } else if let Some(stripped) = part.strip_prefix('>') {
-                let result = self.session.interpret(stripped.trim());
-
-                if let Err(err) = result {
-                    errors.push(err);
+                        .join("\n");
+                    if actual != expected {
+                        return Err(crate::interpreter::output::str_diff(&actual, &expected));
+                    }
                 }
-            } else if flags.get("run") == Some(&"plan") {
-                // TODO(vck): Remove this
-                self.out
-                    .write()
-                    .unwrap()
-                    .expect(vec![RV::Str(Arc::new(part.to_string()))]);
-            } else {
-                self.out
-                    .write()
-                    .unwrap()
-                    .expect_str(part.split('\n').map(|x| x.to_string()).collect());
             }
         }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{execution::state::ProgramState, interpreter::output::Output};
+    use lykiadb_common::memory::alloc_shared;
+
+    #[test]
+    fn repl_mode_interpret_logs_and_returns() {
+        let out = alloc_shared(Output::new());
+        let interp = Interpreter::from_state(&ProgramState::new(Some(out), true));
+        let mut session = Session::new(SessionMode::Repl, interp);
+        // A simple expression should succeed in Repl mode (exercises the info! branch)
+        let result = session.interpret("1 + 1;");
+        assert!(result.is_ok());
     }
 }

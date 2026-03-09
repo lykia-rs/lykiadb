@@ -1,0 +1,39 @@
+@set(run = "plan")
+@group from {
+
+    @test plain {
+        EXPLAIN SELECT * FROM books;
+
+        @expect {
+            - scan [books as books]
+        }
+    }
+
+    @test expression {
+        EXPLAIN SELECT * FROM [1,1,2,3,5,8,13] as fib;
+
+        @expect {
+            - eval_scan [Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))]
+        }
+    }
+
+    @test subquery {
+        EXPLAIN SELECT u.id as id FROM (select * from books) u;
+
+        @expect {
+            - project [u.id as id]
+              - subquery [u]
+                - scan [books as books]
+        }
+    }
+
+    @test mixed {
+        EXPLAIN SELECT * FROM books, [1,2,3] as num;
+
+        @expect {
+            - join [type=Cross, None]
+              - scan [books as books]
+              - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+        }
+    }
+}
