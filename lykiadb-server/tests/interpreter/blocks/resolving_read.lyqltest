@@ -11,10 +11,15 @@
             $show_a();
             var $a = "block";
             $show_a();
+            testutil::print($a);
         }
+
+        testutil::print($a);
 
         @expect {
             global
+            global
+            block
             global
         }
     }

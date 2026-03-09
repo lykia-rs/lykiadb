@@ -46,12 +46,13 @@
         };
         
         $fn_block();
-        testutil::print($a);
 
         @expect {
             block
             global
         }
+
+        testutil::print($a);
 
         @expect_err {
             Environment(Other { message: "Variable '$a' was not found" })
