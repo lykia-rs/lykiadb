@@ -1,8 +1,8 @@
 mod planner {
-    use lykiadb_server::session::SessionTester;
+    use crate::session::SessionTester;
     use test_each_file::test_each_path;
     test_each_path! {
-        in "lykiadb-server/tests/planner" => {
+        in "lykiadb-server/src/query/plan/tests" => {
             |path: &std::path::Path| {
                 let input = std::fs::read_to_string(path).expect("Failed to read test file");
                 lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new())))
@@ -13,11 +13,11 @@ mod planner {
 }
 
 mod interpreter {
-    use lykiadb_server::session::SessionTester;
+    use crate::session::SessionTester;
     use test_each_file::test_each_path;
 
     test_each_path! {
-        in "lykiadb-server/tests/interpreter" => {
+        in "lykiadb-server/src/interpreter/tests" => {
             |path: &std::path::Path| {
                 let input = std::fs::read_to_string(path).expect("Failed to read test file");
                 lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new())))
