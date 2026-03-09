@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group hof {
-    @set(run = "interpreter")
 
     @test higher_order_0 {
         function $f($x, $q) {

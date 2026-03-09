@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group expr {
-    @set(run = "interpreter")
 
     @test unary_evaluation {
         testutil::print(-2);
@@ -83,20 +83,20 @@
         
         testutil::print($obj.age);
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
         }
 
         testutil::print($obj.address.city);
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
         }
 
         testutil::print(undefined.prop);
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
@@ -104,7 +104,7 @@
 
         testutil::print(5.prop);
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
@@ -113,7 +113,7 @@
 
         testutil::print("string".length);
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
@@ -159,20 +159,20 @@
         
         $obj.address.city = "Boston";
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
         }
 
         undefined.prop = "test";
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
         }
 
         5.prop = "test";
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
@@ -180,7 +180,7 @@
 
         "string".prop = "test";
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
@@ -189,7 +189,7 @@
 
         undefined.prop = "test";
 
-        @expect_err {
+        @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
             Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
@@ -229,20 +229,20 @@
     @test between_errors {
         testutil::print(5 between "1" and 10);
 
-        @expect_err {
+        @expect error {
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
         }
 
         testutil::print(5 between 1 and "10");
 
-        @expect_err {
+        @expect error {
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
         }
 
         testutil::print("5" between 1 and 10);
 
-        @expect_err {
+        @expect error {
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
             Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })

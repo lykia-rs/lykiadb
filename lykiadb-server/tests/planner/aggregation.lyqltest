@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group aggregation {
-    @set(run = "plan")
 
     @test single {
         EXPLAIN SELECT id FROM books b GROUP BY id;

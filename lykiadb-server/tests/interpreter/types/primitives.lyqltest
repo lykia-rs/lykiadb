@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group primitives {
-    @set(run = "interpreter")
 
     @test numerical {
         testutil::print(dtype::of_(1) == dtype::double);

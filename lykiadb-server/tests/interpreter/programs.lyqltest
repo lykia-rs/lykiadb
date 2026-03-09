@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group programs {
-    @set(run = "interpreter")
 
     @test multiple_programs {
         function $resolved_first() {

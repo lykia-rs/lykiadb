@@ -28,14 +28,9 @@ pub(crate) enum SuiteItem {
 
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
-    UnexpectedEof {
-        context: String,
-    },
-    UnexpectedToken {
-        position: usize,
-        expected: String,
-        got: String,
-    },
+    UnexpectedEof { context: String },
+    UnexpectedToken { position: usize, expected: String, got: String },
+    NoAssertions { name: String },
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -63,16 +58,6 @@ impl TestLangParser {
             self.pos += 1;
         }
         c
-    }
-
-    fn starts_with(&self, s: &str) -> bool {
-        let tail = &self.chars[self.pos..];
-        let needle: Vec<char> = s.chars().collect();
-        tail.starts_with(&needle)
-    }
-
-    fn eat(&mut self, s: &str) {
-        self.pos += s.chars().count();
     }
 
     fn skip_ws(&mut self) {
@@ -144,8 +129,8 @@ impl TestLangParser {
         Ok(s)
     }
 
-    /// `@set(key = "value")` the `@set` keyword has already been consumed.
-    fn parse_set(&mut self) -> ParseResult<(String, String)> {
+    /// Parse `(key = "value")` : the keyword before it has already been consumed.
+    fn parse_annotation_args(&mut self) -> ParseResult<(String, String)> {
         self.expect_char('(')?;
         self.skip_ws();
         let key = self.parse_ident();
@@ -156,11 +141,7 @@ impl TestLangParser {
         let mut value = String::new();
         loop {
             match self.advance() {
-                None => {
-                    return Err(ParseError::UnexpectedEof {
-                        context: "inside @set string value".into(),
-                    });
-                }
+                None => return Err(ParseError::UnexpectedEof { context: "inside annotation value".into() }),
                 Some('"') => break,
                 Some(c) => value.push(c),
             }
@@ -171,55 +152,57 @@ impl TestLangParser {
     }
 
     /// Body of a `@test` block.  The opening `{` has already been consumed.
-    fn parse_test_body(&mut self) -> ParseResult<Vec<Block>> {
+    /// `@expect { … }` → output match; `@expect error { … }` → error match.
+    /// At least one expect block is required.
+    fn parse_test_body(&mut self, name: &str) -> ParseResult<Vec<Block>> {
         let mut blocks: Vec<Block> = Vec::new();
         let mut cur_input = String::new();
         let mut depth = 0usize;
 
         loop {
             match self.cur() {
-                None => {
-                    return Err(ParseError::UnexpectedEof {
-                        context: "inside @test body".into(),
-                    });
-                }
+                None => return Err(ParseError::UnexpectedEof { context: "inside @test body".into() }),
 
                 Some('@') => {
                     self.advance();
-                    if self.starts_with("expect_err") {
-                        self.eat("expect_err");
+                    let kw = self.parse_ident();
+                    if kw == "expect" {
                         if !cur_input.trim().is_empty() {
                             blocks.push(Block::Input(trim_code(&cur_input)));
                             cur_input.clear();
                         }
-                        self.expect_char('{')?;
-                        let content = self.parse_braced()?;
-                        blocks.push(Block::ExpectErr(content));
-                    } else if self.starts_with("expect") {
-                        self.eat("expect");
-                        if !cur_input.trim().is_empty() {
-                            blocks.push(Block::Input(trim_code(&cur_input)));
-                            cur_input.clear();
+                        self.skip_ws();
+                        if self.cur() != Some('{') {
+                            let qualifier = self.parse_ident();
+                            if qualifier != "error" {
+                                return Err(ParseError::UnexpectedToken {
+                                    position: self.pos,
+                                    expected: "error or {".into(),
+                                    got: qualifier,
+                                });
+                            }
+                            self.expect_char('{')?;
+                            blocks.push(Block::ExpectErr(self.parse_braced()?));
+                        } else {
+                            self.expect_char('{')?;
+                            blocks.push(Block::Expect(self.parse_braced()?));
                         }
-                        self.expect_char('{')?;
-                        let content = self.parse_braced()?;
-                        blocks.push(Block::Expect(content));
                     } else {
                         cur_input.push('@');
+                        cur_input.push_str(&kw);
                     }
                 }
 
-                Some('{') => {
-                    depth += 1;
-                    self.advance();
-                    cur_input.push('{');
-                }
+                Some('{') => { depth += 1; self.advance(); cur_input.push('{'); }
 
                 Some('}') => {
                     if depth == 0 {
                         self.advance();
                         if !cur_input.trim().is_empty() {
                             blocks.push(Block::Input(trim_code(&cur_input)));
+                        }
+                        if !blocks.iter().any(|b| matches!(b, Block::Expect(_) | Block::ExpectErr(_))) {
+                            return Err(ParseError::NoAssertions { name: name.to_string() });
                         }
                         return Ok(blocks);
                     }
@@ -228,27 +211,24 @@ impl TestLangParser {
                     cur_input.push('}');
                 }
 
-                Some(c) => {
-                    self.advance();
-                    cur_input.push(c);
-                }
+                Some(c) => { self.advance(); cur_input.push(c); }
             }
         }
     }
 
-    /// Body of a `@group` block.  The opening `{` has already been consumed.
-    fn parse_group_body(&mut self) -> ParseResult<(HashMap<String, String>, Vec<SuiteItem>)> {
-        let mut flags: HashMap<String, String> = HashMap::new();
-        let mut children: Vec<SuiteItem> = Vec::new();
+    /// Parse a sequence of `@set` / `@test` / `@group` items.
+    /// If `is_toplevel`, reads until EOF; otherwise reads until balanced `}`.
+    /// `@set(k="v")` annotations accumulate and are consumed by the next
+    /// `@test` or `@group`, making them usable on both.
+    fn parse_items_body(&mut self, is_toplevel: bool) -> ParseResult<Vec<SuiteItem>> {
+        let mut items: Vec<SuiteItem> = Vec::new();
+        let mut pending: HashMap<String, String> = HashMap::new();
 
         loop {
             self.skip_ws();
             match self.cur() {
-                None => {
-                    return Err(ParseError::UnexpectedEof {
-                        context: "inside @group body".into(),
-                    });
-                }
+                None if is_toplevel => break,
+                None => return Err(ParseError::UnexpectedEof { context: "inside @group body".into() }),
 
                 Some('#') => self.skip_line(),
 
@@ -257,80 +237,17 @@ impl TestLangParser {
                     let kw = self.parse_ident();
                     match kw.as_str() {
                         "set" => {
-                            let (k, v) = self.parse_set()?;
-                            flags.insert(k, v);
+                            let (k, v) = self.parse_annotation_args()?;
+                            pending.insert(k, v);
                         }
                         "test" => {
                             self.skip_ws();
                             let name = self.parse_ident();
                             self.expect_char('{')?;
-                            let test_blocks = self.parse_test_body()?;
-                            children.push(SuiteItem::Test(TestCase {
-                                name,
-                                flags: HashMap::new(),
-                                blocks: test_blocks,
-                            }));
-                        }
-                        "group" => {
-                            self.skip_ws();
-                            let name = self.parse_ident();
-                            self.expect_char('{')?;
-                            let (sub_flags, sub_children) = self.parse_group_body()?;
-                            children.push(SuiteItem::Group {
-                                name,
-                                flags: sub_flags,
-                                children: sub_children,
-                            });
-                        }
-                        other => {
-                            return Err(ParseError::UnexpectedToken {
-                                position: self.pos,
-                                expected: "set, test, or group".into(),
-                                got: other.to_string(),
-                            });
-                        }
-                    }
-                }
-
-                Some('}') => {
-                    self.advance();
-                    return Ok((flags, children));
-                }
-
-                Some(c) => {
-                    return Err(ParseError::UnexpectedToken {
-                        position: self.pos,
-                        expected: "@directive or }".into(),
-                        got: c.to_string(),
-                    });
-                }
-            }
-        }
-    }
-
-    /// Top-level entry point.  Parses a sequence of `@test` / `@group` items.
-    pub fn parse(&mut self) -> ParseResult<Vec<SuiteItem>> {
-        let mut items: Vec<SuiteItem> = Vec::new();
-
-        loop {
-            self.skip_ws();
-            match self.cur() {
-                None => break,
-
-                Some('#') => self.skip_line(),
-
-                Some('@') => {
-                    self.advance();
-                    let kw = self.parse_ident();
-                    match kw.as_str() {
-                        "test" => {
-                            self.skip_ws();
-                            let name = self.parse_ident();
-                            self.expect_char('{')?;
-                            let blocks = self.parse_test_body()?;
+                            let blocks = self.parse_test_body(&name)?;
                             items.push(SuiteItem::Test(TestCase {
                                 name,
-                                flags: HashMap::new(),
+                                flags: std::mem::take(&mut pending),
                                 blocks,
                             }));
                         }
@@ -338,34 +255,36 @@ impl TestLangParser {
                             self.skip_ws();
                             let name = self.parse_ident();
                             self.expect_char('{')?;
-                            let (grp_flags, children) = self.parse_group_body()?;
+                            let children = self.parse_items_body(false)?;
                             items.push(SuiteItem::Group {
                                 name,
-                                flags: grp_flags,
+                                flags: std::mem::take(&mut pending),
                                 children,
                             });
                         }
-                        other => {
-                            return Err(ParseError::UnexpectedToken {
-                                position: self.pos,
-                                expected: "test or group".into(),
-                                got: other.to_string(),
-                            });
-                        }
+                        other => return Err(ParseError::UnexpectedToken {
+                            position: self.pos,
+                            expected: "set, test, or group".into(),
+                            got: other.to_string(),
+                        }),
                     }
                 }
 
-                Some(c) => {
-                    return Err(ParseError::UnexpectedToken {
-                        position: self.pos,
-                        expected: "@directive or EOF".into(),
-                        got: c.to_string(),
-                    });
-                }
+                Some('}') if !is_toplevel => { self.advance(); return Ok(items); }
+
+                Some(c) => return Err(ParseError::UnexpectedToken {
+                    position: self.pos,
+                    expected: "@directive or EOF".into(),
+                    got: c.to_string(),
+                }),
             }
         }
 
         Ok(items)
+    }
+
+    pub fn parse(&mut self) -> ParseResult<Vec<SuiteItem>> {
+        self.parse_items_body(true)
     }
 }
 
@@ -376,41 +295,20 @@ pub(crate) fn flatten_items(
     inherited: &HashMap<String, String>,
     prefix: &str,
 ) -> Vec<TestCase> {
-    let mut out = Vec::new();
-    for item in items {
-        match item {
-            SuiteItem::Test(tc) => {
-                let mut flags = inherited.clone();
-                flags.extend(tc.flags.clone());
-                let full_name = if prefix.is_empty() {
-                    tc.name.clone()
-                } else {
-                    format!("{}.{}", prefix, tc.name)
-                };
-                out.push(TestCase {
-                    name: full_name,
-                    flags,
-                    blocks: tc.blocks.clone(),
-                });
-            }
-            SuiteItem::Group {
-                name,
-                flags,
-                children,
-                ..
-            } => {
-                let mut merged = inherited.clone();
-                merged.extend(flags.clone());
-                let child_prefix = if prefix.is_empty() {
-                    name.clone()
-                } else {
-                    format!("{prefix}.{name}")
-                };
-                out.extend(flatten_items(children, &merged, &child_prefix));
-            }
+    items.iter().flat_map(|item| match item {
+        SuiteItem::Test(tc) => {
+            let mut flags = inherited.clone();
+            flags.extend(tc.flags.clone());
+            let full_name = if prefix.is_empty() { tc.name.clone() } else { format!("{prefix}.{}", tc.name) };
+            vec![TestCase { name: full_name, flags, blocks: tc.blocks.clone() }]
         }
-    }
-    out
+        SuiteItem::Group { name, flags, children } => {
+            let mut merged = inherited.clone();
+            merged.extend(flags.clone());
+            let child_prefix = if prefix.is_empty() { name.clone() } else { format!("{prefix}.{name}") };
+            flatten_items(children, &merged, &child_prefix)
+        }
+    }).collect()
 }
 
 /// Strip common leading whitespace (dedent) and trim outer blank lines.
@@ -452,26 +350,31 @@ mod tests {
     }
 
     fn flat(src: &str) -> Vec<TestCase> {
-        let items = TestLangParser::new(src).parse().expect("parse failed");
-        flatten_items(&items, &HashMap::new(), "")
+        flatten_items(&TestLangParser::new(src).parse().expect("parse failed"), &HashMap::new(), "")
     }
 
     fn flags_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
-        pairs
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect()
+        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
     }
 
     #[test]
     fn dedent_strips_common_indent() {
-        assert_eq!(dedent("\n    hello\n    world\n"), "hello\nworld");
+        assert_eq!(
+            dedent("
+    hello
+    world
+"),
+            "hello\nworld"
+        );
     }
 
     #[test]
     fn dedent_preserves_relative_indent() {
         assert_eq!(
-            dedent("\n    - outer\n      - inner\n"),
+            dedent("
+    - outer
+      - inner
+"),
             "- outer\n  - inner"
         );
     }
@@ -483,23 +386,25 @@ mod tests {
     }
 
     #[test]
-    fn parse_minimal_test() {
-        let items = parse_items("@test foo { some code }");
-        assert_eq!(
-            items,
-            vec![SuiteItem::Test(TestCase {
-                name: "foo".into(),
-                flags: HashMap::new(),
-                // trim_code strips surrounding newlines; spaces are dedented at run time
-                blocks: vec![Block::Input(" some code ".into())],
-            })]
-        );
+    fn dedent_all_blank_lines() {
+        assert_eq!(dedent("\n\n\n"), "");
+    }
+
+    #[test]
+    fn dedent_single_non_blank_line() {
+        assert_eq!(dedent("    hello"), "hello");
     }
 
     #[test]
     fn parse_test_with_expect() {
-        let src = "@test greet {\n    testutil::print(\"hello\");\n    @expect {\n        hello\n    }\n}";
-        let cases = flat(src);
+        let cases = flat(r#"
+            @test greet {
+                print("hello");
+                @expect {
+                    hello
+                }
+            }
+        "#);
         assert_eq!(cases.len(), 1);
         assert_eq!(cases[0].name, "greet");
         assert!(matches!(&cases[0].blocks[0], Block::Input(_)));
@@ -507,23 +412,65 @@ mod tests {
     }
 
     #[test]
-    fn parse_test_with_expect_err() {
-        let src = "@test bad {\n    do_error();\n    @expect_err {\n        SomeError\n    }\n}";
-        let cases = flat(src);
+    fn parse_test_expect_only() {
+        let items = parse_items("@test foo { @expect { result } }");
+        assert_eq!(
+            items,
+            vec![SuiteItem::Test(TestCase {
+                name: "foo".into(),
+                flags: HashMap::new(),
+                blocks: vec![Block::Expect(" result ".into())],
+            })]
+        );
+    }
+
+    #[test]
+    fn parse_test_with_expect_error() {
+        let cases = flat(r#"
+            @test bad {
+                do_error();
+                @expect error {
+                    SomeError
+                }
+            }
+        "#);
         assert!(matches!(&cases[0].blocks[1], Block::ExpectErr(_)));
     }
 
     #[test]
     fn parse_test_interleaved_blocks() {
-        let src = "@test multi {\n    code1();\n    @expect_err { err1 }\n    code2();\n    @expect_err { err2 }\n}";
-        let cases = flat(src);
+        let cases = flat(r#"
+            @test multi {
+                code1();
+                @expect error { err1 }
+                code2();
+                @expect error { err2 }
+            }
+        "#);
         assert_eq!(cases[0].blocks.len(), 4);
     }
 
     #[test]
+    fn parse_test_only_expect_error_no_input() {
+        let cases = flat("@test e { @expect error { boom } }");
+        assert_eq!(cases[0].blocks.len(), 1);
+        assert!(matches!(&cases[0].blocks[0], Block::ExpectErr(_)));
+    }
+
+    #[test]
     fn parse_nested_braces_in_code() {
-        let src = "@test loops {\n    for (var $i = 0; $i < 3; $i = $i + 1) {\n        print($i);\n    }\n    @expect {\n        0\n        1\n        2\n    }\n}";
-        let cases = flat(src);
+        let cases = flat(r#"
+            @test loops {
+                for (var $i = 0; $i < 3; $i = $i + 1) {
+                    print($i);
+                }
+                @expect {
+                    0
+                    1
+                    2
+                }
+            }
+        "#);
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains("for"));
         } else {
@@ -532,49 +479,158 @@ mod tests {
     }
 
     #[test]
-    fn parse_group_flags_inherited() {
-        let src = "@group suite {\n    @set(run = \"plan\")\n    @test q1 { code @expect { result } }\n    @test q2 { code @expect { result } }\n}";
-        let cases = flat(src);
+    fn parse_multiple_top_level_tests() {
+        let cases = flat(r#"
+            @test first { a @expect { 1 } }
+            @test second { b @expect { 2 } }
+        "#);
+        assert_eq!(cases[0].name, "first");
+        assert_eq!(cases[1].name, "second");
+    }
+
+    #[test]
+    fn parse_top_level_comment() {
+        let cases = flat(r#"
+            # comment
+            @test name { code @expect { result } }
+        "#);
+        assert_eq!(cases.len(), 1);
+    }
+
+    #[test]
+    fn set_annotates_test_directly() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @test t { @expect { x } }
+        "#);
+        assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
+    }
+
+    #[test]
+    fn set_annotates_group_flags_inherited_by_tests() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @group suite {
+                @test q1 { code @expect { result } }
+                @test q2 { code @expect { result } }
+            }
+        "#);
         assert_eq!(cases.len(), 2);
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
         assert_eq!(cases[1].flags.get("run"), Some(&"plan".to_string()));
     }
 
     #[test]
-    fn parse_nested_group_flags_merged() {
-        let src = "@group outer {\n    @set(run = \"plan\")\n    @group inner {\n        @set(extra = \"yes\")\n        @test t { code @expect { x } }\n    }\n}";
-        let cases = flat(src);
-        assert_eq!(
-            cases[0].flags,
-            flags_map(&[("run", "plan"), ("extra", "yes")])
-        );
+    fn set_inside_group_annotates_next_item_only() {
+        let cases = flat(r#"
+            @group suite {
+                @set(run = "plan")
+                @test q1 { code @expect { result } }
+                @test q2 { code @expect { result } }
+            }
+        "#);
+        assert_eq!(cases.len(), 2);
+        assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
+        assert!(cases[1].flags.get("run").is_none());
     }
 
     #[test]
-    fn parse_nested_group_flag_override() {
-        let src = "@group outer {\n    @set(run = \"plan\")\n    @group inner {\n        @set(run = \"interpreter\")\n        @test t { code @expect { x } }\n    }\n}";
-        let cases = flat(src);
+    fn set_does_not_bleed_to_next_item() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @test first { @expect { x } }
+            @test second { @expect { y } }
+        "#);
+        assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
+        assert!(cases[1].flags.get("run").is_none());
+    }
+
+    #[test]
+    fn multiple_sets_accumulate() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @set(extra = "yes")
+            @test t { @expect { x } }
+        "#);
+        assert_eq!(cases[0].flags, flags_map(&[("run", "plan"), ("extra", "yes")]));
+    }
+
+    #[test]
+    fn nested_group_flags_merged() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @group outer {
+                @set(extra = "yes")
+                @group inner {
+                    @test t { code @expect { x } }
+                }
+            }
+        "#);
+        assert_eq!(cases[0].flags, flags_map(&[("run", "plan"), ("extra", "yes")]));
+    }
+
+    #[test]
+    fn nested_group_flag_override() {
+        let cases = flat(r#"
+            @set(run = "plan")
+            @group outer {
+                @set(run = "interpreter")
+                @group inner {
+                    @test t { code @expect { x } }
+                }
+            }
+        "#);
         assert_eq!(cases[0].flags.get("run"), Some(&"interpreter".to_string()));
     }
 
     #[test]
-    fn parse_top_level_comment() {
-        let src = "# comment\n@test name { code @expect { result } }";
-        assert_eq!(flat(src).len(), 1);
+    fn group_name_prefix_in_test_names() {
+        let cases = flat(r#"
+            @group outer {
+                @group inner {
+                    @test t { @expect { x } }
+                }
+            }
+        "#);
+        assert_eq!(cases[0].name, "outer.inner.t");
     }
 
     #[test]
-    fn parse_multiple_top_level_tests() {
-        let src = "@test first { a @expect { 1 } }\n@test second { b @expect { 2 } }";
-        let cases = flat(src);
-        assert_eq!(cases[0].name, "first");
-        assert_eq!(cases[1].name, "second");
+    fn no_assertions_error() {
+        assert!(matches!(
+            TestLangParser::new("@test foo { some code }").parse(),
+            Err(ParseError::NoAssertions { name }) if name == "foo"
+        ));
     }
 
     #[test]
-    fn parse_error_unexpected_token() {
+    fn no_assertions_error_empty_body() {
+        assert!(matches!(
+            TestLangParser::new("@test foo { }").parse(),
+            Err(ParseError::NoAssertions { .. })
+        ));
+    }
+
+    #[test]
+    fn unknown_expect_qualifier() {
+        assert!(matches!(
+            TestLangParser::new("@test t { @expect unknown { x } }").parse(),
+            Err(ParseError::UnexpectedToken { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_unexpected_token_at_top_level() {
         assert!(matches!(
             TestLangParser::new("garbage").parse(),
+            Err(ParseError::UnexpectedToken { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_unknown_directive() {
+        assert!(matches!(
+            TestLangParser::new("@unknown { }").parse(),
             Err(ParseError::UnexpectedToken { .. })
         ));
     }
@@ -590,7 +646,7 @@ mod tests {
     #[test]
     fn parse_error_eof_in_braced() {
         assert!(matches!(
-            TestLangParser::new("@test t { code @expect {").parse(),
+            TestLangParser::new("@test t { @expect {").parse(),
             Err(ParseError::UnexpectedEof { .. })
         ));
     }
@@ -601,5 +657,66 @@ mod tests {
             TestLangParser::new("@test t { code without closing brace").parse(),
             Err(ParseError::UnexpectedEof { .. })
         ));
+    }
+
+    #[test]
+    fn parse_error_eof_in_group_body() {
+        assert!(matches!(
+            TestLangParser::new("@group g { @test t { @expect { x } }").parse(),
+            Err(ParseError::UnexpectedEof { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_eof_in_annotation_value() {
+        assert!(matches!(
+            TestLangParser::new("@set(run = \"plan").parse(),
+            Err(ParseError::UnexpectedEof { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_bad_char_in_group() {
+        assert!(matches!(
+            TestLangParser::new("@group g { bad }").parse(),
+            Err(ParseError::UnexpectedToken { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_expect_char_eof() {
+        assert!(matches!(
+            TestLangParser::new("@test").parse(),
+            Err(ParseError::UnexpectedEof { .. })
+        ));
+    }
+
+    #[test]
+    fn parse_error_expect_char_wrong() {
+        assert!(matches!(
+            TestLangParser::new("@test t x").parse(),
+            Err(ParseError::UnexpectedToken { .. })
+        ));
+    }
+
+    #[test]
+    fn at_sign_in_code_preserved() {
+        let cases = flat("@test t { @notadirective @expect { x } }");
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains("@notadirective"));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn flatten_empty_group() {
+        let items = parse_items("@group empty {}");
+        assert!(flatten_items(&items, &HashMap::new(), "").is_empty());
+    }
+
+    #[test]
+    fn flatten_top_level_prefix_empty() {
+        assert_eq!(flat("@test t { @expect { x } }")[0].name, "t");
     }
 }

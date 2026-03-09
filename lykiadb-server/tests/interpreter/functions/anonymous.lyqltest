@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group anonymous {
-    @set(run = "interpreter")
 
     @test anonymous_fn_0 {
         var $pr = function $a() {

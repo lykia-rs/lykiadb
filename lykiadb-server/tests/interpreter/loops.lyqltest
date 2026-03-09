@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group loops {
-    @set(run = "interpreter")
 
     @test loop_statements_0 {
         for (var $i = 0; $i < 10; $i = $i + 1) {

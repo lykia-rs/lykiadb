@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group projection {
-    @set(run = "plan")
 
     @test implicit_all {
         EXPLAIN SELECT * FROM books;

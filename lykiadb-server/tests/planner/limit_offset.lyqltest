@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group limit_offset {
-    @set(run = "plan")
 
     @test limit {
         EXPLAIN SELECT * FROM books limit 4 + 4;

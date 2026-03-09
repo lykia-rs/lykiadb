@@ -1,10 +1,10 @@
+@set(run = "plan")
 @group join_err {
-    @set(run = "plan")
 
     @test illegal_subquery_in_condition {
         explain select * from books inner join categories ON (select * from books);
 
-        @expect_err {
+        @expect error {
             Plan(SubqueryNotAllowed(Span { start: 0, end: 0, line: 0, line_end: 0 }))
         }
     }

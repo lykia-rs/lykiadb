@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group nested {
-    @set(run = "interpreter")
 
     @test nested_0 {
         var $a = "global a";
@@ -54,7 +54,7 @@
 
         testutil::print($a);
 
-        @expect_err {
+        @expect error {
             Environment(Other { message: "Variable '$a' was not found" })
         }
 
@@ -65,7 +65,7 @@
             global
         }
 
-        @expect_err {
+        @expect error {
             Environment(Other { message: "Variable '$a' was not found" })
             Environment(Other { message: "Variable '$a' was not found" })
         }

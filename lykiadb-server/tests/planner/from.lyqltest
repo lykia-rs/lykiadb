@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group from {
-    @set(run = "plan")
 
     @test plain {
         EXPLAIN SELECT * FROM books;

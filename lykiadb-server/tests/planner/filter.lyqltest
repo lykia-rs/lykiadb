@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group filter {
-    @set(run = "plan")
 
     @test simple {
         EXPLAIN SELECT * FROM books b where title like '%hello%';

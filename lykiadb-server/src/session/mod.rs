@@ -110,3 +110,20 @@ impl<'v> TestHandler for SessionTester<'v> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{execution::state::ProgramState, interpreter::output::Output};
+    use lykiadb_common::memory::alloc_shared;
+
+    #[test]
+    fn repl_mode_interpret_logs_and_returns() {
+        let out = alloc_shared(Output::new());
+        let interp = Interpreter::from_state(&ProgramState::new(Some(out), true));
+        let mut session = Session::new(SessionMode::Repl, interp);
+        // A simple expression should succeed in Repl mode (exercises the info! branch)
+        let result = session.interpret("1 + 1;");
+        assert!(result.is_ok());
+    }
+}

@@ -116,3 +116,80 @@ macro_rules! extract {
         };
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    struct CollectHandler {
+        count: Arc<Mutex<usize>>,
+    }
+
+    impl TestHandler for CollectHandler {
+        fn run_case(&mut self, _case: TestCase) -> Result<(), TestFailure> {
+            *self.count.lock().unwrap() += 1;
+            Ok(())
+        }
+    }
+
+    struct FailHandler;
+    impl TestHandler for FailHandler {
+        fn run_case(&mut self, _: TestCase) -> Result<(), TestFailure> {
+            Err(TestFailure("intentional failure".into()))
+        }
+    }
+
+    #[test]
+    fn test_file_passes_all() {
+        let count = Arc::new(Mutex::new(0usize));
+        let c2 = count.clone();
+        let mut runner = TestRunner::new(Box::new(move || {
+            Box::new(CollectHandler { count: c2.clone() })
+        }));
+        runner.test_file("@test foo { @expect { x } }\n@test bar { @expect { y } }");
+        assert_eq!(*count.lock().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_file_named_strips_tests_prefix() {
+        let count = Arc::new(Mutex::new(0usize));
+        let c2 = count.clone();
+        let mut runner = TestRunner::new(Box::new(move || {
+            Box::new(CollectHandler { count: c2.clone() })
+        }));
+        // should not panic: just verify prefix trimming doesn't break anything
+        runner.test_file_named("/some/path/tests/lang/foo.ly", "@test t { @expect { x } }");
+        assert_eq!(*count.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn test_file_named_no_tests_dir() {
+        let count = Arc::new(Mutex::new(0usize));
+        let c2 = count.clone();
+        let mut runner = TestRunner::new(Box::new(move || {
+            Box::new(CollectHandler { count: c2.clone() })
+        }));
+        runner.test_file_named("/other/path/foo.ly", "@test t { @expect { x } }");
+        assert_eq!(*count.lock().unwrap(), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "test(s) failed")]
+    fn test_file_panics_on_failure() {
+        let mut runner = TestRunner::new(Box::new(|| Box::new(FailHandler)));
+        runner.test_file("@test bad { @expect { x } }");
+    }
+
+    #[test]
+    fn test_failure_display() {
+        let f = TestFailure("oops".into());
+        assert_eq!(f.to_string(), "oops");
+    }
+
+    #[test]
+    fn test_failure_is_error() {
+        let f: Box<dyn std::error::Error> = Box::new(TestFailure("e".into()));
+        assert_eq!(f.to_string(), "e");
+    }
+}

@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group ifs {
-    @set(run = "interpreter")
 
     @test simple {
         var $a = 30;

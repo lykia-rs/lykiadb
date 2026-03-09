@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group join {
-    @set(run = "plan")
 
     @test two_way_simple {
         EXPLAIN SELECT * FROM books b

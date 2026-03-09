@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group order_by {
-    @set(run = "plan")
 
     @test simple {
         EXPLAIN SELECT * FROM books b order by title;

@@ -1,5 +1,5 @@
+@set(run = "plan")
 @group compound {
-    @set(run = "plan")
 
     @test simple_union {
         EXPLAIN SELECT * FROM books

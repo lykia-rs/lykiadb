@@ -1,5 +1,5 @@
+@set(run = "interpreter")
 @group resolving_write {
-    @set(run = "interpreter")
 
     @test resolving_write_0 {
         var $a = "global";
