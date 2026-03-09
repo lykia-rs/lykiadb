@@ -5,6 +5,9 @@ pub mod query;
 pub mod session;
 pub mod value;
 
+#[cfg(test)]
+mod tests;
+
 #[macro_export]
 macro_rules! assert_plan {
     ($($name:ident: {$field:literal => $value:literal}),*) => {
