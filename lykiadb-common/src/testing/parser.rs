@@ -784,8 +784,6 @@ mod tests {
         assert_eq!(flat("@test t { @expect { x } }")[0].name, "t");
     }
 
-    // --- string-literal and comment brace-masking ---
-
     #[test]
     fn string_open_brace_not_counted() {
         // Unbalanced `{` inside a string should not confuse the depth counter.
