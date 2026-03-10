@@ -129,6 +129,38 @@ impl TestLangParser {
         Ok(s)
     }
 
+    /// Consume a double-quoted string literal after the opening `"` has been
+    /// consumed, pushing the full literal (including surrounding quotes) onto
+    /// `out`.  Handles `\"` and `\\` escapes so inner quotes don't terminate
+    /// the scan early.
+    fn scan_string_literal(&mut self, out: &mut String) -> ParseResult<()> {
+        out.push('"');
+        loop {
+            match self.advance() {
+                None => return Err(ParseError::UnexpectedEof { context: "inside string literal".into() }),
+                Some('\\') => {
+                    out.push('\\');
+                    match self.advance() {
+                        None => return Err(ParseError::UnexpectedEof { context: "inside string escape".into() }),
+                        Some(c) => out.push(c),
+                    }
+                }
+                Some('"') => { out.push('"'); break; }
+                Some(c) => out.push(c),
+            }
+        }
+        Ok(())
+    }
+
+    /// Consume from the current position to the end of the line (exclusive),
+    /// pushing everything onto `out`.  Call after the comment opener (`#` or
+    /// `//`) has already been pushed onto `out`.
+    fn scan_line_comment(&mut self, out: &mut String) {
+        while !matches!(self.cur(), Some('\n') | None) {
+            out.push(self.advance().unwrap());
+        }
+    }
+
     /// Parse `(key = "value")` : the keyword before it has already been consumed.
     fn parse_annotation_args(&mut self) -> ParseResult<(String, String)> {
         self.expect_char('(')?;
@@ -197,6 +229,16 @@ impl TestLangParser {
                         cur_input.push('@');
                         cur_input.push_str(&kw);
                     }
+                }
+
+                Some('"') => { self.advance(); self.scan_string_literal(&mut cur_input)?; }
+
+                Some('#') => { self.advance(); cur_input.push('#'); self.scan_line_comment(&mut cur_input); }
+
+                Some('/') if self.chars.get(self.pos + 1) == Some(&'/') => {
+                    self.advance(); self.advance();
+                    cur_input.push_str("//");
+                    self.scan_line_comment(&mut cur_input);
                 }
 
                 Some('{') => { depth += 1; self.advance(); cur_input.push('{'); }
@@ -740,5 +782,87 @@ mod tests {
     #[test]
     fn flatten_top_level_prefix_empty() {
         assert_eq!(flat("@test t { @expect { x } }")[0].name, "t");
+    }
+
+    #[test]
+    fn string_open_brace_not_counted() {
+        // Unbalanced `{` inside a string should not confuse the depth counter.
+        let cases = flat(r#"
+            @test t {
+                var $s = "open brace: {";
+                @expect { ok }
+            }
+        "#);
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains(r#""open brace: {""#));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn string_close_brace_not_counted() {
+        // Unbalanced `}` inside a string must not terminate the test body early.
+        let cases = flat(r#"
+            @test t {
+                var $s = "close brace: }";
+                @expect { ok }
+            }
+        "#);
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains(r#""close brace: }""#));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn string_balanced_braces_preserved() {
+        let cases = flat(r#"@test t { var $s = "{}"; @expect { ok } }"#);
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains(r#""{}""#));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn string_escaped_quote_with_brace_not_counted() {
+        // `\"` inside a string must not end the literal, so the `{` that
+        // follows it remains invisible to the depth counter.
+        let cases = flat("@test t { var $s = \"say \\\"hello {\\\"\"; @expect { ok } }");
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains('{'));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn hash_comment_braces_not_counted() {
+        let cases = flat("@test t { code(); # { unbalanced brace\n @expect { ok } }");
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains("# { unbalanced brace"));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn double_slash_comment_braces_not_counted() {
+        let cases = flat("@test t { code(); // } unbalanced\n @expect { ok } }");
+        if let Block::Input(code) = &cases[0].blocks[0] {
+            assert!(code.contains("// } unbalanced"));
+        } else {
+            panic!("expected Input block");
+        }
+    }
+
+    #[test]
+    fn parse_error_eof_in_string_literal_in_test_body() {
+        assert!(matches!(
+            TestLangParser::new("@test t { var $s = \"unterminated").parse(),
+            Err(ParseError::UnexpectedEof { .. })
+        ));
     }
 }
