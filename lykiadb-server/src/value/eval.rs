@@ -108,29 +108,29 @@ mod tests {
 
     #[test]
     fn test_is_value_truthy() {
-        assert!(!(RV::Undefined).as_bool());
-        assert!(!(RV::Bool(false)).as_bool());
-        assert!((RV::Bool(true)).as_bool());
-        assert!(!(RV::Double(0.0)).as_bool());
-        assert!((RV::Double(0.1)).as_bool());
-        assert!((RV::Double(-0.1)).as_bool());
-        assert!((RV::Double(1.0)).as_bool());
-        assert!((RV::Double(-1.0)).as_bool());
-        assert!(!(RV::Str(Arc::new("".to_owned()))).as_bool());
-        assert!((RV::Str(Arc::new("0".to_owned()))).as_bool());
-        assert!((RV::Str(Arc::new("false".to_owned()))).as_bool());
-        assert!((RV::Str(Arc::new("true".to_owned()))).as_bool());
-        assert!((RV::Str(Arc::new("foo".to_owned()))).as_bool());
-        assert!((RV::Array(RVArray::new())).as_bool());
-        assert!((RV::Object(RVObject::new())).as_bool());
+        assert!(!(RV::Undefined).to_bool());
+        assert!(!(RV::Bool(false)).to_bool());
+        assert!((RV::Bool(true)).to_bool());
+        assert!(!(RV::Double(0.0)).to_bool());
+        assert!((RV::Double(0.1)).to_bool());
+        assert!((RV::Double(-0.1)).to_bool());
+        assert!((RV::Double(1.0)).to_bool());
+        assert!((RV::Double(-1.0)).to_bool());
+        assert!(!(RV::Str(Arc::new("".to_owned()))).to_bool());
+        assert!((RV::Str(Arc::new("0".to_owned()))).to_bool());
+        assert!((RV::Str(Arc::new("false".to_owned()))).to_bool());
+        assert!((RV::Str(Arc::new("true".to_owned()))).to_bool());
+        assert!((RV::Str(Arc::new("foo".to_owned()))).to_bool());
+        assert!((RV::Array(RVArray::new())).to_bool());
+        assert!((RV::Object(RVObject::new())).to_bool());
     }
 
     #[test]
     fn test_as_double() {
-        assert_eq!((RV::Double(1.0)).as_double(), Some(1.0));
-        assert_eq!((RV::Bool(false)).as_double(), Some(0.0));
-        assert_eq!((RV::Bool(true)).as_double(), Some(1.0));
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).as_double(), None);
+        assert_eq!((RV::Double(1.0)).to_double(), Some(1.0));
+        assert_eq!((RV::Bool(false)).to_double(), Some(0.0));
+        assert_eq!((RV::Bool(true)).to_double(), Some(1.0));
+        assert_eq!((RV::Str(Arc::new("".to_owned()))).to_double(), None);
     }
 
     #[test]
@@ -1207,7 +1207,7 @@ mod property_tests {
         fn adding_zero_is_identity(a in numeric_rv_strategy()) {
             let zero = RV::Double(0.0);
             let result = eval_binary(a.clone(), zero, Operation::Add);
-            if let Some(num) = a.as_double() {
+            if let Some(num) = a.to_double() {
                 prop_assert_eq!(result, RV::Double(num));
             }
         }
@@ -1217,7 +1217,7 @@ mod property_tests {
         fn multiplying_by_one_is_identity(a in numeric_rv_strategy()) {
             let one = RV::Double(1.0);
             let result = eval_binary(a.clone(), one, Operation::Multiply);
-            if let Some(num) = a.as_double() {
+            if let Some(num) = a.to_double() {
                 prop_assert_eq!(result, RV::Double(num));
             }
         }
@@ -1336,7 +1336,7 @@ mod property_tests {
             let zero = RV::Double(0.0);
             let result = eval_binary(a.clone(), zero, Operation::Divide);
 
-            if let Some(num) = a.as_double() {
+            if let Some(num) = a.to_double() {
                 if num == 0.0 {
                     // 0/0 should be undefined
                     prop_assert_eq!(result, RV::Undefined);
@@ -1355,7 +1355,7 @@ mod property_tests {
             let rv_bool = RV::Bool(b);
             let expected_num = if b { 1.0 } else { 0.0 };
 
-            prop_assert_eq!(rv_bool.as_double(), Some(expected_num));
+            prop_assert_eq!(rv_bool.to_double(), Some(expected_num));
 
             // Test in arithmetic operations
             let result = eval_binary(rv_bool, RV::Double(0.0), Operation::Add);
@@ -1426,7 +1426,7 @@ mod property_tests {
         // Property: Truthiness should be consistent with as_bool
         #[test]
         fn truthiness_consistency(rv in rv_strategy()) {
-            let expected_bool = rv.as_bool();
+            let expected_bool = rv.to_bool();
 
             // Test against known truthy/falsy values
             let false_rv = RV::Bool(false);

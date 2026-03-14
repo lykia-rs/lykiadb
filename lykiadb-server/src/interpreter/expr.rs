@@ -38,12 +38,12 @@ impl<'sess> ExprEngine {
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.eval(expr, state)?.as_double() {
+            if let Some(num) = self.eval(expr, state)?.to_double() {
                 return Ok(RV::Double(-num));
             }
             Ok(RV::Undefined)
         } else {
-            Ok(RV::Bool(!self.eval(expr, state)?.as_bool()))
+            Ok(RV::Bool(!self.eval(expr, state)?.to_bool()))
         }
     }
 
@@ -183,7 +183,7 @@ impl<'sess> ExprEngine {
                 right,
                 ..
             } => {
-                let is_true = self.eval(left, state)?.as_bool();
+                let is_true = self.eval(left, state)?.to_bool();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -191,7 +191,7 @@ impl<'sess> ExprEngine {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(self.eval(right, state)?.as_bool()))
+                Ok(RV::Bool(self.eval(right, state)?.to_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
                 let distance = state

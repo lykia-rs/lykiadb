@@ -103,6 +103,32 @@ impl<'v> From<RV<'v>> for Datatype {
 }
 
 impl<'v> RV<'v> {
+    pub fn to_bool(&self) -> bool {
+        match &self {
+            RV::Double(value) => !value.is_nan() && value.abs() > 0.0,
+            RV::Str(value) => !value.is_empty(),
+            RV::Bool(value) => *value,
+            RV::Undefined => false,
+            _ => true,
+        }
+    }
+
+    pub fn to_double(&self) -> Option<f64> {
+        match self {
+            RV::Double(value) => Some(*value),
+            RV::Bool(true) => Some(1.0),
+            RV::Bool(false) => Some(0.0),
+            RV::Str(s) => s.parse::<f64>().ok(),
+            _ => None,
+        }
+    }
+
+    pub fn not(&self) -> RV<'v> {
+        RV::Bool(!self.to_bool())
+    }
+}
+
+impl<'v> RV<'v> {
     pub fn get_type(&self) -> Datatype {
         match &self {
             RV::Str(_) => Datatype::Str,
@@ -141,27 +167,7 @@ impl<'v> RV<'v> {
         }
     }
 
-    pub fn as_bool(&self) -> bool {
-        match &self {
-            RV::Double(value) => !value.is_nan() && value.abs() > 0.0,
-            RV::Str(value) => !value.is_empty(),
-            RV::Bool(value) => *value,
-            RV::Undefined => false,
-            _ => true,
-        }
-    }
-
-    pub fn as_double(&self) -> Option<f64> {
-        match self {
-            RV::Double(value) => Some(*value),
-            RV::Bool(true) => Some(1.0),
-            RV::Bool(false) => Some(0.0),
-            RV::Str(s) => s.parse::<f64>().ok(),
-            _ => None,
-        }
-    }
-
-    pub fn if_object(&self) -> Option<&RVObject<'v>> {
+    pub fn extract_object(&self) -> Option<&RVObject<'v>> {
         match self {
             RV::Object(obj) => Some(obj),
             _ => None,
@@ -169,7 +175,7 @@ impl<'v> RV<'v> {
     }
 
     pub fn eq_any_bool(&self, b: bool) -> bool {
-        self.as_bool() == b
+        self.to_bool() == b
     }
 
     pub fn eq_str_num(&self, n: f64) -> bool {
@@ -182,10 +188,10 @@ impl<'v> RV<'v> {
     }
 
     pub fn partial_cmp_str_bool(&self, other: bool) -> Option<std::cmp::Ordering> {
-        if let Some(num) = self.as_double() {
+        if let Some(num) = self.to_double() {
             return num.partial_cmp(&if other { 1.0 } else { 0.0 });
         }
-        self.as_bool().partial_cmp(&other)
+        self.to_bool().partial_cmp(&other)
     }
 
     pub fn is_in(&self, other: &RV<'v>) -> RV<'v> {
@@ -195,10 +201,6 @@ impl<'v> RV<'v> {
             (RV::Str(key), RV::Object(map)) => RV::Bool(map.contains_key(key.as_str())),
             _ => RV::Bool(false),
         }
-    }
-
-    pub fn not(&self) -> RV<'v> {
-        RV::Bool(!self.as_bool())
     }
 }
 
@@ -373,7 +375,7 @@ impl<'v> ops::Add for RV<'v> {
             (RV::Bool(_), RV::Bool(_))
             | (RV::Double(_), RV::Bool(_))
             | (RV::Bool(_), RV::Double(_)) => {
-                RV::Double(self.as_double().unwrap() + rhs.as_double().unwrap())
+                RV::Double(self.to_double().unwrap() + rhs.to_double().unwrap())
             }
 
             (RV::Double(l), RV::Double(r)) => RV::Double(l + r),
@@ -398,8 +400,8 @@ impl<'v> ops::Sub for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_double()
-                .and_then(|a| r.as_double().map(|b| (a, b)))
+                .to_double()
+                .and_then(|a| r.to_double().map(|b| (a, b)))
                 .map(|(a, b)| RV::Double(a - b))
                 .unwrap_or(RV::Undefined),
         }
@@ -413,8 +415,8 @@ impl<'v> ops::Mul for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_double()
-                .and_then(|a| r.as_double().map(|b| (a, b)))
+                .to_double()
+                .and_then(|a| r.to_double().map(|b| (a, b)))
                 .map(|(a, b)| RV::Double(a * b))
                 .unwrap_or(RV::Undefined),
         }
@@ -428,8 +430,8 @@ impl<'v> ops::Div for RV<'v> {
         match (self, rhs) {
             (RV::Undefined, _) | (_, RV::Undefined) => RV::Undefined,
             (l, r) => l
-                .as_double()
-                .and_then(|a| r.as_double().map(|b| (a, b)))
+                .to_double()
+                .and_then(|a| r.to_double().map(|b| (a, b)))
                 .map(|(a, b)| {
                     if a == 0.0 && b == 0.0 {
                         RV::Undefined
@@ -450,53 +452,53 @@ mod tests {
     #[test]
     fn test_rv_as_bool() {
         // Test numeric values
-        assert!(!RV::Double(0.0).as_bool());
-        assert!(RV::Double(1.0).as_bool());
-        assert!(RV::Double(-1.0).as_bool());
-        assert!(!RV::Double(f64::NAN).as_bool());
+        assert!(!RV::Double(0.0).to_bool());
+        assert!(RV::Double(1.0).to_bool());
+        assert!(RV::Double(-1.0).to_bool());
+        assert!(!RV::Double(f64::NAN).to_bool());
 
         // Test strings
-        assert!(!RV::Str(Arc::new("".to_string())).as_bool());
-        assert!(RV::Str(Arc::new("hello".to_string())).as_bool());
+        assert!(!RV::Str(Arc::new("".to_string())).to_bool());
+        assert!(RV::Str(Arc::new("hello".to_string())).to_bool());
 
         // Test booleans
-        assert!(RV::Bool(true).as_bool());
-        assert!(!RV::Bool(false).as_bool());
+        assert!(RV::Bool(true).to_bool());
+        assert!(!RV::Bool(false).to_bool());
 
         // Test special values
-        assert!(!RV::Undefined.as_bool());
+        assert!(!RV::Undefined.to_bool());
 
         // Test collections
         let empty_array = RV::Array(RVArray::new());
         let empty_object = RV::Object(RVObject::new());
-        assert!(empty_array.as_bool());
-        assert!(empty_object.as_bool());
+        assert!(empty_array.to_bool());
+        assert!(empty_object.to_bool());
     }
 
     #[test]
     fn test_rv_as_double() {
         // Test numeric values
-        assert_eq!(RV::Double(42.0).as_double(), Some(42.0));
-        assert_eq!(RV::Double(-42.0).as_double(), Some(-42.0));
-        assert_eq!(RV::Double(0.0).as_double(), Some(0.0));
+        assert_eq!(RV::Double(42.0).to_double(), Some(42.0));
+        assert_eq!(RV::Double(-42.0).to_double(), Some(-42.0));
+        assert_eq!(RV::Double(0.0).to_double(), Some(0.0));
 
         // Test booleans
-        assert_eq!(RV::Bool(true).as_double(), Some(1.0));
-        assert_eq!(RV::Bool(false).as_double(), Some(0.0));
+        assert_eq!(RV::Bool(true).to_double(), Some(1.0));
+        assert_eq!(RV::Bool(false).to_double(), Some(0.0));
 
         // Test strings
-        assert_eq!(RV::Str(Arc::new("42".to_string())).as_double(), Some(42.0));
+        assert_eq!(RV::Str(Arc::new("42".to_string())).to_double(), Some(42.0));
         assert_eq!(
-            RV::Str(Arc::new("-42".to_string())).as_double(),
+            RV::Str(Arc::new("-42".to_string())).to_double(),
             Some(-42.0)
         );
-        assert_eq!(RV::Str(Arc::new("invalid".to_string())).as_double(), None);
-        assert_eq!(RV::Str(Arc::new("".to_string())).as_double(), None);
+        assert_eq!(RV::Str(Arc::new("invalid".to_string())).to_double(), None);
+        assert_eq!(RV::Str(Arc::new("".to_string())).to_double(), None);
 
         // Test other types
-        assert_eq!(RV::Undefined.as_double(), None);
-        assert_eq!(RV::Array(RVArray::new()).as_double(), None);
-        assert_eq!(RV::Object(RVObject::new()).as_double(), None);
+        assert_eq!(RV::Undefined.to_double(), None);
+        assert_eq!(RV::Array(RVArray::new()).to_double(), None);
+        assert_eq!(RV::Object(RVObject::new()).to_double(), None);
     }
 
     #[test]

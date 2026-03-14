@@ -76,7 +76,7 @@ impl<'v, 'q> PlanExecutor {
                 match predicate {
                     IntermediateExpr::Constant(ct) => {
                         // TODO(vck): Maybe we can deal with this at compile time?
-                        if ct.as_bool() {
+                        if ct.to_bool() {
                             let cursor = self.execute_node(*source, exec_ctx)?;
                             Ok(cursor)
                         } else {
@@ -90,7 +90,7 @@ impl<'v, 'q> PlanExecutor {
                         let iter = cursor.filter_map(move |row: ExecutionRow| {
                             let evaluated = &exec_ctx.eval_with_exec_row(&expr, row.clone());
                             if let Ok(value) = evaluated
-                                && value.as_bool()
+                                && value.to_bool()
                             {
                                 Some(row)
                             } else {
@@ -446,7 +446,7 @@ mod tests {
             rows[0]
                 .get(&symbol)
                 .unwrap()
-                .if_object()
+                .extract_object()
                 .unwrap()
                 .get("numbers")
                 .unwrap(),
@@ -456,7 +456,7 @@ mod tests {
             rows[1]
                 .get(&symbol)
                 .unwrap()
-                .if_object()
+                .extract_object()
                 .unwrap()
                 .get("numbers")
                 .unwrap(),
