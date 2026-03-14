@@ -51,21 +51,6 @@ pub fn eval_between<'v>(
 
     None
 }
-/*
-fn eval_between_internal<T>(
-    subject: &T,
-    min: &T,
-    max: &T,
-) -> Option<bool> where T: Ord {
-    match subject {
-        RV::Double(_) => return eval_between_numeric(subject, min, max),
-        RV::DateTime(_) => return eval_between_datetime(subject, min, max),
-        RV::Str(_) => return eval_between_string(subject, min, max),
-        _ => (),
-    }
-
-    None
-}*/
 
 fn eval_between_numeric<'v>(
     subject: &RV,

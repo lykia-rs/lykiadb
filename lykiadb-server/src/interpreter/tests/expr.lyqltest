@@ -198,19 +198,27 @@
         }
     }
 
-    @test between_evaluation {
+    @test numeric_between_eval {
         var $x = 5;
         testutil::print($x between 1 and 10);
         testutil::print($x between 5 and 10);
         testutil::print($x between 1 and 5);
         testutil::print($x between 6 and 10);
         testutil::print($x between 0 and 4);
+        testutil::print($x between "1" and 10);
+        testutil::print($x between 5 and "10");
+        testutil::print($x between "1" and "5");
+        testutil::print($x between "0" and 4);
         
         testutil::print($x not between 1 and 10);
         testutil::print($x not between 5 and 10);
         testutil::print($x not between 1 and 5);
         testutil::print($x not between 6 and 10);
         testutil::print($x not between 0 and 4);
+        testutil::print($x not between "1" and 10);
+        testutil::print($x not between 5 and "10");
+        testutil::print($x not between "1" and "5");
+        testutil::print($x not between "0" and 4);
 
         @expect {
             true
@@ -218,34 +226,19 @@
             true
             false
             false
+            true
+            true
+            true
+            false
             false
             false
             false
             true
             true
-        }
-    }
-
-    @test between_errors {
-        testutil::print(5 between "1" and 10);
-
-        @expect error {
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-        }
-
-        testutil::print(5 between 1 and "10");
-
-        @expect error {
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-        }
-
-        testutil::print("5" between 1 and 10);
-
-        @expect error {
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            false
+            false
+            false
+            true
         }
     }
 
