@@ -159,7 +159,7 @@ impl Resolver<'_> {
                 self.resolve_stmts(body.as_ref())?;
                 self.end_scope();
             }
-            Expr::Between {
+            Expr::Ternary {
                 lower,
                 upper,
                 subject,

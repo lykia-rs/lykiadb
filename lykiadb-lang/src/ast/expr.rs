@@ -36,11 +36,6 @@ pub enum Operation {
     NotIn,
     Like,
     NotLike,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
-#[serde(tag = "@type")]
-pub enum RangeKind {
     Between,
     NotBetween,
 }
@@ -166,12 +161,12 @@ pub enum Expr {
         #[derivative(Hash = "ignore")]
         id: usize,
     },
-    #[serde(rename = "Expr::Between")]
-    Between {
+    #[serde(rename = "Expr::Ternary")]
+    Ternary {
         lower: Box<Expr>,
         upper: Box<Expr>,
         subject: Box<Expr>,
-        kind: RangeKind,
+        operation: Operation,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
         #[derivative(Hash = "ignore")]
@@ -310,7 +305,7 @@ impl Spanned for Expr {
             | Expr::Grouping { span, .. }
             | Expr::Literal { span, .. }
             | Expr::Function { span, .. }
-            | Expr::Between { span, .. }
+            | Expr::Ternary { span, .. }
             | Expr::Binary { span, .. }
             | Expr::Unary { span, .. }
             | Expr::Assignment { span, .. }
@@ -334,7 +329,7 @@ impl AstNode for Expr {
             | Expr::Grouping { id, .. }
             | Expr::Literal { id, .. }
             | Expr::Function { id, .. }
-            | Expr::Between { id, .. }
+            | Expr::Ternary { id, .. }
             | Expr::Binary { id, .. }
             | Expr::Unary { id, .. }
             | Expr::Assignment { id, .. }
@@ -389,19 +384,20 @@ impl Display for Expr {
                         .join(", ")
                 )
             }
-            Expr::Between {
+            Expr::Ternary {
                 lower,
                 upper,
                 subject,
-                kind,
+                operation,
                 ..
             } => write!(
                 f,
                 "({} {} {} And {})",
                 subject,
-                match kind {
-                    RangeKind::Between => "Between",
-                    RangeKind::NotBetween => "NotBetween",
+                match operation {
+                    Operation::Between => "Between",
+                    Operation::NotBetween => "NotBetween",
+                    _ => "UnknownTernaryOp",
                 },
                 lower,
                 upper
@@ -609,8 +605,8 @@ pub mod tests {
         };
         assert_eq!(group_expr.get_id(), 4);
 
-        // Test Between
-        let between_expr = Expr::Between {
+        // Test Ternary
+        let ternary_expr = Expr::Ternary {
             lower: Box::new(Expr::Literal {
                 value: Literal::Num(1.0),
                 raw: "1".to_string(),
@@ -628,11 +624,11 @@ pub mod tests {
                 span: Span::default(),
                 id: 7,
             }),
-            kind: RangeKind::Between,
+            operation: Operation::Between,
             span: Span::default(),
             id: 8,
         };
-        assert_eq!(between_expr.get_id(), 8);
+        assert_eq!(ternary_expr.get_id(), 8);
 
         // Test Binary
         let binary_expr = Expr::Binary {
@@ -743,7 +739,7 @@ pub mod tests {
         assert_eq!(func_expr.get_span(), test_span);
 
         // Test Between
-        let between_expr = Expr::Between {
+        let between_expr = Expr::Ternary {
             lower: Box::new(Expr::Literal {
                 value: Literal::Num(1.0),
                 raw: "1".to_string(),
@@ -761,7 +757,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 12,
             }),
-            kind: RangeKind::Between,
+            operation: Operation::Between,
             span: test_span,
             id: 13,
         };
@@ -966,7 +962,7 @@ pub mod tests {
 
     #[test]
     fn test_between_display() {
-        let between = Expr::Between {
+        let between = Expr::Ternary {
             lower: Box::new(Expr::Literal {
                 value: Literal::Num(1.0),
                 raw: "1".to_string(),
@@ -984,7 +980,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 3,
             }),
-            kind: RangeKind::Between,
+            operation: Operation::Between,
             span: Span::default(),
             id: 4,
         };
