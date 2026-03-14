@@ -66,7 +66,7 @@ impl<'sess> ExprEngine {
         lower: &Expr,
         upper: &Expr,
         operation: &Operation,
-        state: &ProgramState<'sess>
+        state: &ProgramState<'sess>,
     ) -> Result<Option<RV<'sess>>, HaltReason<'sess>> {
         let lower_eval = self.eval(lower, state)?;
         let upper_eval = self.eval(upper, state)?;
@@ -80,7 +80,7 @@ impl<'sess> ExprEngine {
                     Operation::Between => Ok(Some(RV::Bool(is_between))),
                     Operation::NotBetween => Ok(Some(RV::Bool(!is_between))),
                     _ => Ok(None),
-                }
+                };
             }
         }
 
@@ -171,11 +171,11 @@ impl<'sess> ExprEngine {
                 operation,
                 span,
                 ..
-            } => self.eval_ternary(
-                subject, lower, upper, operation, state
-            )?.ok_or(HaltReason::Error(
-                InterpretError::InvalidRangeBoundaries { span: *span }.into(),
-            )),
+            } => self
+                .eval_ternary(subject, lower, upper, operation, state)?
+                .ok_or(HaltReason::Error(
+                    InterpretError::InvalidRangeBoundaries { span: *span }.into(),
+                )),
             Expr::Grouping { expr, .. } => self.eval(expr, state),
             Expr::Logical {
                 left,

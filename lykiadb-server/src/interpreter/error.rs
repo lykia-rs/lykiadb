@@ -12,7 +12,9 @@ pub enum InterpretError {
     PropertyNotFound { span: Span, property: String },
     #[error("Only select expressions can be explained.")]
     InvalidExplainTarget { span: Span },
-    #[error("Make sure that subject and tested boundaries are of the same type (allowed types: str, datetime, number-like).")]
+    #[error(
+        "Make sure that subject and tested boundaries are of the same type (allowed types: str, datetime, number-like)."
+    )]
     InvalidRangeBoundaries { span: Span },
     #[error("Only objects have properties.")]
     InvalidPropertyAccess { span: Span, value_str: String },

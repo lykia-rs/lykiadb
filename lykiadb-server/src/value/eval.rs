@@ -37,11 +37,7 @@ pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operati
     }
 }
 
-pub fn eval_between<'v>(
-    subject: &RV,
-    min: &RV,
-    max: &RV,
-) -> Option<bool> {
+pub fn eval_between<'v>(subject: &RV, min: &RV, max: &RV) -> Option<bool> {
     match subject {
         RV::Double(_) => return eval_between_numeric(subject, min, max),
         RV::DateTime(_) => return eval_between_datetime(subject, min, max),
@@ -52,13 +48,9 @@ pub fn eval_between<'v>(
     None
 }
 
-fn eval_between_numeric<'v>(
-    subject: &RV,
-    min: &RV,
-    max: &RV,
-) -> Option<bool> {
+fn eval_between_numeric<'v>(subject: &RV, min: &RV, max: &RV) -> Option<bool> {
     if let (Some(lower_num), Some(upper_num), Some(subject_num)) =
-            (min.to_double(), max.to_double(), subject.to_double())
+        (min.to_double(), max.to_double(), subject.to_double())
     {
         let min_num = lower_num.min(upper_num);
         let max_num = lower_num.max(upper_num);
@@ -71,7 +63,7 @@ fn eval_between_numeric<'v>(
 
 fn eval_between_datetime(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<bool> {
     if let (RV::DateTime(lower_dt), RV::DateTime(upper_dt), RV::DateTime(subject_dt)) =
-            (min, max, subject)
+        (min, max, subject)
     {
         let min_dt = lower_dt.min(upper_dt);
         let max_dt = lower_dt.max(upper_dt);
@@ -90,7 +82,7 @@ fn eval_between_string(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<b
     let min_str = lower_str.min(upper_str).to_string();
     let max_str = lower_str.max(upper_str).to_string();
 
-    return Some(min_str <= subject_str && subject_str <= max_str);
+    Some(min_str <= subject_str && subject_str <= max_str)
 }
 
 #[cfg(test)]
