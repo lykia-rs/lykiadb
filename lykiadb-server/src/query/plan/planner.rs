@@ -312,6 +312,8 @@ impl<'v, 'q> Planner {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::{
         execution::state::ProgramState,
         query::{
@@ -324,7 +326,7 @@ mod tests {
         },
     };
     use lykiadb_common::extract;
-    use lykiadb_lang::ast::{
+    use lykiadb_lang::{ast::{
         Literal, Span,
         expr::{
             Expr, Operation,
@@ -333,11 +335,11 @@ mod tests {
                 create_number_expr, create_string_expr, create_subquery_expr,
             },
         },
-    };
+    }, parser::program::Program};
 
     /// Helper function to create a test planner instance
     fn create_test_planner() -> (Planner, &'static QueryExecutionContext<'static>) {
-        let state = ProgramState::new(None, true);
+        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
         let ctx = QueryExecutionContext::new(state);
         let exec_ctx: &'static QueryExecutionContext<'static> = Box::leak(Box::new(ctx));
         (Planner, exec_ctx)

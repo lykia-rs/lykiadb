@@ -1,9 +1,7 @@
 use ::std::time::Instant;
 use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
-use lykiadb_server::execution::state::ProgramState;
-use lykiadb_server::interpreter::Interpreter;
-use lykiadb_server::session::{Session, SessionMode};
+use lykiadb_server::session::Session;
 use std::io::Error;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
@@ -69,8 +67,7 @@ impl<'v> Connection<'v> {
         Connection {
             conn: TcpConnection::new(stream),
             session: Session::new(
-                SessionMode::File,
-                Interpreter::from_state(&ProgramState::new(None, true)),
+                false,
             ),
         }
     }
@@ -83,7 +80,7 @@ impl<'v> Connection<'v> {
                 Message::Request(req) => match req {
                     Request::Run(command) => {
                         let start = Instant::now();
-                        let execution = self.session.interpret(command);
+                        let execution = self.session.interpret(command, None);
                         let elapsed = start.elapsed();
                         info!("{:?} (took {:?})", message, elapsed);
                         let response = if execution.is_ok() {

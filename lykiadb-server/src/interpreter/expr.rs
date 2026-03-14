@@ -112,7 +112,7 @@ impl<'sess> ExprEngine {
             return Ok(val.clone());
         }
 
-        let distance = state.program.as_ref().and_then(|x| x.get_distance(expr));
+        let distance = state.program.as_ref().get_distance(expr);
         if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(&state.env, unwrapped, name, &intern_string(name))
         } else {
@@ -197,9 +197,6 @@ impl<'sess> ExprEngine {
                 let distance = state
                     .program
                     .as_ref()
-                    .ok_or(HaltReason::Error(ExecutionError::Interpret(
-                        InterpretError::NoProgramLoaded,
-                    )))?
                     .get_distance(e);
 
                 let evaluated = self.eval(expr, state)?;

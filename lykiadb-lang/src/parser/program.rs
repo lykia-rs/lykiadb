@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::{
     Locals, Scopes,
-    ast::{expr::Expr, stmt::Stmt},
+    ast::{Span, expr::Expr, stmt::Stmt},
     tokenizer::scanner::Scanner,
 };
 
@@ -17,6 +17,13 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn empty() -> Program {
+        Program {
+            root: Box::new(Stmt::Program { body: vec![], span: Span::default() }),
+            locals: Locals::default().into(),
+        }
+    }
+
     pub fn new(root: Box<Stmt>) -> Program {
         Program { root, locals: None }
     }

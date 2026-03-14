@@ -6,9 +6,7 @@ use std::{
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lykiadb_server::{
-    execution::state::ProgramState,
-    interpreter::Interpreter,
-    session::{Session, SessionMode},
+    session::Session,
 };
 
 fn session(filename: &str) {
@@ -18,10 +16,9 @@ fn session(filename: &str) {
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
     let mut session = Session::new(
-        SessionMode::File,
-        Interpreter::from_state(&ProgramState::new(None, true)),
+        false,
     );
-    session.interpret(&content).unwrap();
+    session.interpret(&content, None).unwrap();
 }
 
 fn bench(c: &mut Criterion) {

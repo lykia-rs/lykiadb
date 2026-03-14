@@ -12,35 +12,40 @@ use lykiadb_common::testing::{Block, TestCase, TestFailure, TestHandler, dedent}
 use lykiadb_lang::SourceProcessor;
 
 pub struct Session<'v> {
-    mode: SessionMode,
+    keep_alive: bool,
     source_processor: SourceProcessor,
-    interpreter: Interpreter<'v>,
-}
-
-#[derive(Eq, PartialEq)]
-pub enum SessionMode {
-    Repl,
-    File,
+    program_state: Option<ProgramState<'v>>,
 }
 
 impl<'v> Session<'v> {
-    pub fn new(mode: SessionMode, interpreter: Interpreter<'v>) -> Session<'v> {
+    pub fn new(keep_alive: bool) -> Session<'v> {
         Session {
-            mode,
-            interpreter,
+            keep_alive,
             source_processor: SourceProcessor::new(),
+            program_state: None,
         }
     }
 
-    pub fn interpret(&mut self, source: &str) -> Result<RV<'v>, ExecutionError> {
+    pub fn interpret(&mut self, source: &str, out: Option<Shared<Output<'v>>>) -> Result<RV<'v>, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
-        let out = self.interpreter.interpret(program);
 
-        if self.mode == SessionMode::Repl {
-            info!("{:?}", out);
+        if let Some(state) = &self.program_state && self.keep_alive {
+            self.program_state = Some(state.fork(out, program));
+        } else {
+            self.program_state = Some(ProgramState::new(out, program, true));
         }
 
-        out
+        let mut interpreter = Interpreter::from_state(self.program_state.as_ref().unwrap());
+        let res: Result<RV<'_>, ExecutionError> = interpreter.interpret();
+
+        if self.keep_alive {
+            info!("{:?}", res);
+        }
+        else {
+            self.source_processor.reset();
+        }
+
+        res
     }
 }
 
@@ -61,10 +66,7 @@ impl<'v> SessionTester<'v> {
 
         SessionTester {
             out: out.clone(),
-            session: Session::new(
-                SessionMode::File,
-                Interpreter::from_state(&ProgramState::new(Some(out), true)),
-            ),
+            session: Session::new(true),
         }
     }
 }
@@ -77,7 +79,7 @@ impl<'v> TestHandler for SessionTester<'v> {
         for block in case.blocks {
             match block {
                 Block::Input(code) => {
-                    if let Err(err) = self.session.interpret(&dedent(&code)) {
+                    if let Err(err) = self.session.interpret(&dedent(&code),Some(self.out.clone())) {
                         errors.push(err);
                     }
                 }
@@ -114,16 +116,15 @@ impl<'v> TestHandler for SessionTester<'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{execution::state::ProgramState, interpreter::output::Output};
+    use crate::{interpreter::output::Output};
     use lykiadb_common::memory::alloc_shared;
 
     #[test]
     fn repl_mode_interpret_logs_and_returns() {
         let out = alloc_shared(Output::new());
-        let interp = Interpreter::from_state(&ProgramState::new(Some(out), true));
-        let mut session = Session::new(SessionMode::Repl, interp);
+        let mut session = Session::new(true);
         // A simple expression should succeed in Repl mode (exercises the info! branch)
-        let result = session.interpret("1 + 1;");
+        let result = session.interpret("1 + 1;", Some(out));
         assert!(result.is_ok());
     }
 }

@@ -68,6 +68,11 @@ impl SourceProcessor {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.scopes.clear();
+        self.locals.clear();
+    }
+
     pub fn process(&mut self, source: &str) -> Result<Program, LangError> {
         let tokens = Scanner::scan(source)?;
         let mut program = Parser::parse(&tokens)?;

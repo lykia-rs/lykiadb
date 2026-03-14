@@ -15,7 +15,6 @@ pub mod output;
 use crate::value::callable::Stateful;
 use interb::Symbol;
 use lykiadb_lang::ast::stmt::Stmt;
-use lykiadb_lang::parser::program::Program;
 
 #[derive(PartialEq, Debug)]
 pub enum HaltReason<'v> {
@@ -29,9 +28,8 @@ pub struct Interpreter<'sess> {
 }
 
 impl<'sess> Interpreter<'sess> {
-    pub fn interpret(&mut self, program: Arc<Program>) -> Result<RV<'sess>, ExecutionError> {
-        self.state.program = Some(program.clone());
-        let out = self.visit_stmt(&program.get_root());
+    pub fn interpret(&mut self) -> Result<RV<'sess>, ExecutionError> {
+        let out = self.visit_stmt(&self.state.program.get_root());
         match out {
             Ok(val) => Ok(val),
             Err(err) => match err {
@@ -170,7 +168,10 @@ impl<'v> Stateful<'v> for output::Output<'v> {
 
 #[cfg(test)]
 pub mod tests {
+    use std::sync::Arc;
+
     use lykiadb_common::memory::Shared;
+    use lykiadb_lang::parser::program::Program;
 
     use crate::{
         execution::state::ProgramState,
@@ -178,7 +179,7 @@ pub mod tests {
     };
 
     pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
-        let state = ProgramState::new(out, true);
+        let state = ProgramState::new(out, Arc::new(Program::empty()), true);
         Interpreter::from_state(&state)
     }
 }
