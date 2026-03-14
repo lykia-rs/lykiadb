@@ -117,7 +117,7 @@ impl<'sess> Interpreter<'sess> {
                 r#else_body: r#else,
                 ..
             } => {
-                if expr_engine.eval(condition, &self.state)?.as_bool() {
+                if expr_engine.eval(condition, &self.state)?.to_bool() {
                     self.visit_stmt(body)?;
                 } else if let Some(else_stmt) = r#else {
                     self.visit_stmt(else_stmt)?;
@@ -132,7 +132,7 @@ impl<'sess> Interpreter<'sess> {
                 while condition.is_none()
                     || expr_engine
                         .eval(condition.as_ref().unwrap(), &self.state)?
-                        .as_bool()
+                        .to_bool()
                 {
                     self.visit_stmt(body)?;
                     if let Some(post_id) = post {

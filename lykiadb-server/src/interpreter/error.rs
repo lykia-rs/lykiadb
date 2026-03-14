@@ -12,8 +12,10 @@ pub enum InterpretError {
     PropertyNotFound { span: Span, property: String },
     #[error("Only select expressions can be explained.")]
     InvalidExplainTarget { span: Span },
-    #[error("Range can only be created with numbers.")]
-    InvalidRangeExpression { span: Span },
+    #[error(
+        "Make sure that subject and tested boundaries are of the same type (allowed types: str, datetime, number-like)."
+    )]
+    InvalidRangeBoundaries { span: Span },
     #[error("Only objects have properties.")]
     InvalidPropertyAccess { span: Span, value_str: String },
     #[error("Argument type mismatch. Expected {expected:?}")]
@@ -39,8 +41,8 @@ impl From<InterpretError> for InputError {
             InterpretError::InvalidExplainTarget { span, .. } => {
                 ("Try replacing this with a SELECT expression", *span)
             }
-            InterpretError::InvalidRangeExpression { span } => (
-                "Ensure that the range expression is built with numbers",
+            InterpretError::InvalidRangeBoundaries { span } => (
+                "Make sure that subject and tested boundaries are of the same type (allowed types: str, datetime, number-like).",
                 *span,
             ),
             InterpretError::InvalidPropertyAccess { span, value_str } => (

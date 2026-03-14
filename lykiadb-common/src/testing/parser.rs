@@ -28,9 +28,17 @@ pub(crate) enum SuiteItem {
 
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
-    UnexpectedEof { context: String },
-    UnexpectedToken { position: usize, expected: String, got: String },
-    NoAssertions { name: String },
+    UnexpectedEof {
+        context: String,
+    },
+    UnexpectedToken {
+        position: usize,
+        expected: String,
+        got: String,
+    },
+    NoAssertions {
+        name: String,
+    },
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -137,15 +145,26 @@ impl TestLangParser {
         out.push('"');
         loop {
             match self.advance() {
-                None => return Err(ParseError::UnexpectedEof { context: "inside string literal".into() }),
+                None => {
+                    return Err(ParseError::UnexpectedEof {
+                        context: "inside string literal".into(),
+                    });
+                }
                 Some('\\') => {
                     out.push('\\');
                     match self.advance() {
-                        None => return Err(ParseError::UnexpectedEof { context: "inside string escape".into() }),
+                        None => {
+                            return Err(ParseError::UnexpectedEof {
+                                context: "inside string escape".into(),
+                            });
+                        }
                         Some(c) => out.push(c),
                     }
                 }
-                Some('"') => { out.push('"'); break; }
+                Some('"') => {
+                    out.push('"');
+                    break;
+                }
                 Some(c) => out.push(c),
             }
         }
@@ -173,7 +192,11 @@ impl TestLangParser {
         let mut value = String::new();
         loop {
             match self.advance() {
-                None => return Err(ParseError::UnexpectedEof { context: "inside annotation value".into() }),
+                None => {
+                    return Err(ParseError::UnexpectedEof {
+                        context: "inside annotation value".into(),
+                    });
+                }
                 Some('"') => break,
                 Some(c) => value.push(c),
             }
@@ -193,7 +216,11 @@ impl TestLangParser {
 
         loop {
             match self.cur() {
-                None => return Err(ParseError::UnexpectedEof { context: "inside @test body".into() }),
+                None => {
+                    return Err(ParseError::UnexpectedEof {
+                        context: "inside @test body".into(),
+                    });
+                }
 
                 Some('@') => {
                     self.advance();
@@ -231,17 +258,29 @@ impl TestLangParser {
                     }
                 }
 
-                Some('"') => { self.advance(); self.scan_string_literal(&mut cur_input)?; }
+                Some('"') => {
+                    self.advance();
+                    self.scan_string_literal(&mut cur_input)?;
+                }
 
-                Some('#') => { self.advance(); cur_input.push('#'); self.scan_line_comment(&mut cur_input); }
+                Some('#') => {
+                    self.advance();
+                    cur_input.push('#');
+                    self.scan_line_comment(&mut cur_input);
+                }
 
                 Some('/') if self.chars.get(self.pos + 1) == Some(&'/') => {
-                    self.advance(); self.advance();
+                    self.advance();
+                    self.advance();
                     cur_input.push_str("//");
                     self.scan_line_comment(&mut cur_input);
                 }
 
-                Some('{') => { depth += 1; self.advance(); cur_input.push('{'); }
+                Some('{') => {
+                    depth += 1;
+                    self.advance();
+                    cur_input.push('{');
+                }
 
                 Some('}') => {
                     if depth == 0 {
@@ -249,8 +288,13 @@ impl TestLangParser {
                         if !cur_input.trim().is_empty() {
                             blocks.push(Block::Input(trim_code(&cur_input)));
                         }
-                        if !blocks.iter().any(|b| matches!(b, Block::Expect(_) | Block::ExpectErr(_))) {
-                            return Err(ParseError::NoAssertions { name: name.to_string() });
+                        if !blocks
+                            .iter()
+                            .any(|b| matches!(b, Block::Expect(_) | Block::ExpectErr(_)))
+                        {
+                            return Err(ParseError::NoAssertions {
+                                name: name.to_string(),
+                            });
                         }
                         return Ok(blocks);
                     }
@@ -259,7 +303,10 @@ impl TestLangParser {
                     cur_input.push('}');
                 }
 
-                Some(c) => { self.advance(); cur_input.push(c); }
+                Some(c) => {
+                    self.advance();
+                    cur_input.push(c);
+                }
             }
         }
     }
@@ -276,7 +323,11 @@ impl TestLangParser {
             self.skip_ws();
             match self.cur() {
                 None if is_toplevel => break,
-                None => return Err(ParseError::UnexpectedEof { context: "inside @group body".into() }),
+                None => {
+                    return Err(ParseError::UnexpectedEof {
+                        context: "inside @group body".into(),
+                    });
+                }
 
                 Some('#') => self.skip_line(),
 
@@ -310,21 +361,28 @@ impl TestLangParser {
                                 children,
                             });
                         }
-                        other => return Err(ParseError::UnexpectedToken {
-                            position: self.pos,
-                            expected: "set, test, or group".into(),
-                            got: other.to_string(),
-                        }),
+                        other => {
+                            return Err(ParseError::UnexpectedToken {
+                                position: self.pos,
+                                expected: "set, test, or group".into(),
+                                got: other.to_string(),
+                            });
+                        }
                     }
                 }
 
-                Some('}') if !is_toplevel => { self.advance(); return Ok(items); }
+                Some('}') if !is_toplevel => {
+                    self.advance();
+                    return Ok(items);
+                }
 
-                Some(c) => return Err(ParseError::UnexpectedToken {
-                    position: self.pos,
-                    expected: "@directive or EOF".into(),
-                    got: c.to_string(),
-                }),
+                Some(c) => {
+                    return Err(ParseError::UnexpectedToken {
+                        position: self.pos,
+                        expected: "@directive or EOF".into(),
+                        got: c.to_string(),
+                    });
+                }
             }
         }
 
@@ -343,20 +401,39 @@ pub(crate) fn flatten_items(
     inherited: &HashMap<String, String>,
     prefix: &str,
 ) -> Vec<TestCase> {
-    items.iter().flat_map(|item| match item {
-        SuiteItem::Test(tc) => {
-            let mut flags = inherited.clone();
-            flags.extend(tc.flags.clone());
-            let full_name = if prefix.is_empty() { tc.name.clone() } else { format!("{prefix}.{}", tc.name) };
-            vec![TestCase { name: full_name, flags, blocks: tc.blocks.clone() }]
-        }
-        SuiteItem::Group { name, flags, children } => {
-            let mut merged = inherited.clone();
-            merged.extend(flags.clone());
-            let child_prefix = if prefix.is_empty() { name.clone() } else { format!("{prefix}.{name}") };
-            flatten_items(children, &merged, &child_prefix)
-        }
-    }).collect()
+    items
+        .iter()
+        .flat_map(|item| match item {
+            SuiteItem::Test(tc) => {
+                let mut flags = inherited.clone();
+                flags.extend(tc.flags.clone());
+                let full_name = if prefix.is_empty() {
+                    tc.name.clone()
+                } else {
+                    format!("{prefix}.{}", tc.name)
+                };
+                vec![TestCase {
+                    name: full_name,
+                    flags,
+                    blocks: tc.blocks.clone(),
+                }]
+            }
+            SuiteItem::Group {
+                name,
+                flags,
+                children,
+            } => {
+                let mut merged = inherited.clone();
+                merged.extend(flags.clone());
+                let child_prefix = if prefix.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{prefix}.{name}")
+                };
+                flatten_items(children, &merged, &child_prefix)
+            }
+        })
+        .collect()
 }
 
 /// Strip common leading whitespace (dedent) and trim outer blank lines.
@@ -398,20 +475,29 @@ mod tests {
     }
 
     fn flat(src: &str) -> Vec<TestCase> {
-        flatten_items(&TestLangParser::new(src).parse().expect("parse failed"), &HashMap::new(), "")
+        flatten_items(
+            &TestLangParser::new(src).parse().expect("parse failed"),
+            &HashMap::new(),
+            "",
+        )
     }
 
     fn flags_map(pairs: &[(&str, &str)]) -> HashMap<String, String> {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
     fn dedent_strips_common_indent() {
         assert_eq!(
-            dedent("
+            dedent(
+                "
     hello
     world
-"),
+"
+            ),
             "hello\nworld"
         );
     }
@@ -419,10 +505,12 @@ mod tests {
     #[test]
     fn dedent_preserves_relative_indent() {
         assert_eq!(
-            dedent("
+            dedent(
+                "
     - outer
       - inner
-"),
+"
+            ),
             "- outer\n  - inner"
         );
     }
@@ -445,14 +533,16 @@ mod tests {
 
     #[test]
     fn parse_test_with_expect() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test greet {
                 print("hello");
                 @expect {
                     hello
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases.len(), 1);
         assert_eq!(cases[0].name, "greet");
         assert!(matches!(&cases[0].blocks[0], Block::Input(_)));
@@ -474,27 +564,31 @@ mod tests {
 
     #[test]
     fn parse_test_with_expect_error() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test bad {
                 do_error();
                 @expect error {
                     SomeError
                 }
             }
-        "#);
+        "#,
+        );
         assert!(matches!(&cases[0].blocks[1], Block::ExpectErr(_)));
     }
 
     #[test]
     fn parse_test_interleaved_blocks() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test multi {
                 code1();
                 @expect error { err1 }
                 code2();
                 @expect error { err2 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].blocks.len(), 4);
     }
 
@@ -507,7 +601,8 @@ mod tests {
 
     #[test]
     fn parse_nested_braces_in_code() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test loops {
                 for (var $i = 0; $i < 3; $i = $i + 1) {
                     print($i);
@@ -518,7 +613,8 @@ mod tests {
                     2
                 }
             }
-        "#);
+        "#,
+        );
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains("for"));
         } else {
@@ -528,41 +624,49 @@ mod tests {
 
     #[test]
     fn parse_multiple_top_level_tests() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test first { a @expect { 1 } }
             @test second { b @expect { 2 } }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].name, "first");
         assert_eq!(cases[1].name, "second");
     }
 
     #[test]
     fn parse_top_level_comment() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             # comment
             @test name { code @expect { result } }
-        "#);
+        "#,
+        );
         assert_eq!(cases.len(), 1);
     }
 
     #[test]
     fn set_annotates_test_directly() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @test t { @expect { x } }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
     }
 
     #[test]
     fn set_annotates_group_flags_inherited_by_tests() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @group suite {
                 @test q1 { code @expect { result } }
                 @test q2 { code @expect { result } }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases.len(), 2);
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
         assert_eq!(cases[1].flags.get("run"), Some(&"plan".to_string()));
@@ -570,13 +674,15 @@ mod tests {
 
     #[test]
     fn set_inside_group_annotates_next_item_only() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @group suite {
                 @set(run = "plan")
                 @test q1 { code @expect { result } }
                 @test q2 { code @expect { result } }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases.len(), 2);
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
         assert!(cases[1].flags.get("run").is_none());
@@ -584,28 +690,36 @@ mod tests {
 
     #[test]
     fn set_does_not_bleed_to_next_item() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @test first { @expect { x } }
             @test second { @expect { y } }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
         assert!(cases[1].flags.get("run").is_none());
     }
 
     #[test]
     fn multiple_sets_accumulate() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @set(extra = "yes")
             @test t { @expect { x } }
-        "#);
-        assert_eq!(cases[0].flags, flags_map(&[("run", "plan"), ("extra", "yes")]));
+        "#,
+        );
+        assert_eq!(
+            cases[0].flags,
+            flags_map(&[("run", "plan"), ("extra", "yes")])
+        );
     }
 
     #[test]
     fn nested_group_flags_merged() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @group outer {
                 @set(extra = "yes")
@@ -613,13 +727,18 @@ mod tests {
                     @test t { code @expect { x } }
                 }
             }
-        "#);
-        assert_eq!(cases[0].flags, flags_map(&[("run", "plan"), ("extra", "yes")]));
+        "#,
+        );
+        assert_eq!(
+            cases[0].flags,
+            flags_map(&[("run", "plan"), ("extra", "yes")])
+        );
     }
 
     #[test]
     fn nested_group_flag_override() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @set(run = "plan")
             @group outer {
                 @set(run = "interpreter")
@@ -627,19 +746,22 @@ mod tests {
                     @test t { code @expect { x } }
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].flags.get("run"), Some(&"interpreter".to_string()));
     }
 
     #[test]
     fn group_name_prefix_in_test_names() {
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @group outer {
                 @group inner {
                     @test t { @expect { x } }
                 }
             }
-        "#);
+        "#,
+        );
         assert_eq!(cases[0].name, "outer.inner.t");
     }
 
@@ -662,7 +784,8 @@ mod tests {
     #[test]
     fn parse_error_test_nested_in_test() {
         assert!(matches!(
-            TestLangParser::new("@test outer { @test inner { @expect { x } } @expect { y } }").parse(),
+            TestLangParser::new("@test outer { @test inner { @expect { x } } @expect { y } }")
+                .parse(),
             Err(ParseError::UnexpectedToken { .. })
         ));
     }
@@ -787,12 +910,14 @@ mod tests {
     #[test]
     fn string_open_brace_not_counted() {
         // Unbalanced `{` inside a string should not confuse the depth counter.
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test t {
                 var $s = "open brace: {";
                 @expect { ok }
             }
-        "#);
+        "#,
+        );
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains(r#""open brace: {""#));
         } else {
@@ -803,12 +928,14 @@ mod tests {
     #[test]
     fn string_close_brace_not_counted() {
         // Unbalanced `}` inside a string must not terminate the test body early.
-        let cases = flat(r#"
+        let cases = flat(
+            r#"
             @test t {
                 var $s = "close brace: }";
                 @expect { ok }
             }
-        "#);
+        "#,
+        );
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains(r#""close brace: }""#));
         } else {

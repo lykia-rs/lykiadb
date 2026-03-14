@@ -60,7 +60,7 @@ impl<'a, T, E> ExprVisitor<'a, T, E> {
                     self._traverse(arg)?;
                 }
             }
-            Expr::Between {
+            Expr::Ternary {
                 lower,
                 upper,
                 subject,

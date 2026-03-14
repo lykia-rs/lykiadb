@@ -268,8 +268,8 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "Expr::Between",
-                  "kind": {
+                  "@type": "Expr::Ternary",
+                  "operation": {
                     "@type": "Between"
                   },
                   "subject": {
@@ -346,8 +346,8 @@ assert_parsing! {
                   ]
                 },
                 "where": {
-                  "@type": "Expr::Between",
-                  "kind": {
+                  "@type": "Expr::Ternary",
+                  "operation": {
                     "@type": "NotBetween"
                   },
                   "subject": {

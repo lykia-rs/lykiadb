@@ -8,11 +8,11 @@ use crate::interpreter::error::InterpretError;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
-use crate::value::eval::eval_binary;
+use crate::value::eval::{eval_between, eval_binary};
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use lykiadb_lang::ast::expr::{Expr, Operation, RangeKind};
+use lykiadb_lang::ast::expr::{Expr, Operation};
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
@@ -38,12 +38,12 @@ impl<'sess> ExprEngine {
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         if *operation == Operation::Subtract {
-            if let Some(num) = self.eval(expr, state)?.as_double() {
+            if let Some(num) = self.eval(expr, state)?.to_double() {
                 return Ok(RV::Double(-num));
             }
             Ok(RV::Undefined)
         } else {
-            Ok(RV::Bool(!self.eval(expr, state)?.as_bool()))
+            Ok(RV::Bool(!self.eval(expr, state)?.to_bool()))
         }
     }
 
@@ -60,6 +60,33 @@ impl<'sess> ExprEngine {
         Ok(eval_binary(left_eval, right_eval, operation))
     }
 
+    fn eval_ternary(
+        &self,
+        subject: &Expr,
+        lower: &Expr,
+        upper: &Expr,
+        operation: &Operation,
+        state: &ProgramState<'sess>,
+    ) -> Result<Option<RV<'sess>>, HaltReason<'sess>> {
+        let lower_eval = self.eval(lower, state)?;
+        let upper_eval = self.eval(upper, state)?;
+        let subject_eval = self.eval(subject, state)?;
+
+        if operation == &Operation::Between || operation == &Operation::NotBetween {
+            let is_between = eval_between(&subject_eval, &lower_eval, &upper_eval);
+
+            if let Some(is_between) = is_between {
+                return match operation {
+                    Operation::Between => Ok(Some(RV::Bool(is_between))),
+                    Operation::NotBetween => Ok(Some(RV::Bool(!is_between))),
+                    _ => Ok(None),
+                };
+            }
+        }
+
+        Ok(None)
+    }
+
     fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
         if let Some(exec_row) = &*state.exec_row.read().unwrap() {
             if let Some(val) = exec_row.get(&intern_string(name)) {
@@ -73,7 +100,7 @@ impl<'sess> ExprEngine {
         state.exec_row.read().unwrap().is_some()
     }
 
-    fn lookup_variable(
+    fn eval_variable(
         &self,
         name: &str,
         expr: &Expr,
@@ -93,7 +120,7 @@ impl<'sess> ExprEngine {
         }
     }
 
-    fn literal_to_rv(
+    fn eval_literal(
         &self,
         literal: &Literal,
         state: &ProgramState<'sess>,
@@ -126,8 +153,8 @@ impl<'sess> ExprEngine {
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         match e {
-            Expr::Literal { value, .. } => self.literal_to_rv(value, state),
-            Expr::Variable { name, .. } => self.lookup_variable(&name.name, e, state),
+            Expr::Literal { value, .. } => self.eval_literal(value, state),
+            Expr::Variable { name, .. } => self.eval_variable(&name.name, e, state),
             Expr::Unary {
                 operation, expr, ..
             } => self.eval_unary(operation, expr, state),
@@ -137,6 +164,18 @@ impl<'sess> ExprEngine {
                 right,
                 ..
             } => self.eval_binary(left, right, *operation, state),
+            Expr::Ternary {
+                lower,
+                upper,
+                subject,
+                operation,
+                span,
+                ..
+            } => self
+                .eval_ternary(subject, lower, upper, operation, state)?
+                .ok_or(HaltReason::Error(
+                    InterpretError::InvalidRangeBoundaries { span: *span }.into(),
+                )),
             Expr::Grouping { expr, .. } => self.eval(expr, state),
             Expr::Logical {
                 left,
@@ -144,7 +183,7 @@ impl<'sess> ExprEngine {
                 right,
                 ..
             } => {
-                let is_true = self.eval(left, state)?.as_bool();
+                let is_true = self.eval(left, state)?.to_bool();
 
                 if (*operation == Operation::Or && is_true)
                     || (*operation == Operation::And && !is_true)
@@ -152,7 +191,7 @@ impl<'sess> ExprEngine {
                     return Ok(RV::Bool(is_true));
                 }
 
-                Ok(RV::Bool(self.eval(right, state)?.as_bool()))
+                Ok(RV::Bool(self.eval(right, state)?.to_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
                 let distance = state
@@ -251,45 +290,13 @@ impl<'sess> ExprEngine {
 
                 Ok(callable)
             }
-            Expr::Between {
-                lower,
-                upper,
-                subject,
-                kind,
-                span,
-                ..
-            } => {
-                let lower_eval = self.eval(lower, state)?;
-                let upper_eval = self.eval(upper, state)?;
-                let subject_eval = self.eval(subject, state)?;
-
-                if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
-                    (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
-                {
-                    let min_num = lower_num.min(upper_num);
-                    let max_num = lower_num.max(upper_num);
-
-                    match kind {
-                        RangeKind::Between => {
-                            Ok(RV::Bool(min_num <= subject_num && subject_num <= max_num))
-                        }
-                        RangeKind::NotBetween => {
-                            Ok(RV::Bool(min_num > subject_num || subject_num > max_num))
-                        }
-                    }
-                } else {
-                    Err(HaltReason::Error(
-                        InterpretError::InvalidRangeExpression { span: *span }.into(),
-                    ))
-                }
-            }
             Expr::FieldPath {
                 head,
                 tail,
                 span,
                 id,
             } => {
-                let root = self.lookup_variable(&head.name, e, state);
+                let root = self.eval_variable(&head.name, e, state);
 
                 if tail.is_empty() {
                     return root;
