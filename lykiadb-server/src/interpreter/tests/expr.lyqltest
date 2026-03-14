@@ -230,22 +230,22 @@
         testutil::print(5 between "1" and 10);
 
         @expect error {
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
         }
 
         testutil::print(5 between 1 and "10");
 
         @expect error {
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
         }
 
         testutil::print("5" between 1 and 10);
 
         @expect error {
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
-            Interpret(InvalidRangeExpression { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
+            Interpret(InvalidRangeBoundaries { span: Span { start: 16, end: 36, line: 0, line_end: 0 } })
         }
     }
 

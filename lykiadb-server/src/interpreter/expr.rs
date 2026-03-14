@@ -8,7 +8,7 @@ use crate::interpreter::error::InterpretError;
 use crate::value::RV;
 use crate::value::array::RVArray;
 use crate::value::callable::{Function, RVCallable};
-use crate::value::eval::eval_binary;
+use crate::value::eval::{eval_between, eval_binary};
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
@@ -62,9 +62,9 @@ impl<'sess> ExprEngine {
 
     fn eval_ternary(
         &self,
+        subject: &Expr,
         lower: &Expr,
         upper: &Expr,
-        subject: &Expr,
         operation: &Operation,
         state: &ProgramState<'sess>
     ) -> Result<Option<RV<'sess>>, HaltReason<'sess>> {
@@ -72,18 +72,15 @@ impl<'sess> ExprEngine {
         let upper_eval = self.eval(upper, state)?;
         let subject_eval = self.eval(subject, state)?;
 
-        if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
-                (lower_eval.clone(), upper_eval.clone(), subject_eval.clone())
-        {
-            let min_num = lower_num.min(upper_num);
-            let max_num = lower_num.max(upper_num);
+        if operation == &Operation::Between || operation == &Operation::NotBetween {
+            let is_between = eval_between(&subject_eval, &lower_eval, &upper_eval);
 
-            let is_between = min_num <= subject_num && subject_num <= max_num;
-
-            return match operation {
-                Operation::Between => Ok(Some(RV::Bool(is_between))),
-                Operation::NotBetween => Ok(Some(RV::Bool(!is_between))),
-                _ => Ok(None),
+            if let Some(is_between) = is_between {
+                return match operation {
+                    Operation::Between => Ok(Some(RV::Bool(is_between))),
+                    Operation::NotBetween => Ok(Some(RV::Bool(!is_between))),
+                    _ => Ok(None),
+                }
             }
         }
 
@@ -167,6 +164,18 @@ impl<'sess> ExprEngine {
                 right,
                 ..
             } => self.eval_binary(left, right, *operation, state),
+            Expr::Ternary {
+                lower,
+                upper,
+                subject,
+                operation,
+                span,
+                ..
+            } => self.eval_ternary(
+                subject, lower, upper, operation, state
+            )?.ok_or(HaltReason::Error(
+                InterpretError::InvalidRangeBoundaries { span: *span }.into(),
+            )),
             Expr::Grouping { expr, .. } => self.eval(expr, state),
             Expr::Logical {
                 left,
@@ -281,18 +290,6 @@ impl<'sess> ExprEngine {
 
                 Ok(callable)
             }
-            Expr::Ternary {
-                lower,
-                upper,
-                subject,
-                operation,
-                span,
-                ..
-            } => self.eval_ternary(
-                lower, upper, subject, operation, state
-            )?.ok_or(HaltReason::Error(
-                InterpretError::InvalidRangeExpression { span: *span }.into(),
-            )),
             Expr::FieldPath {
                 head,
                 tail,

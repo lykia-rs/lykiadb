@@ -37,6 +37,64 @@ pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operati
     }
 }
 
+pub fn eval_between<'v>(
+    subject: &RV,
+    min: &RV,
+    max: &RV,
+) -> Option<bool> {
+    match subject {
+        RV::Double(_) => return eval_between_numeric(subject, min, max),
+        RV::DateTime(_) => return eval_between_datetime(subject, min, max),
+        RV::Str(_) => return eval_between_string(subject, min, max),
+        _ => (),
+    }
+
+    None
+}
+
+fn eval_between_numeric<'v>(
+    subject: &RV,
+    min: &RV,
+    max: &RV,
+) -> Option<bool> {
+    if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
+            (min, max, subject)
+    {
+        let min_num = lower_num.min(*upper_num);
+        let max_num = lower_num.max(*upper_num);
+
+        return Some(min_num <= *subject_num && *subject_num <= max_num);
+    }
+
+    None
+}
+
+fn eval_between_datetime(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<bool> {
+    if let (RV::DateTime(lower_dt), RV::DateTime(upper_dt), RV::DateTime(subject_dt)) =
+            (min, max, subject)
+    {
+        let min_dt = lower_dt.min(upper_dt);
+        let max_dt = lower_dt.max(upper_dt);
+
+        return Some(min_dt <= subject_dt && subject_dt <= max_dt);
+    }
+
+    None
+}
+
+fn eval_between_string(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<bool> {
+    if let (RV::Str(lower_str), RV::Str(upper_str), RV::Str(subject_str)) =
+            (min, max, subject)
+    {
+        let min_str = lower_str.clone().min(upper_str.clone());
+        let max_str = lower_str.max(upper_str);
+
+        return Some(min_str <= *subject_str && *subject_str <= *max_str);
+    }
+
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
