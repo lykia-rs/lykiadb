@@ -164,11 +164,14 @@ mod tests {
     use crate::execution::state::ProgramState;
 
     use super::*;
-    use lykiadb_lang::{ast::{
-        Identifier, IdentifierKind, Span,
-        expr::Expr,
-        sql::{SqlProjection, SqlSelectCore},
-    }, parser::program::Program};
+    use lykiadb_lang::{
+        ast::{
+            Identifier, IdentifierKind, Span,
+            expr::Expr,
+            sql::{SqlProjection, SqlSelectCore},
+        },
+        parser::program::Program,
+    };
 
     #[test]
     fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
@@ -208,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_having_clause() -> Result<(), HaltReason<'static>> {
-        let state = ProgramState::new(None, Arc::new(Program::empty()),true);
+        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -241,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_nested_aggregates_not_allowed() {
-        let state = ProgramState::new(None, Arc::new(Program::empty()),true);
+        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {

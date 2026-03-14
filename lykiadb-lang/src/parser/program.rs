@@ -19,7 +19,10 @@ pub struct Program {
 impl Program {
     pub fn empty() -> Program {
         Program {
-            root: Box::new(Stmt::Program { body: vec![], span: Span::default() }),
+            root: Box::new(Stmt::Program {
+                body: vec![],
+                span: Span::default(),
+            }),
             locals: Locals::default().into(),
         }
     }

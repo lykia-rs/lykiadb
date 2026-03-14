@@ -51,7 +51,7 @@ impl From<InterpretError> for InputError {
             ),
             InterpretError::InvalidArgumentType { span, .. } => {
                 ("Check that the argument matches the expected types", *span)
-            },
+            }
         };
 
         InputError::new(&value.to_string(), hint, Some(sp.into()))

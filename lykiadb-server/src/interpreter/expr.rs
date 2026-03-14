@@ -1,5 +1,4 @@
 use crate::execution::dispatching::dispatch_query_execute;
-use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
 use crate::execution::state::ProgramState;
 use crate::interpreter::HaltReason;
@@ -194,10 +193,7 @@ impl<'sess> ExprEngine {
                 Ok(RV::Bool(self.eval(right, state)?.to_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = state
-                    .program
-                    .as_ref()
-                    .get_distance(e);
+                let distance = state.program.as_ref().get_distance(e);
 
                 let evaluated = self.eval(expr, state)?;
                 let dst_symbol = intern_string(&dst.name);

@@ -215,7 +215,10 @@ mod tests {
     use crate::execution::state::ProgramState;
     use crate::query::plan::IntermediateExpr;
     use crate::value::RV;
-    use lykiadb_lang::{ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection}, parser::program::Program};
+    use lykiadb_lang::{
+        ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection},
+        parser::program::Program,
+    };
     use std::sync::Arc;
 
     fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {

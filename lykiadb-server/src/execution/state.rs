@@ -19,7 +19,11 @@ pub struct ProgramState<'sess> {
 }
 
 impl<'sess> ProgramState<'sess> {
-    pub fn new(out: Option<Shared<Output<'sess>>>, program: Arc<Program>, with_stdlib: bool) -> ProgramState<'sess> {
+    pub fn new(
+        out: Option<Shared<Output<'sess>>>,
+        program: Arc<Program>,
+        with_stdlib: bool,
+    ) -> ProgramState<'sess> {
         let root_env = Arc::new(EnvironmentFrame::new(None));
         if with_stdlib {
             let native_fns = stdlib(out.clone());
@@ -37,8 +41,12 @@ impl<'sess> ProgramState<'sess> {
             output: out,
         }
     }
-    
-    pub fn fork(&self, output: Option<Shared<Output<'sess>>>, program: Arc<Program>) -> ProgramState<'sess> {
+
+    pub fn fork(
+        &self,
+        output: Option<Shared<Output<'sess>>>,
+        program: Arc<Program>,
+    ) -> ProgramState<'sess> {
         ProgramState {
             env: Arc::clone(&self.env),
             root_env: Arc::clone(&self.root_env),

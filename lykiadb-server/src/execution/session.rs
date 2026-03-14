@@ -26,10 +26,16 @@ impl<'v> Session<'v> {
         }
     }
 
-    pub fn interpret(&mut self, source: &str, out: Option<Shared<Output<'v>>>) -> Result<RV<'v>, ExecutionError> {
+    pub fn interpret(
+        &mut self,
+        source: &str,
+        out: Option<Shared<Output<'v>>>,
+    ) -> Result<RV<'v>, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
 
-        if let Some(state) = &self.program_state && self.keep_alive {
+        if let Some(state) = &self.program_state
+            && self.keep_alive
+        {
             self.program_state = Some(state.fork(out, program));
         } else {
             self.program_state = Some(ProgramState::new(out, program, true));
@@ -40,8 +46,7 @@ impl<'v> Session<'v> {
 
         if self.keep_alive {
             info!("{:?}", res);
-        }
-        else {
+        } else {
             self.source_processor.reset();
         }
 
@@ -79,7 +84,10 @@ impl<'v> TestHandler for SessionTester<'v> {
         for block in case.blocks {
             match block {
                 Block::Input(code) => {
-                    if let Err(err) = self.session.interpret(&dedent(&code),Some(self.out.clone())) {
+                    if let Err(err) = self
+                        .session
+                        .interpret(&dedent(&code), Some(self.out.clone()))
+                    {
                         errors.push(err);
                     }
                 }
@@ -116,7 +124,7 @@ impl<'v> TestHandler for SessionTester<'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{interpreter::output::Output};
+    use crate::interpreter::output::Output;
     use lykiadb_common::memory::alloc_shared;
 
     #[test]

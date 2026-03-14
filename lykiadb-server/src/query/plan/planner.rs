@@ -326,16 +326,19 @@ mod tests {
         },
     };
     use lykiadb_common::extract;
-    use lykiadb_lang::{ast::{
-        Literal, Span,
-        expr::{
-            Expr, Operation,
-            test_utils::{
-                create_call_expr, create_field_path_expr, create_identifier_expr,
-                create_number_expr, create_string_expr, create_subquery_expr,
+    use lykiadb_lang::{
+        ast::{
+            Literal, Span,
+            expr::{
+                Expr, Operation,
+                test_utils::{
+                    create_call_expr, create_field_path_expr, create_identifier_expr,
+                    create_number_expr, create_string_expr, create_subquery_expr,
+                },
             },
         },
-    }, parser::program::Program};
+        parser::program::Program,
+    };
 
     /// Helper function to create a test planner instance
     fn create_test_planner() -> (Planner, &'static QueryExecutionContext<'static>) {
