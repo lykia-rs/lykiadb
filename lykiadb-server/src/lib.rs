@@ -2,7 +2,6 @@ pub mod execution;
 pub mod interpreter;
 pub mod libs;
 pub mod query;
-pub mod session;
 pub mod value;
 
 #[cfg(test)]

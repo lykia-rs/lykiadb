@@ -1,7 +1,7 @@
 use ::std::time::Instant;
 use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
-use lykiadb_server::session::Session;
+use lykiadb_server::execution::session::Session;
 use std::io::Error;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;

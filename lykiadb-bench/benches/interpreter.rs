@@ -6,7 +6,7 @@ use std::{
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lykiadb_server::{
-    session::Session,
+    execution::session::Session,
 };
 
 fn session(filename: &str) {

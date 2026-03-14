@@ -1,5 +1,5 @@
 mod planner {
-    use crate::session::SessionTester;
+    use crate::execution::session::SessionTester;
     use test_each_file::test_each_path;
     test_each_path! {
         in "lykiadb-server/src/query/plan/tests" => {
@@ -13,7 +13,7 @@ mod planner {
 }
 
 mod interpreter {
-    use crate::session::SessionTester;
+    use crate::execution::session::SessionTester;
     use test_each_file::test_each_path;
 
     test_each_path! {
