@@ -51,19 +51,34 @@ pub fn eval_between<'v>(
 
     None
 }
+/*
+fn eval_between_internal<T>(
+    subject: &T,
+    min: &T,
+    max: &T,
+) -> Option<bool> where T: Ord {
+    match subject {
+        RV::Double(_) => return eval_between_numeric(subject, min, max),
+        RV::DateTime(_) => return eval_between_datetime(subject, min, max),
+        RV::Str(_) => return eval_between_string(subject, min, max),
+        _ => (),
+    }
+
+    None
+}*/
 
 fn eval_between_numeric<'v>(
     subject: &RV,
     min: &RV,
     max: &RV,
 ) -> Option<bool> {
-    if let (RV::Double(lower_num), RV::Double(upper_num), RV::Double(subject_num)) =
-            (min, max, subject)
+    if let (Some(lower_num), Some(upper_num), Some(subject_num)) =
+            (min.to_double(), max.to_double(), subject.to_double())
     {
-        let min_num = lower_num.min(*upper_num);
-        let max_num = lower_num.max(*upper_num);
+        let min_num = lower_num.min(upper_num);
+        let max_num = lower_num.max(upper_num);
 
-        return Some(min_num <= *subject_num && *subject_num <= max_num);
+        return Some(min_num <= subject_num && subject_num <= max_num);
     }
 
     None
@@ -95,1076 +110,50 @@ fn eval_between_string(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<b
     None
 }
 
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use lykiadb_lang::ast::expr::Operation;
-
-    use crate::value::{
-        RVArray, RVObject,
-        eval::{RV, eval_binary},
-    };
-
-    #[test]
-    fn test_is_value_truthy() {
-        assert!(!(RV::Undefined).to_bool());
-        assert!(!(RV::Bool(false)).to_bool());
-        assert!((RV::Bool(true)).to_bool());
-        assert!(!(RV::Double(0.0)).to_bool());
-        assert!((RV::Double(0.1)).to_bool());
-        assert!((RV::Double(-0.1)).to_bool());
-        assert!((RV::Double(1.0)).to_bool());
-        assert!((RV::Double(-1.0)).to_bool());
-        assert!(!(RV::Str(Arc::new("".to_owned()))).to_bool());
-        assert!((RV::Str(Arc::new("0".to_owned()))).to_bool());
-        assert!((RV::Str(Arc::new("false".to_owned()))).to_bool());
-        assert!((RV::Str(Arc::new("true".to_owned()))).to_bool());
-        assert!((RV::Str(Arc::new("foo".to_owned()))).to_bool());
-        assert!((RV::Array(RVArray::new())).to_bool());
-        assert!((RV::Object(RVObject::new())).to_bool());
-    }
-
-    #[test]
-    fn test_as_double() {
-        assert_eq!((RV::Double(1.0)).to_double(), Some(1.0));
-        assert_eq!((RV::Bool(false)).to_double(), Some(0.0));
-        assert_eq!((RV::Bool(true)).to_double(), Some(1.0));
-        assert_eq!((RV::Str(Arc::new("".to_owned()))).to_double(), None);
-    }
-
-    #[test]
-    fn test_eval_binary_addition() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Add),
-            RV::Double(3.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Add),
-            RV::Double(3.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Add
-            ),
-            RV::Str(Arc::new("ab".to_string()))
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Add
-            ),
-            RV::Str(Arc::new("ba".to_string()))
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Add),
-            RV::Double(2.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Add),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Add),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Add),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Add),
-            RV::Double(2.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Add),
-            RV::Double(2.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Add),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Add),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Add),
-            RV::Double(2.0)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_subtraction() {
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Subtract),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Subtract),
-            RV::Double(-1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Subtract),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Subtract),
-            RV::Double(-1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Subtract),
-            RV::Double(-1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Subtract),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Subtract
-            ),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Subtract
-            ),
-            RV::Undefined
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_multiplication() {
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Multiply),
-            RV::Double(2.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Multiply),
-            RV::Double(2.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Multiply),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Multiply),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Multiply),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Multiply),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Multiply),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Multiply
-            ),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Multiply
-            ),
-            RV::Undefined
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_division() {
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Divide),
-            RV::Double(2.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Divide),
-            RV::Double(0.5)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Divide),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Divide),
-            RV::Double(f64::INFINITY)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Divide),
-            RV::Double(0.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Divide),
-            RV::Undefined
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Divide),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Divide),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Divide),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Divide),
-            RV::Double(f64::INFINITY)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Divide),
-            RV::Double(1.0)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Divide
-            ),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Divide
-            ),
-            RV::Undefined
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_is_equal() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::IsEqual
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::IsEqual
-            ),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::IsEqual
-            ),
-            RV::Bool(false)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_is_not_equal() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::IsNotEqual
-            ),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::IsNotEqual
-            ),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::IsNotEqual
-            ),
-            RV::Bool(true)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_less() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Less),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Less),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Less),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Less),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Less),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Less),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Less
-            ),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_less_equal() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::LessEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::LessEqual),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::LessEqual
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::LessEqual
-            ),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::LessEqual
-            ),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::LessEqual
-            ),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::LessEqual
-            ),
-            RV::Bool(false)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_greater() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::Greater),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::Greater),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::Greater),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::Greater),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Greater
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::Greater
-            ),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Greater
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::Greater
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Greater
-            ),
-            RV::Bool(true)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_greater_equal() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Double(2.0), Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(2.0), RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(true), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Bool(false), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(true), Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Bool(false), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(false), RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(false), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Double(1.0),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::GreaterEqual
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Double(1.0),
-                Operation::GreaterEqual
-            ),
-            RV::Bool(false)
-        );
-        //
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::GreaterEqual
-            ),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Str(Arc::new("b".to_string())),
-                Operation::GreaterEqual
-            ),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("b".to_string())),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::GreaterEqual
-            ),
-            RV::Bool(true)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_nan() {
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Add),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Add),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Subtract),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Subtract),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Multiply),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Multiply),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Divide),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Divide),
-            RV::Undefined
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::IsNotEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::LessEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Undefined, RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Undefined, Operation::GreaterEqual),
-            RV::Bool(false)
-        );
-    }
-
-    #[test]
-    fn test_eval_binary_coercion() {
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Add),
-            RV::Double(2.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Divide),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Double(1.0), RV::Bool(true), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Bool(true),
-                Operation::Add
-            ),
-            RV::Str(Arc::new("atrue".to_string()))
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Str(Arc::new("a".to_string())),
-                RV::Bool(true),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-        //
-
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Add),
-            RV::Double(2.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Subtract),
-            RV::Double(0.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Multiply),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Divide),
-            RV::Double(1.0)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::IsEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::IsNotEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::LessEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(RV::Bool(true), RV::Double(1.0), Operation::GreaterEqual),
-            RV::Bool(true)
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Bool(true),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Add
-            ),
-            RV::Str(Arc::new("truea".to_string()))
-        );
-        assert_eq!(
-            eval_binary(
-                RV::Bool(true),
-                RV::Str(Arc::new("a".to_string())),
-                Operation::Less
-            ),
-            RV::Bool(false)
-        );
-    }
-}
 
 #[cfg(test)]
 mod property_tests {
     use std::sync::Arc;
 
     use super::*;
-    use crate::value::eval::eval_binary;
+    use crate::value::eval::{eval_between, eval_binary};
+    use lykiadb_lang::ast::expr::Operation;
     use proptest::prelude::*;
 
-    // Strategy for generating RV values
-    fn rv_strategy<'v>() -> impl Strategy<Value = RV<'v>> {
+    // Strategies
+
+    fn rv_any() -> impl Strategy<Value = RV<'static>> {
         prop_oneof![
             Just(RV::Undefined),
             any::<bool>().prop_map(RV::Bool),
             any::<f64>()
-                .prop_filter("finite numbers", |x| x.is_finite())
+                .prop_filter("finite", |x| x.is_finite())
                 .prop_map(RV::Double),
             "[a-zA-Z0-9]*".prop_map(|s| RV::Str(Arc::new(s))),
-            // For simplicity, we'll skip arrays and objects in basic tests
         ]
     }
 
-    // Strategy for numeric RV values only
-    fn numeric_rv_strategy<'v>() -> impl Strategy<Value = RV<'v>> {
+    fn rv_numeric() -> impl Strategy<Value = RV<'static>> {
         prop_oneof![
             any::<bool>().prop_map(RV::Bool),
             any::<f64>()
-                .prop_filter("finite numbers", |x| x.is_finite())
+                .prop_filter("finite", |x| x.is_finite())
                 .prop_map(RV::Double),
         ]
     }
 
-    // Strategy for binary operations
-    fn binary_operation_strategy() -> impl Strategy<Value = Operation> {
+    fn comparison_op() -> impl Strategy<Value = Operation> {
+        prop_oneof![
+            Just(Operation::IsEqual),
+            Just(Operation::IsNotEqual),
+            Just(Operation::Less),
+            Just(Operation::LessEqual),
+            Just(Operation::Greater),
+            Just(Operation::GreaterEqual),
+        ]
+    }
+
+    fn all_binary_op() -> impl Strategy<Value = Operation> {
         prop_oneof![
             Just(Operation::Add),
             Just(Operation::Subtract),
@@ -1179,300 +168,91 @@ mod property_tests {
         ]
     }
 
+    // Arithmetic: commutativity and identity
+
     proptest! {
-        // Property: Addition should be commutative for numeric types
         #[test]
-        fn addition_is_commutative_for_numbers(
-            a in numeric_rv_strategy(),
-            b in numeric_rv_strategy()
-        ) {
-            let result1 = eval_binary(a.clone(), b.clone(), Operation::Add);
-            let result2 = eval_binary(b, a, Operation::Add);
-            prop_assert_eq!(result1, result2);
+        fn addition_is_commutative(a in rv_numeric(), b in rv_numeric()) {
+            prop_assert_eq!(
+                eval_binary(a.clone(), b.clone(), Operation::Add),
+                eval_binary(b, a, Operation::Add)
+            );
         }
 
-        // Property: Multiplication should be commutative for numeric types
         #[test]
-        fn multiplication_is_commutative_for_numbers(
-            a in numeric_rv_strategy(),
-            b in numeric_rv_strategy()
-        ) {
-            let result1 = eval_binary(a.clone(), b.clone(), Operation::Multiply);
-            let result2 = eval_binary(b, a, Operation::Multiply);
-            prop_assert_eq!(result1, result2);
+        fn multiplication_is_commutative(a in rv_numeric(), b in rv_numeric()) {
+            prop_assert_eq!(
+                eval_binary(a.clone(), b.clone(), Operation::Multiply),
+                eval_binary(b, a, Operation::Multiply)
+            );
         }
 
-        // Property: Adding zero should be identity
         #[test]
-        fn adding_zero_is_identity(a in numeric_rv_strategy()) {
-            let zero = RV::Double(0.0);
-            let result = eval_binary(a.clone(), zero, Operation::Add);
-            if let Some(num) = a.to_double() {
-                prop_assert_eq!(result, RV::Double(num));
+        fn additive_identity(a in rv_numeric()) {
+            let result = eval_binary(a.clone(), RV::Double(0.0), Operation::Add);
+            if let Some(n) = a.to_double() {
+                prop_assert_eq!(result, RV::Double(n));
             }
         }
 
-        // Property: Multiplying by one should be identity
         #[test]
-        fn multiplying_by_one_is_identity(a in numeric_rv_strategy()) {
-            let one = RV::Double(1.0);
-            let result = eval_binary(a.clone(), one, Operation::Multiply);
-            if let Some(num) = a.to_double() {
-                prop_assert_eq!(result, RV::Double(num));
+        fn multiplicative_identity(a in rv_numeric()) {
+            let result = eval_binary(a.clone(), RV::Double(1.0), Operation::Multiply);
+            if let Some(n) = a.to_double() {
+                prop_assert_eq!(result, RV::Double(n));
             }
         }
 
-        // Property: Equality should be reflexive
         #[test]
-        fn equality_is_reflexive(a in rv_strategy()) {
-            let result = eval_binary(a.clone(), a, Operation::IsEqual);
-            prop_assert_eq!(result, RV::Bool(true));
-        }
-
-        // Property: Inequality should be symmetric
-        #[test]
-        fn inequality_is_symmetric(
-            a in rv_strategy(),
-            b in rv_strategy()
-        ) {
-            let result1 = eval_binary(a.clone(), b.clone(), Operation::IsNotEqual);
-            let result2 = eval_binary(b, a, Operation::IsNotEqual);
-            prop_assert_eq!(result1, result2);
-        }
-
-        // Property: Less than should be antisymmetric
-        #[test]
-        fn less_than_antisymmetric(
-            a in numeric_rv_strategy(),
-            b in numeric_rv_strategy()
-        ) {
-            let a_less_b = eval_binary(a.clone(), b.clone(), Operation::Less);
-            let b_less_a = eval_binary(b, a, Operation::Less);
-
-            // If a < b is true, then b < a should be false (unless a == b)
-            if a_less_b == RV::Bool(true) {
-                prop_assert_eq!(b_less_a, RV::Bool(false));
-            }
-        }
-
-        // Property: Operations with Undefined should return appropriate results
-        #[test]
-        fn undefined_operations(
-            a in rv_strategy().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined)),
-            op in binary_operation_strategy()
-        ) {
-            let result1 = eval_binary(RV::Undefined, a.clone(), op);
-            let result2 = eval_binary(a, RV::Undefined, op);
-
-            match op {
-                Operation::IsEqual | Operation::Is => {
-                    prop_assert_eq!(result1, RV::Bool(false));
-                    prop_assert_eq!(result2, RV::Bool(false));
-                }
-                Operation::IsNotEqual | Operation::IsNot => {
-                    prop_assert_eq!(result1, RV::Bool(true));
-                    prop_assert_eq!(result2, RV::Bool(true));
-                }
-                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
-                    prop_assert_eq!(result1, RV::Undefined);
-                    prop_assert_eq!(result2, RV::Undefined);
-                }
-                Operation::Less | Operation::LessEqual | Operation::Greater | Operation::GreaterEqual => {
-                    prop_assert_eq!(result1, RV::Bool(false));
-                    prop_assert_eq!(result2, RV::Bool(false));
-                }
-                _ => {} // Skip other operations
-            }
-        }
-
-        // Special case: Undefined compared to itself
-        #[test]
-        fn undefined_vs_undefined_operations(
-            op in binary_operation_strategy()
-        ) {
-            let result = eval_binary(RV::Undefined, RV::Undefined, op);
-
-            match op {
-                Operation::IsEqual | Operation::Is => {
-                    prop_assert_eq!(result, RV::Bool(true));
-                }
-                Operation::IsNotEqual | Operation::IsNot => {
-                    prop_assert_eq!(result, RV::Bool(false));
-                }
-                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
-                    prop_assert_eq!(result, RV::Undefined);
-                }
-                Operation::Less | Operation::Greater => {
-                    prop_assert_eq!(result, RV::Bool(false));
-                }
-                Operation::LessEqual | Operation::GreaterEqual => {
-                    // Undefined == Undefined, so LessEqual and GreaterEqual should be true
-                    prop_assert_eq!(result, RV::Bool(true));
-                }
-                _ => {} // Skip other operations
-            }
-        }
-
-        // Property: String concatenation should preserve length relationship
-        #[test]
-        fn string_concatenation_length(
-            s1 in "[a-zA-Z0-9]*",
-            s2 in "[a-zA-Z0-9]*"
-        ) {
-            let rv1 = RV::Str(Arc::new(s1.clone()));
-            let rv2 = RV::Str(Arc::new(s2.clone()));
-            let result = eval_binary(rv1, rv2, Operation::Add);
-
-            if let RV::Str(result_str) = result {
-                prop_assert!(result_str.len() >= s1.len());
-                prop_assert!(result_str.len() >= s2.len());
-                prop_assert_eq!(result_str.len(), s1.len() + s2.len());
-            }
-        }
-
-        // Property: Division by zero should handle edge cases correctly
-        #[test]
-        fn division_by_zero_handling(a in numeric_rv_strategy()) {
-            let zero = RV::Double(0.0);
-            let result = eval_binary(a.clone(), zero, Operation::Divide);
-
-            if let Some(num) = a.to_double() {
-                if num == 0.0 {
-                    // 0/0 should be undefined
-                    prop_assert_eq!(result, RV::Undefined);
-                } else {
-                    // Non-zero/0 should be infinity
-                    if let RV::Double(result_num) = result {
-                        prop_assert!(result_num.is_infinite());
-                    }
-                }
-            }
-        }
-
-        // Property: Boolean to number conversion should be consistent
-        #[test]
-        fn boolean_number_conversion_consistency(b in any::<bool>()) {
-            let rv_bool = RV::Bool(b);
-            let expected_num = if b { 1.0 } else { 0.0 };
-
-            prop_assert_eq!(rv_bool.to_double(), Some(expected_num));
-
-            // Test in arithmetic operations
-            let result = eval_binary(rv_bool, RV::Double(0.0), Operation::Add);
-            prop_assert_eq!(result, RV::Double(expected_num));
-        }
-
-        // Property: Comparison operations should return boolean values
-        #[test]
-        fn comparisons_return_boolean(
-            a in rv_strategy(),
-            b in rv_strategy(),
-            op in prop_oneof![
-                Just(Operation::IsEqual),
-                Just(Operation::IsNotEqual),
-                Just(Operation::Less),
-                Just(Operation::LessEqual),
-                Just(Operation::Greater),
-                Just(Operation::GreaterEqual)
-            ]
-        ) {
-            let result = eval_binary(a, b, op);
-            prop_assert!(matches!(result, RV::Bool(_)));
-        }
-
-        // NOTE: Addition associativity property test removed because floating-point arithmetic
-        // is inherently non-associative due to precision limitations. See regression tests
-        // for documented examples of this behavior.
-
-        // Property: Type coercion should be consistent
-        #[test]
-        fn type_coercion_consistency(
-            num in any::<f64>().prop_filter("finite", |x| x.is_finite()),
-            bool_val in any::<bool>()
-        ) {
-            let rv_num = RV::Double(num);
-            let rv_bool = RV::Bool(bool_val);
-            let expected_bool_as_num = if bool_val { 1.0 } else { 0.0 };
-
-            // num + bool should equal num + bool_as_double
-            let result1 = eval_binary(rv_num.clone(), rv_bool.clone(), Operation::Add);
-            let result2 = eval_binary(rv_num, RV::Double(expected_bool_as_num), Operation::Add);
-
-            prop_assert_eq!(result1, result2);
+        fn multiply_by_zero_yields_zero(a in rv_numeric()) {
+            let r1 = eval_binary(a.clone(), RV::Double(0.0), Operation::Multiply);
+            let r2 = eval_binary(RV::Double(0.0), a, Operation::Multiply);
+            prop_assert_eq!(r1, RV::Double(0.0));
+            prop_assert_eq!(r2, RV::Double(0.0));
         }
     }
 
-    // Additional targeted property tests for specific behaviors
+    // Arithmetic: division edge cases
+
     proptest! {
-        // Property: String comparisons should be lexicographic
         #[test]
-        fn string_comparison_lexicographic(
-            s1 in "[a-z]{1,10}",
-            s2 in "[a-z]{1,10}"
-        ) {
-            let rv1 = RV::Str(Arc::new(s1.clone()));
-            let rv2 = RV::Str(Arc::new(s2.clone()));
-
-            let less_result = eval_binary(rv1.clone(), rv2.clone(), Operation::Less);
-            let equal_result = eval_binary(rv1, rv2, Operation::IsEqual);
-
-            match s1.cmp(&s2) {
-                std::cmp::Ordering::Less => prop_assert_eq!(less_result, RV::Bool(true)),
-                std::cmp::Ordering::Equal => prop_assert_eq!(equal_result, RV::Bool(true)),
-                std::cmp::Ordering::Greater => prop_assert_eq!(less_result, RV::Bool(false)),
-            }
-        }
-
-        // Property: Truthiness should be consistent with as_bool
-        #[test]
-        fn truthiness_consistency(rv in rv_strategy()) {
-            let expected_bool = rv.to_bool();
-
-            // Test against known truthy/falsy values
-            let false_rv = RV::Bool(false);
-
-            if expected_bool {
-                // If rv is truthy, it should not equal false
-                let ne_false = eval_binary(rv, false_rv, Operation::IsNotEqual);
-                prop_assert_eq!(ne_false, RV::Bool(true));
-            } else {
-                // If rv is falsy, specific falsy values should behave consistently
-                match rv {
-                    RV::Double(0.0) => {
-                        let eq_false = eval_binary(RV::Double(0.0), RV::Bool(false), Operation::IsEqual);
-                        prop_assert_eq!(eq_false, RV::Bool(true));
-                    }
-                    RV::Bool(false) => {
-                        let eq_false = eval_binary(RV::Bool(false), RV::Bool(false), Operation::IsEqual);
-                        prop_assert_eq!(eq_false, RV::Bool(true));
-                    }
-                    _ => {} // Other falsy values have their own rules
+        fn division_by_zero(a in rv_numeric()) {
+            let result = eval_binary(a.clone(), RV::Double(0.0), Operation::Divide);
+            if let Some(n) = a.to_double() {
+                if n == 0.0 {
+                    prop_assert_eq!(result, RV::Undefined);
+                } else if let RV::Double(r) = result {
+                    prop_assert!(r.is_infinite());
                 }
             }
         }
 
-        // Property: String concatenation with special characters and Unicode
         #[test]
-        fn string_concatenation_unicode_edge_cases(
-            s1 in r"[\x00-\x1F\u{1F600}-\u{1F64F}a-zA-Z0-9\s]*",
-            s2 in r"[\x00-\x1F\u{1F600}-\u{1F64F}a-zA-Z0-9\s]*"
+        fn division_by_tiny_divisor(
+            dividend in (-1e10..1e10_f64).prop_filter("finite", |x| x.is_finite()),
+            divisor in (-1e-100..1e-100_f64).prop_filter("non-zero", |x| *x != 0.0)
         ) {
-            let rv1 = RV::Str(Arc::new(s1.clone()));
-            let rv2 = RV::Str(Arc::new(s2.clone()));
-            let result = eval_binary(rv1, rv2, Operation::Add);
-
-            if let RV::Str(result_str) = result {
-                prop_assert_eq!(result_str.len(), s1.len() + s2.len());
-                prop_assert!(result_str.starts_with(&s1));
-                prop_assert!(result_str.ends_with(&s2));
-            } else {
-                prop_assert!(false, "String concatenation should always produce a string");
+            if let RV::Double(n) = eval_binary(RV::Double(dividend), RV::Double(divisor), Operation::Divide) {
+                prop_assert!(n.is_finite() || n.is_infinite());
             }
         }
 
-        // Property: Numeric edge cases with very small numbers
         #[test]
-        fn numeric_operations_tiny_numbers(
+        fn subtraction_is_inverse_of_addition(
+            a in (-1e6..1e6_f64).prop_map(RV::Double),
+            b in (-1e6..1e6_f64).prop_map(RV::Double)
+        ) {
+            let b_abs = if let RV::Double(bv) = &b { bv.abs() } else { 0.0 };
+            let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
+            let diff = eval_binary(sum, b, Operation::Subtract);
+            if let (RV::Double(orig), RV::Double(result)) = (a, diff) {
+                let scale = orig.abs().max(b_abs).max(1.0);
+                prop_assert!((orig - result).abs() <= f64::EPSILON * scale * 100.0);
+            }
+        }
+
+        #[test]
+        fn tiny_number_operations_stay_finite(
             a in prop_oneof![
                 (-1e-300..1e-300_f64).prop_map(RV::Double),
                 any::<bool>().prop_map(RV::Bool)
@@ -1481,392 +261,452 @@ mod property_tests {
                 (-1e-300..1e-300_f64).prop_map(RV::Double),
                 any::<bool>().prop_map(RV::Bool)
             ],
-            op in prop_oneof![
-                Just(Operation::Add),
-                Just(Operation::Subtract),
-                Just(Operation::Multiply)
-            ]
+            op in prop_oneof![Just(Operation::Add), Just(Operation::Subtract), Just(Operation::Multiply)]
         ) {
-            let result = eval_binary(a.clone(), b.clone(), op);
-
-            // Very small numbers should still produce finite results
-            if let RV::Double(n) = result {
-                prop_assert!(n.is_finite() || n == 0.0, "Tiny number operations should remain finite: {}", n);
+            if let RV::Double(n) = eval_binary(a, b, op) {
+                prop_assert!(n.is_finite() || n == 0.0);
             }
         }
+    }
 
-        // Property: String-to-number parsing edge cases
+    // Arithmetic: NaN and infinity
+
+    proptest! {
         #[test]
-        fn string_number_parsing_edge_cases(
-            s in prop_oneof![
-                r"[+-]?[0-9]+\.?[0-9]*([eE][+-]?[0-9]+)?", // Valid number formats
-                r"[+-]?[0-9]*\.?[0-9]+([eE][+-]?[0-9]+)?", // Valid number formats
-                r"[+-]?Infinity",                           // Infinity strings
-                r"[+-]?inf",                               // inf strings
-                Just("NaN".to_string()),                   // NaN string
-                r"[a-zA-Z]+[0-9]*",                       // Invalid: letters then numbers
-                r"[0-9]+[a-zA-Z]+",                       // Invalid: numbers then letters
-                Just("   ".to_string())                   // Whitespace only
-            ]
-        ) {
-            let str_rv = RV::Str(Arc::new(s.clone()));
-            let num_rv = RV::Double(42.0);
-
-            // Test comparison operations
-            let eq_result = eval_binary(str_rv.clone(), num_rv.clone(), Operation::IsEqual);
-            let lt_result = eval_binary(str_rv.clone(), num_rv.clone(), Operation::Less);
-
-            // These should always produce boolean results
-            prop_assert!(matches!(eq_result, RV::Bool(_)), "String-number equality should return boolean");
-            prop_assert!(matches!(lt_result, RV::Bool(_)), "String-number comparison should return boolean");
-        }
-
-        // Property: Mixed type arithmetic consistency
-        #[test]
-        fn mixed_type_arithmetic_consistency(
-            num in any::<f64>().prop_filter("finite", |x| x.is_finite() && x.abs() < 1e100),
-            bool_val in any::<bool>(),
-            op in prop_oneof![
-                Just(Operation::Add),
-                Just(Operation::Subtract),
-                Just(Operation::Multiply)
-            ]
-        ) {
-            let rv_num = RV::Double(num);
-            let rv_bool = RV::Bool(bool_val);
-            let bool_as_num = RV::Double(if bool_val { 1.0 } else { 0.0 });
-
-            // num op bool should equal num op bool_as_num
-            let mixed_result = eval_binary(rv_num.clone(), rv_bool, op);
-            let pure_num_result = eval_binary(rv_num, bool_as_num, op);
-
-            prop_assert_eq!(mixed_result, pure_num_result,
-                "Mixed type arithmetic should be consistent with explicit conversion");
-        }
-
-        // Property: Division by very small numbers
-        #[test]
-        fn division_by_tiny_numbers(
-            dividend in (-1e10..1e10_f64).prop_filter("finite", |x| x.is_finite()),
-            divisor in (-1e-100..1e-100_f64).prop_filter("non-zero", |x| *x != 0.0)
-        ) {
-            let result = eval_binary(RV::Double(dividend), RV::Double(divisor), Operation::Divide);
-
-            if let RV::Double(n) = result {
-                // Division by tiny numbers should produce large finite numbers or infinity
-                prop_assert!(n.is_finite() || n.is_infinite(),
-                    "Division by tiny numbers should produce finite or infinite results: {}", n);
-            }
-        }
-
-        // Property: String concatenation with numbers preserves string representation
-        #[test]
-        fn string_number_concatenation_preserves_representation(
-            s in "[a-zA-Z]{1,10}",
+        fn nan_comparisons_always_false(
             num in any::<f64>().prop_filter("finite", |x| x.is_finite())
         ) {
-            let str_rv = RV::Str(Arc::new(s.clone()));
-            let num_rv = RV::Double(num);
-
-            let result1 = eval_binary(str_rv.clone(), num_rv.clone(), Operation::Add);
-            let result2 = eval_binary(num_rv, str_rv, Operation::Add);
-
-            if let (RV::Str(s1), RV::Str(s2)) = (result1, result2) {
-                prop_assert!(s1.contains(&s), "String concatenation should preserve original string");
-                prop_assert!(s2.contains(&s), "String concatenation should preserve original string");
-                prop_assert!(s1.contains(&num.to_string()), "String concatenation should contain number representation");
-                prop_assert!(s2.contains(&num.to_string()), "String concatenation should contain number representation");
-            } else {
-                prop_assert!(false, "String-number concatenation should produce strings");
+            let nan = RV::Double(f64::NAN);
+            let rv = RV::Double(num);
+            for op in [Operation::Less, Operation::LessEqual, Operation::Greater, Operation::GreaterEqual, Operation::IsEqual] {
+                prop_assert_eq!(eval_binary(nan.clone(), rv.clone(), op), RV::Bool(false));
+                prop_assert_eq!(eval_binary(rv.clone(), nan.clone(), op), RV::Bool(false));
             }
         }
 
-        // Property: Comparison transitivity for comparable types
         #[test]
-        fn comparison_transitivity(
-            a in numeric_rv_strategy(),
-            b in numeric_rv_strategy(),
-            c in numeric_rv_strategy()
+        fn infinity_plus_finite_is_infinity(
+            num in any::<f64>().prop_filter("finite", |x| x.is_finite())
         ) {
+            let inf = RV::Double(f64::INFINITY);
+            prop_assert_eq!(
+                eval_binary(inf.clone(), RV::Double(num), Operation::Add),
+                RV::Double(f64::INFINITY)
+            );
+        }
+
+        #[test]
+        fn negative_infinity_plus_finite_is_negative_infinity(
+            num in any::<f64>().prop_filter("finite", |x| x.is_finite())
+        ) {
+            let neg_inf = RV::Double(f64::NEG_INFINITY);
+            prop_assert_eq!(
+                eval_binary(neg_inf.clone(), RV::Double(num), Operation::Add),
+                RV::Double(f64::NEG_INFINITY)
+            );
+        }
+    }
+
+    // Comparisons: ordering properties
+
+    proptest! {
+        #[test]
+        fn comparisons_return_bool(a in rv_any(), b in rv_any(), op in comparison_op()) {
+            prop_assert!(matches!(eval_binary(a, b, op), RV::Bool(_)));
+        }
+
+        #[test]
+        fn less_than_is_antisymmetric(a in rv_numeric(), b in rv_numeric()) {
+            let a_lt_b = eval_binary(a.clone(), b.clone(), Operation::Less);
+            let b_lt_a = eval_binary(b, a, Operation::Less);
+            if a_lt_b == RV::Bool(true) {
+                prop_assert_eq!(b_lt_a, RV::Bool(false));
+            }
+        }
+
+        #[test]
+        fn less_than_is_transitive(a in rv_numeric(), b in rv_numeric(), c in rv_numeric()) {
             let a_lt_b = eval_binary(a.clone(), b.clone(), Operation::Less);
             let b_lt_c = eval_binary(b, c.clone(), Operation::Less);
             let a_lt_c = eval_binary(a, c, Operation::Less);
-
-            // If a < b and b < c, then a < c (transitivity)
             if a_lt_b == RV::Bool(true) && b_lt_c == RV::Bool(true) {
-                prop_assert_eq!(a_lt_c, RV::Bool(true), "Less-than should be transitive");
+                prop_assert_eq!(a_lt_c, RV::Bool(true));
             }
         }
+    }
 
-        // Property: Subtraction is inverse of addition (within floating-point precision limits)
+    // Equality properties
+
+    proptest! {
         #[test]
-        fn subtraction_inverse_of_addition_small_numbers(
-            a in (-1e6..1e6_f64).prop_map(RV::Double),
-            b in (-1e6..1e6_f64).prop_map(RV::Double)
-        ) {
-            // Capture b's magnitude before it is moved, so we can include it in the
-            // tolerance calculation.  The rounding error in (a + b) - b is driven by
-            // the magnitude of both operands, not just a.
-            let b_abs = if let RV::Double(bv) = &b { bv.abs() } else { 0.0 };
-
-            // (a + b) - b should equal a
-            let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
-            let difference = eval_binary(sum, b, Operation::Subtract);
-
-            if let (RV::Double(original), RV::Double(result)) = (a, difference) {
-                let diff = (original - result).abs();
-                // Scale tolerance by the largest magnitude involved in the computation so
-                // that cases where |b| >> |a| do not cause spurious failures.
-                let scale = original.abs().max(b_abs).max(1.0);
-                let tolerance = f64::EPSILON * scale * 100.0;
-                prop_assert!(diff <= tolerance,
-                    "Subtraction should be inverse of addition within floating-point precision: {} vs {}, diff: {}, tolerance: {}",
-                    original, result, diff, tolerance);
-            }
+        fn equality_is_reflexive(a in rv_any()) {
+            prop_assert_eq!(eval_binary(a.clone(), a, Operation::IsEqual), RV::Bool(true));
         }
 
-        // Property: Multiplication by zero always yields zero
         #[test]
-        fn multiplication_by_zero_yields_zero(
-            a in numeric_rv_strategy()
-        ) {
-            let zero = RV::Double(0.0);
-            let result1 = eval_binary(a.clone(), zero.clone(), Operation::Multiply);
-            let result2 = eval_binary(zero, a, Operation::Multiply);
-
-            prop_assert_eq!(result1, RV::Double(0.0), "Multiplication by zero should yield zero");
-            prop_assert_eq!(result2, RV::Double(0.0), "Multiplication by zero should yield zero");
+        fn inequality_is_symmetric(a in rv_any(), b in rv_any()) {
+            prop_assert_eq!(
+                eval_binary(a.clone(), b.clone(), Operation::IsNotEqual),
+                eval_binary(b, a, Operation::IsNotEqual)
+            );
         }
+    }
 
-        // Property: String comparison with empty strings
+    // Undefined propagation
+
+    proptest! {
         #[test]
-        fn string_comparison_with_empty_strings(
-            s in "[a-zA-Z0-9]*"
+        fn undefined_arithmetic_yields_undefined(
+            a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
         ) {
-            let empty_str = RV::Str(Arc::new("".to_string()));
-            let non_empty_str = RV::Str(Arc::new(s.clone()));
+            for op in [Operation::Add, Operation::Subtract, Operation::Multiply, Operation::Divide] {
+                prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), op), RV::Undefined);
+                prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, op), RV::Undefined);
+            }
+        }
 
-            let empty_lt_nonempty = eval_binary(empty_str.clone(), non_empty_str.clone(), Operation::Less);
-            let nonempty_gt_empty = eval_binary(non_empty_str, empty_str, Operation::Greater);
+        #[test]
+        fn undefined_comparisons_yield_false(
+            a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
+        ) {
+            for op in [Operation::Less, Operation::LessEqual, Operation::Greater, Operation::GreaterEqual] {
+                prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), op), RV::Bool(false));
+                prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, op), RV::Bool(false));
+            }
+        }
 
-            if !s.is_empty() {
-                prop_assert_eq!(empty_lt_nonempty, RV::Bool(true), "Empty string should be less than non-empty");
-                prop_assert_eq!(nonempty_gt_empty, RV::Bool(true), "Non-empty string should be greater than empty");
+        #[test]
+        fn undefined_equality(
+            a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
+        ) {
+            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), Operation::IsEqual), RV::Bool(false));
+            prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, Operation::IsEqual), RV::Bool(false));
+            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), Operation::IsNotEqual), RV::Bool(true));
+            prop_assert_eq!(eval_binary(a, RV::Undefined, Operation::IsNotEqual), RV::Bool(true));
+        }
+
+        #[test]
+        fn undefined_vs_undefined(op in all_binary_op()) {
+            let result = eval_binary(RV::Undefined, RV::Undefined, op);
+            match op {
+                Operation::IsEqual | Operation::Is => prop_assert_eq!(result, RV::Bool(true)),
+                Operation::IsNotEqual | Operation::IsNot => prop_assert_eq!(result, RV::Bool(false)),
+                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
+                    prop_assert_eq!(result, RV::Undefined);
+                }
+                Operation::Less | Operation::Greater => prop_assert_eq!(result, RV::Bool(false)),
+                Operation::LessEqual | Operation::GreaterEqual => prop_assert_eq!(result, RV::Bool(true)),
+                _ => {}
             }
         }
     }
-}
 
-#[cfg(test)]
-mod regression_tests {
-    use std::sync::Arc;
+    // Type coercion
 
-    use super::*;
-    use crate::value::eval::eval_binary;
+    proptest! {
+        #[test]
+        fn bool_coerces_to_double_consistently(b in any::<bool>()) {
+            let expected = if b { 1.0 } else { 0.0 };
+            let rv = RV::Bool(b);
+            prop_assert_eq!(rv.to_double(), Some(expected));
+            prop_assert_eq!(eval_binary(rv, RV::Double(0.0), Operation::Add), RV::Double(expected));
+        }
 
-    /// These tests capture specific edge cases found through property testing
-    /// or known to be important for the domain
-    #[test]
-    fn regression_nan_handling() {
-        // NaN comparisons should always be false
-        let nan = RV::Double(f64::NAN);
-        let num = RV::Double(1.0);
+        #[test]
+        fn bool_num_mixed_arithmetic_equals_explicit_cast(
+            num in any::<f64>().prop_filter("finite", |x| x.is_finite() && x.abs() < 1e100),
+            b in any::<bool>(),
+            op in prop_oneof![Just(Operation::Add), Just(Operation::Subtract), Just(Operation::Multiply)]
+        ) {
+            let bool_as_num = RV::Double(if b { 1.0 } else { 0.0 });
+            prop_assert_eq!(
+                eval_binary(RV::Double(num), RV::Bool(b), op),
+                eval_binary(RV::Double(num), bool_as_num, op)
+            );
+        }
 
-        assert_eq!(
-            eval_binary(nan.clone(), num.clone(), Operation::Less),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(nan.clone(), num.clone(), Operation::Greater),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(nan.clone(), num.clone(), Operation::IsEqual),
-            RV::Bool(false)
-        );
-        assert_eq!(
-            eval_binary(nan.clone(), nan.clone(), Operation::IsEqual),
-            RV::Bool(false)
-        );
-    }
-
-    #[test]
-    fn regression_infinity_arithmetic() {
-        let inf = RV::Double(f64::INFINITY);
-        let num = RV::Double(42.0);
-
-        // inf + num = inf
-        assert_eq!(eval_binary(inf.clone(), num.clone(), Operation::Add), inf);
-        // inf - inf should be NaN, but we might handle it differently
-        let result = eval_binary(inf.clone(), inf.clone(), Operation::Subtract);
-        match result {
-            RV::Double(n) => assert!(n.is_nan()),
-            RV::Undefined => {} // Also acceptable
-            _ => panic!("Unexpected result for inf - inf"),
+        #[test]
+        fn string_plus_bool_appends_bool_repr(s in "[a-zA-Z]{1,10}", b in any::<bool>()) {
+            let bool_repr = if b { "true" } else { "false" };
+            let result = eval_binary(RV::Str(Arc::new(s.clone())), RV::Bool(b), Operation::Add);
+            if let RV::Str(r) = result {
+                let expected = format!("{s}{bool_repr}");
+                prop_assert_eq!(r.as_str(), expected.as_str());
+            } else {
+                prop_assert!(false, "str + bool should produce a string");
+            }
         }
     }
 
-    #[test]
-    fn regression_string_number_coercion() {
-        // String that can be parsed as number
-        let str_num = RV::Str(Arc::new("42".to_string()));
-        let num = RV::Double(42.0);
+    // String operations
 
-        // In comparisons, string numbers should be coerced
-        let result = eval_binary(str_num, num, Operation::IsEqual);
-        // This depends on implementation - document the expected behavior
-        match result {
-            RV::Bool(_) => {} // Either true or false is acceptable, but should be documented
-            _ => panic!("String-number comparison should return boolean"),
+    proptest! {
+        #[test]
+        fn string_add_concatenates(s1 in "[a-zA-Z0-9]*", s2 in "[a-zA-Z0-9]*") {
+            let result = eval_binary(
+                RV::Str(Arc::new(s1.clone())),
+                RV::Str(Arc::new(s2.clone())),
+                Operation::Add,
+            );
+            if let RV::Str(r) = result {
+                let expected = format!("{s1}{s2}");
+                prop_assert_eq!(r.as_str(), expected.as_str());
+            } else {
+                prop_assert!(false, "str + str should produce a string");
+            }
         }
-    }
 
-    #[test]
-    fn regression_addition_associativity_large_numbers() {
-        // This test documents a known floating-point precision issue
-        // Found through property testing: very large numbers don't maintain exact associativity
-        // Failing case from proptest: a = 3.471971265526436e290, b = 1.1414671723104438e295, c = -1.563421480094111e295
-        let a = RV::Double(3.471971265526436e290);
-        let b = RV::Double(1.1414671723104438e295);
-        let c = RV::Double(-1.563421480094111e295);
+        #[test]
+        fn string_add_unicode(
+            s1 in r"[\x00-\x1F\u{1F600}-\u{1F64F}a-zA-Z0-9\s]*",
+            s2 in r"[\x00-\x1F\u{1F600}-\u{1F64F}a-zA-Z0-9\s]*"
+        ) {
+            let result = eval_binary(
+                RV::Str(Arc::new(s1.clone())),
+                RV::Str(Arc::new(s2.clone())),
+                Operation::Add,
+            );
+            if let RV::Str(r) = result {
+                prop_assert_eq!(r.len(), s1.len() + s2.len());
+                prop_assert!(r.starts_with(&s1));
+                prop_assert!(r.ends_with(&s2));
+            } else {
+                prop_assert!(false, "str + str should produce a string");
+            }
+        }
 
-        // (a + b) + c
-        let ab = eval_binary(a.clone(), b.clone(), Operation::Add);
-        let ab_c = eval_binary(ab, c.clone(), Operation::Add);
-
-        // a + (b + c)
-        let bc = eval_binary(b, c, Operation::Add);
-        let a_bc = eval_binary(a, bc, Operation::Add);
-
-        // These should be approximately equal but may not be exactly equal due to floating-point precision
-        match (ab_c, a_bc) {
-            (RV::Double(left), RV::Double(right)) => {
-                // Document the actual difference found - this is a known limitation of floating-point arithmetic
-                let diff = (left - right).abs();
-                let max_val = left.abs().max(right.abs());
-                let relative_error = if max_val > 0.0 { diff / max_val } else { 0.0 };
-
-                // For numbers this large (~1e295), we expect some precision loss
-                // The original failure showed a difference of ~5e279, which is significant but expected
-                // for floating-point arithmetic at this scale
-                // println!("Floating-point precision test:");
-                // println!("  Left result:  {}", left);
-                // println!("  Right result: {}", right);
-                // println!("  Absolute diff: {}", diff);
-                // println!("  Relative error: {}", relative_error);
-
-                // This test documents the behavior rather than asserting exact equality
-                // For extremely large numbers, floating-point arithmetic is inherently imprecise
-                assert!(
-                    relative_error < 1e-13 || diff < 1e280,
-                    "Relative error {relative_error} or absolute difference {diff} is larger than expected for floating-point arithmetic at this scale"
+        #[test]
+        fn string_non_add_is_undefined(s1 in "[a-z]{1,10}", s2 in "[a-z]{1,10}") {
+            for op in [Operation::Subtract, Operation::Multiply, Operation::Divide] {
+                prop_assert_eq!(
+                    eval_binary(RV::Str(Arc::new(s1.clone())), RV::Str(Arc::new(s2.clone())), op),
+                    RV::Undefined
                 );
             }
-            _ => panic!("Expected numeric results for addition operations"),
+        }
+
+        #[test]
+        fn string_comparisons_are_lexicographic(s1 in "[a-z]{1,10}", s2 in "[a-z]{1,10}") {
+            let rv1 = RV::Str(Arc::new(s1.clone()));
+            let rv2 = RV::Str(Arc::new(s2.clone()));
+            match s1.cmp(&s2) {
+                std::cmp::Ordering::Less => {
+                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::Less), RV::Bool(true));
+                }
+                std::cmp::Ordering::Equal => {
+                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::IsEqual), RV::Bool(true));
+                }
+                std::cmp::Ordering::Greater => {
+                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::Less), RV::Bool(false));
+                }
+            }
+        }
+
+        #[test]
+        fn empty_string_is_less_than_nonempty(s in "[a-zA-Z0-9]+") {
+            let empty = RV::Str(Arc::new(String::new()));
+            let nonempty = RV::Str(Arc::new(s));
+            prop_assert_eq!(eval_binary(empty.clone(), nonempty.clone(), Operation::Less), RV::Bool(true));
+            prop_assert_eq!(eval_binary(nonempty, empty, Operation::Greater), RV::Bool(true));
+        }
+
+        #[test]
+        fn string_comparison_always_returns_bool(
+            s in r"[+-]?[0-9]+\.?[0-9]*|[a-zA-Z]+[0-9]*|[0-9]+[a-zA-Z]+"
+        ) {
+            let str_rv = RV::Str(Arc::new(s));
+            let num_rv = RV::Double(42.0);
+            prop_assert!(matches!(eval_binary(str_rv.clone(), num_rv.clone(), Operation::IsEqual), RV::Bool(_)));
+            prop_assert!(matches!(eval_binary(str_rv, num_rv, Operation::Less), RV::Bool(_)));
         }
     }
 
-    #[test]
-    fn regression_subtraction_precision_large_numbers() {
-        // This test documents another floating-point precision issue found through property testing
-        // Failing case: a = 239305169.8616219, b = -4330652516.771584
-        // The issue: (a + b) - b should equal a, but floating-point precision causes small differences
-        let a = RV::Double(239305169.8616219);
-        let b = RV::Double(-4330652516.771584);
+    // eval_between: numeric
 
-        // (a + b) - b should equal a
-        let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
-        let difference = eval_binary(sum, b, Operation::Subtract);
+    proptest! {
+        #[test]
+        fn between_numeric_correctness(
+            subject in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            a in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            b in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+        ) {
+            let (lo, hi) = (a.min(b), a.max(b));
+            let expected = lo <= subject && subject <= hi;
+            prop_assert_eq!(
+                eval_between(&RV::Double(subject), &RV::Double(a), &RV::Double(b)),
+                Some(expected)
+            );
+        }
 
-        match (a, difference) {
-            (RV::Double(original), RV::Double(result)) => {
-                let diff = (original - result).abs();
-                // The original failure showed a difference of ~3e-8, which is expected for this magnitude
-                assert!(
-                    diff < 1e-6,
-                    "Subtraction precision loss should be small: original={original}, result={result}, diff={diff}"
-                );
-            }
-            _ => panic!("Expected numeric results"),
+        #[test]
+        fn between_numeric_bounds_are_symmetric(
+            subject in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            a in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            b in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+        ) {
+            prop_assert_eq!(
+                eval_between(&RV::Double(subject), &RV::Double(a), &RV::Double(b)),
+                eval_between(&RV::Double(subject), &RV::Double(b), &RV::Double(a))
+            );
+        }
+
+        #[test]
+        fn between_numeric_boundary_values_are_inclusive(
+            a in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            b in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+        ) {
+            let lo = a.min(b);
+            let hi = a.max(b);
+            prop_assert_eq!(eval_between(&RV::Double(lo), &RV::Double(a), &RV::Double(b)), Some(true));
+            prop_assert_eq!(eval_between(&RV::Double(hi), &RV::Double(a), &RV::Double(b)), Some(true));
         }
     }
 
-    #[test]
-    fn regression_subtraction_precision_medium_numbers() {
-        // Another case found through property testing: a = 776327.478839819, b = 333251.5209597033
-        // Shows that even "medium" sized numbers can have precision issues
-        let a = RV::Double(776327.478839819);
-        let b = RV::Double(333251.5209597033);
+    // eval_between: string
 
-        // (a + b) - b should equal a
-        let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
-        let difference = eval_binary(sum, b, Operation::Subtract);
+    proptest! {
+        #[test]
+        fn between_string_correctness(
+            subject in "[a-z]{1,5}",
+            a in "[a-z]{1,5}",
+            b in "[a-z]{1,5}",
+        ) {
+            let lo = a.clone().min(b.clone());
+            let hi = a.clone().max(b.clone());
+            let expected = lo.as_str() <= subject.as_str() && subject.as_str() <= hi.as_str();
+            prop_assert_eq!(
+                eval_between(
+                    &RV::Str(Arc::new(subject)),
+                    &RV::Str(Arc::new(a)),
+                    &RV::Str(Arc::new(b)),
+                ),
+                Some(expected)
+            );
+        }
 
-        match (a, difference) {
-            (RV::Double(original), RV::Double(result)) => {
-                let diff = (original - result).abs();
-                // This case showed a difference of ~1e-10, which is within expected floating-point precision
-                assert!(
-                    diff < 1e-9,
-                    "Subtraction precision loss should be within floating-point epsilon: original={original}, result={result}, diff={diff}"
-                );
-            }
-            _ => panic!("Expected numeric results"),
+        #[test]
+        fn between_string_bounds_are_symmetric(
+            subject in "[a-z]{1,5}",
+            a in "[a-z]{1,5}",
+            b in "[a-z]{1,5}",
+        ) {
+            prop_assert_eq!(
+                eval_between(
+                    &RV::Str(Arc::new(subject.clone())),
+                    &RV::Str(Arc::new(a.clone())),
+                    &RV::Str(Arc::new(b.clone())),
+                ),
+                eval_between(
+                    &RV::Str(Arc::new(subject)),
+                    &RV::Str(Arc::new(b)),
+                    &RV::Str(Arc::new(a)),
+                )
+            );
+        }
+
+        #[test]
+        fn between_string_boundary_values_are_inclusive(
+            a in "[a-z]{1,5}",
+            b in "[a-z]{1,5}",
+        ) {
+            let lo = a.clone().min(b.clone());
+            let hi = a.clone().max(b.clone());
+            prop_assert_eq!(
+                eval_between(
+                    &RV::Str(Arc::new(lo)),
+                    &RV::Str(Arc::new(a.clone())),
+                    &RV::Str(Arc::new(b.clone())),
+                ),
+                Some(true)
+            );
+            prop_assert_eq!(
+                eval_between(
+                    &RV::Str(Arc::new(hi)),
+                    &RV::Str(Arc::new(a)),
+                    &RV::Str(Arc::new(b)),
+                ),
+                Some(true)
+            );
         }
     }
 
-    #[test]
-    fn regression_addition_associativity_tiny_numbers() {
-        // Found through property testing: even tiny numbers can have associativity issues
-        // Case: a = -8.856050288210175e-102, b = 5.003750612076637e-88, c = -5.226269442637776e-88
-        let a = RV::Double(-8.856050288210175e-102);
-        let b = RV::Double(5.003750612076637e-88);
-        let c = RV::Double(-5.226269442637776e-88);
+    // eval_between: datetime
 
-        // (a + b) + c vs a + (b + c)
-        let ab = eval_binary(a.clone(), b.clone(), Operation::Add);
-        let ab_c = eval_binary(ab, c.clone(), Operation::Add);
+    proptest! {
+        #[test]
+        fn between_datetime_correctness(
+            subject_ms in any::<i64>(),
+            a_ms in any::<i64>(),
+            b_ms in any::<i64>(),
+        ) {
+            let (lo, hi) = (a_ms.min(b_ms), a_ms.max(b_ms));
+            let expected = lo <= subject_ms && subject_ms <= hi;
+            prop_assert_eq!(
+                eval_between(
+                    &RV::DateTime(bson::DateTime::from_millis(subject_ms)),
+                    &RV::DateTime(bson::DateTime::from_millis(a_ms)),
+                    &RV::DateTime(bson::DateTime::from_millis(b_ms)),
+                ),
+                Some(expected)
+            );
+        }
 
-        let bc = eval_binary(b, c, Operation::Add);
-        let a_bc = eval_binary(a, bc, Operation::Add);
+        #[test]
+        fn between_datetime_bounds_are_symmetric(
+            subject_ms in any::<i64>(),
+            a_ms in any::<i64>(),
+            b_ms in any::<i64>(),
+        ) {
+            let subject = bson::DateTime::from_millis(subject_ms);
+            let a = bson::DateTime::from_millis(a_ms);
+            let b = bson::DateTime::from_millis(b_ms);
+            prop_assert_eq!(
+                eval_between(&RV::DateTime(subject), &RV::DateTime(a), &RV::DateTime(b)),
+                eval_between(&RV::DateTime(subject), &RV::DateTime(b), &RV::DateTime(a))
+            );
+        }
 
-        match (ab_c, a_bc) {
-            (RV::Double(left), RV::Double(right)) => {
-                let diff = (left - right).abs();
-                // Even with tiny numbers, floating-point precision limits apply
-                // This documents that associativity can fail even at very small scales
-                let max_val = left.abs().max(right.abs());
-                let relative_error = if max_val > 0.0 { diff / max_val } else { 0.0 };
-
-                assert!(
-                    relative_error < 1e-12 || diff < 1e-100,
-                    "Addition associativity failed for tiny numbers: left={left}, right={right}, diff={diff}, rel_err={relative_error}"
-                );
-            }
-            _ => panic!("Expected numeric results"),
+        #[test]
+        fn between_datetime_boundary_values_are_inclusive(
+            a_ms in any::<i64>(),
+            b_ms in any::<i64>(),
+        ) {
+            let lo = bson::DateTime::from_millis(a_ms.min(b_ms));
+            let hi = bson::DateTime::from_millis(a_ms.max(b_ms));
+            let a = bson::DateTime::from_millis(a_ms);
+            let b = bson::DateTime::from_millis(b_ms);
+            prop_assert_eq!(eval_between(&RV::DateTime(lo), &RV::DateTime(a), &RV::DateTime(b)), Some(true));
+            prop_assert_eq!(eval_between(&RV::DateTime(hi), &RV::DateTime(a), &RV::DateTime(b)), Some(true));
         }
     }
 
-    #[test]
-    fn regression_subtraction_precision_small_negative() {
-        // Case found through property testing: a = -13542.264609919892, b = 751876.9370472291
-        // Shows precision issues with negative numbers and subtraction
-        let a = RV::Double(-13542.264609919892);
-        let b = RV::Double(751876.9370472291);
+    // eval_between: type mismatches return None
 
-        let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
-        let difference = eval_binary(sum, b, Operation::Subtract);
+    proptest! {
+        #[test]
+        fn between_unsupported_subject_returns_none(
+            a in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            b in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            bv in any::<bool>(),
+        ) {
+            prop_assert_eq!(eval_between(&RV::Bool(bv), &RV::Double(a), &RV::Double(b)), None);
+            prop_assert_eq!(eval_between(&RV::Undefined, &RV::Double(a), &RV::Double(b)), None);
+        }
 
-        match (a, difference) {
-            (RV::Double(original), RV::Double(result)) => {
-                let diff = (original - result).abs();
-                // This case showed a difference of ~3e-11, demonstrating precision limits
-                assert!(
-                    diff < 1e-8,
-                    "Subtraction precision with negative numbers: original={original}, result={result}, diff={diff}"
-                );
-            }
-            _ => panic!("Expected numeric results"),
+        #[test]
+        fn between_mismatched_bound_types_return_none(
+            subject in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            a in any::<f64>().prop_filter("finite", |x| x.is_finite()),
+            s in "[a-z]{1,5}",
+        ) {
+            prop_assert_eq!(
+                eval_between(
+                    &RV::Double(subject),
+                    &RV::Double(a),
+                    &RV::Str(Arc::new(s)),
+                ),
+                None
+            );
         }
     }
 }

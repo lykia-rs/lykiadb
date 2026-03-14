@@ -116,6 +116,9 @@ impl<'v> RV<'v> {
     pub fn to_double(&self) -> Option<f64> {
         match self {
             RV::Double(value) => Some(*value),
+            RV::Int32(value) => Some(*value as f64),
+            RV::Int64(value) => Some(*value as f64),
+            RV::Decimal128(value) => value.to_string().parse::<f64>().ok(),
             RV::Bool(true) => Some(1.0),
             RV::Bool(false) => Some(0.0),
             RV::Str(s) => s.parse::<f64>().ok(),
