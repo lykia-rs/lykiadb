@@ -14,3 +14,4 @@ debug = true
 
 [workspace.metadata.scripts]
 dev-client = "sh ./dev-client.sh"
+coverage = "cargo llvm-cov --all-features --workspace"

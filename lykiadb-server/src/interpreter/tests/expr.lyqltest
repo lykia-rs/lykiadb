@@ -33,6 +33,20 @@
         }
     }
 
+    @test string_coercion_in_comparison {
+        testutil::print(100 < 11);
+        testutil::print(100 < "11");
+        testutil::print("100" < 11);
+        testutil::print("100" < "11");
+
+        @expect {
+            false
+            false
+            false
+            true
+        }
+    }
+
     @test logical_evaluation {
         testutil::print(5 && 1);
         testutil::print(5 || 1);
@@ -198,27 +212,30 @@
         }
     }
 
-    @test numeric_between_eval {
+    @test numeric_between {
         var $x = 5;
         testutil::print($x between 1 and 10);
         testutil::print($x between 5 and 10);
         testutil::print($x between 1 and 5);
         testutil::print($x between 6 and 10);
         testutil::print($x between 0 and 4);
-        testutil::print($x between "1" and 10);
-        testutil::print($x between 5 and "10");
-        testutil::print($x between "1" and "5");
-        testutil::print($x between "0" and 4);
-        
         testutil::print($x not between 1 and 10);
         testutil::print($x not between 5 and 10);
         testutil::print($x not between 1 and 5);
         testutil::print($x not between 6 and 10);
         testutil::print($x not between 0 and 4);
+        
+        // String coercion
+        testutil::print($x between "1" and 10);
+        testutil::print($x between 5 and "10");
+        testutil::print($x between "1" and "5");
+        testutil::print($x between "0" and 4);
         testutil::print($x not between "1" and 10);
         testutil::print($x not between 5 and "10");
         testutil::print($x not between "1" and "5");
         testutil::print($x not between "0" and 4);
+        testutil::print(100 between 1 and 11); // Numerical ordering
+        testutil::print(100 between "1" and "11"); // Numerical ordering
 
         @expect {
             true
@@ -226,6 +243,11 @@
             true
             false
             false
+            false
+            false
+            false
+            true
+            true
             true
             true
             true
@@ -234,10 +256,34 @@
             false
             false
             true
+            false
+            false
+        }
+    }
+
+    @test string_between {
+        testutil::print("mice" between "alligator" and "zebra");
+        testutil::print("alligator" between "mice" and "zebra");
+        testutil::print("zebra" between "alligator" and "mice");
+        testutil::print("mice" between "mice" and "mice");
+        testutil::print("100" between "1" and "11"); // Lexicographical ordering
+
+        @expect {
             true
             false
             false
+            true
+            true
+        }
+
+        testutil::print("100" between "1" and 11); // Coercion to string, lexicographical ordering
+
+        @expect {
+            true
             false
+            false
+            true
+            true
             true
         }
     }

@@ -83,18 +83,15 @@ fn eval_between_datetime(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option
 }
 
 fn eval_between_string(subject: &RV<'_>, min: &RV<'_>, max: &RV<'_>) -> Option<bool> {
-    if let (RV::Str(lower_str), RV::Str(upper_str), RV::Str(subject_str)) =
-            (min, max, subject)
-    {
-        let min_str = lower_str.clone().min(upper_str.clone());
-        let max_str = lower_str.max(upper_str);
+    let lower_str = &min.to_string();
+    let upper_str = &max.to_string();
+    let subject_str = subject.to_string();
 
-        return Some(min_str <= *subject_str && *subject_str <= *max_str);
-    }
+    let min_str = lower_str.min(upper_str).to_string();
+    let max_str = lower_str.max(upper_str).to_string();
 
-    None
+    return Some(min_str <= subject_str && subject_str <= max_str);
 }
-
 
 #[cfg(test)]
 mod property_tests {
