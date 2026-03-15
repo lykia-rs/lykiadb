@@ -2,7 +2,7 @@ use crate::execution::dispatching::dispatch_query_execute;
 use crate::execution::global::intern_string;
 use crate::execution::state::ProgramState;
 use crate::interpreter::HaltReason;
-use crate::interpreter::environment::EnvironmentFrame;
+use crate::interpreter::environment::{EnvironmentFrame, EnvironmentOrigin};
 use crate::interpreter::error::InterpretError;
 use crate::value::RV;
 use crate::value::array::RVArray;
@@ -86,17 +86,8 @@ impl<'sess> ExprEngine {
         Ok(None)
     }
 
-    fn get_from_exec_row(&self, name: &str, state: &ProgramState<'sess>) -> Option<RV<'sess>> {
-        if let Some(exec_row) = &*state.exec_row.read().unwrap() {
-            if let Some(val) = exec_row.get(&intern_string(name)) {
-                return Some(val.clone());
-            }
-        }
-        None
-    }
-
-    fn has_exec_row(&self, state: &ProgramState<'sess>) -> bool {
-        state.exec_row.read().unwrap().is_some()
+    fn is_query(&self, state: &ProgramState<'sess>) -> bool {
+        state.env.origin == EnvironmentOrigin::Query
     }
 
     fn eval_variable(
@@ -105,14 +96,10 @@ impl<'sess> ExprEngine {
         expr: &Expr,
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        if let Some(exec_row) = &*state.exec_row.read().unwrap()
-            && let Some(val) = exec_row.get(&intern_string(name))
-        {
-            return Ok(val.clone());
-        }
-
         let distance = state.program.as_ref().get_distance(expr);
-        if let Some(unwrapped) = distance {
+        if state.env.origin == EnvironmentOrigin::Query {
+            EnvironmentFrame::read_at(&state.env, 0, name, &intern_string(name))
+        } else if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(&state.env, unwrapped, name, &intern_string(name))
         } else {
             state.root_env.read(name, &intern_string(name))
@@ -217,11 +204,11 @@ impl<'sess> ExprEngine {
             } => {
                 let eval = self.eval(callee, state)?;
                 if let RV::Callable(callable) = eval {
-                    if self.has_exec_row(state) && callable.is_agg() {
-                        let value = self.get_from_exec_row(&e.sign(), state);
+                    if self.is_query(state) && callable.is_agg() {
+                        let value = self.eval_variable(&e.sign(), e, state);
 
-                        if let Some(value) = value {
-                            return Ok(value);
+                        if value.is_ok() {
+                            return value;
                         }
 
                         panic!("Aggregator value not found in execution row");
@@ -375,7 +362,7 @@ impl<'sess> ExprEngine {
             Expr::Select { span, .. }
             | Expr::Insert { span, .. }
             | Expr::Update { span, .. }
-            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, state.clone()),
+            | Expr::Delete { span, .. } => dispatch_query_execute(e, span, &state),
         }
     }
 }

@@ -1,8 +1,7 @@
 use crate::execution::global::GLOBAL_INTERNER;
-use crate::interpreter::environment::EnvironmentFrame;
+use crate::interpreter::environment::{EnvironmentFrame, EnvironmentOrigin};
 use crate::interpreter::output::Output;
 use crate::libs::stdlib::stdlib;
-use crate::value::iterator::ExecutionRow;
 use lykiadb_common::memory::Shared;
 use std::sync::Arc;
 
@@ -11,7 +10,6 @@ use lykiadb_lang::parser::program::Program;
 pub struct ProgramState<'sess> {
     pub root_env: Arc<EnvironmentFrame<'sess>>,
     pub env: Arc<EnvironmentFrame<'sess>>,
-    pub exec_row: Shared<Option<ExecutionRow<'sess>>>,
     // Output
     pub output: Option<Shared<Output<'sess>>>,
     // Static fields:
@@ -24,7 +22,7 @@ impl<'sess> ProgramState<'sess> {
         program: Arc<Program>,
         with_stdlib: bool,
     ) -> ProgramState<'sess> {
-        let root_env = Arc::new(EnvironmentFrame::new(None));
+        let root_env = Arc::new(EnvironmentFrame::new(None, EnvironmentOrigin::Root));
         if with_stdlib {
             let native_fns = stdlib(out.clone());
 
@@ -36,7 +34,6 @@ impl<'sess> ProgramState<'sess> {
         ProgramState {
             env: root_env.clone(),
             root_env: root_env.clone(),
-            exec_row: Shared::new(None.into()),
             program,
             output: out,
         }
@@ -50,7 +47,6 @@ impl<'sess> ProgramState<'sess> {
         ProgramState {
             env: Arc::clone(&self.env),
             root_env: Arc::clone(&self.root_env),
-            exec_row: Shared::new(None.into()),
             program,
             output,
         }

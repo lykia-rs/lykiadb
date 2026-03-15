@@ -38,7 +38,7 @@ impl Program {
     pub fn get_distance(&self, expr: &Expr) -> Option<usize> {
         let expr_id: usize = match expr {
             Expr::Variable { id, .. } | Expr::Assignment { id, .. } => *id,
-            _ => panic!("Expected variable or assignment expression."),
+            _ => return None,
         };
 
         self.locals.as_ref().unwrap().get(&expr_id).copied()
