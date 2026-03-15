@@ -106,7 +106,10 @@ impl<'sess> Interpreter<'sess> {
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
                     stmts,
-                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.state.env)), EnvironmentOrigin::Block)),
+                    Arc::new(EnvironmentFrame::new(
+                        Some(Arc::clone(&self.state.env)),
+                        EnvironmentOrigin::Block,
+                    )),
                 );
             }
             Stmt::If {

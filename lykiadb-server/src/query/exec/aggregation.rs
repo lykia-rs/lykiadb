@@ -37,9 +37,7 @@ impl<'v, 'q> Grouper<'v, 'q> {
         for group_expr in self.group_exprs.iter() {
             bucket.push(match group_expr {
                 IntermediateExpr::Constant(val) => val.clone(),
-                IntermediateExpr::Expr { expr } => {
-                    self.exec_ctx.eval(expr)?
-                }
+                IntermediateExpr::Expr { expr } => self.exec_ctx.eval(expr)?,
             });
         }
 
@@ -56,9 +54,7 @@ impl<'v, 'q> Grouper<'v, 'q> {
         let bucket_value = self.groups.get_mut(&bucket).unwrap();
 
         for (idx, agg) in self.aggregations.iter().enumerate() {
-            let val = self
-                .exec_ctx
-                .eval(&agg.args[0])?;
+            let val = self.exec_ctx.eval(&agg.args[0])?;
 
             bucket_value[idx].as_mut().row(&val);
         }

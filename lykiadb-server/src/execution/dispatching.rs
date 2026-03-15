@@ -39,12 +39,12 @@ pub fn dispatch_query_execute<'sess>(
     state: &ProgramState<'sess>,
 ) -> Result<RV<'sess>, HaltReason<'sess>> {
     // Insert a query environment frame for the execution of the query,
-    // so that variables defined within the query can be stored and 
+    // so that variables defined within the query can be stored and
     // accessed without affecting the outer environment.
     let query_env = EnvironmentFrame::new(Some(Arc::clone(&state.env)), EnvironmentOrigin::Query);
     let mut cloned = state.clone();
     cloned.env = Arc::new(query_env);
-    
+
     // Create a query execution context and execute the query using the query engine.
     let exec_ctx = QueryExecutionContext::new(cloned);
     let mut query_engine = QueryEngine::new();

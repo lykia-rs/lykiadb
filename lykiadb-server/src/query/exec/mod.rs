@@ -124,8 +124,7 @@ impl<'v, 'q> PlanExecutor {
                             }
                             SqlProjection::Expr { expr, alias } => {
                                 exec_ctx.push_row(&downstream);
-                                let evaluated =
-                                    &exec_ctx.eval(expr);
+                                let evaluated = &exec_ctx.eval(expr);
                                 exec_ctx.pop_row();
                                 let value = match evaluated {
                                     Ok(v) => v,
@@ -182,7 +181,7 @@ impl<'v, 'q> PlanExecutor {
                 let mut grouper = Grouper::new(group_by, aggregates, exec_ctx);
 
                 let cursor = self.execute_node(*source, exec_ctx)?;
-            
+
                 for row in cursor {
                     exec_ctx.push_row(&row);
                     if let Err(e) = grouper.row() {

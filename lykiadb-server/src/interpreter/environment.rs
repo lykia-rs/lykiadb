@@ -32,7 +32,10 @@ macro_rules! to_ancestor {
 }
 
 impl<'v> EnvironmentFrame<'v> {
-    pub fn new(parent: Option<Arc<EnvironmentFrame<'v>>>, origin: EnvironmentOrigin) -> EnvironmentFrame<'v> {
+    pub fn new(
+        parent: Option<Arc<EnvironmentFrame<'v>>>,
+        origin: EnvironmentOrigin,
+    ) -> EnvironmentFrame<'v> {
         EnvironmentFrame {
             parent,
             map: RwLock::new(FxHashMap::default()),
@@ -185,7 +188,8 @@ mod tests {
     fn test_read_from_parent() {
         let root = super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root);
         root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
-        let child = super::EnvironmentFrame::new(Some(Arc::new(root)), super::EnvironmentOrigin::Block);
+        let child =
+            super::EnvironmentFrame::new(Some(Arc::new(root)), super::EnvironmentOrigin::Block);
         assert_eq!(
             child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
             RV::Double(5.0)
@@ -194,11 +198,15 @@ mod tests {
 
     #[test]
     fn test_write_to_parent() {
-        let root = Arc::new(super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root));
+        let root = Arc::new(super::EnvironmentFrame::new(
+            None,
+            super::EnvironmentOrigin::Root,
+        ));
 
         root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
 
-        let child = super::EnvironmentFrame::new(Some(root.clone()), super::EnvironmentOrigin::Block);
+        let child =
+            super::EnvironmentFrame::new(Some(root.clone()), super::EnvironmentOrigin::Block);
 
         child
             .assign("five", GLOBAL_INTERNER.intern("five"), RV::Double(5.1))
