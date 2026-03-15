@@ -39,13 +39,11 @@ pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operati
 
 pub fn eval_between<'v>(subject: &RV, min: &RV, max: &RV) -> Option<bool> {
     match subject {
-        RV::Double(_) => return eval_between_numeric(subject, min, max),
-        RV::DateTime(_) => return eval_between_datetime(subject, min, max),
-        RV::Str(_) => return eval_between_string(subject, min, max),
-        _ => (),
+        RV::Double(_) => eval_between_numeric(subject, min, max),
+        RV::DateTime(_) => eval_between_datetime(subject, min, max),
+        RV::Str(_) => eval_between_string(subject, min, max),
+        _ => None,
     }
-
-    None
 }
 
 fn eval_between_numeric<'v>(subject: &RV, min: &RV, max: &RV) -> Option<bool> {

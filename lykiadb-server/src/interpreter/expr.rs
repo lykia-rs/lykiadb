@@ -1,5 +1,4 @@
 use crate::execution::dispatching::dispatch_query_execute;
-use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
 use crate::execution::state::ProgramState;
 use crate::interpreter::HaltReason;
@@ -112,7 +111,7 @@ impl<'sess> ExprEngine {
             return Ok(val.clone());
         }
 
-        let distance = state.program.as_ref().and_then(|x| x.get_distance(expr));
+        let distance = state.program.as_ref().get_distance(expr);
         if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(&state.env, unwrapped, name, &intern_string(name))
         } else {
@@ -194,13 +193,7 @@ impl<'sess> ExprEngine {
                 Ok(RV::Bool(self.eval(right, state)?.to_bool()))
             }
             Expr::Assignment { dst, expr, .. } => {
-                let distance = state
-                    .program
-                    .as_ref()
-                    .ok_or(HaltReason::Error(ExecutionError::Interpret(
-                        InterpretError::NoProgramLoaded,
-                    )))?
-                    .get_distance(e);
+                let distance = state.program.as_ref().get_distance(e);
 
                 let evaluated = self.eval(expr, state)?;
                 let dst_symbol = intern_string(&dst.name);
