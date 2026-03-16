@@ -1,0 +1,25 @@
+@set(run = "interpreter")
+@group fns {
+
+    @test fn_blocks {
+        {
+          function $buckets($size, $mod) {
+              var $arr = arr::new($size);
+              return select col_0 as m, sum(item) as a from $arr as item group by mod(item, $mod);
+          };
+
+          function $dbl($num) {
+              return $num * 2;
+          };
+
+          {
+              var $b = $buckets(100, 4);
+              testutil::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
+          }
+        }
+        
+        @expect {
+            [{m: 0, a: 1200}, {m: 2, a: 1225}, {m: 4, a: 1250}, {m: 6, a: 1275}]
+        }
+    }
+}

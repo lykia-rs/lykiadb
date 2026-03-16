@@ -97,10 +97,10 @@ impl<'sess> ExprEngine {
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let distance = state.program.as_ref().get_distance(expr);
-        if state.env.origin == EnvironmentOrigin::Query {
-            EnvironmentFrame::read_at(&state.env, 0, name, &intern_string(name))
-        } else if let Some(unwrapped) = distance {
+        if let Some(unwrapped) = distance {
             EnvironmentFrame::read_at(&state.env, unwrapped, name, &intern_string(name))
+        } else if state.env.origin == EnvironmentOrigin::Query {
+            EnvironmentFrame::read_at(&state.env, 0, name, &intern_string(name))
         } else {
             state.root_env.read(name, &intern_string(name))
         }
