@@ -18,14 +18,13 @@ impl<'sess> QueryExecutionContext<'sess> {
         ExprEngine.eval(e, &self.state)
     }
 
-    pub fn eval_with_exec_row(
-        &self,
-        e: &Expr,
-        exec_row: ExecutionRow<'sess>,
-    ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        self.state.exec_row.write().unwrap().replace(exec_row);
-        let evaluated = self.eval(e);
-        self.state.exec_row.write().unwrap().take();
-        evaluated
+    pub fn push_row(&self, row: &ExecutionRow<'sess>) {
+        for (k, v) in row.keys.iter().zip(row.values.iter()) {
+            self.state.env.define(*k, v.clone());
+        }
+    }
+
+    pub fn pop_row(&self) {
+        self.state.env.reset();
     }
 }

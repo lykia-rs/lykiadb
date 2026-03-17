@@ -5,11 +5,20 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 
+#[derive(PartialEq, Debug)]
+pub enum EnvironmentOrigin {
+    Root,
+    Function,
+    Block,
+    Query,
+}
+
 use super::RV;
 #[derive(Debug)]
 pub struct EnvironmentFrame<'v> {
     map: RwLock<FxHashMap<Symbol, RV<'v>>>,
     pub parent: Option<Arc<EnvironmentFrame<'v>>>,
+    pub origin: EnvironmentOrigin,
 }
 
 macro_rules! to_ancestor {
@@ -23,15 +32,23 @@ macro_rules! to_ancestor {
 }
 
 impl<'v> EnvironmentFrame<'v> {
-    pub fn new(parent: Option<Arc<EnvironmentFrame<'v>>>) -> EnvironmentFrame<'v> {
+    pub fn new(
+        parent: Option<Arc<EnvironmentFrame<'v>>>,
+        origin: EnvironmentOrigin,
+    ) -> EnvironmentFrame<'v> {
         EnvironmentFrame {
             parent,
             map: RwLock::new(FxHashMap::default()),
+            origin,
         }
     }
 
     pub fn define(&self, name: Symbol, value: RV<'v>) {
         self.map.write().unwrap().insert(name, value);
+    }
+
+    pub fn reset(&self) {
+        self.map.write().unwrap().clear();
     }
 
     pub fn assign(
@@ -157,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_read_basic() {
-        let env_man = super::EnvironmentFrame::new(None);
+        let env_man = super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root);
         env_man.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
         assert_eq!(
             env_man
@@ -169,9 +186,10 @@ mod tests {
 
     #[test]
     fn test_read_from_parent() {
-        let root = super::EnvironmentFrame::new(None);
+        let root = super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root);
         root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
-        let child = super::EnvironmentFrame::new(Some(Arc::new(root)));
+        let child =
+            super::EnvironmentFrame::new(Some(Arc::new(root)), super::EnvironmentOrigin::Block);
         assert_eq!(
             child.read("five", &GLOBAL_INTERNER.intern("five")).unwrap(),
             RV::Double(5.0)
@@ -180,11 +198,15 @@ mod tests {
 
     #[test]
     fn test_write_to_parent() {
-        let root = Arc::new(super::EnvironmentFrame::new(None));
+        let root = Arc::new(super::EnvironmentFrame::new(
+            None,
+            super::EnvironmentOrigin::Root,
+        ));
 
         root.define(GLOBAL_INTERNER.intern("five"), RV::Double(5.0));
 
-        let child = super::EnvironmentFrame::new(Some(root.clone()));
+        let child =
+            super::EnvironmentFrame::new(Some(root.clone()), super::EnvironmentOrigin::Block);
 
         child
             .assign("five", GLOBAL_INTERNER.intern("five"), RV::Double(5.1))
@@ -203,13 +225,13 @@ mod tests {
 
     #[test]
     fn test_read_undefined_variable() {
-        let env = super::EnvironmentFrame::new(None);
+        let env = super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root);
         assert!(env.read("five", &GLOBAL_INTERNER.intern("five")).is_err());
     }
 
     #[test]
     fn test_assign_to_undefined_variable() {
-        let env = super::EnvironmentFrame::new(None);
+        let env = super::EnvironmentFrame::new(None, super::EnvironmentOrigin::Root);
         assert!(
             env.assign("five", GLOBAL_INTERNER.intern("five"), RV::Double(5.0))
                 .is_err()

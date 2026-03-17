@@ -2,7 +2,7 @@ use crate::execution::dispatching::dispatch_query_explain;
 use crate::execution::error::ExecutionError;
 use crate::execution::global::intern_string;
 use crate::execution::state::ProgramState;
-use crate::interpreter::environment::EnvironmentFrame;
+use crate::interpreter::environment::{EnvironmentFrame, EnvironmentOrigin};
 use crate::interpreter::expr::ExprEngine;
 use crate::value::RV;
 use std::sync::Arc;
@@ -54,7 +54,7 @@ impl<'sess> Interpreter<'sess> {
         parameters: &[Symbol],
         arguments: &[RV<'sess>],
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)));
+        let fn_env = EnvironmentFrame::new(Some(Arc::clone(&closure)), EnvironmentOrigin::Function);
 
         for (i, arg) in arguments.iter().enumerate() {
             if i >= parameters.len() {
@@ -106,7 +106,10 @@ impl<'sess> Interpreter<'sess> {
             Stmt::Block { body: stmts, .. } => {
                 return self.execute_block(
                     stmts,
-                    Arc::new(EnvironmentFrame::new(Some(Arc::clone(&self.state.env)))),
+                    Arc::new(EnvironmentFrame::new(
+                        Some(Arc::clone(&self.state.env)),
+                        EnvironmentOrigin::Block,
+                    )),
                 );
             }
             Stmt::If {

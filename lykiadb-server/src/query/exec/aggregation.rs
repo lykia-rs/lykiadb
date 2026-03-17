@@ -31,15 +31,13 @@ impl<'v, 'q> Grouper<'v, 'q> {
         }
     }
 
-    pub fn row(&mut self, row: ExecutionRow<'v>) -> Result<(), HaltReason<'v>> {
+    pub fn row(&mut self) -> Result<(), HaltReason<'v>> {
         let mut bucket: Vec<RV> = vec![];
 
         for group_expr in self.group_exprs.iter() {
             bucket.push(match group_expr {
                 IntermediateExpr::Constant(val) => val.clone(),
-                IntermediateExpr::Expr { expr } => {
-                    self.exec_ctx.eval_with_exec_row(expr, row.clone())?
-                }
+                IntermediateExpr::Expr { expr } => self.exec_ctx.eval(expr)?,
             });
         }
 
@@ -56,9 +54,7 @@ impl<'v, 'q> Grouper<'v, 'q> {
         let bucket_value = self.groups.get_mut(&bucket).unwrap();
 
         for (idx, agg) in self.aggregations.iter().enumerate() {
-            let val = self
-                .exec_ctx
-                .eval_with_exec_row(&agg.args[0], row.clone())?;
+            let val = self.exec_ctx.eval(&agg.args[0])?;
 
             bucket_value[idx].as_mut().row(&val);
         }

@@ -28,6 +28,10 @@ fn bench(c: &mut Criterion) {
     // Benchmark scripts are in lykiadb-bench/benches/scripts/
     let base = concat!(env!("CARGO_MANIFEST_DIR"), "/benches/scripts/");
 
+    group.bench_function("group_by_mod", |b| {
+        b.iter(|| session(black_box(&format!("{base}group_by_mod.ly"))));
+    });
+
     group.bench_function("scan_square", |b| {
         b.iter(|| session(black_box(&format!("{base}scan_square.ly"))));
     });

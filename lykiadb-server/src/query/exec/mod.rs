@@ -88,7 +88,9 @@ impl<'v, 'q> PlanExecutor {
                         let cursor = self.execute_node(*source, exec_ctx)?;
 
                         let iter = cursor.filter_map(move |row: ExecutionRow| {
-                            let evaluated = &exec_ctx.eval_with_exec_row(&expr, row.clone());
+                            exec_ctx.push_row(&row);
+                            let evaluated = &exec_ctx.eval(&expr);
+                            exec_ctx.pop_row();
                             if let Ok(value) = evaluated
                                 && value.to_bool()
                             {
@@ -121,8 +123,9 @@ impl<'v, 'q> PlanExecutor {
                                 }
                             }
                             SqlProjection::Expr { expr, alias } => {
-                                let evaluated =
-                                    &exec_ctx.eval_with_exec_row(expr, downstream.clone());
+                                exec_ctx.push_row(&downstream);
+                                let evaluated = &exec_ctx.eval(expr);
+                                exec_ctx.pop_row();
                                 let value = match evaluated {
                                     Ok(v) => v,
                                     Err(_) => &RV::Undefined,
@@ -180,11 +183,13 @@ impl<'v, 'q> PlanExecutor {
                 let cursor = self.execute_node(*source, exec_ctx)?;
 
                 for row in cursor {
-                    if let Err(e) = grouper.row(row) {
+                    exec_ctx.push_row(&row);
+                    if let Err(e) = grouper.row() {
                         if let HaltReason::Error(err) = e {
                             return Err(err);
                         }
                     }
+                    exec_ctx.pop_row();
                 }
 
                 let rows = grouper.finalize();
