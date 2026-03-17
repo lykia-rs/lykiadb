@@ -17,7 +17,7 @@ use crate::{
 
 pub mod aggregation;
 
-crate::run_file_tests!("lykiadb-server/src/query/exec/tests");
+crate::register_tests!("lykiadb-server/src/query/exec/tests");
 
 pub struct PlanExecutor;
 

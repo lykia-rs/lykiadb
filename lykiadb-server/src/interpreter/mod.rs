@@ -12,7 +12,7 @@ pub mod error;
 pub mod expr;
 pub mod output;
 
-crate::run_file_tests!("lykiadb-server/src/interpreter/tests");
+crate::register_tests!("lykiadb-server/src/interpreter/tests");
 
 use crate::value::callable::Stateful;
 use interb::Symbol;

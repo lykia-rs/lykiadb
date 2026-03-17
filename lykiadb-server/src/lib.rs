@@ -5,10 +5,10 @@ pub mod query;
 pub mod value;
 
 #[macro_export]
-macro_rules! run_file_tests {
+macro_rules! register_tests {
     ($path:literal) => {
         #[cfg(test)]
-        mod file_tests {
+        mod lyqltests {
             use $crate::execution::session::SessionTester;
             use test_each_file::test_each_path;
             test_each_path! {
