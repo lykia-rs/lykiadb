@@ -2,7 +2,12 @@
 @group fns {
 
     @test fn_blocks {
+        var $m = 2;
+        var $s = 50;
+
         {
+          var $m = 4;
+          var $s = 100;
           function $buckets($size, $mod) {
               var $arr = arr::new($size);
               return select col_0 as m, sum(item) as a from $arr as item group by mod(item, $mod);
@@ -13,7 +18,7 @@
           };
 
           {
-              var $b = $buckets(100, 4);
+              var $b = $buckets($s, $m);
               testutil::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
           }
         }

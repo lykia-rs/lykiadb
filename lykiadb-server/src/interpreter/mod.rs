@@ -12,6 +12,8 @@ pub mod error;
 pub mod expr;
 pub mod output;
 
+crate::run_file_tests!("lykiadb-server/src/interpreter/tests");
+
 use crate::value::callable::Stateful;
 use interb::Symbol;
 use lykiadb_lang::ast::stmt::Stmt;

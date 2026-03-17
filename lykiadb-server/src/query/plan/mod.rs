@@ -20,6 +20,8 @@ mod from;
 pub mod planner;
 mod scope;
 
+crate::run_file_tests!("lykiadb-server/src/query/plan/tests");
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum IntermediateExpr<'v> {
     Constant(RV<'v>),
