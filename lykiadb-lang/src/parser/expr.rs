@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ast::expr::{Expr, Operation, TypeAnnotation};
+use crate::ast::expr::{Expr, Operation, TernaryOp, TypeAnnotation};
 use crate::ast::stmt::Stmt;
 use crate::ast::{IdentifierKind, Literal, Spanned};
 use crate::tokenizer::token::{
@@ -291,9 +291,9 @@ impl ExprParser {
             lower,
             upper: upper.clone(),
             operation: if falsy {
-                Operation::NotBetween
+                TernaryOp::NotBetween
             } else {
-                Operation::Between
+                TernaryOp::Between
             },
             span: subject.get_span().merge(&upper.get_span()),
             id: cparser.get_expr_id(),
@@ -313,7 +313,7 @@ impl ExprParser {
             let token = (*cparser.peek_bw(1)).clone();
             let unary = self.unary(cparser)?;
             return Ok(Box::new(Expr::Unary {
-                operation: cparser.tok_type_to_op(token.tok_type),
+                operation: cparser.tok_type_to_unary_op(token.tok_type),
                 expr: unary.clone(),
                 span: cparser.get_merged_span(&token.span, &(unary).get_span()),
                 id: cparser.get_expr_id(),

@@ -14,6 +14,14 @@ use super::{
     stmt::Stmt,
 };
 
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[serde(tag = "@type")]
+pub enum UnaryOp {
+    Minus,
+    Not,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
 pub enum Operation {
@@ -29,13 +37,17 @@ pub enum Operation {
     LessEqual,
     And,
     Or,
-    Not,
     Is,
     IsNot,
     In,
     NotIn,
     Like,
     NotLike,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[serde(tag = "@type")]
+pub enum TernaryOp {
     Between,
     NotBetween,
 }
@@ -166,7 +178,7 @@ pub enum Expr {
         lower: Box<Expr>,
         upper: Box<Expr>,
         subject: Box<Expr>,
-        operation: Operation,
+        operation: TernaryOp,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
         #[derivative(Hash = "ignore")]
@@ -192,7 +204,7 @@ pub enum Expr {
     },
     #[serde(rename = "Expr::Unary")]
     Unary {
-        operation: Operation,
+        operation: UnaryOp,
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -395,9 +407,8 @@ impl Display for Expr {
                 "({} {} {} And {})",
                 subject,
                 match operation {
-                    Operation::Between => "Between",
-                    Operation::NotBetween => "NotBetween",
-                    _ => "UnknownTernaryOp",
+                    TernaryOp::Between => "Between",
+                    TernaryOp::NotBetween => "NotBetween",
                 },
                 lower,
                 upper
@@ -624,7 +635,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 7,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: Span::default(),
             id: 8,
         };
@@ -757,7 +768,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 12,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: test_span,
             id: 13,
         };
@@ -785,7 +796,7 @@ pub mod tests {
 
         // Test Unary
         let unary_expr = Expr::Unary {
-            operation: Operation::Not,
+            operation: UnaryOp::Not,
             expr: Box::new(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
@@ -980,7 +991,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 3,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: Span::default(),
             id: 4,
         };

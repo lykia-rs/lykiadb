@@ -1,7 +1,7 @@
 use self::program::Program;
 use super::ast::expr::Operation;
 use super::ast::stmt::Stmt;
-use crate::ast::expr::Expr;
+use crate::ast::expr::{Expr, UnaryOp};
 use crate::ast::{Span, Spanned};
 use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
@@ -192,6 +192,17 @@ impl<'a> Parser<'a> {
         false
     }
 
+    pub fn tok_type_to_unary_op(&self, tok_t: TokenType) -> UnaryOp {
+        match tok_t {
+            TokenType::Symbol(sym) => match sym {
+                Minus => UnaryOp::Minus,
+                Bang => UnaryOp::Not,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
     pub fn tok_type_to_op(&self, tok_t: TokenType) -> Operation {
         match tok_t {
             TokenType::Symbol(sym) => match sym {
@@ -205,7 +216,6 @@ impl<'a> Parser<'a> {
                 GreaterEqual => Operation::GreaterEqual,
                 Less => Operation::Less,
                 LessEqual => Operation::LessEqual,
-                Bang => Operation::Not,
                 LogicalAnd => Operation::And,
                 LogicalOr => Operation::Or,
                 Equal => {

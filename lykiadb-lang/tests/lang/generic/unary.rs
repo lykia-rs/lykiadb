@@ -12,7 +12,7 @@ assert_parsing! {
                     "expr": {
                         "@type": "Expr::Unary",
                         "operation": {
-                            "@type": "Subtract"
+                            "@type": "Minus"
                         },
                         "expr": {
                             "@type": "Expr::Literal",
