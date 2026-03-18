@@ -330,7 +330,7 @@ mod tests {
         ast::{
             Literal, Span,
             expr::{
-                Expr, BinaryOp,
+                BinaryOp, Expr,
                 test_utils::{
                     create_call_expr, create_field_path_expr, create_identifier_expr,
                     create_number_expr, create_string_expr, create_subquery_expr,

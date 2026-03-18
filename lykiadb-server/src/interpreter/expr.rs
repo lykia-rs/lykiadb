@@ -11,7 +11,7 @@ use crate::value::eval::{eval_between, eval_binary};
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use lykiadb_lang::ast::expr::{Expr, BinaryOp, TernaryOp, UnaryOp};
+use lykiadb_lang::ast::expr::{BinaryOp, Expr, TernaryOp, UnaryOp};
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;

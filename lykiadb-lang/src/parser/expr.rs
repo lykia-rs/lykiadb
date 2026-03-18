@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::ast::expr::{Expr, BinaryOp, TernaryOp, TypeAnnotation};
+use crate::ast::expr::{BinaryOp, Expr, TernaryOp, TypeAnnotation};
 use crate::ast::stmt::Stmt;
 use crate::ast::{IdentifierKind, Literal, Spanned};
 use crate::tokenizer::token::{

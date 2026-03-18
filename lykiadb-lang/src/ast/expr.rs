@@ -14,7 +14,6 @@ use super::{
     stmt::Stmt,
 };
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
 pub enum UnaryOp {
