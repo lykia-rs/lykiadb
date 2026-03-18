@@ -11,7 +11,7 @@ use crate::value::eval::{eval_between, eval_binary};
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use lykiadb_lang::ast::expr::{Expr, Operation, TernaryOp, UnaryOp};
+use lykiadb_lang::ast::expr::{Expr, BinaryOp, TernaryOp, UnaryOp};
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
@@ -50,7 +50,7 @@ impl<'sess> ExprEngine {
         &self,
         lexpr: &Expr,
         rexpr: &Expr,
-        operation: Operation,
+        operation: BinaryOp,
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let left_eval = self.eval(lexpr, state)?;
@@ -171,8 +171,8 @@ impl<'sess> ExprEngine {
             } => {
                 let is_true = self.eval(left, state)?.to_bool();
 
-                if (*operation == Operation::Or && is_true)
-                    || (*operation == Operation::And && !is_true)
+                if (*operation == BinaryOp::Or && is_true)
+                    || (*operation == BinaryOp::And && !is_true)
                 {
                     return Ok(RV::Bool(is_true));
                 }

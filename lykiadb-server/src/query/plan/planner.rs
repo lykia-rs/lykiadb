@@ -330,7 +330,7 @@ mod tests {
         ast::{
             Literal, Span,
             expr::{
-                Expr, Operation,
+                Expr, BinaryOp,
                 test_utils::{
                     create_call_expr, create_field_path_expr, create_identifier_expr,
                     create_number_expr, create_string_expr, create_subquery_expr,
@@ -499,12 +499,12 @@ mod tests {
                     "upper",
                     vec![create_field_path_expr("user", vec!["name"])],
                 )),
-                operation: Operation::Add,
+                operation: BinaryOp::Add,
                 right: Box::new(create_string_expr(" - ")),
                 span: Span::default(),
                 id: 0,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(create_field_path_expr("user", vec!["id"])),
             span: Span::default(),
             id: 0,
@@ -533,7 +533,7 @@ mod tests {
 
         let expr = Expr::Binary {
             left: Box::new(subquery1),
-            operation: Operation::And,
+            operation: BinaryOp::And,
             right: Box::new(subquery2),
             span: Span::default(),
             id: 0,

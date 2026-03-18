@@ -24,7 +24,7 @@ pub enum UnaryOp {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
-pub enum Operation {
+pub enum BinaryOp {
     Add,
     Subtract,
     Multiply,
@@ -191,7 +191,7 @@ pub enum Expr {
     #[serde(rename = "Expr::Binary")]
     Binary {
         left: Box<Expr>,
-        operation: Operation,
+        operation: BinaryOp,
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -231,7 +231,7 @@ pub enum Expr {
     #[serde(rename = "Expr::Logical")]
     Logical {
         left: Box<Expr>,
-        operation: Operation,
+        operation: BinaryOp,
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -479,7 +479,7 @@ pub mod test_utils {
                 id: 0,
                 raw: left.to_string(),
             }),
-            operation: crate::ast::expr::Operation::Add,
+            operation: crate::ast::expr::BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(right),
                 span: Span::default(),
@@ -649,7 +649,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 9,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),
@@ -669,7 +669,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 12,
             }),
-            operation: Operation::And,
+            operation: BinaryOp::And,
             right: Box::new(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
@@ -782,7 +782,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 14,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),
@@ -830,7 +830,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 21,
             }),
-            operation: Operation::And,
+            operation: BinaryOp::And,
             right: Box::new(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
@@ -928,7 +928,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 4,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),

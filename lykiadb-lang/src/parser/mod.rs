@@ -1,5 +1,5 @@
 use self::program::Program;
-use super::ast::expr::Operation;
+use super::ast::expr::BinaryOp;
 use super::ast::stmt::Stmt;
 use crate::ast::expr::{Expr, UnaryOp};
 use crate::ast::{Span, Spanned};
@@ -203,24 +203,24 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn tok_type_to_op(&self, tok_t: TokenType) -> Operation {
+    pub fn tok_type_to_op(&self, tok_t: TokenType) -> BinaryOp {
         match tok_t {
             TokenType::Symbol(sym) => match sym {
-                Plus => Operation::Add,
-                Minus => Operation::Subtract,
-                Star => Operation::Multiply,
-                Slash => Operation::Divide,
-                EqualEqual => Operation::IsEqual,
-                BangEqual => Operation::IsNotEqual,
-                Greater => Operation::Greater,
-                GreaterEqual => Operation::GreaterEqual,
-                Less => Operation::Less,
-                LessEqual => Operation::LessEqual,
-                LogicalAnd => Operation::And,
-                LogicalOr => Operation::Or,
+                Plus => BinaryOp::Add,
+                Minus => BinaryOp::Subtract,
+                Star => BinaryOp::Multiply,
+                Slash => BinaryOp::Divide,
+                EqualEqual => BinaryOp::IsEqual,
+                BangEqual => BinaryOp::IsNotEqual,
+                Greater => BinaryOp::Greater,
+                GreaterEqual => BinaryOp::GreaterEqual,
+                Less => BinaryOp::Less,
+                LessEqual => BinaryOp::LessEqual,
+                LogicalAnd => BinaryOp::And,
+                LogicalOr => BinaryOp::Or,
                 Equal => {
                     if self.get_count("in_select_depth") > 0 {
-                        Operation::IsEqual
+                        BinaryOp::IsEqual
                     } else {
                         unreachable!()
                     }
@@ -228,8 +228,8 @@ impl<'a> Parser<'a> {
                 _ => unreachable!(),
             },
             TokenType::SqlKeyword(skw) => match skw {
-                SqlKeyword::And => Operation::And,
-                SqlKeyword::Or => Operation::Or,
+                SqlKeyword::And => BinaryOp::And,
+                SqlKeyword::Or => BinaryOp::Or,
                 _ => unreachable!(),
             },
             _ => unreachable!(),
