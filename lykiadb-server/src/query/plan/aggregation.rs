@@ -161,7 +161,7 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 mod tests {
     use std::sync::Arc;
 
-    use crate::execution::state::ProgramState;
+    use crate::execution::state::{ProgramState, test_utils::create_empty_state};
 
     use super::*;
     use lykiadb_lang::{
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
-        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
+        let state = create_empty_state();
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_collect_aggregates_having_clause() -> Result<(), HaltReason<'static>> {
-        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
+        let state = create_empty_state();
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_nested_aggregates_not_allowed() {
-        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
+        let state = create_empty_state();
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_aggregation_should_be_drained_after_each_visit() -> Result<(), HaltReason<'static>> {
-        let state = ProgramState::new(None, Arc::new(Program::empty()), true);
+        let state = create_empty_state();
 
         let avg_call = Expr::Call {
             callee: Box::new(Expr::Variable {
