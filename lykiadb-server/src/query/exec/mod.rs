@@ -219,11 +219,9 @@ impl<'v, 'q> PlanExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{execution::state::test_utils::create_empty_state, query::plan::IntermediateExpr};
     use crate::value::RV;
-    use lykiadb_lang::{
-        ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection},
-    };
+    use crate::{execution::state::test_utils::create_empty_state, query::plan::IntermediateExpr};
+    use lykiadb_lang::ast::{Identifier, IdentifierKind, Literal, expr::Expr, sql::SqlProjection};
     use std::sync::Arc;
 
     fn create_test_executor() -> (PlanExecutor, &'static QueryExecutionContext<'static>) {

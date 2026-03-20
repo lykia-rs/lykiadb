@@ -159,16 +159,15 @@ impl<'a, 'v> ExprReducer<Aggregation<'v>, HaltReason<'v>> for AggregationCollect
 
 #[cfg(test)]
 mod tests {
-    
 
     use crate::execution::state::test_utils::create_empty_state;
 
     use super::*;
     use lykiadb_lang::ast::{
-            Identifier, IdentifierKind, Span,
-            expr::Expr,
-            sql::{SqlProjection, SqlSelectCore},
-        };
+        Identifier, IdentifierKind, Span,
+        expr::Expr,
+        sql::{SqlProjection, SqlSelectCore},
+    };
 
     #[test]
     fn test_collect_aggregates_simple_projection() -> Result<(), HaltReason<'static>> {
