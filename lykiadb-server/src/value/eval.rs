@@ -1,8 +1,8 @@
 use super::RV;
-use lykiadb_lang::ast::expr::Operation;
+use lykiadb_lang::ast::expr::BinaryOp;
 
 #[inline(always)]
-pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operation) -> RV<'v> {
+pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: BinaryOp) -> RV<'v> {
     /*
         TODO(vck):
             - Add support for object operations
@@ -10,21 +10,21 @@ pub fn eval_binary<'v>(left_eval: RV<'v>, right_eval: RV<'v>, operation: Operati
             - Add support for function operations
     */
     match operation {
-        Operation::Is | Operation::IsEqual => RV::Bool(left_eval == right_eval),
-        Operation::IsNot | Operation::IsNotEqual => RV::Bool(left_eval != right_eval),
-        Operation::Less => RV::Bool(left_eval < right_eval),
-        Operation::LessEqual => RV::Bool(left_eval <= right_eval),
-        Operation::Greater => RV::Bool(left_eval > right_eval),
-        Operation::GreaterEqual => RV::Bool(left_eval >= right_eval),
-        Operation::Add => left_eval + right_eval,
-        Operation::Subtract => left_eval - right_eval,
-        Operation::Multiply => left_eval * right_eval,
-        Operation::Divide => left_eval / right_eval,
-        Operation::In => match left_eval.is_in(&right_eval) {
+        BinaryOp::Is | BinaryOp::IsEqual => RV::Bool(left_eval == right_eval),
+        BinaryOp::IsNot | BinaryOp::IsNotEqual => RV::Bool(left_eval != right_eval),
+        BinaryOp::Less => RV::Bool(left_eval < right_eval),
+        BinaryOp::LessEqual => RV::Bool(left_eval <= right_eval),
+        BinaryOp::Greater => RV::Bool(left_eval > right_eval),
+        BinaryOp::GreaterEqual => RV::Bool(left_eval >= right_eval),
+        BinaryOp::Add => left_eval + right_eval,
+        BinaryOp::Subtract => left_eval - right_eval,
+        BinaryOp::Multiply => left_eval * right_eval,
+        BinaryOp::Divide => left_eval / right_eval,
+        BinaryOp::In => match left_eval.is_in(&right_eval) {
             RV::Bool(a) => RV::Bool(a),
             _ => RV::Undefined,
         },
-        Operation::NotIn => match left_eval.is_in(&right_eval) {
+        BinaryOp::NotIn => match left_eval.is_in(&right_eval) {
             RV::Bool(a) => RV::Bool(!a),
             _ => RV::Undefined,
         },
@@ -89,7 +89,7 @@ mod property_tests {
 
     use super::*;
     use crate::value::eval::{eval_between, eval_binary};
-    use lykiadb_lang::ast::expr::Operation;
+    use lykiadb_lang::ast::expr::BinaryOp;
     use proptest::prelude::*;
 
     // Strategies
@@ -114,29 +114,29 @@ mod property_tests {
         ]
     }
 
-    fn comparison_op() -> impl Strategy<Value = Operation> {
+    fn comparison_op() -> impl Strategy<Value = BinaryOp> {
         prop_oneof![
-            Just(Operation::IsEqual),
-            Just(Operation::IsNotEqual),
-            Just(Operation::Less),
-            Just(Operation::LessEqual),
-            Just(Operation::Greater),
-            Just(Operation::GreaterEqual),
+            Just(BinaryOp::IsEqual),
+            Just(BinaryOp::IsNotEqual),
+            Just(BinaryOp::Less),
+            Just(BinaryOp::LessEqual),
+            Just(BinaryOp::Greater),
+            Just(BinaryOp::GreaterEqual),
         ]
     }
 
-    fn all_binary_op() -> impl Strategy<Value = Operation> {
+    fn all_binary_op() -> impl Strategy<Value = BinaryOp> {
         prop_oneof![
-            Just(Operation::Add),
-            Just(Operation::Subtract),
-            Just(Operation::Multiply),
-            Just(Operation::Divide),
-            Just(Operation::IsEqual),
-            Just(Operation::IsNotEqual),
-            Just(Operation::Less),
-            Just(Operation::LessEqual),
-            Just(Operation::Greater),
-            Just(Operation::GreaterEqual),
+            Just(BinaryOp::Add),
+            Just(BinaryOp::Subtract),
+            Just(BinaryOp::Multiply),
+            Just(BinaryOp::Divide),
+            Just(BinaryOp::IsEqual),
+            Just(BinaryOp::IsNotEqual),
+            Just(BinaryOp::Less),
+            Just(BinaryOp::LessEqual),
+            Just(BinaryOp::Greater),
+            Just(BinaryOp::GreaterEqual),
         ]
     }
 
@@ -146,22 +146,22 @@ mod property_tests {
         #[test]
         fn addition_is_commutative(a in rv_numeric(), b in rv_numeric()) {
             prop_assert_eq!(
-                eval_binary(a.clone(), b.clone(), Operation::Add),
-                eval_binary(b, a, Operation::Add)
+                eval_binary(a.clone(), b.clone(), BinaryOp::Add),
+                eval_binary(b, a, BinaryOp::Add)
             );
         }
 
         #[test]
         fn multiplication_is_commutative(a in rv_numeric(), b in rv_numeric()) {
             prop_assert_eq!(
-                eval_binary(a.clone(), b.clone(), Operation::Multiply),
-                eval_binary(b, a, Operation::Multiply)
+                eval_binary(a.clone(), b.clone(), BinaryOp::Multiply),
+                eval_binary(b, a, BinaryOp::Multiply)
             );
         }
 
         #[test]
         fn additive_identity(a in rv_numeric()) {
-            let result = eval_binary(a.clone(), RV::Double(0.0), Operation::Add);
+            let result = eval_binary(a.clone(), RV::Double(0.0), BinaryOp::Add);
             if let Some(n) = a.to_double() {
                 prop_assert_eq!(result, RV::Double(n));
             }
@@ -169,7 +169,7 @@ mod property_tests {
 
         #[test]
         fn multiplicative_identity(a in rv_numeric()) {
-            let result = eval_binary(a.clone(), RV::Double(1.0), Operation::Multiply);
+            let result = eval_binary(a.clone(), RV::Double(1.0), BinaryOp::Multiply);
             if let Some(n) = a.to_double() {
                 prop_assert_eq!(result, RV::Double(n));
             }
@@ -177,8 +177,8 @@ mod property_tests {
 
         #[test]
         fn multiply_by_zero_yields_zero(a in rv_numeric()) {
-            let r1 = eval_binary(a.clone(), RV::Double(0.0), Operation::Multiply);
-            let r2 = eval_binary(RV::Double(0.0), a, Operation::Multiply);
+            let r1 = eval_binary(a.clone(), RV::Double(0.0), BinaryOp::Multiply);
+            let r2 = eval_binary(RV::Double(0.0), a, BinaryOp::Multiply);
             prop_assert_eq!(r1, RV::Double(0.0));
             prop_assert_eq!(r2, RV::Double(0.0));
         }
@@ -189,7 +189,7 @@ mod property_tests {
     proptest! {
         #[test]
         fn division_by_zero(a in rv_numeric()) {
-            let result = eval_binary(a.clone(), RV::Double(0.0), Operation::Divide);
+            let result = eval_binary(a.clone(), RV::Double(0.0), BinaryOp::Divide);
             if let Some(n) = a.to_double() {
                 if n == 0.0 {
                     prop_assert_eq!(result, RV::Undefined);
@@ -204,7 +204,7 @@ mod property_tests {
             dividend in (-1e10..1e10_f64).prop_filter("finite", |x| x.is_finite()),
             divisor in (-1e-100..1e-100_f64).prop_filter("non-zero", |x| *x != 0.0)
         ) {
-            if let RV::Double(n) = eval_binary(RV::Double(dividend), RV::Double(divisor), Operation::Divide) {
+            if let RV::Double(n) = eval_binary(RV::Double(dividend), RV::Double(divisor), BinaryOp::Divide) {
                 prop_assert!(n.is_finite() || n.is_infinite());
             }
         }
@@ -215,8 +215,8 @@ mod property_tests {
             b in (-1e6..1e6_f64).prop_map(RV::Double)
         ) {
             let b_abs = if let RV::Double(bv) = &b { bv.abs() } else { 0.0 };
-            let sum = eval_binary(a.clone(), b.clone(), Operation::Add);
-            let diff = eval_binary(sum, b, Operation::Subtract);
+            let sum = eval_binary(a.clone(), b.clone(), BinaryOp::Add);
+            let diff = eval_binary(sum, b, BinaryOp::Subtract);
             if let (RV::Double(orig), RV::Double(result)) = (a, diff) {
                 let scale = orig.abs().max(b_abs).max(1.0);
                 prop_assert!((orig - result).abs() <= f64::EPSILON * scale * 100.0);
@@ -233,7 +233,7 @@ mod property_tests {
                 (-1e-300..1e-300_f64).prop_map(RV::Double),
                 any::<bool>().prop_map(RV::Bool)
             ],
-            op in prop_oneof![Just(Operation::Add), Just(Operation::Subtract), Just(Operation::Multiply)]
+            op in prop_oneof![Just(BinaryOp::Add), Just(BinaryOp::Subtract), Just(BinaryOp::Multiply)]
         ) {
             if let RV::Double(n) = eval_binary(a, b, op) {
                 prop_assert!(n.is_finite() || n == 0.0);
@@ -250,7 +250,7 @@ mod property_tests {
         ) {
             let nan = RV::Double(f64::NAN);
             let rv = RV::Double(num);
-            for op in [Operation::Less, Operation::LessEqual, Operation::Greater, Operation::GreaterEqual, Operation::IsEqual] {
+            for op in [BinaryOp::Less, BinaryOp::LessEqual, BinaryOp::Greater, BinaryOp::GreaterEqual, BinaryOp::IsEqual] {
                 prop_assert_eq!(eval_binary(nan.clone(), rv.clone(), op), RV::Bool(false));
                 prop_assert_eq!(eval_binary(rv.clone(), nan.clone(), op), RV::Bool(false));
             }
@@ -262,7 +262,7 @@ mod property_tests {
         ) {
             let inf = RV::Double(f64::INFINITY);
             prop_assert_eq!(
-                eval_binary(inf.clone(), RV::Double(num), Operation::Add),
+                eval_binary(inf.clone(), RV::Double(num), BinaryOp::Add),
                 RV::Double(f64::INFINITY)
             );
         }
@@ -273,7 +273,7 @@ mod property_tests {
         ) {
             let neg_inf = RV::Double(f64::NEG_INFINITY);
             prop_assert_eq!(
-                eval_binary(neg_inf.clone(), RV::Double(num), Operation::Add),
+                eval_binary(neg_inf.clone(), RV::Double(num), BinaryOp::Add),
                 RV::Double(f64::NEG_INFINITY)
             );
         }
@@ -289,8 +289,8 @@ mod property_tests {
 
         #[test]
         fn less_than_is_antisymmetric(a in rv_numeric(), b in rv_numeric()) {
-            let a_lt_b = eval_binary(a.clone(), b.clone(), Operation::Less);
-            let b_lt_a = eval_binary(b, a, Operation::Less);
+            let a_lt_b = eval_binary(a.clone(), b.clone(), BinaryOp::Less);
+            let b_lt_a = eval_binary(b, a, BinaryOp::Less);
             if a_lt_b == RV::Bool(true) {
                 prop_assert_eq!(b_lt_a, RV::Bool(false));
             }
@@ -298,9 +298,9 @@ mod property_tests {
 
         #[test]
         fn less_than_is_transitive(a in rv_numeric(), b in rv_numeric(), c in rv_numeric()) {
-            let a_lt_b = eval_binary(a.clone(), b.clone(), Operation::Less);
-            let b_lt_c = eval_binary(b, c.clone(), Operation::Less);
-            let a_lt_c = eval_binary(a, c, Operation::Less);
+            let a_lt_b = eval_binary(a.clone(), b.clone(), BinaryOp::Less);
+            let b_lt_c = eval_binary(b, c.clone(), BinaryOp::Less);
+            let a_lt_c = eval_binary(a, c, BinaryOp::Less);
             if a_lt_b == RV::Bool(true) && b_lt_c == RV::Bool(true) {
                 prop_assert_eq!(a_lt_c, RV::Bool(true));
             }
@@ -312,14 +312,14 @@ mod property_tests {
     proptest! {
         #[test]
         fn equality_is_reflexive(a in rv_any()) {
-            prop_assert_eq!(eval_binary(a.clone(), a, Operation::IsEqual), RV::Bool(true));
+            prop_assert_eq!(eval_binary(a.clone(), a, BinaryOp::IsEqual), RV::Bool(true));
         }
 
         #[test]
         fn inequality_is_symmetric(a in rv_any(), b in rv_any()) {
             prop_assert_eq!(
-                eval_binary(a.clone(), b.clone(), Operation::IsNotEqual),
-                eval_binary(b, a, Operation::IsNotEqual)
+                eval_binary(a.clone(), b.clone(), BinaryOp::IsNotEqual),
+                eval_binary(b, a, BinaryOp::IsNotEqual)
             );
         }
     }
@@ -331,7 +331,7 @@ mod property_tests {
         fn undefined_arithmetic_yields_undefined(
             a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
         ) {
-            for op in [Operation::Add, Operation::Subtract, Operation::Multiply, Operation::Divide] {
+            for op in [BinaryOp::Add, BinaryOp::Subtract, BinaryOp::Multiply, BinaryOp::Divide] {
                 prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), op), RV::Undefined);
                 prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, op), RV::Undefined);
             }
@@ -341,7 +341,7 @@ mod property_tests {
         fn undefined_comparisons_yield_false(
             a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
         ) {
-            for op in [Operation::Less, Operation::LessEqual, Operation::Greater, Operation::GreaterEqual] {
+            for op in [BinaryOp::Less, BinaryOp::LessEqual, BinaryOp::Greater, BinaryOp::GreaterEqual] {
                 prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), op), RV::Bool(false));
                 prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, op), RV::Bool(false));
             }
@@ -351,23 +351,23 @@ mod property_tests {
         fn undefined_equality(
             a in rv_any().prop_filter("not undefined", |rv| !matches!(rv, RV::Undefined))
         ) {
-            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), Operation::IsEqual), RV::Bool(false));
-            prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, Operation::IsEqual), RV::Bool(false));
-            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), Operation::IsNotEqual), RV::Bool(true));
-            prop_assert_eq!(eval_binary(a, RV::Undefined, Operation::IsNotEqual), RV::Bool(true));
+            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), BinaryOp::IsEqual), RV::Bool(false));
+            prop_assert_eq!(eval_binary(a.clone(), RV::Undefined, BinaryOp::IsEqual), RV::Bool(false));
+            prop_assert_eq!(eval_binary(RV::Undefined, a.clone(), BinaryOp::IsNotEqual), RV::Bool(true));
+            prop_assert_eq!(eval_binary(a, RV::Undefined, BinaryOp::IsNotEqual), RV::Bool(true));
         }
 
         #[test]
         fn undefined_vs_undefined(op in all_binary_op()) {
             let result = eval_binary(RV::Undefined, RV::Undefined, op);
             match op {
-                Operation::IsEqual | Operation::Is => prop_assert_eq!(result, RV::Bool(true)),
-                Operation::IsNotEqual | Operation::IsNot => prop_assert_eq!(result, RV::Bool(false)),
-                Operation::Add | Operation::Subtract | Operation::Multiply | Operation::Divide => {
+                BinaryOp::IsEqual | BinaryOp::Is => prop_assert_eq!(result, RV::Bool(true)),
+                BinaryOp::IsNotEqual | BinaryOp::IsNot => prop_assert_eq!(result, RV::Bool(false)),
+                BinaryOp::Add | BinaryOp::Subtract | BinaryOp::Multiply | BinaryOp::Divide => {
                     prop_assert_eq!(result, RV::Undefined);
                 }
-                Operation::Less | Operation::Greater => prop_assert_eq!(result, RV::Bool(false)),
-                Operation::LessEqual | Operation::GreaterEqual => prop_assert_eq!(result, RV::Bool(true)),
+                BinaryOp::Less | BinaryOp::Greater => prop_assert_eq!(result, RV::Bool(false)),
+                BinaryOp::LessEqual | BinaryOp::GreaterEqual => prop_assert_eq!(result, RV::Bool(true)),
                 _ => {}
             }
         }
@@ -381,14 +381,14 @@ mod property_tests {
             let expected = if b { 1.0 } else { 0.0 };
             let rv = RV::Bool(b);
             prop_assert_eq!(rv.to_double(), Some(expected));
-            prop_assert_eq!(eval_binary(rv, RV::Double(0.0), Operation::Add), RV::Double(expected));
+            prop_assert_eq!(eval_binary(rv, RV::Double(0.0), BinaryOp::Add), RV::Double(expected));
         }
 
         #[test]
         fn bool_num_mixed_arithmetic_equals_explicit_cast(
             num in any::<f64>().prop_filter("finite", |x| x.is_finite() && x.abs() < 1e100),
             b in any::<bool>(),
-            op in prop_oneof![Just(Operation::Add), Just(Operation::Subtract), Just(Operation::Multiply)]
+            op in prop_oneof![Just(BinaryOp::Add), Just(BinaryOp::Subtract), Just(BinaryOp::Multiply)]
         ) {
             let bool_as_num = RV::Double(if b { 1.0 } else { 0.0 });
             prop_assert_eq!(
@@ -400,7 +400,7 @@ mod property_tests {
         #[test]
         fn string_plus_bool_appends_bool_repr(s in "[a-zA-Z]{1,10}", b in any::<bool>()) {
             let bool_repr = if b { "true" } else { "false" };
-            let result = eval_binary(RV::Str(Arc::new(s.clone())), RV::Bool(b), Operation::Add);
+            let result = eval_binary(RV::Str(Arc::new(s.clone())), RV::Bool(b), BinaryOp::Add);
             if let RV::Str(r) = result {
                 let expected = format!("{s}{bool_repr}");
                 prop_assert_eq!(r.as_str(), expected.as_str());
@@ -418,7 +418,7 @@ mod property_tests {
             let result = eval_binary(
                 RV::Str(Arc::new(s1.clone())),
                 RV::Str(Arc::new(s2.clone())),
-                Operation::Add,
+                BinaryOp::Add,
             );
             if let RV::Str(r) = result {
                 let expected = format!("{s1}{s2}");
@@ -436,7 +436,7 @@ mod property_tests {
             let result = eval_binary(
                 RV::Str(Arc::new(s1.clone())),
                 RV::Str(Arc::new(s2.clone())),
-                Operation::Add,
+                BinaryOp::Add,
             );
             if let RV::Str(r) = result {
                 prop_assert_eq!(r.len(), s1.len() + s2.len());
@@ -449,7 +449,7 @@ mod property_tests {
 
         #[test]
         fn string_non_add_is_undefined(s1 in "[a-z]{1,10}", s2 in "[a-z]{1,10}") {
-            for op in [Operation::Subtract, Operation::Multiply, Operation::Divide] {
+            for op in [BinaryOp::Subtract, BinaryOp::Multiply, BinaryOp::Divide] {
                 prop_assert_eq!(
                     eval_binary(RV::Str(Arc::new(s1.clone())), RV::Str(Arc::new(s2.clone())), op),
                     RV::Undefined
@@ -463,13 +463,13 @@ mod property_tests {
             let rv2 = RV::Str(Arc::new(s2.clone()));
             match s1.cmp(&s2) {
                 std::cmp::Ordering::Less => {
-                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::Less), RV::Bool(true));
+                    prop_assert_eq!(eval_binary(rv1, rv2, BinaryOp::Less), RV::Bool(true));
                 }
                 std::cmp::Ordering::Equal => {
-                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::IsEqual), RV::Bool(true));
+                    prop_assert_eq!(eval_binary(rv1, rv2, BinaryOp::IsEqual), RV::Bool(true));
                 }
                 std::cmp::Ordering::Greater => {
-                    prop_assert_eq!(eval_binary(rv1, rv2, Operation::Less), RV::Bool(false));
+                    prop_assert_eq!(eval_binary(rv1, rv2, BinaryOp::Less), RV::Bool(false));
                 }
             }
         }
@@ -478,8 +478,8 @@ mod property_tests {
         fn empty_string_is_less_than_nonempty(s in "[a-zA-Z0-9]+") {
             let empty = RV::Str(Arc::new(String::new()));
             let nonempty = RV::Str(Arc::new(s));
-            prop_assert_eq!(eval_binary(empty.clone(), nonempty.clone(), Operation::Less), RV::Bool(true));
-            prop_assert_eq!(eval_binary(nonempty, empty, Operation::Greater), RV::Bool(true));
+            prop_assert_eq!(eval_binary(empty.clone(), nonempty.clone(), BinaryOp::Less), RV::Bool(true));
+            prop_assert_eq!(eval_binary(nonempty, empty, BinaryOp::Greater), RV::Bool(true));
         }
 
         #[test]
@@ -488,8 +488,8 @@ mod property_tests {
         ) {
             let str_rv = RV::Str(Arc::new(s));
             let num_rv = RV::Double(42.0);
-            prop_assert!(matches!(eval_binary(str_rv.clone(), num_rv.clone(), Operation::IsEqual), RV::Bool(_)));
-            prop_assert!(matches!(eval_binary(str_rv, num_rv, Operation::Less), RV::Bool(_)));
+            prop_assert!(matches!(eval_binary(str_rv.clone(), num_rv.clone(), BinaryOp::IsEqual), RV::Bool(_)));
+            prop_assert!(matches!(eval_binary(str_rv, num_rv, BinaryOp::Less), RV::Bool(_)));
         }
     }
 

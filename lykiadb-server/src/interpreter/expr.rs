@@ -11,7 +11,7 @@ use crate::value::eval::{eval_between, eval_binary};
 use crate::value::object::RVObject;
 use std::sync::Arc;
 
-use lykiadb_lang::ast::expr::{Expr, Operation};
+use lykiadb_lang::ast::expr::{BinaryOp, Expr, TernaryOp, UnaryOp};
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
 use rustc_hash::FxHashMap;
@@ -32,11 +32,11 @@ impl<'sess> ExprEngine {
 impl<'sess> ExprEngine {
     fn eval_unary(
         &self,
-        operation: &Operation,
+        operation: &UnaryOp,
         expr: &Expr,
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
-        if *operation == Operation::Subtract {
+        if *operation == UnaryOp::Minus {
             if let Some(num) = self.eval(expr, state)?.to_double() {
                 return Ok(RV::Double(-num));
             }
@@ -50,7 +50,7 @@ impl<'sess> ExprEngine {
         &self,
         lexpr: &Expr,
         rexpr: &Expr,
-        operation: Operation,
+        operation: BinaryOp,
         state: &ProgramState<'sess>,
     ) -> Result<RV<'sess>, HaltReason<'sess>> {
         let left_eval = self.eval(lexpr, state)?;
@@ -64,20 +64,20 @@ impl<'sess> ExprEngine {
         subject: &Expr,
         lower: &Expr,
         upper: &Expr,
-        operation: &Operation,
+        operation: &TernaryOp,
         state: &ProgramState<'sess>,
     ) -> Result<Option<RV<'sess>>, HaltReason<'sess>> {
         let lower_eval = self.eval(lower, state)?;
         let upper_eval = self.eval(upper, state)?;
         let subject_eval = self.eval(subject, state)?;
 
-        if operation == &Operation::Between || operation == &Operation::NotBetween {
+        if operation == &TernaryOp::Between || operation == &TernaryOp::NotBetween {
             let is_between = eval_between(&subject_eval, &lower_eval, &upper_eval);
 
             if let Some(is_between) = is_between {
                 return match operation {
-                    Operation::Between => Ok(Some(RV::Bool(is_between))),
-                    Operation::NotBetween => Ok(Some(RV::Bool(!is_between))),
+                    TernaryOp::Between => Ok(Some(RV::Bool(is_between))),
+                    TernaryOp::NotBetween => Ok(Some(RV::Bool(!is_between))),
                     _ => Ok(None),
                 };
             }
@@ -171,8 +171,8 @@ impl<'sess> ExprEngine {
             } => {
                 let is_true = self.eval(left, state)?.to_bool();
 
-                if (*operation == Operation::Or && is_true)
-                    || (*operation == Operation::And && !is_true)
+                if (*operation == BinaryOp::Or && is_true)
+                    || (*operation == BinaryOp::And && !is_true)
                 {
                     return Ok(RV::Bool(is_true));
                 }

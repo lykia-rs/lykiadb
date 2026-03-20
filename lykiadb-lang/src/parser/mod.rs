@@ -1,7 +1,7 @@
 use self::program::Program;
-use super::ast::expr::Operation;
+use super::ast::expr::BinaryOp;
 use super::ast::stmt::Stmt;
-use crate::ast::expr::Expr;
+use crate::ast::expr::{Expr, UnaryOp};
 use crate::ast::{Span, Spanned};
 use crate::tokenizer::token::{SqlKeyword, Symbol::*, Token, TokenType, TokenType::*};
 use expr::ExprParser;
@@ -192,25 +192,35 @@ impl<'a> Parser<'a> {
         false
     }
 
-    pub fn tok_type_to_op(&self, tok_t: TokenType) -> Operation {
+    pub fn tok_type_to_unary_op(&self, tok_t: TokenType) -> UnaryOp {
         match tok_t {
             TokenType::Symbol(sym) => match sym {
-                Plus => Operation::Add,
-                Minus => Operation::Subtract,
-                Star => Operation::Multiply,
-                Slash => Operation::Divide,
-                EqualEqual => Operation::IsEqual,
-                BangEqual => Operation::IsNotEqual,
-                Greater => Operation::Greater,
-                GreaterEqual => Operation::GreaterEqual,
-                Less => Operation::Less,
-                LessEqual => Operation::LessEqual,
-                Bang => Operation::Not,
-                LogicalAnd => Operation::And,
-                LogicalOr => Operation::Or,
+                Minus => UnaryOp::Minus,
+                Bang => UnaryOp::Not,
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn tok_type_to_op(&self, tok_t: TokenType) -> BinaryOp {
+        match tok_t {
+            TokenType::Symbol(sym) => match sym {
+                Plus => BinaryOp::Add,
+                Minus => BinaryOp::Subtract,
+                Star => BinaryOp::Multiply,
+                Slash => BinaryOp::Divide,
+                EqualEqual => BinaryOp::IsEqual,
+                BangEqual => BinaryOp::IsNotEqual,
+                Greater => BinaryOp::Greater,
+                GreaterEqual => BinaryOp::GreaterEqual,
+                Less => BinaryOp::Less,
+                LessEqual => BinaryOp::LessEqual,
+                LogicalAnd => BinaryOp::And,
+                LogicalOr => BinaryOp::Or,
                 Equal => {
                     if self.get_count("in_select_depth") > 0 {
-                        Operation::IsEqual
+                        BinaryOp::IsEqual
                     } else {
                         unreachable!()
                     }
@@ -218,8 +228,8 @@ impl<'a> Parser<'a> {
                 _ => unreachable!(),
             },
             TokenType::SqlKeyword(skw) => match skw {
-                SqlKeyword::And => Operation::And,
-                SqlKeyword::Or => Operation::Or,
+                SqlKeyword::And => BinaryOp::And,
+                SqlKeyword::Or => BinaryOp::Or,
                 _ => unreachable!(),
             },
             _ => unreachable!(),

@@ -16,7 +16,14 @@ use super::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
 #[serde(tag = "@type")]
-pub enum Operation {
+pub enum UnaryOp {
+    Minus,
+    Not,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[serde(tag = "@type")]
+pub enum BinaryOp {
     Add,
     Subtract,
     Multiply,
@@ -29,13 +36,17 @@ pub enum Operation {
     LessEqual,
     And,
     Or,
-    Not,
     Is,
     IsNot,
     In,
     NotIn,
     Like,
     NotLike,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, Hash)]
+#[serde(tag = "@type")]
+pub enum TernaryOp {
     Between,
     NotBetween,
 }
@@ -166,7 +177,7 @@ pub enum Expr {
         lower: Box<Expr>,
         upper: Box<Expr>,
         subject: Box<Expr>,
-        operation: Operation,
+        operation: TernaryOp,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
         #[derivative(Hash = "ignore")]
@@ -179,7 +190,7 @@ pub enum Expr {
     #[serde(rename = "Expr::Binary")]
     Binary {
         left: Box<Expr>,
-        operation: Operation,
+        operation: BinaryOp,
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -192,7 +203,7 @@ pub enum Expr {
     },
     #[serde(rename = "Expr::Unary")]
     Unary {
-        operation: Operation,
+        operation: UnaryOp,
         expr: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -219,7 +230,7 @@ pub enum Expr {
     #[serde(rename = "Expr::Logical")]
     Logical {
         left: Box<Expr>,
-        operation: Operation,
+        operation: BinaryOp,
         right: Box<Expr>,
         #[serde(skip)]
         #[derivative(PartialEq = "ignore")]
@@ -395,9 +406,8 @@ impl Display for Expr {
                 "({} {} {} And {})",
                 subject,
                 match operation {
-                    Operation::Between => "Between",
-                    Operation::NotBetween => "NotBetween",
-                    _ => "UnknownTernaryOp",
+                    TernaryOp::Between => "Between",
+                    TernaryOp::NotBetween => "NotBetween",
                 },
                 lower,
                 upper
@@ -468,7 +478,7 @@ pub mod test_utils {
                 id: 0,
                 raw: left.to_string(),
             }),
-            operation: crate::ast::expr::Operation::Add,
+            operation: crate::ast::expr::BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(right),
                 span: Span::default(),
@@ -624,7 +634,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 7,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: Span::default(),
             id: 8,
         };
@@ -638,7 +648,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 9,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),
@@ -658,7 +668,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 12,
             }),
-            operation: Operation::And,
+            operation: BinaryOp::And,
             right: Box::new(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
@@ -757,7 +767,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 12,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: test_span,
             id: 13,
         };
@@ -771,7 +781,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 14,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),
@@ -785,7 +795,7 @@ pub mod tests {
 
         // Test Unary
         let unary_expr = Expr::Unary {
-            operation: Operation::Not,
+            operation: UnaryOp::Not,
             expr: Box::new(Expr::Literal {
                 value: Literal::Bool(true),
                 raw: "true".to_string(),
@@ -819,7 +829,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 21,
             }),
-            operation: Operation::And,
+            operation: BinaryOp::And,
             right: Box::new(Expr::Literal {
                 value: Literal::Bool(false),
                 raw: "false".to_string(),
@@ -917,7 +927,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 4,
             }),
-            operation: Operation::Add,
+            operation: BinaryOp::Add,
             right: Box::new(Expr::Literal {
                 value: Literal::Num(2.0),
                 raw: "2".to_string(),
@@ -980,7 +990,7 @@ pub mod tests {
                 span: Span::default(),
                 id: 3,
             }),
-            operation: Operation::Between,
+            operation: TernaryOp::Between,
             span: Span::default(),
             id: 4,
         };
