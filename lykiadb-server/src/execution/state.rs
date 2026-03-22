@@ -52,3 +52,12 @@ impl<'sess> ProgramState<'sess> {
         }
     }
 }
+
+#[cfg(test)]
+pub mod test_utils {
+    use super::*;
+
+    pub fn create_empty_state<'sess>() -> ProgramState<'sess> {
+        ProgramState::new(None, Arc::new(Program::empty()), true)
+    }
+}
