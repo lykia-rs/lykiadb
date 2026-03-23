@@ -1,0 +1,43 @@
+@set(run = "interpreter")
+@group projection {
+
+    @test multiply {
+        testutil::print(select item * 2 as doubled from [1, 2, 3] as item);
+
+        @expect {
+            [{doubled: 2}, {doubled: 4}, {doubled: 6}]
+        }
+    }
+
+    @test add_constant {
+        testutil::print(select item + 10 as shifted from [1, 2, 3] as item);
+
+        @expect {
+            [{shifted: 11}, {shifted: 12}, {shifted: 13}]
+        }
+    }
+
+    @test rename {
+        testutil::print(select item as value from [10, 20, 30] as item);
+
+        @expect {
+            [{value: 10}, {value: 20}, {value: 30}]
+        }
+    }
+
+    @test constant_expr {
+        testutil::print(select 5 + 5 as ten from [1] as item);
+
+        @expect {
+            [{ten: 10}]
+        }
+    }
+
+    @test multiple_fields {
+        testutil::print(select item as original, item * item as squared from [1, 2, 3, 4] as item);
+
+        @expect {
+            [{original: 1, squared: 1}, {original: 2, squared: 4}, {original: 3, squared: 9}, {original: 4, squared: 16}]
+        }
+    }
+}
