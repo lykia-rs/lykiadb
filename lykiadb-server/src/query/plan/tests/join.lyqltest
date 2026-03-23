@@ -52,8 +52,8 @@
         }
     }
 
-    @test eval_scan_join {
-        EXPLAIN SELECT c * e as m FROM 
+    @test eval_scan_join_truthy_condition {
+        EXPLAIN SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
@@ -69,7 +69,40 @@
         }
     }
 
-    @test eval_scan_join_1_0 {
+    @test eval_scan_join_true {
+        EXPLAIN SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON true
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Inner, true]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
+
+    @test eval_scan_cross_join {
+        EXPLAIN SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              CROSS JOIN
+              [10, 100, 1000] AS e
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Cross, None]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
+
+    @test eval_scan_join_falsy_condition {
         EXPLAIN SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
@@ -81,6 +114,23 @@
         @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, (Num(1.0) IsEqual Num(0.0))]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
+
+    @test eval_scan_join_false {
+        EXPLAIN SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON false
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Inner, false]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
                 - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
         }
