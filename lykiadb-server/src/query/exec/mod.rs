@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use lykiadb_lang::ast::sql::SqlProjection;
 
 use crate::{
@@ -203,7 +205,46 @@ impl<'v, 'q> PlanExecutor {
                 join_type,
                 right,
                 constraint,
-            } => todo!(),
+            } => {
+                if let Some(IntermediateExpr::Constant(ct)) = &constraint {
+                    // TODO(vck): Maybe we can deal with this at compile time?
+                    if !ct.to_bool() {
+                        let empty_iter = Vec::<ExecutionRow<'v>>::new().into_iter();
+                        return Ok(Box::from(empty_iter) as RVs);
+                    }
+                }
+
+                let left_cursor = self.execute_node(*left, exec_ctx)?;
+                let right_cursor = self.execute_node(*right, exec_ctx)?;
+
+                let product = left_cursor
+                    .cartesian_product(right_cursor)
+                    .map(|(l, r)| {
+                        let mut joined = ExecutionRow::new();
+                        l.copy_to(&mut joined);
+                        r.copy_to(&mut joined);
+                        joined
+                    });
+
+                if let Some(IntermediateExpr::Expr { expr }) = constraint {
+                    let filtered = product.filter_map(move |row| {
+                        exec_ctx.push_row(&row);
+                        let evaluated = &exec_ctx.eval(&expr);
+                        exec_ctx.pop_row();
+                        if let Ok(value) = evaluated
+                            && value.to_bool()
+                        {
+                            Some(row)
+                        } else {
+                            None
+                        }
+                    });
+
+                    return Ok(Box::from(filtered))
+                }
+
+                Ok(Box::from(product))
+            },
             Node::Order { source, key } => todo!(),
             Node::Scan { source, filter } => todo!(),
             Node::Compound {

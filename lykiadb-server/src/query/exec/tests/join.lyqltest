@@ -1,0 +1,83 @@
+@set(run = "interpreter")
+@group join {
+    @test eval_scan_join_truthy_condition {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 1
+            ));
+
+        @expect {
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+        }
+
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON true
+            ));
+
+        @expect {
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+        }
+
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              CROSS JOIN
+              [10, 100, 1000] AS e
+            ));
+
+        @expect {
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+        }
+    }
+
+    @test eval_scan_join_falsy_condition {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 0
+            ));
+
+        @expect {
+          []
+        }
+
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON false
+            ));
+
+        @expect {
+          []
+          []
+        }
+    }
+
+    @test eval_scan_join_condition {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON c * e > 100
+            ));
+
+        @expect {
+          [{m: 1000}, {m: 200}, {m: 2000}, {m: 300}, {m: 3000}]
+        }
+    }
+}
