@@ -1,0 +1,44 @@
+@set(run = "interpreter")
+@group join {
+    @test eval_scan_join {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 1
+            ));
+
+        @expect {
+          [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
+        }
+    }
+
+    @test eval_scan_join_1_0 {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 0
+            ));
+
+        @expect {
+          []
+        }
+    }
+
+    @test eval_scan_join_condition {
+        testutil::print(SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON c * e > 100
+            ));
+
+        @expect {
+          [{m: 1000}, {m: 200}, {m: 2000}, {m: 300}, {m: 3000}]
+        }
+    }
+}

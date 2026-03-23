@@ -51,4 +51,55 @@
                   - scan [publishers as p]
         }
     }
+
+    @test eval_scan_join {
+        EXPLAIN SELECT c * e as m FROM 
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 1
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Inner, (Num(1.0) IsEqual Num(1.0))]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
+
+    @test eval_scan_join_1_0 {
+        EXPLAIN SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON 1 = 0
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Inner, (Num(1.0) IsEqual Num(0.0))]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
+
+    @test eval_scan_join_condition {
+        EXPLAIN SELECT c * e as m FROM
+            (
+              [1, 2, 3] AS c
+              INNER JOIN
+              [10, 100, 1000] AS e
+              ON c * e > 100
+            );
+
+        @expect {
+            - project [(c Multiply e) as m]
+              - join [type=Inner, ((c Multiply e) Greater Num(100.0))]
+                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+        }
+    }
 }
