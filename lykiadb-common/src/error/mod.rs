@@ -26,6 +26,7 @@ impl InputError {
         }
     }
 
+    #[cfg(feature = "runtime")]
     pub fn report(&self, source_name: &str, source: &str, mut writer: impl std::io::Write) {
         use ariadne::{Color, Label, Report, ReportKind, Source};
 
