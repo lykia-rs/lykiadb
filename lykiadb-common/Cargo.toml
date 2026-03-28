@@ -4,10 +4,14 @@ name = "lykiadb-common"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["runtime"]
+runtime = ["tokio", "bson", "ariadne"]
+
 [dependencies]
 bytes = "1.5.0"
-bson = { version = "2.9.0" }
-ariadne = { version = "0.4.1", features = ["auto-color"] }
+bson = { version = "2.9.0", optional = true }
+ariadne = { version = "0.4.1", features = ["auto-color"], optional = true }
 tokio = { version = "~1.49.0", features = [
     "macros",
     "rt",
@@ -17,6 +21,6 @@ tokio = { version = "~1.49.0", features = [
     "time",
     "sync",
     "signal"
-] }
+], optional = true }
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"

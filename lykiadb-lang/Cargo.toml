@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-lykiadb-common = { path = "../lykiadb-common" }
+lykiadb-common = { path = "../lykiadb-common", default-features = false }
 phf = { version = "0.11", default-features = false, features = ["macros"] }
 rustc-hash = "1.1.0"
 serde = { version = "1.0.188", features=["derive", "rc"] }
