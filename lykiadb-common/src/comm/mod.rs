@@ -15,7 +15,6 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
     Value(Bson, u64),
-    Program(Value, u64),
     Error(InputError, u64),
 }
 

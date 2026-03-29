@@ -71,17 +71,6 @@ impl Shell {
                 "{} (took {time:?})",
                 serde_json::to_string_pretty(&bson).unwrap()
             ),
-            Message::Response(Response::Program(value, time)) => match value {
-                serde_json::Value::String(str) => {
-                    println!("{str} (took {time:?})")
-                }
-                _ => {
-                    println!(
-                        "{} (took {time:?})",
-                        serde_json::to_string_pretty(&value).unwrap()
-                    )
-                }
-            },
             Message::Response(Response::Error(err, time)) => {
                 err.report(filename, content, &mut stdout());
             }
