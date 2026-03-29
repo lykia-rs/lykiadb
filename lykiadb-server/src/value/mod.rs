@@ -109,6 +109,7 @@ impl<'v> RV<'v> {
             RV::Str(value) => !value.is_empty(),
             RV::Bool(value) => *value,
             RV::Undefined => false,
+            RV::Null => false,
             _ => true,
         }
     }
@@ -255,8 +256,13 @@ impl<'v> Serialize for RV<'v> {
         match self {
             RV::Str(s) => serializer.serialize_str(s),
             RV::Double(n) => serializer.serialize_f64(*n),
+            RV::Int32(n) => serializer.serialize_i32(*n),
+            RV::Int64(n) => serializer.serialize_i64(*n),
+            RV::Decimal128(d) => serializer.serialize_str(&d.to_string()),
+            RV::DateTime(dt) => serializer.serialize_str(&dt.to_string()),
             RV::Bool(b) => serializer.serialize_bool(*b),
             RV::Undefined => serializer.serialize_none(),
+            RV::Null => serializer.serialize_none(),
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 for item in arr.iter() {
@@ -271,6 +277,8 @@ impl<'v> Serialize for RV<'v> {
                 }
                 map.end()
             }
+            RV::Document(doc) => todo!("Implement serialization for DocumentRef"),
+            RV::DocumentArray(arr) => todo!("Implement serialization for DocumentArrayRef"),
             _ => serializer.serialize_none(),
         }
     }
@@ -300,7 +308,7 @@ impl<'de, 'v> Deserialize<'de> for RV<'v> {
                 }
                 Ok(RV::Object(RVObject::from_map(map)))
             }
-            serde_json::Value::Null => Ok(RV::Undefined),
+            serde_json::Value::Null => Ok(RV::Null),
         }
     }
 }
@@ -310,6 +318,7 @@ impl<'v> PartialEq for RV<'v> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
             (RV::Undefined, RV::Undefined) => true,
+            (RV::Null, RV::Null) => true,
             //
             (RV::Undefined, _) | (_, RV::Undefined) => false,
             //
@@ -338,6 +347,7 @@ impl<'v> PartialOrd for RV<'v> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
             (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
+            (RV::Null, RV::Null) => Some(std::cmp::Ordering::Equal),
             //
             (RV::Undefined, _) | (_, RV::Undefined) => None,
             //
@@ -470,6 +480,7 @@ mod tests {
 
         // Test special values
         assert!(!RV::Undefined.to_bool());
+        assert!(!RV::Null.to_bool());
 
         // Test collections
         let empty_array = RV::Array(RVArray::new());

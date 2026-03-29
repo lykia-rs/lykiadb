@@ -1,6 +1,7 @@
 pub mod client;
 pub mod tcp;
 
+use bson::Bson;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -13,8 +14,7 @@ pub enum Request {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    Value(Value, u64),
-    Program(Value, u64),
+    Value(Bson, u64),
     Error(InputError, u64),
 }
 
@@ -26,7 +26,7 @@ pub enum Message {
 
 #[derive(Debug)]
 pub enum CommunicationError {
-    BsonError(bson::ser::Error),
+    BsonError(bson::error::Error),
     IoError(std::io::Error),
     GenericError(String),
 }
@@ -37,8 +37,8 @@ impl From<std::io::Error> for CommunicationError {
     }
 }
 
-impl From<bson::ser::Error> for CommunicationError {
-    fn from(value: bson::ser::Error) -> Self {
+impl From<bson::error::Error> for CommunicationError {
+    fn from(value: bson::error::Error) -> Self {
         CommunicationError::BsonError(value)
     }
 }

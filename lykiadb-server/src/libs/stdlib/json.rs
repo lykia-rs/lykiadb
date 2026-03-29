@@ -155,7 +155,7 @@ mod tests {
                 &Span::default(),
                 &[RV::Str(Arc::new("null".to_string()))]
             ),
-            Ok(RV::Undefined)
+            Ok(RV::Null)
         );
 
         // Test array
