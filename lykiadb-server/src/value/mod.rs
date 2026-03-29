@@ -109,6 +109,7 @@ impl<'v> RV<'v> {
             RV::Str(value) => !value.is_empty(),
             RV::Bool(value) => *value,
             RV::Undefined => false,
+            RV::Null => false,
             _ => true,
         }
     }
@@ -317,6 +318,7 @@ impl<'v> PartialEq for RV<'v> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => false,
             (RV::Undefined, RV::Undefined) => true,
+            (RV::Null, RV::Null) => true,
             //
             (RV::Undefined, _) | (_, RV::Undefined) => false,
             //
@@ -345,6 +347,7 @@ impl<'v> PartialOrd for RV<'v> {
         match (self, other) {
             (RV::Array(_), RV::Array(_)) | (RV::Object(_), RV::Object(_)) => None,
             (RV::Undefined, RV::Undefined) => Some(std::cmp::Ordering::Equal),
+            (RV::Null, RV::Null) => Some(std::cmp::Ordering::Equal),
             //
             (RV::Undefined, _) | (_, RV::Undefined) => None,
             //
@@ -477,6 +480,7 @@ mod tests {
 
         // Test special values
         assert!(!RV::Undefined.to_bool());
+        assert!(!RV::Null.to_bool());
 
         // Test collections
         let empty_array = RV::Array(RVArray::new());
