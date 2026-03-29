@@ -19,7 +19,7 @@ impl TcpConnection {
 
     pub async fn read(&mut self) -> Result<Option<Message>, CommunicationError> {
         loop {
-            if let Ok(parsed) = bson::from_slice::<Message>(&self.read_buffer) {
+            if let Ok(parsed) = bson::deserialize_from_slice::<Message>(&self.read_buffer) {
                 self.read_buffer.clear();
                 return Ok(Some(parsed));
             }
@@ -37,7 +37,7 @@ impl TcpConnection {
     }
 
     pub async fn write(&mut self, message: Message) -> Result<(), CommunicationError> {
-        let vec = bson::to_vec(&bson::to_bson(&message)?)?;
+        let vec = bson::serialize_to_vec(&message)?;
         let mut buffer = vec.as_slice();
         copy(&mut buffer, &mut self.stream).await?;
         self.stream.flush().await?;

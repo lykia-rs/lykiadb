@@ -67,8 +67,11 @@ impl Shell {
 
     fn handle_response(&mut self, filename: &str, content: &str, response: Message) {
         match response {
-            Message::Response(Response::Value(value, time))
-            | Message::Response(Response::Program(value, time)) => match value {
+            Message::Response(Response::Value(bson, time)) => println!(
+                "{} (took {time:?})",
+                serde_json::to_string_pretty(&bson).unwrap()
+            ),
+            Message::Response(Response::Program(value, time)) => match value {
                 serde_json::Value::String(str) => {
                     println!("{str} (took {time:?})")
                 }

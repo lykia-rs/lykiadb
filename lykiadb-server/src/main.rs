@@ -81,9 +81,10 @@ impl<'v> Connection<'v> {
                         let execution = self.session.interpret(command, None);
                         let elapsed = start.elapsed();
                         info!("{:?} (took {:?})", message, elapsed);
-                        let response = if execution.is_ok() {
+                        let response = if let Ok(execution) = execution {
+                            let bson = bson::serialize_to_bson(&execution);
                             Response::Value(
-                                execution.unwrap().to_string().into(),
+                                bson.unwrap(),
                                 elapsed.as_millis() as u64,
                             )
                         } else {

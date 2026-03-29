@@ -255,8 +255,13 @@ impl<'v> Serialize for RV<'v> {
         match self {
             RV::Str(s) => serializer.serialize_str(s),
             RV::Double(n) => serializer.serialize_f64(*n),
+            RV::Int32(n) => serializer.serialize_i32(*n),
+            RV::Int64(n) => serializer.serialize_i64(*n),
+            RV::Decimal128(d) => serializer.serialize_str(&d.to_string()),
+            RV::DateTime(dt) => serializer.serialize_str(&dt.to_string()),
             RV::Bool(b) => serializer.serialize_bool(*b),
             RV::Undefined => serializer.serialize_none(),
+            RV::Null => serializer.serialize_none(),
             RV::Array(arr) => {
                 let mut seq = serializer.serialize_seq(None).unwrap();
                 for item in arr.iter() {
@@ -271,6 +276,8 @@ impl<'v> Serialize for RV<'v> {
                 }
                 map.end()
             }
+            RV::Document(doc) => todo!("Implement serialization for DocumentRef"),
+            RV::DocumentArray(arr) => todo!("Implement serialization for DocumentArrayRef"),
             _ => serializer.serialize_none(),
         }
     }
@@ -300,7 +307,7 @@ impl<'de, 'v> Deserialize<'de> for RV<'v> {
                 }
                 Ok(RV::Object(RVObject::from_map(map)))
             }
-            serde_json::Value::Null => Ok(RV::Undefined),
+            serde_json::Value::Null => Ok(RV::Null),
         }
     }
 }
