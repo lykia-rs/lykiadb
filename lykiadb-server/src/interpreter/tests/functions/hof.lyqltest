@@ -14,7 +14,7 @@
             $f($g, $i);
         }
 
-        @expect {
+        @expect output {
             0
             1
             2
@@ -43,7 +43,7 @@
         $count();
         $count();
 
-        @expect {
+        @expect output {
             1
             2
         }

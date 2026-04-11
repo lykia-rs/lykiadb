@@ -4,7 +4,7 @@
     @test simple {
         EXPLAIN SELECT * FROM books b order by title;
 
-        @expect {
+        @expect output {
             - order [(title, Asc)]
               - scan [books as b]
         }
@@ -13,7 +13,7 @@
     @test multiple {
         EXPLAIN SELECT * FROM books b order by title, id desc;
 
-        @expect {
+        @expect output {
             - order [(title, Asc), (id, Desc)]
               - scan [books as b]
         }
@@ -22,7 +22,7 @@
     @test compound {
         EXPLAIN SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
 
-        @expect {
+        @expect output {
             - order [(title, Asc), (id, Desc)]
               - compound [type=Union]
                 - scan [books as books]

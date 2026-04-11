@@ -16,7 +16,7 @@
 
         out::print($a);
 
-        @expect {
+        @expect output {
             global
             global
             block
@@ -42,7 +42,7 @@
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             global
             block
@@ -63,7 +63,7 @@
             }
         }
 
-        @expect {
+        @expect output {
             global
             global
         }
@@ -90,7 +90,7 @@
         
         $a.my_fun();
 
-        @expect {
+        @expect output {
             outer $text
             inner $text
         }
@@ -136,7 +136,7 @@
         $a.b.c0.my_fun();
         $a.b.c1.my_fun();
 
-        @expect {
+        @expect output {
             outer $text
             c0 inner $text
             outer $text

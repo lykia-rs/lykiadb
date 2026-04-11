@@ -14,7 +14,7 @@
             out::print("< 20");
         }
 
-        @expect {
+        @expect output {
             50 > $a > 20
         }
     }

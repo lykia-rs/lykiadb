@@ -22,7 +22,7 @@
         out::print($b);
         out::print($c);
 
-        @expect {
+        @expect output {
             inner a
             outer b
             global c
@@ -47,7 +47,7 @@
         
         $fn_block();
 
-        @expect {
+        @expect output {
             block
             global
         }
@@ -60,7 +60,7 @@
 
         out::print($a);
 
-        @expect {
+        @expect output {
             block
             global
         }

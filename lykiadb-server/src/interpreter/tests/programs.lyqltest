@@ -16,14 +16,14 @@
         };
         $resolved_first();
 
-        @expect {
+        @expect output {
             global
             global
         }
 
         $resolved_first();
 
-        @expect {
+        @expect output {
             global
             global
             global

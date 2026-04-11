@@ -6,7 +6,7 @@
         UNION
         SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - compound [type=Union]
               - scan [books as books]
               - scan [books as books]
@@ -18,7 +18,7 @@
         INTERSECT
         SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - compound [type=Intersect]
               - scan [books as books]
               - scan [books as books]
@@ -30,7 +30,7 @@
         EXCEPT
         SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - compound [type=Except]
               - scan [books as books]
               - scan [books as books]
@@ -46,7 +46,7 @@
         EXCEPT
         SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - compound [type=Union]
               - filter [(id Greater Num(5.0))]
                 - scan [books as books]
@@ -63,7 +63,7 @@
         UNION
         SELECT title FROM books;
 
-        @expect {
+        @expect output {
             - compound [type=Union]
               - project [id as id]
                 - filter [(id Greater Num(5.0))]

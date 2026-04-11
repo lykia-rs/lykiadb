@@ -91,7 +91,7 @@ impl<'v> TestHandler for SessionTester<'v> {
                         errors.push(err);
                     }
                 }
-                Block::Expect(raw) => {
+                Block::ExpectOutput(raw) => {
                     let expected = dedent(&raw);
                     if run_mode == "plan" {
                         self.out

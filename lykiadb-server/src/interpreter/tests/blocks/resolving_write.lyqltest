@@ -24,7 +24,7 @@
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             block
             global
@@ -54,7 +54,7 @@
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             block
             global

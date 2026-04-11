@@ -8,7 +8,7 @@
         out::print(!!3);
         out::print(!!!3);
 
-        @expect {
+        @expect output {
             -2
             2
             false
@@ -24,7 +24,7 @@
         out::print((13 + 4) * (7 + 3));
         out::print(-5-2);
 
-        @expect {
+        @expect output {
             7
             28
             13
@@ -39,7 +39,7 @@
         out::print("100" < 11);
         out::print("100" < "11");
 
-        @expect {
+        @expect output {
             false
             false
             false
@@ -56,7 +56,7 @@
         out::print(!(5 || 0) || 1);
         out::print(!(5 || 0) || (1 && 0));
 
-        @expect {
+        @expect output {
             true
             true
             false
@@ -82,7 +82,7 @@
         out::print($obj.address.city);
         out::print($obj.address.zip);
 
-        @expect {
+        @expect output {
             John
             30
             New York
@@ -158,7 +158,7 @@
         $obj.newProp = "test";
         out::print($obj.newProp);
 
-        @expect {
+        @expect output {
             Jane
             31
             Boston
@@ -237,7 +237,7 @@
         out::print(100 between 1 and 11); // Numerical ordering
         out::print(100 between "1" and "11"); // Numerical ordering
 
-        @expect {
+        @expect output {
             true
             true
             true
@@ -268,7 +268,7 @@
         out::print("mice" between "mice" and "mice");
         out::print("100" between "1" and "11"); // Lexicographical ordering
 
-        @expect {
+        @expect output {
             true
             false
             false
@@ -278,7 +278,7 @@
 
         out::print("100" between "1" and 11); // Coercion to string, lexicographical ordering
 
-        @expect {
+        @expect output {
             true
             false
             false
@@ -294,7 +294,7 @@
         
         out::print($object.test == 1);
 
-        @expect {
+        @expect output {
             true
         }
     }
@@ -313,7 +313,7 @@
         out::print($object.level_one.level_two.title);
         out::print($object.level_one.level_two.level_three.title);
 
-        @expect {
+        @expect output {
             1
             2
             3

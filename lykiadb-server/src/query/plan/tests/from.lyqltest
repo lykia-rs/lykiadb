@@ -4,7 +4,7 @@
     @test plain {
         EXPLAIN SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - scan [books as books]
         }
     }
@@ -12,7 +12,7 @@
     @test expression {
         EXPLAIN SELECT * FROM [1,1,2,3,5,8,13] as fib;
 
-        @expect {
+        @expect output {
             - eval_scan [Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))]
         }
     }
@@ -20,7 +20,7 @@
     @test subquery {
         EXPLAIN SELECT u.id as id FROM (select * from books) u;
 
-        @expect {
+        @expect output {
             - project [u.id as id]
               - subquery [u]
                 - scan [books as books]
@@ -30,7 +30,7 @@
     @test mixed {
         EXPLAIN SELECT * FROM books, [1,2,3] as num;
 
-        @expect {
+        @expect output {
             - join [type=Cross, None]
               - scan [books as books]
               - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]

@@ -4,7 +4,7 @@
     @test implicit_all {
         EXPLAIN SELECT * FROM books;
 
-        @expect {
+        @expect output {
             - scan [books as books]
         }
     }
@@ -12,7 +12,7 @@
     @test explicit_all {
         EXPLAIN SELECT books.* FROM books;
 
-        @expect {
+        @expect output {
             - project [* in books]
               - scan [books as books]
         }
@@ -21,7 +21,7 @@
     @test simple {
         EXPLAIN SELECT id, title FROM books;
 
-        @expect {
+        @expect output {
             - project [id as id, title as title]
               - scan [books as books]
         }
@@ -30,7 +30,7 @@
     @test constants {
         EXPLAIN SELECT 5 + 5 as ten FROM books;
 
-        @expect {
+        @expect output {
             - project [(Num(5.0) Add Num(5.0)) as ten]
               - scan [books as books]
         }
@@ -39,7 +39,7 @@
     @test function_call {
         EXPLAIN SELECT capitalize("str") as json_str_title FROM books;
 
-        @expect {
+        @expect output {
             - project [capitalize(Str("str")) as json_str_title]
               - scan [books as books]
         }

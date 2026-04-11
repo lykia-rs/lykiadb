@@ -9,7 +9,7 @@
         $pr();
         $a();
 
-        @expect {
+        @expect output {
             hello
             hello
         }
@@ -22,7 +22,7 @@
         
         $a();
 
-        @expect {
+        @expect output {
             hello
             hello
         }
@@ -35,7 +35,7 @@
         
         $pr();
 
-        @expect {
+        @expect output {
             hello
         }
     }
@@ -45,7 +45,7 @@
             out::print("hello");
         })();
 
-        @expect {
+        @expect output {
             hello
         }
     }

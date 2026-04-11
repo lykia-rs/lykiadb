@@ -4,7 +4,7 @@
     @test sum_all {
         out::print(select sum(item) as total from [1, 2, 3, 4, 5] as item);
 
-        @expect {
+        @expect output {
             [{total: 15}]
         }
     }
@@ -12,7 +12,7 @@
     @test count_all {
         out::print(select count(item) as cnt from [1, 2, 3, 4, 5, 6] as item);
 
-        @expect {
+        @expect output {
             [{cnt: 6}]
         }
     }
@@ -20,7 +20,7 @@
     @test avg_all {
         out::print(select avg(item) as mean from [10, 20, 30] as item);
 
-        @expect {
+        @expect output {
             [{mean: 20}]
         }
     }
@@ -29,7 +29,7 @@
         var $data = arr::new(9);
         out::print(select col_0 as bucket, count(item) as cnt from $data as item group by mod(item, 3));
 
-        @expect {
+        @expect output {
             [{cnt: 3, bucket: 0}, {cnt: 3, bucket: 1}, {cnt: 3, bucket: 2}]
         }
     }
@@ -42,7 +42,7 @@
         // [{total: 20, bucket: 0}, {total: 25, bucket: 1}]
         // But only the second one satisfies the HAVING condition, so only it is returned.
 
-        @expect {
+        @expect output {
             [{total: 25, bucket: 1}]
         }
     }

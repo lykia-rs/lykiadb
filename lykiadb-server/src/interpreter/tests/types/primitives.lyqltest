@@ -8,7 +8,7 @@
         out::print(dtype::of_(1));
         out::print(dtype::of_(1.12));
 
-        @expect {
+        @expect output {
             true
             true
             false
@@ -22,7 +22,7 @@
         out::print(dtype::of_("1") == dtype::double);
         out::print(dtype::of_("1"));
 
-        @expect {
+        @expect output {
             true
             false
             <Datatype, dtype::str>
@@ -36,7 +36,7 @@
         out::print(dtype::of_(true));
         out::print(dtype::of_(false));
 
-        @expect {
+        @expect output {
             true
             true
             false
@@ -50,7 +50,7 @@
         out::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
         out::print(dtype::of_([1, 2, 3]));
 
-        @expect {
+        @expect output {
             true
             false
             <Datatype, dtype::array(dtype::double)>
@@ -63,7 +63,7 @@
         out::print(dtype::of_({a: [1, 2, 3] }));
         out::print(dtype::of_({a: 1, b: 2}));
 
-        @expect {
+        @expect output {
             true
             true
             <Datatype, dtype::object({a: dtype::array(dtype::double)})>
@@ -75,7 +75,7 @@
         out::print(dtype::of_(out::print) == dtype::str);
         out::print(dtype::of_(out::print));
 
-        @expect {
+        @expect output {
             false
             <Datatype, dtype::callable(dtype::unknown, dtype::unknown)>
         }
@@ -86,7 +86,7 @@
         out::print(dtype::of_(dtype::double) == dtype::str);
         out::print(dtype::of_(dtype::double));
 
-        @expect {
+        @expect output {
             true
             false
             <Datatype, dtype::dtype>
@@ -98,7 +98,7 @@
         out::print(dtype::of_(undefined) == dtype::str);
         out::print(dtype::of_(undefined));
 
-        @expect {
+        @expect output {
             true
             false
             <Datatype, dtype::none>
