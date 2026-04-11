@@ -29,7 +29,7 @@ impl<'v> Session<'v> {
     pub fn interpret(
         &mut self,
         source: &str,
-        out: Option<Shared<Output<'v>>>,
+        out: Shared<Output<'v>>,
     ) -> Result<RV<'v>, ExecutionError> {
         let program = Arc::from(self.source_processor.process(source)?);
 
@@ -86,7 +86,7 @@ impl<'v> TestHandler for SessionTester<'v> {
                 Block::Input(code) => {
                     if let Err(err) = self
                         .session
-                        .interpret(&dedent(&code), Some(self.out.clone()))
+                        .interpret(&dedent(&code), self.out.clone())
                     {
                         errors.push(err);
                     }
@@ -132,7 +132,7 @@ mod tests {
         let out = alloc_shared(Output::new());
         let mut session = Session::new(true);
         // A simple expression should succeed in Repl mode (exercises the info! branch)
-        let result = session.interpret("1 + 1;", Some(out));
+        let result = session.interpret("1 + 1;", out);
         assert!(result.is_ok());
     }
 }

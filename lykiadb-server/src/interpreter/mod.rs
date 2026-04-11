@@ -169,7 +169,7 @@ pub mod tests {
         interpreter::{Interpreter, output::Output},
     };
 
-    pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
+    pub fn create_test_interpreter(out: Shared<Output>) -> Interpreter {
         let state = ProgramState::new(out, Arc::new(Program::empty()), true);
         Interpreter::from_state(&state)
     }

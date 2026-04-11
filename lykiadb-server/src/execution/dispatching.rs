@@ -20,11 +20,9 @@ pub fn dispatch_query_explain<'sess>(
         let exec_ctx = QueryExecutionContext::new(state.clone());
         let mut query_engine = QueryEngine::new();
         let plan = &query_engine.explain(expr, &exec_ctx)?;
-        if let Some(out) = output {
-            out.write()
-                .unwrap()
-                .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
-        }
+        output.write()
+            .unwrap()
+            .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
         Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))))
     } else {
         Err(HaltReason::Error(

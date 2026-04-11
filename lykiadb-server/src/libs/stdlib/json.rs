@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_json_encode() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Test primitive values
         assert_eq!(
@@ -119,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_json_decode() -> Result<(), HaltReason<'static>> {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Test primitive values
         assert_eq!(

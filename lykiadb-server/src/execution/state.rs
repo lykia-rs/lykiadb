@@ -11,14 +11,14 @@ pub struct ProgramState<'sess> {
     pub root_env: Arc<EnvironmentFrame<'sess>>,
     pub env: Arc<EnvironmentFrame<'sess>>,
     // Output
-    pub output: Option<Shared<Output<'sess>>>,
+    pub output: Shared<Output<'sess>>,
     // Static fields:
     pub program: Arc<Program>,
 }
 
 impl<'sess> ProgramState<'sess> {
     pub fn new(
-        out: Option<Shared<Output<'sess>>>,
+        output: Shared<Output<'sess>>,
         program: Arc<Program>,
         with_stdlib: bool,
     ) -> ProgramState<'sess> {
@@ -35,13 +35,13 @@ impl<'sess> ProgramState<'sess> {
             env: root_env.clone(),
             root_env: root_env.clone(),
             program,
-            output: out,
+            output,
         }
     }
 
     pub fn fork(
         &self,
-        output: Option<Shared<Output<'sess>>>,
+        output: Shared<Output<'sess>>,
         program: Arc<Program>,
     ) -> ProgramState<'sess> {
         ProgramState {
@@ -55,9 +55,11 @@ impl<'sess> ProgramState<'sess> {
 
 #[cfg(test)]
 pub mod test_utils {
+    use lykiadb_common::memory::alloc_shared;
+
     use super::*;
 
     pub fn create_empty_state<'sess>() -> ProgramState<'sess> {
-        ProgramState::new(None, Arc::new(Program::empty()), true)
+        ProgramState::new(alloc_shared(Output::new()), Arc::new(Program::empty()), true)
     }
 }

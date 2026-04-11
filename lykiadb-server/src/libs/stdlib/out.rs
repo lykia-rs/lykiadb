@@ -14,9 +14,8 @@ pub fn nt_print<'rv>(
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     for arg in args {
-        _interpreter.state.output.clone().unwrap().write().unwrap().push(arg.clone());
+        _interpreter.state.output.clone().write().unwrap().push(arg.clone());
     }
-    // _interpreter.state.output.clone().unwrap().write().unwrap().push(RV::Str(Arc::new("\n".to_string())));
     Ok(RV::Undefined)
 }
 

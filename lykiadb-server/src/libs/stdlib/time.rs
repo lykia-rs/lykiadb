@@ -29,7 +29,7 @@ mod tests {
 
     #[test]
     fn test_nt_clock() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Test clock function
         let result = nt_clock(&mut interpreter, &Span::default(), &[]);
