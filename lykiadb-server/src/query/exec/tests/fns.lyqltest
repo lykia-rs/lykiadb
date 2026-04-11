@@ -19,7 +19,7 @@
 
           {
               var $b = $buckets($s, $m);
-              testutil::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
+              out::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
           }
         }
         

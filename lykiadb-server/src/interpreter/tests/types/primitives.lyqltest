@@ -2,11 +2,11 @@
 @group primitives {
 
     @test numerical {
-        testutil::print(dtype::of_(1) == dtype::double);
-        testutil::print(dtype::of_(1.12) == dtype::double);
-        testutil::print(dtype::of_(1) == dtype::str);
-        testutil::print(dtype::of_(1));
-        testutil::print(dtype::of_(1.12));
+        out::print(dtype::of_(1) == dtype::double);
+        out::print(dtype::of_(1.12) == dtype::double);
+        out::print(dtype::of_(1) == dtype::str);
+        out::print(dtype::of_(1));
+        out::print(dtype::of_(1.12));
 
         @expect {
             true
@@ -18,9 +18,9 @@
     }
 
     @test string {
-        testutil::print(dtype::of_("1") == dtype::str);
-        testutil::print(dtype::of_("1") == dtype::double);
-        testutil::print(dtype::of_("1"));
+        out::print(dtype::of_("1") == dtype::str);
+        out::print(dtype::of_("1") == dtype::double);
+        out::print(dtype::of_("1"));
 
         @expect {
             true
@@ -30,11 +30,11 @@
     }
 
     @test boolean {
-        testutil::print(dtype::of_(true) == dtype::bool);
-        testutil::print(dtype::of_(false) == dtype::bool);
-        testutil::print(dtype::of_(true) == dtype::str);
-        testutil::print(dtype::of_(true));
-        testutil::print(dtype::of_(false));
+        out::print(dtype::of_(true) == dtype::bool);
+        out::print(dtype::of_(false) == dtype::bool);
+        out::print(dtype::of_(true) == dtype::str);
+        out::print(dtype::of_(true));
+        out::print(dtype::of_(false));
 
         @expect {
             true
@@ -46,9 +46,9 @@
     }
 
     @test array {
-        testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::double));
-        testutil::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
-        testutil::print(dtype::of_([1, 2, 3]));
+        out::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::double));
+        out::print(dtype::of_([1, 2, 3]) == dtype::array(dtype::str));
+        out::print(dtype::of_([1, 2, 3]));
 
         @expect {
             true
@@ -58,10 +58,10 @@
     }
 
     @test object {
-        testutil::print(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::double, b: dtype::double}));
-        testutil::print(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::double)}));
-        testutil::print(dtype::of_({a: [1, 2, 3] }));
-        testutil::print(dtype::of_({a: 1, b: 2}));
+        out::print(dtype::of_({a: 1, b: 2}) == dtype::object({a: dtype::double, b: dtype::double}));
+        out::print(dtype::of_({a: [1, 2, 3] }) == dtype::object({a: dtype::array(dtype::double)}));
+        out::print(dtype::of_({a: [1, 2, 3] }));
+        out::print(dtype::of_({a: 1, b: 2}));
 
         @expect {
             true
@@ -72,8 +72,8 @@
     }
 
     @test callable {
-        testutil::print(dtype::of_(out::print) == dtype::str);
-        testutil::print(dtype::of_(out::print));
+        out::print(dtype::of_(out::print) == dtype::str);
+        out::print(dtype::of_(out::print));
 
         @expect {
             false
@@ -82,9 +82,9 @@
     }
 
     @test datatype {
-        testutil::print(dtype::of_(dtype::double) == dtype::dtype);
-        testutil::print(dtype::of_(dtype::double) == dtype::str);
-        testutil::print(dtype::of_(dtype::double));
+        out::print(dtype::of_(dtype::double) == dtype::dtype);
+        out::print(dtype::of_(dtype::double) == dtype::str);
+        out::print(dtype::of_(dtype::double));
 
         @expect {
             true
@@ -94,9 +94,9 @@
     }
 
     @test none {
-        testutil::print(dtype::of_(undefined) == dtype::none);
-        testutil::print(dtype::of_(undefined) == dtype::str);
-        testutil::print(dtype::of_(undefined));
+        out::print(dtype::of_(undefined) == dtype::none);
+        out::print(dtype::of_(undefined) == dtype::str);
+        out::print(dtype::of_(undefined));
 
         @expect {
             true

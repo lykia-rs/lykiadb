@@ -5,13 +5,13 @@
         var $a = 30;
         
         if ($a > 50) {
-            testutil::print("> 50");
+            out::print("> 50");
         }
         else if ($a > 20) {
-            testutil::print("50 > $a > 20");
+            out::print("50 > $a > 20");
         }
         else {
-            testutil::print("< 20");
+            out::print("< 20");
         }
 
         @expect {

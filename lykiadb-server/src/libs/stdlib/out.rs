@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    interpreter::{HaltReason, Interpreter},
+    interpreter::{self, HaltReason, Interpreter},
     lykia_module, lykia_native_fn,
     value::RV,
 };
@@ -12,9 +14,9 @@ pub fn nt_print<'rv>(
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     for arg in args {
-        print!("{arg:?} ");
+        _interpreter.state.output.clone().unwrap().write().unwrap().push(arg.clone());
     }
-    println!();
+    // _interpreter.state.output.clone().unwrap().write().unwrap().push(RV::Str(Arc::new("\n".to_string())));
     Ok(RV::Undefined)
 }
 

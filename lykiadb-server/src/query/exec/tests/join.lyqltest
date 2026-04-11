@@ -1,7 +1,7 @@
 @set(run = "interpreter")
 @group join {
     @test eval_scan_join_truthy_condition {
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
@@ -13,7 +13,7 @@
           [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
         }
 
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
@@ -26,7 +26,7 @@
           [{m: 10}, {m: 100}, {m: 1000}, {m: 20}, {m: 200}, {m: 2000}, {m: 30}, {m: 300}, {m: 3000}]
         }
 
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               CROSS JOIN
@@ -41,7 +41,7 @@
     }
 
     @test eval_scan_join_falsy_condition {
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
@@ -53,7 +53,7 @@
           []
         }
 
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
@@ -68,7 +68,7 @@
     }
 
     @test eval_scan_join_condition {
-        testutil::print(SELECT c * e as m FROM
+        out::print(SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN

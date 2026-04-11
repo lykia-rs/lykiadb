@@ -5,7 +5,7 @@
         for (var $i = 0; $i < 10; $i = $i + 1) {
             {
                 {
-                    testutil::print($i);
+                    out::print($i);
                 }
             }
         }
@@ -27,7 +27,7 @@
     @test loop_statements_1 {
         for (var $i = 0; $i < 2; $i = $i + 1) {
             for (var $j = 0; $j < 3; $j = $j + 1) {
-                testutil::print($i + ":" + $j);        
+                out::print($i + ":" + $j);        
             }
         }
 
@@ -53,7 +53,7 @@
                             {
                                 {
                                     {
-                                        testutil::print($q);
+                                        out::print($q);
                                     }
                                 }
                             }

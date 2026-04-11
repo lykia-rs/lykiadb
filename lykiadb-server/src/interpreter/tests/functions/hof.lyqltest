@@ -7,7 +7,7 @@
         };
         
         function $g($q) {
-            testutil::print($q);
+            out::print($q);
         };
         
         for (var $i = 0; $i < 10; $i = $i + 1) {
@@ -34,7 +34,7 @@
             var $i = 0;
             function $count() {
                 $i = $i + 1;
-                testutil::print($i);
+                out::print($i);
             };
         
             return $count;

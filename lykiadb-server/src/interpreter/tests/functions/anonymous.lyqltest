@@ -3,7 +3,7 @@
 
     @test anonymous_fn_0 {
         var $pr = function $a() {
-            testutil::print("hello");
+            out::print("hello");
         };
         
         $pr();
@@ -17,7 +17,7 @@
 
     @test anonymous_fn_1_iife {
         (function $a() {
-            testutil::print("hello");
+            out::print("hello");
         })();
         
         $a();
@@ -30,7 +30,7 @@
 
     @test anonymous_fn_2 {
         var $pr = function() {
-            testutil::print("hello");
+            out::print("hello");
         };
         
         $pr();
@@ -42,7 +42,7 @@
 
     @test anonymous_fn_3_iife {
         (function() {
-            testutil::print("hello");
+            out::print("hello");
         })();
 
         @expect {

@@ -24,7 +24,7 @@ impl<'sess> ProgramState<'sess> {
     ) -> ProgramState<'sess> {
         let root_env = Arc::new(EnvironmentFrame::new(None, EnvironmentOrigin::Root));
         if with_stdlib {
-            let native_fns = stdlib(out.clone());
+            let native_fns = stdlib();
 
             for (name, value) in native_fns {
                 root_env.define(GLOBAL_INTERNER.intern(&name), value);

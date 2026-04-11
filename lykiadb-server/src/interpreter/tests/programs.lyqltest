@@ -6,7 +6,7 @@
             var $a = "global";
             {
                 function $show_a() {
-                    testutil::print($a);
+                    out::print($a);
                 };
             
                 $show_a();
