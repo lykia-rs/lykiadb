@@ -12,6 +12,7 @@ anyhow = "1.0"
 chrono = "0.4"
 lykiadb-server = { path = "../lykiadb-server" }
 lykiadb-lang = { path = "../lykiadb-lang" }
+lykiadb-common = { path = "../lykiadb-common" }
 rustc-hash = "1.1.0"
 criterion = { version = "0.4", features = ["html_reports"] }
 
