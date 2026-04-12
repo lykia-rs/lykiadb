@@ -42,8 +42,8 @@ impl<'v> Output<'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use pretty_assertions::Comparison;
+    use std::sync::Arc;
 
     pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
         TestFailure(Comparison::new(left, right).to_string())

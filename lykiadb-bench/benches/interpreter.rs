@@ -15,7 +15,9 @@ fn session(filename: &str) {
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
     let mut session = Session::new(false);
-    session.interpret(&content, alloc_shared(Output::new())).unwrap();
+    session
+        .interpret(&content, alloc_shared(Output::new()))
+        .unwrap();
 }
 
 fn bench_join(c: &mut Criterion) {

@@ -217,14 +217,12 @@ impl<'v, 'q> PlanExecutor {
                 let left_cursor = self.execute_node(*left, exec_ctx)?;
                 let right_cursor = self.execute_node(*right, exec_ctx)?;
 
-                let product = left_cursor
-                    .cartesian_product(right_cursor)
-                    .map(|(l, r)| {
-                        let mut joined = ExecutionRow::new();
-                        l.copy_to(&mut joined);
-                        r.copy_to(&mut joined);
-                        joined
-                    });
+                let product = left_cursor.cartesian_product(right_cursor).map(|(l, r)| {
+                    let mut joined = ExecutionRow::new();
+                    l.copy_to(&mut joined);
+                    r.copy_to(&mut joined);
+                    joined
+                });
 
                 if let Some(IntermediateExpr::Expr { expr }) = constraint {
                     let filtered = product.filter_map(move |row| {
@@ -240,11 +238,11 @@ impl<'v, 'q> PlanExecutor {
                         }
                     });
 
-                    return Ok(Box::from(filtered))
+                    return Ok(Box::from(filtered));
                 }
 
                 Ok(Box::from(product))
-            },
+            }
             Node::Order { source, key } => todo!(),
             Node::Scan { source, filter } => todo!(),
             Node::Compound {

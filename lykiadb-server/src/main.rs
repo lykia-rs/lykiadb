@@ -80,15 +80,13 @@ impl<'v> Connection<'v> {
                 Message::Request(req) => match req {
                     Request::Run(command) => {
                         let start = Instant::now();
-                        let execution = self.session.interpret(command, alloc_shared(Output::new()));
+                        let execution =
+                            self.session.interpret(command, alloc_shared(Output::new()));
                         let elapsed = start.elapsed();
                         info!("{:?} (took {:?})", message, elapsed);
                         let response = if let Ok(execution) = execution {
                             let bson = bson::serialize_to_bson(&execution);
-                            Response::Value(
-                                bson.unwrap(),
-                                elapsed.as_millis() as u64,
-                            )
+                            Response::Value(bson.unwrap(), elapsed.as_millis() as u64)
                         } else {
                             Response::Error(
                                 execution.err().unwrap().generalize(),

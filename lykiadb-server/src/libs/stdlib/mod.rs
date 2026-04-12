@@ -22,6 +22,5 @@ lykia_lib!(
 );
 
 pub fn stdlib<'rv>() -> FxHashMap<String, RV<'rv>> {
-    let std: std::collections::HashMap<String, RV<'_>, std::hash::BuildHasherDefault<rustc_hash::FxHasher>> = std_core().as_raw();
-    std
+    std_core().as_raw()
 }

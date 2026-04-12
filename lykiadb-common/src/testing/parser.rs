@@ -237,12 +237,10 @@ impl TestLangParser {
                             if qualifier == "error" {
                                 self.expect_char('{')?;
                                 blocks.push(Block::ExpectErr(self.parse_braced()?));
-                            }
-                            else if qualifier == "output" {
+                            } else if qualifier == "output" {
                                 self.expect_char('{')?;
                                 blocks.push(Block::ExpectOutput(self.parse_braced()?));
-                            }
-                            else {
+                            } else {
                                 return Err(ParseError::UnexpectedToken {
                                     position: self.pos,
                                     expected: "error, output or {".into(),
@@ -295,10 +293,14 @@ impl TestLangParser {
                         if !cur_input.trim().is_empty() {
                             blocks.push(Block::Input(trim_code(&cur_input)));
                         }
-                        if !blocks
-                            .iter()
-                            .any(|b| matches!(b, Block::ExpectValue(_) |Block::ExpectOutput(_) | Block::ExpectErr(_)))
-                        {
+                        if !blocks.iter().any(|b| {
+                            matches!(
+                                b,
+                                Block::ExpectValue(_)
+                                    | Block::ExpectOutput(_)
+                                    | Block::ExpectErr(_)
+                            )
+                        }) {
                             return Err(ParseError::NoAssertions {
                                 name: name.to_string(),
                             });
@@ -791,8 +793,10 @@ mod tests {
     #[test]
     fn parse_error_test_nested_in_test() {
         assert!(matches!(
-            TestLangParser::new("@test outer { @test inner { @expect output { x } } @expect output { y } }")
-                .parse(),
+            TestLangParser::new(
+                "@test outer { @test inner { @expect output { x } } @expect output { y } }"
+            )
+            .parse(),
             Err(ParseError::UnexpectedToken { .. })
         ));
     }

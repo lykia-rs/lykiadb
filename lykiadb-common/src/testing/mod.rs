@@ -159,7 +159,10 @@ mod tests {
             Box::new(CollectHandler { count: c2.clone() })
         }));
         // should not panic: just verify prefix trimming doesn't break anything
-        runner.test_file_named("/some/path/tests/lang/foo.ly", "@test t { @expect output { x } }");
+        runner.test_file_named(
+            "/some/path/tests/lang/foo.ly",
+            "@test t { @expect output { x } }",
+        );
         assert_eq!(*count.lock().unwrap(), 1);
     }
 

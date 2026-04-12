@@ -77,7 +77,10 @@ impl<'v> SessionTester<'v> {
 }
 
 fn normalize_multiline(raw: &str) -> String {
-    dedent(raw).split('\n').map(|l| l.to_string()).collect::<String>()
+    dedent(raw)
+        .split('\n')
+        .map(|l| l.to_string())
+        .collect::<String>()
 }
 
 impl<'v> TestHandler for SessionTester<'v> {
@@ -88,14 +91,12 @@ impl<'v> TestHandler for SessionTester<'v> {
         for block in case.blocks {
             match block {
                 Block::Input(code) => {
-                    let returned =  self
-                        .session
-                        .interpret(&dedent(&code), self.out.clone());
+                    let returned = self.session.interpret(&dedent(&code), self.out.clone());
 
                     match returned {
-                        Err(err) =>  {
+                        Err(err) => {
                             errors.push(err);
-                        },
+                        }
                         Ok(val) => {
                             last_returned = Some(val);
                         }
@@ -103,7 +104,6 @@ impl<'v> TestHandler for SessionTester<'v> {
                 }
                 Block::ExpectValue(raw) => {
                     if let Some(value) = last_returned {
-
                         let expected: String = normalize_multiline(&raw);
 
                         let returned: String = normalize_multiline(&value.to_string());
@@ -116,9 +116,8 @@ impl<'v> TestHandler for SessionTester<'v> {
                 }
                 Block::ExpectOutput(raw) => {
                     let expected = dedent(&raw);
-                    let lines: Vec<String> =
-                            expected.split('\n').map(|l| l.to_string()).collect();
-                        self.out.write().unwrap().expect(lines)?;
+                    let lines: Vec<String> = expected.split('\n').map(|l| l.to_string()).collect();
+                    self.out.write().unwrap().expect(lines)?;
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);

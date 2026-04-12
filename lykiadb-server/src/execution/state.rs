@@ -60,6 +60,10 @@ pub mod test_utils {
     use super::*;
 
     pub fn create_empty_state<'sess>() -> ProgramState<'sess> {
-        ProgramState::new(alloc_shared(Output::new()), Arc::new(Program::empty()), true)
+        ProgramState::new(
+            alloc_shared(Output::new()),
+            Arc::new(Program::empty()),
+            true,
+        )
     }
 }

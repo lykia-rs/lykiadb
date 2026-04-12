@@ -1,4 +1,3 @@
-
 use lykiadb_lang::ast::Span;
 
 use crate::{
@@ -13,7 +12,13 @@ pub fn nt_print<'rv>(
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     for arg in args {
-        _interpreter.state.output.clone().write().unwrap().push(arg.clone());
+        _interpreter
+            .state
+            .output
+            .clone()
+            .write()
+            .unwrap()
+            .push(arg.clone());
     }
     Ok(RV::Undefined)
 }
