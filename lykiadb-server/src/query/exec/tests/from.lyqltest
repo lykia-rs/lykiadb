@@ -1,42 +1,41 @@
-@set(run = "interpreter")
 @group from {
 
     @test simple_array {
-        testutil::print(select item from [1, 2, 3] as item);
+        out::print(select item from [1, 2, 3] as item);
 
-        @expect {
+        @expect output {
             [{item: 1}, {item: 2}, {item: 3}]
         }
     }
 
     @test single_element {
-        testutil::print(select x from [42] as x);
+        out::print(select x from [42] as x);
 
-        @expect {
+        @expect output {
             [{x: 42}]
         }
     }
 
     @test empty_array {
-        testutil::print(select item from [] as item);
+        out::print(select item from [] as item);
 
-        @expect {
+        @expect output {
             []
         }
     }
 
     @test select_all_fields {
-        testutil::print(select * from [1, 2, 3] as nums);
+        out::print(select * from [1, 2, 3] as nums);
 
-        @expect {
+        @expect output {
             [{nums: 1}, {nums: 2}, {nums: 3}]
         }
     }
 
     @test subquery {
-        testutil::print(select u.item from (select item from [1, 2, 3] as item) u);
+        out::print(select u.item from (select item from [1, 2, 3] as item) u);
 
-        @expect {
+        @expect output {
             [{u.item: 1}, {u.item: 2}, {u.item: 3}]
         }
     }

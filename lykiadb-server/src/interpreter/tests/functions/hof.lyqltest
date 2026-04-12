@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group hof {
 
     @test higher_order_0 {
@@ -7,14 +6,14 @@
         };
         
         function $g($q) {
-            testutil::print($q);
+            out::print($q);
         };
         
         for (var $i = 0; $i < 10; $i = $i + 1) {
             $f($g, $i);
         }
 
-        @expect {
+        @expect output {
             0
             1
             2
@@ -34,7 +33,7 @@
             var $i = 0;
             function $count() {
                 $i = $i + 1;
-                testutil::print($i);
+                out::print($i);
             };
         
             return $count;
@@ -43,7 +42,7 @@
         $count();
         $count();
 
-        @expect {
+        @expect output {
             1
             2
         }

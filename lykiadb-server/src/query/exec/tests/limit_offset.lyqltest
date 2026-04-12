@@ -1,42 +1,41 @@
-@set(run = "interpreter")
 @group limit_offset {
 
     @test limit_only {
-        testutil::print(select item from [1, 2, 3, 4, 5] as item limit 3);
+        out::print(select item from [1, 2, 3, 4, 5] as item limit 3);
 
-        @expect {
+        @expect output {
             [{item: 1}, {item: 2}, {item: 3}]
         }
     }
 
     @test limit_with_offset {
-        testutil::print(select item from [1, 2, 3, 4, 5] as item limit 2 offset 2);
+        out::print(select item from [1, 2, 3, 4, 5] as item limit 2 offset 2);
 
-        @expect {
+        @expect output {
             [{item: 3}, {item: 4}]
         }
     }
 
     @test limit_zero {
-        testutil::print(select item from [1, 2, 3] as item limit 0);
+        out::print(select item from [1, 2, 3] as item limit 0);
 
-        @expect {
+        @expect output {
             []
         }
     }
 
     @test limit_exceeds_count {
-        testutil::print(select item from [1, 2, 3] as item limit 10);
+        out::print(select item from [1, 2, 3] as item limit 10);
 
-        @expect {
+        @expect output {
             [{item: 1}, {item: 2}, {item: 3}]
         }
     }
 
     @test limit_with_filter {
-        testutil::print(select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 4 limit 3);
+        out::print(select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 4 limit 3);
 
-        @expect {
+        @expect output {
             [{item: 5}, {item: 6}, {item: 7}]
         }
     }

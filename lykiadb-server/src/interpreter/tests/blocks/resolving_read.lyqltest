@@ -1,22 +1,21 @@
-@set(run = "interpreter")
 @group resolving_read {
 
     @test resolving_read_0 {
         var $a = "global";
         {
             function $show_a() {
-                testutil::print($a);
+                out::print($a);
             };
         
             $show_a();
             var $a = "block";
             $show_a();
-            testutil::print($a);
+            out::print($a);
         }
 
-        testutil::print($a);
+        out::print($a);
 
-        @expect {
+        @expect output {
             global
             global
             block
@@ -28,7 +27,7 @@
         var $a = "global";
         {
             function $show_a() {
-                testutil::print($a);
+                out::print($a);
             };
         
             $show_a();
@@ -36,13 +35,13 @@
             $show_a();
         
             function $show_b() {
-                testutil::print($a);
+                out::print($a);
             };
         
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             global
             block
@@ -54,7 +53,7 @@
             var $a = "global";
             {
                 function $show_a() {
-                    testutil::print($a);
+                    out::print($a);
                 };
             
                 $show_a();
@@ -63,7 +62,7 @@
             }
         }
 
-        @expect {
+        @expect output {
             global
             global
         }
@@ -75,14 +74,14 @@
         var $a = {
             my_fun: function() {
                 function $pre_define() {
-                    testutil::print($text);
+                    out::print($text);
                 };
                 $pre_define();
         
                 var $text = 'inner $text';
         
                 function $post_define() {
-                    testutil::print($text);
+                    out::print($text);
                 };
                 $post_define();
             }
@@ -90,7 +89,7 @@
         
         $a.my_fun();
 
-        @expect {
+        @expect output {
             outer $text
             inner $text
         }
@@ -104,14 +103,14 @@
                 c0: {
                     my_fun: function() {
                         function $pre_define() {
-                            testutil::print($text);
+                            out::print($text);
                         };
                         $pre_define();
         
                         var $text = 'c0 inner $text';
         
                         function $post_define() {
-                            testutil::print($text);
+                            out::print($text);
                         };
                         $post_define();
                     }
@@ -119,14 +118,14 @@
                 c1: {
                     my_fun: function() {
                         function $pre_define() {
-                            testutil::print($text);
+                            out::print($text);
                         };
                         $pre_define();
         
                         var $text = 'c1 inner $text';
         
                         function $post_define() {
-                            testutil::print($text);
+                            out::print($text);
                         };
                         $post_define();
                     }
@@ -136,7 +135,7 @@
         $a.b.c0.my_fun();
         $a.b.c1.my_fun();
 
-        @expect {
+        @expect output {
             outer $text
             c0 inner $text
             outer $text

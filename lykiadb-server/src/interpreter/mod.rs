@@ -14,7 +14,6 @@ pub mod output;
 
 crate::register_tests!("lykiadb-server/src/interpreter/tests");
 
-use crate::value::callable::Stateful;
 use interb::Symbol;
 use lykiadb_lang::ast::stmt::Stmt;
 
@@ -26,7 +25,7 @@ pub enum HaltReason<'v> {
 
 #[derive(Clone)]
 pub struct Interpreter<'sess> {
-    state: ProgramState<'sess>,
+    pub state: ProgramState<'sess>,
 }
 
 impl<'sess> Interpreter<'sess> {
@@ -158,19 +157,6 @@ impl<'sess> Interpreter<'sess> {
     }
 }
 
-impl<'v> Stateful<'v> for output::Output<'v> {
-    fn call(
-        &mut self,
-        _interpreter: &mut Interpreter<'v>,
-        rv: &[RV<'v>],
-    ) -> Result<RV<'v>, HaltReason<'v>> {
-        for item in rv {
-            self.push(item.clone());
-        }
-        Ok(RV::Undefined)
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use std::sync::Arc;
@@ -183,7 +169,7 @@ pub mod tests {
         interpreter::{Interpreter, output::Output},
     };
 
-    pub fn create_test_interpreter(out: Option<Shared<Output>>) -> Interpreter {
+    pub fn create_test_interpreter(out: Shared<Output>) -> Interpreter {
         let state = ProgramState::new(out, Arc::new(Program::empty()), true);
         Interpreter::from_state(&state)
     }

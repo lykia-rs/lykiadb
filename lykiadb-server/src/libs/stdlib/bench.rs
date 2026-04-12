@@ -36,15 +36,15 @@ lykia_module!(bench, {
 
 #[cfg(test)]
 mod tests {
-    use lykiadb_common::extract;
+    use lykiadb_common::{extract, memory::alloc_shared};
 
-    use crate::{execution::error::ExecutionError, interpreter::tests::create_test_interpreter};
+    use crate::{execution::error::ExecutionError, interpreter::{output::Output, tests::create_test_interpreter}};
 
     use super::*;
 
     #[test]
     fn test_basic_fibonacci() {
-        let mut interpreter = create_test_interpreter(None);
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Test first few Fibonacci numbers
         assert_eq!(
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_invalid_input() {
-        let mut interpreter = create_test_interpreter(None);
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Test with non-numeric input
         let result = nt_fib(&mut interpreter, &Span::default(), &[RV::Bool(true)]);
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_negative_input() {
-        let mut interpreter = create_test_interpreter(None);
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
 
         // Negative numbers should return themselves as per implementation
         assert_eq!(

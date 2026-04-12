@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn test_modulo_basic() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_modulo_negative() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_modulo_zero_dividend() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_modulo_zero_divisor() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_modulo_invalid_type() {
-        let mut interpreter = create_test_interpreter(Some(alloc_shared(Output::new())));
+        let mut interpreter = create_test_interpreter(alloc_shared(Output::new()));
         let result = nt_modulo(
             &mut interpreter,
             &Span::default(),

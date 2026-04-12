@@ -1,17 +1,16 @@
-@set(run = "interpreter")
 @group resolving_write {
 
     @test resolving_write_0 {
         var $a = "global";
         {
             function $show_a() {
-                testutil::print($a);
+                out::print($a);
             };
         
             var $a = "block";
             
             function $show_b() {
-                testutil::print($a);
+                out::print($a);
             };
         
             
@@ -24,7 +23,7 @@
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             block
             global
@@ -36,13 +35,13 @@
         var $a = "global";
         {
             var $show_a = function() {
-                testutil::print($a);
+                out::print($a);
             };
         
             var $a = "block";
             
             var $show_b = function() {
-                testutil::print($a);
+                out::print($a);
             };
         
             $show_a();
@@ -54,7 +53,7 @@
             $show_b();
         }
 
-        @expect {
+        @expect output {
             global
             block
             global

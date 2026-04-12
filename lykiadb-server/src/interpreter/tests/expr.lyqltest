@@ -1,14 +1,13 @@
-@set(run = "interpreter")
 @group expr {
 
     @test unary_evaluation {
-        testutil::print(-2);
-        testutil::print(-(-2));
-        testutil::print(!3);
-        testutil::print(!!3);
-        testutil::print(!!!3);
+        out::print(-2);
+        out::print(-(-2));
+        out::print(!3);
+        out::print(!!3);
+        out::print(!!!3);
 
-        @expect {
+        @expect output {
             -2
             2
             false
@@ -18,13 +17,13 @@
     }
 
     @test binary_evaluation {
-        testutil::print(5-(-2));
-        testutil::print((5 + 2) * 4);
-        testutil::print(5 + 2 * 4);
-        testutil::print((13 + 4) * (7 + 3));
-        testutil::print(-5-2);
+        out::print(5-(-2));
+        out::print((5 + 2) * 4);
+        out::print(5 + 2 * 4);
+        out::print((13 + 4) * (7 + 3));
+        out::print(-5-2);
 
-        @expect {
+        @expect output {
             7
             28
             13
@@ -34,12 +33,12 @@
     }
 
     @test string_coercion_in_comparison {
-        testutil::print(100 < 11);
-        testutil::print(100 < "11");
-        testutil::print("100" < 11);
-        testutil::print("100" < "11");
+        out::print(100 < 11);
+        out::print(100 < "11");
+        out::print("100" < 11);
+        out::print("100" < "11");
 
-        @expect {
+        @expect output {
             false
             false
             false
@@ -48,15 +47,15 @@
     }
 
     @test logical_evaluation {
-        testutil::print(5 && 1);
-        testutil::print(5 || 1);
-        testutil::print(5 && 0);
-        testutil::print(5 || 0);
-        testutil::print(!(5 || 0));
-        testutil::print(!(5 || 0) || 1);
-        testutil::print(!(5 || 0) || (1 && 0));
+        out::print(5 && 1);
+        out::print(5 || 1);
+        out::print(5 && 0);
+        out::print(5 || 0);
+        out::print(!(5 || 0));
+        out::print(!(5 || 0) || 1);
+        out::print(!(5 || 0) || (1 && 0));
 
-        @expect {
+        @expect output {
             true
             true
             false
@@ -77,12 +76,12 @@
             }
         };
         
-        testutil::print($obj.name);
-        testutil::print($obj.age);
-        testutil::print($obj.address.city);
-        testutil::print($obj.address.zip);
+        out::print($obj.name);
+        out::print($obj.age);
+        out::print($obj.address.city);
+        out::print($obj.address.zip);
 
-        @expect {
+        @expect output {
             John
             30
             New York
@@ -95,44 +94,44 @@
             name: "John"
         };
         
-        testutil::print($obj.age);
+        out::print($obj.age);
 
         @expect error {
-            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
         }
 
-        testutil::print($obj.address.city);
+        out::print($obj.address.city);
 
         @expect error {
-            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
-            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
+            Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
         }
 
-        testutil::print(undefined.prop);
+        out::print(undefined.prop);
 
         @expect error {
-            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
-            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
         }
 
-        testutil::print(5.prop);
+        out::print(5.prop);
 
         @expect error {
-            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
-            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 22, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5" })
         }
 
-        testutil::print("string".length);
+        out::print("string".length);
 
         @expect error {
-            Interpret(PropertyNotFound { span: Span { start: 50, end: 58, line: 4, line_end: 4 }, property: "age" })
-            Interpret(PropertyNotFound { span: Span { start: 16, end: 28, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 30, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 22, line: 0, line_end: 0 }, value_str: "5" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 16, end: 31, line: 0, line_end: 0 }, value_str: "string" })
+            Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
+            Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 26, line: 0, line_end: 0 }, value_str: "string" })
         }
     }
 
@@ -147,18 +146,18 @@
         };
         
         $obj.name = "Jane";
-        testutil::print($obj.name);
+        out::print($obj.name);
         
         $obj.age = 31;
-        testutil::print($obj.age);
+        out::print($obj.age);
         
         $obj.address.city = "Boston";
-        testutil::print($obj.address.city);
+        out::print($obj.address.city);
         
         $obj.newProp = "test";
-        testutil::print($obj.newProp);
+        out::print($obj.newProp);
 
-        @expect {
+        @expect output {
             Jane
             31
             Boston
@@ -214,30 +213,30 @@
 
     @test numeric_between {
         var $x = 5;
-        testutil::print($x between 1 and 10);
-        testutil::print($x between 5 and 10);
-        testutil::print($x between 1 and 5);
-        testutil::print($x between 6 and 10);
-        testutil::print($x between 0 and 4);
-        testutil::print($x not between 1 and 10);
-        testutil::print($x not between 5 and 10);
-        testutil::print($x not between 1 and 5);
-        testutil::print($x not between 6 and 10);
-        testutil::print($x not between 0 and 4);
+        out::print($x between 1 and 10);
+        out::print($x between 5 and 10);
+        out::print($x between 1 and 5);
+        out::print($x between 6 and 10);
+        out::print($x between 0 and 4);
+        out::print($x not between 1 and 10);
+        out::print($x not between 5 and 10);
+        out::print($x not between 1 and 5);
+        out::print($x not between 6 and 10);
+        out::print($x not between 0 and 4);
         
         // String coercion
-        testutil::print($x between "1" and 10);
-        testutil::print($x between 5 and "10");
-        testutil::print($x between "1" and "5");
-        testutil::print($x between "0" and 4);
-        testutil::print($x not between "1" and 10);
-        testutil::print($x not between 5 and "10");
-        testutil::print($x not between "1" and "5");
-        testutil::print($x not between "0" and 4);
-        testutil::print(100 between 1 and 11); // Numerical ordering
-        testutil::print(100 between "1" and "11"); // Numerical ordering
+        out::print($x between "1" and 10);
+        out::print($x between 5 and "10");
+        out::print($x between "1" and "5");
+        out::print($x between "0" and 4);
+        out::print($x not between "1" and 10);
+        out::print($x not between 5 and "10");
+        out::print($x not between "1" and "5");
+        out::print($x not between "0" and 4);
+        out::print(100 between 1 and 11); // Numerical ordering
+        out::print(100 between "1" and "11"); // Numerical ordering
 
-        @expect {
+        @expect output {
             true
             true
             true
@@ -262,13 +261,13 @@
     }
 
     @test string_between {
-        testutil::print("mice" between "alligator" and "zebra");
-        testutil::print("alligator" between "mice" and "zebra");
-        testutil::print("zebra" between "alligator" and "mice");
-        testutil::print("mice" between "mice" and "mice");
-        testutil::print("100" between "1" and "11"); // Lexicographical ordering
+        out::print("mice" between "alligator" and "zebra");
+        out::print("alligator" between "mice" and "zebra");
+        out::print("zebra" between "alligator" and "mice");
+        out::print("mice" between "mice" and "mice");
+        out::print("100" between "1" and "11"); // Lexicographical ordering
 
-        @expect {
+        @expect output {
             true
             false
             false
@@ -276,9 +275,9 @@
             true
         }
 
-        testutil::print("100" between "1" and 11); // Coercion to string, lexicographical ordering
+        out::print("100" between "1" and 11); // Coercion to string, lexicographical ordering
 
-        @expect {
+        @expect output {
             true
             false
             false
@@ -292,9 +291,9 @@
         var $object = {};
         $object.test = 1;
         
-        testutil::print($object.test == 1);
+        out::print($object.test == 1);
 
-        @expect {
+        @expect output {
             true
         }
     }
@@ -309,11 +308,11 @@
         $object.level_one.level_two.title = "2";
         $object.level_one.level_two.level_three.title = "3";
         
-        testutil::print($object.level_one.title);
-        testutil::print($object.level_one.level_two.title);
-        testutil::print($object.level_one.level_two.level_three.title);
+        out::print($object.level_one.title);
+        out::print($object.level_one.level_two.title);
+        out::print($object.level_one.level_two.level_three.title);
 
-        @expect {
+        @expect output {
             1
             2
             3

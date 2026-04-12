@@ -147,7 +147,7 @@ mod tests {
         let mut runner = TestRunner::new(Box::new(move || {
             Box::new(CollectHandler { count: c2.clone() })
         }));
-        runner.test_file("@test foo { @expect { x } }\n@test bar { @expect { y } }");
+        runner.test_file("@test foo { @expect output { x } }\n@test bar { @expect output { y } }");
         assert_eq!(*count.lock().unwrap(), 2);
     }
 
@@ -159,7 +159,7 @@ mod tests {
             Box::new(CollectHandler { count: c2.clone() })
         }));
         // should not panic: just verify prefix trimming doesn't break anything
-        runner.test_file_named("/some/path/tests/lang/foo.ly", "@test t { @expect { x } }");
+        runner.test_file_named("/some/path/tests/lang/foo.ly", "@test t { @expect output { x } }");
         assert_eq!(*count.lock().unwrap(), 1);
     }
 
@@ -170,7 +170,7 @@ mod tests {
         let mut runner = TestRunner::new(Box::new(move || {
             Box::new(CollectHandler { count: c2.clone() })
         }));
-        runner.test_file_named("/other/path/foo.ly", "@test t { @expect { x } }");
+        runner.test_file_named("/other/path/foo.ly", "@test t { @expect output { x } }");
         assert_eq!(*count.lock().unwrap(), 1);
     }
 
@@ -178,7 +178,7 @@ mod tests {
     #[should_panic(expected = "test(s) failed")]
     fn test_file_panics_on_failure() {
         let mut runner = TestRunner::new(Box::new(|| Box::new(FailHandler)));
-        runner.test_file("@test bad { @expect { x } }");
+        runner.test_file("@test bad { @expect output { x } }");
     }
 
     #[test]

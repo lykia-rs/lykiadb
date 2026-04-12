@@ -1,4 +1,3 @@
-@set(run = "plan")
 @group from {
 
     @test plain {

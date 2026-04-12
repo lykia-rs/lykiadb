@@ -45,9 +45,6 @@ impl<'v> RVCallable<'v> {
     ) -> Result<RV<'v>, HaltReason<'v>> {
         let mut interpreter = Interpreter::from_state(state);
         match &self.function.as_ref() {
-            Function::Stateful(stateful) => {
-                stateful.write().unwrap().call(&mut interpreter, arguments)
-            }
             Function::Native { function } => function(&mut interpreter, called_from, arguments),
             Function::Agg { function, .. } => {
                 let mut aggregator = function();
@@ -74,14 +71,6 @@ impl<'v> RVCallable<'v> {
     }
 }
 
-pub trait Stateful<'v> {
-    fn call(
-        &mut self,
-        interpreter: &mut Interpreter<'v>,
-        rv: &[RV<'v>],
-    ) -> Result<RV<'v>, HaltReason<'v>>;
-}
-
 pub type AggregatorFactory<'v> = fn() -> Box<dyn Aggregator<'v> + Send>;
 
 #[derive(Clone)]
@@ -93,7 +82,6 @@ pub enum Function<'v> {
             &[RV<'v>],
         ) -> Result<RV<'v>, HaltReason<'v>>,
     },
-    Stateful(Shared<dyn Stateful<'v> + Send + Sync + 'v>),
     UserDefined {
         name: Symbol,
         parameters: Vec<Symbol>,
@@ -109,7 +97,7 @@ pub enum Function<'v> {
 impl<'v> Function<'v> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Function::Stateful(_) | Function::Native { .. } => write!(f, "<native_fn>"),
+            Function::Native { .. } => write!(f, "<native_fn>"),
             Function::UserDefined { .. } => write!(f, "<user_defined_fn>"),
             Function::Agg { .. } => write!(f, "<agg_fn>"),
         }

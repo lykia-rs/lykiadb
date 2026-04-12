@@ -1,4 +1,3 @@
-@set(run = "plan")
 @group compound {
 
     @test simple_union {

@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group nested {
 
     @test nested_0 {
@@ -10,19 +9,19 @@
             var $b = "outer b";
             {
                 var $a = "inner a";
-                testutil::print($a);
-                testutil::print($b);
-                testutil::print($c);
+                out::print($a);
+                out::print($b);
+                out::print($c);
             }
-            testutil::print($a);
-            testutil::print($b);
-            testutil::print($c);
+            out::print($a);
+            out::print($b);
+            out::print($c);
         }
-        testutil::print($a);
-        testutil::print($b);
-        testutil::print($c);
+        out::print($a);
+        out::print($b);
+        out::print($c);
 
-        @expect {
+        @expect output {
             inner a
             outer b
             global c
@@ -40,27 +39,27 @@
             var $a = "global";
             {
                 var $a = "block";
-                testutil::print($a);
+                out::print($a);
             }
-            testutil::print($a);
+            out::print($a);
         };
         
         $fn_block();
 
-        @expect {
+        @expect output {
             block
             global
         }
 
-        testutil::print($a);
+        out::print($a);
 
         @expect error {
             Environment(Other { message: "Variable '$a' was not found" })
         }
 
-        testutil::print($a);
+        out::print($a);
 
-        @expect {
+        @expect output {
             block
             global
         }

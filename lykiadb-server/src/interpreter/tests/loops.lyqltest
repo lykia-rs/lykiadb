@@ -1,16 +1,15 @@
-@set(run = "interpreter")
 @group loops {
 
     @test loop_statements_0 {
         for (var $i = 0; $i < 10; $i = $i + 1) {
             {
                 {
-                    testutil::print($i);
+                    out::print($i);
                 }
             }
         }
 
-        @expect {
+        @expect output {
             0
             1
             2
@@ -27,11 +26,11 @@
     @test loop_statements_1 {
         for (var $i = 0; $i < 2; $i = $i + 1) {
             for (var $j = 0; $j < 3; $j = $j + 1) {
-                testutil::print($i + ":" + $j);        
+                out::print($i + ":" + $j);        
             }
         }
 
-        @expect {
+        @expect output {
             0:0
             0:1
             0:2
@@ -53,7 +52,7 @@
                             {
                                 {
                                     {
-                                        testutil::print($q);
+                                        out::print($q);
                                     }
                                 }
                             }
@@ -63,7 +62,7 @@
             }
         }
 
-        @expect {
+        @expect output {
             1
             2
             3

@@ -1,4 +1,3 @@
-@set(run = "plan")
 @group join_err {
 
     @test illegal_subquery_in_condition {

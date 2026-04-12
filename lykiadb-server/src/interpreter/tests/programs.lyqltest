@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group programs {
 
     @test multiple_programs {
@@ -6,7 +5,7 @@
             var $a = "global";
             {
                 function $show_a() {
-                    testutil::print($a);
+                    out::print($a);
                 };
             
                 $show_a();
@@ -16,14 +15,14 @@
         };
         $resolved_first();
 
-        @expect {
+        @expect output {
             global
             global
         }
 
         $resolved_first();
 
-        @expect {
+        @expect output {
             global
             global
             global

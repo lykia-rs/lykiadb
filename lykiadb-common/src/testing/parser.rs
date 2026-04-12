@@ -4,7 +4,8 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Block {
     Input(String),
-    Expect(String),
+    ExpectValue(String),
+    ExpectOutput(String),
     ExpectErr(String),
 }
 
@@ -207,7 +208,7 @@ impl TestLangParser {
     }
 
     /// Body of a `@test` block.  The opening `{` has already been consumed.
-    /// `@expect { … }` → output match; `@expect error { … }` → error match.
+    /// `@expect output { … }` → output match; `@expect error { … }` → error match.
     /// At least one expect block is required.
     fn parse_test_body(&mut self, name: &str) -> ParseResult<Vec<Block>> {
         let mut blocks: Vec<Block> = Vec::new();
@@ -233,18 +234,24 @@ impl TestLangParser {
                         self.skip_ws();
                         if self.cur() != Some('{') {
                             let qualifier = self.parse_ident();
-                            if qualifier != "error" {
+                            if qualifier == "error" {
+                                self.expect_char('{')?;
+                                blocks.push(Block::ExpectErr(self.parse_braced()?));
+                            }
+                            else if qualifier == "output" {
+                                self.expect_char('{')?;
+                                blocks.push(Block::ExpectOutput(self.parse_braced()?));
+                            }
+                            else {
                                 return Err(ParseError::UnexpectedToken {
                                     position: self.pos,
-                                    expected: "error or {".into(),
+                                    expected: "error, output or {".into(),
                                     got: qualifier,
                                 });
                             }
-                            self.expect_char('{')?;
-                            blocks.push(Block::ExpectErr(self.parse_braced()?));
                         } else {
                             self.expect_char('{')?;
-                            blocks.push(Block::Expect(self.parse_braced()?));
+                            blocks.push(Block::ExpectValue(self.parse_braced()?));
                         }
                     } else if kw == "test" || kw == "group" {
                         return Err(ParseError::UnexpectedToken {
@@ -290,7 +297,7 @@ impl TestLangParser {
                         }
                         if !blocks
                             .iter()
-                            .any(|b| matches!(b, Block::Expect(_) | Block::ExpectErr(_)))
+                            .any(|b| matches!(b, Block::ExpectValue(_) |Block::ExpectOutput(_) | Block::ExpectErr(_)))
                         {
                             return Err(ParseError::NoAssertions {
                                 name: name.to_string(),
@@ -537,7 +544,7 @@ mod tests {
             r#"
             @test greet {
                 print("hello");
-                @expect {
+                @expect output {
                     hello
                 }
             }
@@ -546,18 +553,18 @@ mod tests {
         assert_eq!(cases.len(), 1);
         assert_eq!(cases[0].name, "greet");
         assert!(matches!(&cases[0].blocks[0], Block::Input(_)));
-        assert!(matches!(&cases[0].blocks[1], Block::Expect(_)));
+        assert!(matches!(&cases[0].blocks[1], Block::ExpectOutput(_)));
     }
 
     #[test]
     fn parse_test_expect_only() {
-        let items = parse_items("@test foo { @expect { result } }");
+        let items = parse_items("@test foo { @expect output { result } }");
         assert_eq!(
             items,
             vec![SuiteItem::Test(TestCase {
                 name: "foo".into(),
                 flags: HashMap::new(),
-                blocks: vec![Block::Expect(" result ".into())],
+                blocks: vec![Block::ExpectOutput(" result ".into())],
             })]
         );
     }
@@ -607,7 +614,7 @@ mod tests {
                 for (var $i = 0; $i < 3; $i = $i + 1) {
                     print($i);
                 }
-                @expect {
+                @expect output {
                     0
                     1
                     2
@@ -626,8 +633,8 @@ mod tests {
     fn parse_multiple_top_level_tests() {
         let cases = flat(
             r#"
-            @test first { a @expect { 1 } }
-            @test second { b @expect { 2 } }
+            @test first { a @expect output { 1 } }
+            @test second { b @expect output { 2 } }
         "#,
         );
         assert_eq!(cases[0].name, "first");
@@ -639,7 +646,7 @@ mod tests {
         let cases = flat(
             r#"
             # comment
-            @test name { code @expect { result } }
+            @test name { code @expect output { result } }
         "#,
         );
         assert_eq!(cases.len(), 1);
@@ -650,7 +657,7 @@ mod tests {
         let cases = flat(
             r#"
             @set(run = "plan")
-            @test t { @expect { x } }
+            @test t { @expect output { x } }
         "#,
         );
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
@@ -662,8 +669,8 @@ mod tests {
             r#"
             @set(run = "plan")
             @group suite {
-                @test q1 { code @expect { result } }
-                @test q2 { code @expect { result } }
+                @test q1 { code @expect output { result } }
+                @test q2 { code @expect output { result } }
             }
         "#,
         );
@@ -678,8 +685,8 @@ mod tests {
             r#"
             @group suite {
                 @set(run = "plan")
-                @test q1 { code @expect { result } }
-                @test q2 { code @expect { result } }
+                @test q1 { code @expect output { result } }
+                @test q2 { code @expect output { result } }
             }
         "#,
         );
@@ -693,8 +700,8 @@ mod tests {
         let cases = flat(
             r#"
             @set(run = "plan")
-            @test first { @expect { x } }
-            @test second { @expect { y } }
+            @test first { @expect output { x } }
+            @test second { @expect output { y } }
         "#,
         );
         assert_eq!(cases[0].flags.get("run"), Some(&"plan".to_string()));
@@ -707,7 +714,7 @@ mod tests {
             r#"
             @set(run = "plan")
             @set(extra = "yes")
-            @test t { @expect { x } }
+            @test t { @expect output { x } }
         "#,
         );
         assert_eq!(
@@ -724,7 +731,7 @@ mod tests {
             @group outer {
                 @set(extra = "yes")
                 @group inner {
-                    @test t { code @expect { x } }
+                    @test t { code @expect output { x } }
                 }
             }
         "#,
@@ -743,7 +750,7 @@ mod tests {
             @group outer {
                 @set(run = "interpreter")
                 @group inner {
-                    @test t { code @expect { x } }
+                    @test t { code @expect output { x } }
                 }
             }
         "#,
@@ -757,7 +764,7 @@ mod tests {
             r#"
             @group outer {
                 @group inner {
-                    @test t { @expect { x } }
+                    @test t { @expect output { x } }
                 }
             }
         "#,
@@ -784,7 +791,7 @@ mod tests {
     #[test]
     fn parse_error_test_nested_in_test() {
         assert!(matches!(
-            TestLangParser::new("@test outer { @test inner { @expect { x } } @expect { y } }")
+            TestLangParser::new("@test outer { @test inner { @expect output { x } } @expect output { y } }")
                 .parse(),
             Err(ParseError::UnexpectedToken { .. })
         ));
@@ -793,7 +800,7 @@ mod tests {
     #[test]
     fn parse_error_group_nested_in_test() {
         assert!(matches!(
-            TestLangParser::new("@test outer { @group g { } @expect { y } }").parse(),
+            TestLangParser::new("@test outer { @group g { } @expect output { y } }").parse(),
             Err(ParseError::UnexpectedToken { .. })
         ));
     }
@@ -833,7 +840,7 @@ mod tests {
     #[test]
     fn parse_error_eof_in_braced() {
         assert!(matches!(
-            TestLangParser::new("@test t { @expect {").parse(),
+            TestLangParser::new("@test t { @expect output {").parse(),
             Err(ParseError::UnexpectedEof { .. })
         ));
     }
@@ -849,7 +856,7 @@ mod tests {
     #[test]
     fn parse_error_eof_in_group_body() {
         assert!(matches!(
-            TestLangParser::new("@group g { @test t { @expect { x } }").parse(),
+            TestLangParser::new("@group g { @test t { @expect output { x } }").parse(),
             Err(ParseError::UnexpectedEof { .. })
         ));
     }
@@ -888,7 +895,7 @@ mod tests {
 
     #[test]
     fn at_sign_in_code_preserved() {
-        let cases = flat("@test t { @notadirective @expect { x } }");
+        let cases = flat("@test t { @notadirective @expect output { x } }");
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains("@notadirective"));
         } else {
@@ -904,7 +911,7 @@ mod tests {
 
     #[test]
     fn flatten_top_level_prefix_empty() {
-        assert_eq!(flat("@test t { @expect { x } }")[0].name, "t");
+        assert_eq!(flat("@test t { @expect output { x } }")[0].name, "t");
     }
 
     #[test]
@@ -914,7 +921,7 @@ mod tests {
             r#"
             @test t {
                 var $s = "open brace: {";
-                @expect { ok }
+                @expect output { ok }
             }
         "#,
         );
@@ -932,7 +939,7 @@ mod tests {
             r#"
             @test t {
                 var $s = "close brace: }";
-                @expect { ok }
+                @expect output { ok }
             }
         "#,
         );
@@ -945,7 +952,7 @@ mod tests {
 
     #[test]
     fn string_balanced_braces_preserved() {
-        let cases = flat(r#"@test t { var $s = "{}"; @expect { ok } }"#);
+        let cases = flat(r#"@test t { var $s = "{}"; @expect output { ok } }"#);
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains(r#""{}""#));
         } else {
@@ -957,7 +964,7 @@ mod tests {
     fn string_escaped_quote_with_brace_not_counted() {
         // `\"` inside a string must not end the literal, so the `{` that
         // follows it remains invisible to the depth counter.
-        let cases = flat("@test t { var $s = \"say \\\"hello {\\\"\"; @expect { ok } }");
+        let cases = flat("@test t { var $s = \"say \\\"hello {\\\"\"; @expect output { ok } }");
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains('{'));
         } else {
@@ -967,7 +974,7 @@ mod tests {
 
     #[test]
     fn hash_comment_braces_not_counted() {
-        let cases = flat("@test t { code(); # { unbalanced brace\n @expect { ok } }");
+        let cases = flat("@test t { code(); # { unbalanced brace\n @expect output { ok } }");
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains("# { unbalanced brace"));
         } else {
@@ -977,7 +984,7 @@ mod tests {
 
     #[test]
     fn double_slash_comment_braces_not_counted() {
-        let cases = flat("@test t { code(); // } unbalanced\n @expect { ok } }");
+        let cases = flat("@test t { code(); // } unbalanced\n @expect output { ok } }");
         if let Block::Input(code) = &cases[0].blocks[0] {
             assert!(code.contains("// } unbalanced"));
         } else {

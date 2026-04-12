@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group fns {
 
     @test fn_blocks {
@@ -19,11 +18,11 @@
 
           {
               var $b = $buckets($s, $m);
-              testutil::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
+              out::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
           }
         }
         
-        @expect {
+        @expect output {
             [{m: 0, a: 1200}, {m: 2, a: 1225}, {m: 4, a: 1250}, {m: 6, a: 1275}]
         }
     }

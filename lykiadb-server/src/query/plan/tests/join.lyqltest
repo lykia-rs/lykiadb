@@ -1,4 +1,3 @@
-@set(run = "plan")
 @group join {
 
     @test two_way_simple {
