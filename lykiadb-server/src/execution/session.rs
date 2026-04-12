@@ -118,7 +118,7 @@ impl<'v> TestHandler for SessionTester<'v> {
                     let expected = dedent(&raw);
                     let lines: Vec<String> =
                             expected.split('\n').map(|l| l.to_string()).collect();
-                        self.out.write().unwrap().expect_str(lines)?;
+                        self.out.write().unwrap().expect(lines)?;
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);
