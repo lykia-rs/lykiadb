@@ -1,13 +1,7 @@
 use crate::value::RV;
 use lykiadb_common::testing::TestFailure;
-use pretty_assertions::{Comparison, StrComparison};
+use pretty_assertions::StrComparison;
 
-/// Build a `TestFailure` from a structural diff of two `Debug` values.
-pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
-    TestFailure(Comparison::new(left, right).to_string())
-}
-
-/// Build a `TestFailure` from a string diff of two string-like values.
 pub(crate) fn str_diff(left: &str, right: &str) -> TestFailure {
     TestFailure(StrComparison::new(left, right).to_string())
 }
@@ -49,6 +43,11 @@ impl<'v> Output<'v> {
 mod tests {
     use super::*;
     use std::sync::Arc;
+    use pretty_assertions::Comparison;
+
+    pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
+        TestFailure(Comparison::new(left, right).to_string())
+    }
 
     #[test]
     fn expect_match() {
