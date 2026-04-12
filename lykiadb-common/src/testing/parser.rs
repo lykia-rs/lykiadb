@@ -4,6 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Block {
     Input(String),
+    ExpectValue(String),
     ExpectOutput(String),
     ExpectErr(String),
 }
@@ -250,7 +251,7 @@ impl TestLangParser {
                             }
                         } else {
                             self.expect_char('{')?;
-                            blocks.push(Block::ExpectOutput(self.parse_braced()?));
+                            blocks.push(Block::ExpectValue(self.parse_braced()?));
                         }
                     } else if kw == "test" || kw == "group" {
                         return Err(ParseError::UnexpectedToken {
@@ -296,7 +297,7 @@ impl TestLangParser {
                         }
                         if !blocks
                             .iter()
-                            .any(|b| matches!(b, Block::ExpectOutput(_) | Block::ExpectErr(_)))
+                            .any(|b| matches!(b, Block::ExpectValue(_) |Block::ExpectOutput(_) | Block::ExpectErr(_)))
                         {
                             return Err(ParseError::NoAssertions {
                                 name: name.to_string(),

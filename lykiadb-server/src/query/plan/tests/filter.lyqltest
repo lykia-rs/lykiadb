@@ -1,10 +1,10 @@
-@set(run = "plan")
+@set(run = "interpreter")
 @group filter {
 
     @test simple {
         EXPLAIN SELECT * FROM books b where title like '%hello%';
 
-        @expect output {
+        @expect {
             - filter [(title Like Str("%hello%"))]
               - scan [books as b]
         }
@@ -15,7 +15,7 @@
           where author_id in (SELECT id FROM authors where name = 'John')
           or publisher_id in (SELECT id FROM publishers where name = 'Elsevier');
 
-        @expect output {
+        @expect {
             - filter [(author_id In (<SqlSelect>)) Or (publisher_id In (<SqlSelect>))]
               > subqueries
                 - project [id as id]
@@ -32,7 +32,7 @@
         EXPLAIN SELECT * FROM books b 
           where id in [1, 2, 3];
 
-        @expect output {
+        @expect {
             - filter [(id In Array(Num(1.0), Num(2.0), Num(3.0)))]
               - scan [books as b]
         }
@@ -42,7 +42,7 @@
         EXPLAIN SELECT * FROM books b 
           where id in (select n from [1, 2, 3] as ids);
 
-        @expect output {
+        @expect {
             - filter [(id In (<SqlSelect>))]
               > subqueries
                 - project [n as n]
@@ -55,7 +55,7 @@
         EXPLAIN SELECT * FROM books b 
           where id between 1 and 10;
 
-        @expect output {
+        @expect {
             - filter [(id Between Num(1.0) And Num(10.0))]
               - scan [books as b]
         }

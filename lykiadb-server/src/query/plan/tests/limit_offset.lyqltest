@@ -1,10 +1,10 @@
-@set(run = "plan")
+@set(run = "interpreter")
 @group limit_offset {
 
     @test limit {
         EXPLAIN SELECT * FROM books limit 4 + 4;
 
-        @expect output {
+        @expect {
             - limit [count=8]
               - scan [books as books]
         }
@@ -16,7 +16,7 @@
         
         EXPLAIN SELECT * FROM books limit $limit offset $offset;
 
-        @expect output {
+        @expect {
             - limit [count=10]
               - offset [count=20]
                 - scan [books as books]
@@ -26,7 +26,7 @@
     @test limit_with_joins {
         EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100;
 
-        @expect output {
+        @expect {
             - limit [count=100]
               - join [type=Inner, (books.author_id IsEqual authors.id)]
                 - scan [books as books]
@@ -39,7 +39,7 @@
         UNION
         SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id LIMIT 100;
 
-        @expect output {
+        @expect {
             - limit [count=100]
               - compound [type=Union]
                 - join [type=Inner, (books.author_id IsEqual authors.id)]

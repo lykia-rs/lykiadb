@@ -1,4 +1,4 @@
-@set(run = "plan")
+@set(run = "interpreter")
 @group join {
 
     @test two_way_simple {
@@ -6,7 +6,7 @@
             INNER JOIN categories c ON b.category_id = c.id
             WHERE c.name = 'Science';
 
-        @expect output {
+        @expect {
             - filter [(c.name IsEqual Str("Science"))]
               - join [type=Inner, (b.category_id IsEqual c.id)]
                 - scan [books as b]
@@ -20,7 +20,7 @@
             INNER JOIN publishers AS p ON b.publisher_id = p.id
             WHERE p.name = 'Springer';
 
-        @expect output {
+        @expect {
             - filter [(p.name IsEqual Str("Springer"))]
               - join [type=Inner, (b.publisher_id IsEqual p.id)]
                 - join [type=Inner, (b.category_id IsEqual c.id)]
@@ -42,7 +42,7 @@
             ON b.publisher_id = p.id
             WHERE p.name = 'Springer';
 
-        @expect output {
+        @expect {
             - filter [(p.name IsEqual Str("Springer"))]
               - join [type=Inner, (b.publisher_id IsEqual p.id)]
                 - scan [books as b]
@@ -61,7 +61,7 @@
               ON 1 = 1
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, (Num(1.0) IsEqual Num(1.0))]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
@@ -78,7 +78,7 @@
               ON true
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, true]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
@@ -94,7 +94,7 @@
               [10, 100, 1000] AS e
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Cross, None]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
@@ -111,7 +111,7 @@
               ON 1 = 0
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, (Num(1.0) IsEqual Num(0.0))]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
@@ -128,7 +128,7 @@
               ON false
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, false]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
@@ -145,7 +145,7 @@
               ON c * e > 100
             );
 
-        @expect output {
+        @expect {
             - project [(c Multiply e) as m]
               - join [type=Inner, ((c Multiply e) Greater Num(100.0))]
                 - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]

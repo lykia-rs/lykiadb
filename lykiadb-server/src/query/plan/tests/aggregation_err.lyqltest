@@ -1,4 +1,4 @@
-@set(run = "plan")
+@set(run = "interpreter")
 @group aggregation_err {
 
     @test nested_aggregate_not_allowed {

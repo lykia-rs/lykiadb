@@ -76,33 +76,49 @@ impl<'v> SessionTester<'v> {
     }
 }
 
+fn normalize_multiline(raw: &str) -> String {
+    dedent(raw).split('\n').map(|l| l.to_string()).collect::<String>()
+}
+
 impl<'v> TestHandler for SessionTester<'v> {
     fn run_case(&mut self, case: TestCase) -> Result<(), TestFailure> {
-        let run_mode = case.flags.get("run").map(|s| s.as_str()).unwrap_or("");
         let mut errors: Vec<ExecutionError> = vec![];
+        let mut last_returned: Option<RV> = None;
 
         for block in case.blocks {
             match block {
                 Block::Input(code) => {
-                    if let Err(err) = self
+                    let returned =  self
                         .session
-                        .interpret(&dedent(&code), self.out.clone())
-                    {
-                        errors.push(err);
+                        .interpret(&dedent(&code), self.out.clone());
+
+                    match returned {
+                        Err(err) =>  {
+                            errors.push(err);
+                        },
+                        Ok(val) => {
+                            last_returned = Some(val);
+                        }
+                    };
+                }
+                Block::ExpectValue(raw) => {
+                    if let Some(value) = last_returned {
+
+                        let expected: String = normalize_multiline(&raw);
+
+                        let returned: String = normalize_multiline(&value.to_string());
+
+                        pretty_assertions::assert_eq!(expected, returned);
+                        last_returned = None;
+                    } else {
+                        panic!("There is no returned value")
                     }
                 }
                 Block::ExpectOutput(raw) => {
                     let expected = dedent(&raw);
-                    if run_mode == "plan" {
-                        self.out
-                            .write()
-                            .unwrap()
-                            .expect(vec![RV::Str(Arc::new(expected))])?;
-                    } else {
-                        let lines: Vec<String> =
+                    let lines: Vec<String> =
                             expected.split('\n').map(|l| l.to_string()).collect();
                         self.out.write().unwrap().expect_str(lines)?;
-                    }
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);

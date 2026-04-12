@@ -16,13 +16,9 @@ pub fn dispatch_query_explain<'sess>(
     state: ProgramState<'sess>,
 ) -> Result<RV<'sess>, HaltReason<'sess>> {
     if matches!(expr, Expr::Select { .. }) {
-        let output = &state.output;
         let exec_ctx = QueryExecutionContext::new(state.clone());
         let mut query_engine = QueryEngine::new();
         let plan = &query_engine.explain(expr, &exec_ctx)?;
-        output.write()
-            .unwrap()
-            .push(RV::Str(Arc::new(plan.to_string().trim().to_string())));
         Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))))
     } else {
         Err(HaltReason::Error(

@@ -1,4 +1,4 @@
-@set(run = "plan")
+@set(run = "interpreter")
 @group join_err {
 
     @test illegal_subquery_in_condition {
