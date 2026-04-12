@@ -1,9 +1,8 @@
-use std::sync::Arc;
 
 use lykiadb_lang::ast::Span;
 
 use crate::{
-    interpreter::{self, HaltReason, Interpreter},
+    interpreter::{HaltReason, Interpreter},
     lykia_module, lykia_native_fn,
     value::RV,
 };

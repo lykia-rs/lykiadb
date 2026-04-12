@@ -4,7 +4,6 @@ use crate::{
     interpreter::{HaltReason, Interpreter, environment::EnvironmentFrame},
 };
 use interb::Symbol;
-use lykiadb_common::memory::Shared;
 use lykiadb_lang::{
     ast::{Span, stmt::Stmt},
     types::Datatype,
