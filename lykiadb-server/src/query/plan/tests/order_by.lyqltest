@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group order_by {
 
     @test simple {

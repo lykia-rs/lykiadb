@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group from {
 
     @test simple_array {

@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group expr {
 
     @test unary_evaluation {

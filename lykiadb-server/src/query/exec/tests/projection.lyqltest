@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group projection {
 
     @test multiply {

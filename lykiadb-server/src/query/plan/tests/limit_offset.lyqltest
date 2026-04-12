@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group limit_offset {
 
     @test limit {

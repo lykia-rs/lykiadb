@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group loops {
 
     @test loop_statements_0 {

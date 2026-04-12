@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group anonymous {
 
     @test anonymous_fn_0 {

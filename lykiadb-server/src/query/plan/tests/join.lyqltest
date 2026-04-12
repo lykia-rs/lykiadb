@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group join {
 
     @test two_way_simple {

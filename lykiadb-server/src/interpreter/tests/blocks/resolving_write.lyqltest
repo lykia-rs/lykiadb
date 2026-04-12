@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group resolving_write {
 
     @test resolving_write_0 {

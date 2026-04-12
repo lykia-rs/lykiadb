@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group filter {
 
     @test greater_than {

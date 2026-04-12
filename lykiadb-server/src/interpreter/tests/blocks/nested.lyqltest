@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group nested {
 
     @test nested_0 {

@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group join {
     @test eval_scan_join_truthy_condition {
         out::print(SELECT c * e as m FROM

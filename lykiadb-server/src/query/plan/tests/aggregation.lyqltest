@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group aggregation {
 
     @test single {

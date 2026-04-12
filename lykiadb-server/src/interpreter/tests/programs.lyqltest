@@ -1,4 +1,3 @@
-@set(run = "interpreter")
 @group programs {
 
     @test multiple_programs {
