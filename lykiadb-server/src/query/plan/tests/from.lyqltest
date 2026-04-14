@@ -4,7 +4,11 @@
         EXPLAIN SELECT * FROM books;
 
         @expect {
-            - scan [books as books]
+            {
+              "alias": "books",
+              "collection": "books",
+              "type": "scan"
+            }
         }
     }
 
@@ -12,7 +16,11 @@
         EXPLAIN SELECT * FROM [1,1,2,3,5,8,13] as fib;
 
         @expect {
-            - eval_scan [Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))]
+            {
+              "alias": "fib",
+              "expr": "Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))",
+              "type": "eval_scan"
+            }
         }
     }
 
@@ -20,9 +28,21 @@
         EXPLAIN SELECT u.id as id FROM (select * from books) u;
 
         @expect {
-            - project [u.id as id]
-              - subquery [u]
-                - scan [books as books]
+            {
+              "fields": [
+                "u.id as id"
+              ],
+              "source": {
+                "alias": "u",
+                "source": {
+                  "alias": "books",
+                  "collection": "books",
+                  "type": "scan"
+                },
+                "type": "subquery"
+              },
+              "type": "projection"
+            }
         }
     }
 
@@ -30,9 +50,21 @@
         EXPLAIN SELECT * FROM books, [1,2,3] as num;
 
         @expect {
-            - join [type=Cross, None]
-              - scan [books as books]
-              - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
+            {
+              "constraint": null,
+              "join_type": "cross",
+              "left": {
+                "alias": "books",
+                "collection": "books",
+                "type": "scan"
+              },
+              "right": {
+                "alias": "num",
+                "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                "type": "eval_scan"
+              },
+              "type": "join"
+            }
         }
     }
 }

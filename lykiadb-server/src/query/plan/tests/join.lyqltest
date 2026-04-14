@@ -1,154 +1,268 @@
 @group join {
 
     @test two_way_simple {
-        EXPLAIN SELECT * FROM books b
-            INNER JOIN categories c ON b.category_id = c.id
-            WHERE c.name = 'Science';
+        EXPLAIN SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id WHERE c.name = 'Science';
 
         @expect {
-            - filter [(c.name IsEqual Str("Science"))]
-              - join [type=Inner, (b.category_id IsEqual c.id)]
-                - scan [books as b]
-                - scan [categories as c]
+            {
+              "predicate": "(c.name IsEqual Str(\"Science\"))",
+              "source": {
+                "constraint": "(b.category_id IsEqual c.id)",
+                "join_type": "inner",
+                "left": {
+                  "alias": "b",
+                  "collection": "books",
+                  "type": "scan"
+                },
+                "right": {
+                  "alias": "c",
+                  "collection": "categories",
+                  "type": "scan"
+                },
+                "type": "join"
+              },
+              "type": "filter"
+            }
         }
     }
 
     @test three_way_simple {
-        EXPLAIN SELECT * FROM books b
-            INNER JOIN categories c ON b.category_id = c.id
-            INNER JOIN publishers AS p ON b.publisher_id = p.id
-            WHERE p.name = 'Springer';
+        EXPLAIN SELECT * FROM books b INNER JOIN categories c ON b.category_id = c.id INNER JOIN publishers AS p ON b.publisher_id = p.id WHERE p.name = 'Springer';
 
         @expect {
-            - filter [(p.name IsEqual Str("Springer"))]
-              - join [type=Inner, (b.publisher_id IsEqual p.id)]
-                - join [type=Inner, (b.category_id IsEqual c.id)]
-                  - scan [books as b]
-                  - scan [categories as c]
-                - scan [publishers as p]
+            {
+              "predicate": "(p.name IsEqual Str(\"Springer\"))",
+              "source": {
+                "constraint": "(b.publisher_id IsEqual p.id)",
+                "join_type": "inner",
+                "left": {
+                  "constraint": "(b.category_id IsEqual c.id)",
+                  "join_type": "inner",
+                  "left": {
+                    "alias": "b",
+                    "collection": "books",
+                    "type": "scan"
+                  },
+                  "right": {
+                    "alias": "c",
+                    "collection": "categories",
+                    "type": "scan"
+                  },
+                  "type": "join"
+                },
+                "right": {
+                  "alias": "p",
+                  "collection": "publishers",
+                  "type": "scan"
+                },
+                "type": "join"
+              },
+              "type": "filter"
+            }
         }
     }
 
     @test three_way_reordered {
-        EXPLAIN SELECT * FROM books b
-            INNER JOIN
-            (
-              categories c
-              INNER JOIN
-              publishers AS p
-              ON b.category_id = c.id
-            )
-            ON b.publisher_id = p.id
-            WHERE p.name = 'Springer';
+        EXPLAIN SELECT * FROM books b INNER JOIN (categories c INNER JOIN publishers AS p ON b.category_id = c.id) ON b.publisher_id = p.id WHERE p.name = 'Springer';
 
         @expect {
-            - filter [(p.name IsEqual Str("Springer"))]
-              - join [type=Inner, (b.publisher_id IsEqual p.id)]
-                - scan [books as b]
-                - join [type=Inner, (b.category_id IsEqual c.id)]
-                  - scan [categories as c]
-                  - scan [publishers as p]
+            {
+              "predicate": "(p.name IsEqual Str(\"Springer\"))",
+              "source": {
+                "constraint": "(b.publisher_id IsEqual p.id)",
+                "join_type": "inner",
+                "left": {
+                  "alias": "b",
+                  "collection": "books",
+                  "type": "scan"
+                },
+                "right": {
+                  "constraint": "(b.category_id IsEqual c.id)",
+                  "join_type": "inner",
+                  "left": {
+                    "alias": "c",
+                    "collection": "categories",
+                    "type": "scan"
+                  },
+                  "right": {
+                    "alias": "p",
+                    "collection": "publishers",
+                    "type": "scan"
+                  },
+                  "type": "join"
+                },
+                "type": "join"
+              },
+              "type": "filter"
+            }
         }
     }
 
     @test eval_scan_join_truthy_condition {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              INNER JOIN
-              [10, 100, 1000] AS e
-              ON 1 = 1
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c INNER JOIN [10, 100, 1000] AS e ON 1 = 1);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Inner, (Num(1.0) IsEqual Num(1.0))]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": "(Num(1.0) IsEqual Num(1.0))",
+                "join_type": "inner",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 
     @test eval_scan_join_true {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              INNER JOIN
-              [10, 100, 1000] AS e
-              ON true
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c INNER JOIN [10, 100, 1000] AS e ON true);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Inner, true]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": "true",
+                "join_type": "inner",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 
     @test eval_scan_cross_join {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              CROSS JOIN
-              [10, 100, 1000] AS e
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c CROSS JOIN [10, 100, 1000] AS e);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Cross, None]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": null,
+                "join_type": "cross",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 
     @test eval_scan_join_falsy_condition {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              INNER JOIN
-              [10, 100, 1000] AS e
-              ON 1 = 0
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c INNER JOIN [10, 100, 1000] AS e ON 1 = 0);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Inner, (Num(1.0) IsEqual Num(0.0))]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": "(Num(1.0) IsEqual Num(0.0))",
+                "join_type": "inner",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 
     @test eval_scan_join_false {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              INNER JOIN
-              [10, 100, 1000] AS e
-              ON false
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c INNER JOIN [10, 100, 1000] AS e ON false);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Inner, false]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": "false",
+                "join_type": "inner",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 
     @test eval_scan_join_condition {
-        EXPLAIN SELECT c * e as m FROM
-            (
-              [1, 2, 3] AS c
-              INNER JOIN
-              [10, 100, 1000] AS e
-              ON c * e > 100
-            );
+        EXPLAIN SELECT c * e as m FROM ([1, 2, 3] AS c INNER JOIN [10, 100, 1000] AS e ON c * e > 100);
 
         @expect {
-            - project [(c Multiply e) as m]
-              - join [type=Inner, ((c Multiply e) Greater Num(100.0))]
-                - eval_scan [Array(Num(1.0), Num(2.0), Num(3.0))]
-                - eval_scan [Array(Num(10.0), Num(100.0), Num(1000.0))]
+            {
+              "fields": [
+                "(c Multiply e) as m"
+              ],
+              "source": {
+                "constraint": "((c Multiply e) Greater Num(100.0))",
+                "join_type": "inner",
+                "left": {
+                  "alias": "c",
+                  "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                  "type": "eval_scan"
+                },
+                "right": {
+                  "alias": "e",
+                  "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
+                  "type": "eval_scan"
+                },
+                "type": "join"
+              },
+              "type": "projection"
+            }
         }
     }
 }

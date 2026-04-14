@@ -109,205 +109,138 @@ pub enum Node<'v> {
     Nothing,
 }
 
+impl<'v> Plan<'v> {
+    fn to_plan_json(&self) -> serde_json::Value {
+        match self {
+            Plan::Select(node) => node.to_plan_json(),
+        }
+    }
+}
+
 impl<'v> Display for Plan<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Plan::Select(node) => write!(f, "{node}"),
+        match serde_json::to_string_pretty(&self.to_plan_json()) {
+            Ok(json) => write!(f, "{json}"),
+            Err(e) => write!(f, "{{\"error\": \"{e}\"}}"),
         }
     }
 }
 
 impl<'v> Node<'v> {
-    const TAB: &'static str = "  ";
-    const NEWLINE: &'static str = "\n";
-
-    fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
-        let indent_str = Self::TAB.repeat(indent);
+    fn to_plan_json(&self) -> serde_json::Value {
+        use serde_json::json;
         match self {
-            Node::Nothing => write!(f, "{}- nothing{}", indent_str, Self::NEWLINE),
-            Node::Order { source, key } => {
-                let key_description = key
-                    .iter()
-                    .map(|(expr, ordering)| format!("({expr}, {ordering:?})"))
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- order [{}]{}",
-                    indent_str,
-                    key_description,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Projection { source, fields } => {
-                let fields_description = fields
-                    .iter()
-                    .map(|field| match field {
-                        SqlProjection::All { collection } => {
-                            if let Some(c) = collection.as_ref() {
-                                return format!("* in {}", c.name);
-                            }
-                            "*".to_string()
-                        }
-                        SqlProjection::Expr { expr, alias } => {
-                            if let Some(alias) = alias {
-                                return format!("{} as {}", expr, alias.name);
-                            }
-                            format!("{expr} as {expr}")
-                        }
-                    })
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- project [{}]{}",
-                    indent_str,
-                    fields_description,
-                    Self::NEWLINE
-                )?;
+            Node::Nothing => json!({ "type": "nothing" }),
 
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Filter {
-                source,
-                predicate,
-                subqueries,
-            } => {
-                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
+            Node::Scan { source, .. } => json!({
+                "type": "scan",
+                "collection": source.name.name,
+                "alias": source.alias.as_ref().map(|a| a.name.clone()).unwrap_or_else(|| source.name.name.clone()),
+            }),
+
+            Node::EvalScan { source, .. } => json!({
+                "type": "eval_scan",
+                "expr": source.expr.to_string(),
+                "alias": source.alias.name,
+            }),
+
+            Node::Filter { source, predicate, subqueries } => {
+                let mut obj = json!({
+                    "type": "filter",
+                    "predicate": predicate.to_string(),
+                    "source": source.to_plan_json(),
+                });
                 if !subqueries.is_empty() {
-                    write!(f, "{}  > subqueries{}", indent_str, Self::NEWLINE)?;
-                    subqueries
-                        .iter()
-                        .try_for_each(|subquery| subquery._fmt_recursive(f, indent + 2))?;
+                    obj["subqueries"] = subqueries.iter().map(|s| s.to_plan_json()).collect();
                 }
-                source._fmt_recursive(f, indent + 1)
+                obj
             }
-            Node::Subquery { source, alias } => {
-                write!(
-                    f,
-                    "{}- subquery [{}]{}",
-                    indent_str,
-                    alias.name.clone(),
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Scan { source, .. } => {
-                write!(
-                    f,
-                    "{}- scan [{} as {}]{}",
-                    indent_str,
-                    source.name,
-                    source.alias.as_ref().unwrap_or(&source.name),
-                    Self::NEWLINE
-                )
-            }
-            Node::Compound {
-                source,
-                operator,
-                right,
-            } => {
-                write!(
-                    f,
-                    "{}- compound [type={:?}]{}",
-                    indent_str,
-                    operator,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)?;
-                right._fmt_recursive(f, indent + 1)
-            }
-            Node::Limit { source, limit } => {
-                write!(
-                    f,
-                    "{}- limit [count={}]{}",
-                    indent_str,
-                    limit,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Offset { source, offset } => {
-                write!(
-                    f,
-                    "{}- offset [count={}]{}",
-                    indent_str,
-                    offset,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Join {
-                left,
-                join_type,
-                right,
-                constraint,
-            } => {
-                write!(
-                    f,
-                    "{}- join [type={:?}, {}]{}",
-                    indent_str,
-                    join_type,
-                    constraint
-                        .as_ref()
-                        .map(|x| x.to_string())
-                        .unwrap_or("None".to_string()),
-                    Self::NEWLINE
-                )?;
-                left._fmt_recursive(f, indent + 1)?;
-                right._fmt_recursive(f, indent + 1)
-            }
-            Node::EvalScan { source, .. } => {
-                write!(
-                    f,
-                    "{}- eval_scan [{}]{}",
-                    indent_str,
-                    source.expr,
-                    Self::NEWLINE
-                )
-            }
-            Node::Aggregate {
-                source,
-                group_by,
-                aggregates,
-            } => {
-                let group_by_description = group_by
-                    .iter()
-                    .map(|expr| expr.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                let aggregates_description = aggregates
-                    .iter()
-                    .map(|aggregate| {
-                        let args = aggregate
-                            .args
-                            .iter()
-                            .map(|arg| arg.to_string())
-                            .collect::<Vec<String>>()
-                            .join(", ");
-                        format!("{}({})", aggregate.name, args)
-                    })
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- aggregate [group_by=[{}], aggregates=[{}]]{}",
-                    indent_str,
-                    group_by_description,
-                    aggregates_description,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            _ => "<NotImplementedYet>".fmt(f),
-        }
-    }
-}
 
-impl<'v> Display for Node<'v> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self._fmt_recursive(f, 0)
+            Node::Projection { source, fields } => {
+                let field_strs: Vec<String> = fields.iter().map(|f| match f {
+                    SqlProjection::All { collection: None } => "*".to_string(),
+                    SqlProjection::All { collection: Some(c) } => format!("{}.*", c.name),
+                    SqlProjection::Expr { expr, alias: None } => expr.to_string(),
+                    SqlProjection::Expr { expr, alias: Some(a) } => format!("{} as {}", expr, a.name),
+                }).collect();
+                json!({
+                    "type": "projection",
+                    "fields": field_strs,
+                    "source": source.to_plan_json(),
+                })
+            }
+
+            Node::Aggregate { source, group_by, aggregates } => json!({
+                "type": "aggregate",
+                "group_by": group_by.iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+                "aggregates": aggregates.iter().map(|a| a.to_string()).collect::<Vec<_>>(),
+                "source": source.to_plan_json(),
+            }),
+
+            Node::Order { source, key } => {
+                let key_json: Vec<serde_json::Value> = key.iter().map(|(expr, ord)| {
+                    let ord_str = match ord {
+                        SqlOrdering::Asc => "asc",
+                        SqlOrdering::Desc => "desc",
+                    };
+                    json!([expr.to_string(), ord_str])
+                }).collect();
+                json!({
+                    "type": "order",
+                    "key": key_json,
+                    "source": source.to_plan_json(),
+                })
+            }
+
+            Node::Limit { source, limit } => json!({
+                "type": "limit",
+                "count": limit,
+                "source": source.to_plan_json(),
+            }),
+
+            Node::Offset { source, offset } => json!({
+                "type": "offset",
+                "count": offset,
+                "source": source.to_plan_json(),
+            }),
+
+            Node::Join { left, join_type, right, constraint } => {
+                let join_type_str = match join_type {
+                    SqlJoinType::Inner => "inner",
+                    SqlJoinType::Cross => "cross",
+                    SqlJoinType::Left => "left",
+                    SqlJoinType::Right => "right",
+                };
+                json!({
+                    "type": "join",
+                    "join_type": join_type_str,
+                    "constraint": constraint.as_ref().map(|c| c.to_string()),
+                    "left": left.to_plan_json(),
+                    "right": right.to_plan_json(),
+                })
+            }
+
+            Node::Compound { source, operator, right } => {
+                let op_str = match operator {
+                    SqlCompoundOperator::Union => "union",
+                    SqlCompoundOperator::UnionAll => "union_all",
+                    SqlCompoundOperator::Intersect => "intersect",
+                    SqlCompoundOperator::Except => "except",
+                };
+                json!({
+                    "type": "compound",
+                    "operator": op_str,
+                    "source": source.to_plan_json(),
+                    "right": right.to_plan_json(),
+                })
+            }
+
+            Node::Subquery { source, alias } => json!({
+                "type": "subquery",
+                "alias": alias.name,
+                "source": source.to_plan_json(),
+            }),
+        }
     }
 }
 

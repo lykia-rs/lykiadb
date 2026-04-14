@@ -4,8 +4,20 @@
         EXPLAIN SELECT * FROM books b order by title;
 
         @expect {
-            - order [(title, Asc)]
-              - scan [books as b]
+            {
+              "key": [
+                [
+                  "title",
+                  "asc"
+                ]
+              ],
+              "source": {
+                "alias": "b",
+                "collection": "books",
+                "type": "scan"
+              },
+              "type": "order"
+            }
         }
     }
 
@@ -13,8 +25,24 @@
         EXPLAIN SELECT * FROM books b order by title, id desc;
 
         @expect {
-            - order [(title, Asc), (id, Desc)]
-              - scan [books as b]
+            {
+              "key": [
+                [
+                  "title",
+                  "asc"
+                ],
+                [
+                  "id",
+                  "desc"
+                ]
+              ],
+              "source": {
+                "alias": "b",
+                "collection": "books",
+                "type": "scan"
+              },
+              "type": "order"
+            }
         }
     }
 
@@ -22,10 +50,33 @@
         EXPLAIN SELECT * FROM books UNION SELECT * FROM books order by title, id desc;
 
         @expect {
-            - order [(title, Asc), (id, Desc)]
-              - compound [type=Union]
-                - scan [books as books]
-                - scan [books as books]
+            {
+              "key": [
+                [
+                  "title",
+                  "asc"
+                ],
+                [
+                  "id",
+                  "desc"
+                ]
+              ],
+              "source": {
+                "operator": "union",
+                "right": {
+                  "alias": "books",
+                  "collection": "books",
+                  "type": "scan"
+                },
+                "source": {
+                  "alias": "books",
+                  "collection": "books",
+                  "type": "scan"
+                },
+                "type": "compound"
+              },
+              "type": "order"
+            }
         }
     }
 }
