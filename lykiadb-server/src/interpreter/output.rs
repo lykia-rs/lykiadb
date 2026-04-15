@@ -53,7 +53,7 @@ mod tests {
     fn expect_match() {
         let mut out = Output::new();
         out.push(RV::Str(Arc::new("hello".into())));
-        assert!(out.expect(vec!["hello".into()]).is_ok());
+        assert!(out.expect(vec!["\"hello\"".into()]).is_ok());
     }
 
     #[test]

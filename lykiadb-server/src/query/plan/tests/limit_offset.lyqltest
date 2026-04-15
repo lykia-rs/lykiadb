@@ -5,13 +5,13 @@
 
         @expect {
             {
+              "@type": "limit",
               "count": 8,
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "limit"
+                "alias": "books"
+              }
             }
         }
     }
@@ -21,17 +21,17 @@
 
         @expect {
             {
+              "@type": "limit",
               "count": 10,
               "source": {
+                "@type": "offset",
                 "count": 20,
                 "source": {
-                  "alias": "books",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "offset"
-              },
-              "type": "limit"
+                  "alias": "books"
+                }
+              }
             }
         }
     }
@@ -41,23 +41,23 @@
 
         @expect {
             {
+              "@type": "limit",
               "count": 100,
               "source": {
-                "constraint": "(books.author_id IsEqual authors.id)",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(books.author_id IsEqual authors.id)",
                 "left": {
-                  "alias": "books",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
+                  "alias": "books"
                 },
                 "right": {
-                  "alias": "authors",
+                  "@type": "scan",
                   "collection": "authors",
-                  "type": "scan"
-                },
-                "type": "join"
-              },
-              "type": "limit"
+                  "alias": "authors"
+                }
+              }
             }
         }
     }
@@ -67,42 +67,42 @@
 
         @expect {
             {
+              "@type": "limit",
               "count": 100,
               "source": {
+                "@type": "compound",
                 "operator": "union",
-                "right": {
-                  "constraint": "(books.author_id IsEqual authors.id)",
-                  "join_type": "inner",
-                  "left": {
-                    "alias": "books",
-                    "collection": "books",
-                    "type": "scan"
-                  },
-                  "right": {
-                    "alias": "authors",
-                    "collection": "authors",
-                    "type": "scan"
-                  },
-                  "type": "join"
-                },
                 "source": {
-                  "constraint": "(books.author_id IsEqual authors.id)",
+                  "@type": "join",
                   "join_type": "inner",
+                  "constraint": "(books.author_id IsEqual authors.id)",
                   "left": {
-                    "alias": "books",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
+                    "alias": "books"
                   },
                   "right": {
-                    "alias": "authors",
+                    "@type": "scan",
                     "collection": "authors",
-                    "type": "scan"
-                  },
-                  "type": "join"
+                    "alias": "authors"
+                  }
                 },
-                "type": "compound"
-              },
-              "type": "limit"
+                "right": {
+                  "@type": "join",
+                  "join_type": "inner",
+                  "constraint": "(books.author_id IsEqual authors.id)",
+                  "left": {
+                    "@type": "scan",
+                    "collection": "books",
+                    "alias": "books"
+                  },
+                  "right": {
+                    "@type": "scan",
+                    "collection": "authors",
+                    "alias": "authors"
+                  }
+                }
+              }
             }
         }
     }

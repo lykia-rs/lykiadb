@@ -5,22 +5,22 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "id"
               ],
               "source": {
-                "aggregates": [],
+                "@type": "aggregate",
                 "group_by": [
                   "id"
                 ],
+                "aggregates": [],
                 "source": {
-                  "alias": "b",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "aggregate"
-              },
-              "type": "projection"
+                  "alias": "b"
+                }
+              }
             }
         }
     }
@@ -30,23 +30,23 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "release_year as yr"
               ],
               "source": {
-                "aggregates": [],
+                "@type": "aggregate",
                 "group_by": [
                   "release_year",
                   "publisher_id"
                 ],
+                "aggregates": [],
                 "source": {
-                  "alias": "b",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "aggregate"
-              },
-              "type": "projection"
+                  "alias": "b"
+                }
+              }
             }
         }
     }
@@ -56,6 +56,7 @@
 
         @expect {
             {
+              "@type": "order",
               "key": [
                 [
                   "yr",
@@ -63,6 +64,7 @@
                 ]
               ],
               "source": {
+                "@type": "projection",
                 "fields": [
                   "publisher_id",
                   "release_year as yr",
@@ -70,23 +72,21 @@
                   "avg(rating) as avg_rating_dup"
                 ],
                 "source": {
-                  "aggregates": [
-                    "avg(rating)"
-                  ],
+                  "@type": "aggregate",
                   "group_by": [
                     "release_year",
                     "publisher_id"
                   ],
+                  "aggregates": [
+                    "avg(rating)"
+                  ],
                   "source": {
-                    "alias": "b",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "aggregate"
-                },
-                "type": "projection"
-              },
-              "type": "order"
+                    "alias": "b"
+                  }
+                }
+              }
             }
         }
     }
@@ -96,6 +96,7 @@
 
         @expect {
             {
+              "@type": "order",
               "key": [
                 [
                   "yr",
@@ -103,6 +104,7 @@
                 ]
               ],
               "source": {
+                "@type": "projection",
                 "fields": [
                   "publisher_id",
                   "release_year as yr",
@@ -110,24 +112,22 @@
                   "avg((rating Add Num(1.0))) as avg_rating_plus"
                 ],
                 "source": {
-                  "aggregates": [
-                    "avg((rating Add Num(1.0)))",
-                    "avg(rating)"
-                  ],
+                  "@type": "aggregate",
                   "group_by": [
                     "release_year",
                     "publisher_id"
                   ],
+                  "aggregates": [
+                    "avg((rating Add Num(1.0)))",
+                    "avg(rating)"
+                  ],
                   "source": {
-                    "alias": "b",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "aggregate"
-                },
-                "type": "projection"
-              },
-              "type": "order"
+                    "alias": "b"
+                  }
+                }
+              }
             }
         }
     }
@@ -137,28 +137,28 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "publisher_id"
               ],
               "source": {
+                "@type": "filter",
                 "predicate": "(avg(rating) Greater Num(3.0))",
                 "source": {
-                  "aggregates": [
-                    "avg(rating)"
-                  ],
+                  "@type": "aggregate",
                   "group_by": [
                     "publisher_id"
                   ],
+                  "aggregates": [
+                    "avg(rating)"
+                  ],
                   "source": {
-                    "alias": "books",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "aggregate"
-                },
-                "type": "filter"
-              },
-              "type": "projection"
+                    "alias": "books"
+                  }
+                }
+              }
             }
         }
     }
@@ -168,26 +168,26 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "avg(rating)"
               ],
               "source": {
+                "@type": "filter",
                 "predicate": "(avg(rating) Greater Num(3.0))",
                 "source": {
+                  "@type": "aggregate",
+                  "group_by": [],
                   "aggregates": [
                     "avg(rating)"
                   ],
-                  "group_by": [],
                   "source": {
-                    "alias": "books",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "aggregate"
-                },
-                "type": "filter"
-              },
-              "type": "projection"
+                    "alias": "books"
+                  }
+                }
+              }
             }
         }
     }
@@ -197,26 +197,26 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "avg(rating)"
               ],
               "source": {
+                "@type": "filter",
                 "predicate": "(anything Greater Num(10.0))",
                 "source": {
+                  "@type": "aggregate",
+                  "group_by": [],
                   "aggregates": [
                     "avg(rating)"
                   ],
-                  "group_by": [],
                   "source": {
-                    "alias": "books",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "aggregate"
-                },
-                "type": "filter"
-              },
-              "type": "projection"
+                    "alias": "books"
+                  }
+                }
+              }
             }
         }
     }
@@ -226,25 +226,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "avg(rating)",
                 "capitalize((Str(\"id=\") Add id)) as id_label"
               ],
               "source": {
-                "aggregates": [
-                  "avg(rating)"
-                ],
+                "@type": "aggregate",
                 "group_by": [
                   "id"
                 ],
+                "aggregates": [
+                  "avg(rating)"
+                ],
                 "source": {
-                  "alias": "books",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "aggregate"
-              },
-              "type": "projection"
+                  "alias": "books"
+                }
+              }
             }
         }
     }

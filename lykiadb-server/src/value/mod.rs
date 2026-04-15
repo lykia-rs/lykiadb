@@ -3,6 +3,7 @@ use callable::RVCallable;
 use lykiadb_lang::types::Datatype;
 use object::RVObject;
 use rustc_hash::FxHashMap;
+use indexmap::IndexMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -267,7 +268,7 @@ impl<'de, 'v> Deserialize<'de> for RV<'v> {
                 Ok(RV::Array(RVArray::from_vec(vec)))
             }
             serde_json::Value::Object(obj) => {
-                let mut map = FxHashMap::default();
+                let mut map = IndexMap::default();
                 for (key, value) in obj {
                     map.insert(key, serde_json::from_value(value).unwrap());
                 }
@@ -502,7 +503,7 @@ mod tests {
         );
 
         // Test object key contains
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(1.0));
         let object = RV::Object(RVObject::from_map(map));
 
@@ -532,18 +533,22 @@ mod tests {
 
     #[test]
     fn test_rv_display() {
-        assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "hello");
-        assert_eq!(RV::Double(42.0).to_string(), "42");
+        // Strings are JSON-formatted with quotes
+        assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "\"hello\"");
+        // Numbers are JSON-formatted
+        assert_eq!(RV::Double(42.0).to_string(), "42.0");
+        // Booleans are JSON-formatted
         assert_eq!(RV::Bool(true).to_string(), "true");
         assert_eq!(RV::Bool(false).to_string(), "false");
-        assert_eq!(RV::Undefined.to_string(), "undefined");
+        // Undefined/Null are JSON-formatted as null
+        assert_eq!(RV::Undefined.to_string(), "null");
 
         let arr = vec![RV::Double(1.0), RV::Str(Arc::new("test".to_string()))];
-        assert_eq!(RV::Array(RVArray::from_vec(arr)).to_string(), "[1, test]");
+        assert_eq!(RV::Array(RVArray::from_vec(arr)).to_string(), "[\n  1.0,\n  \"test\"\n]");
 
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(42.0));
-        assert_eq!(RV::Object(RVObject::from_map(map)).to_string(), "{key: 42}");
+        assert_eq!(RV::Object(RVObject::from_map(map)).to_string(), "{\n  \"key\": 42.0\n}");
     }
 
     #[test]
@@ -612,11 +617,11 @@ mod tests {
         }
 
         // Objects: pointer-based hashing (identity)
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(1.0));
         let obj1 = RV::Object(RVObject::from_map(map));
 
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(1.0));
         let obj2 = RV::Object(RVObject::from_map(map));
 

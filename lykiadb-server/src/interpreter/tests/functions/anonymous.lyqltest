@@ -9,8 +9,8 @@
         $a();
 
         @expect output {
-            hello
-            hello
+            "hello"
+            "hello"
         }
     }
 
@@ -22,8 +22,8 @@
         $a();
 
         @expect output {
-            hello
-            hello
+            "hello"
+            "hello"
         }
     }
 
@@ -35,7 +35,7 @@
         $pr();
 
         @expect output {
-            hello
+            "hello"
         }
     }
 
@@ -45,7 +45,7 @@
         })();
 
         @expect output {
-            hello
+            "hello"
         }
     }
 }

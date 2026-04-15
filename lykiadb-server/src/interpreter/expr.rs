@@ -14,7 +14,7 @@ use std::sync::Arc;
 use lykiadb_lang::ast::expr::{BinaryOp, Expr, TernaryOp, UnaryOp};
 use lykiadb_lang::ast::{Identifier, Literal, Spanned};
 use lykiadb_lang::types::Datatype;
-use rustc_hash::FxHashMap;
+use indexmap::IndexMap;
 
 #[derive(Clone)]
 pub struct ExprEngine;
@@ -117,7 +117,7 @@ impl<'sess> ExprEngine {
             Literal::Bool(b) => RV::Bool(*b),
             Literal::Undefined => RV::Undefined,
             Literal::Object(map) => {
-                let mut new_map = FxHashMap::default();
+                let mut new_map = IndexMap::default();
                 for (k, v) in map.iter() {
                     new_map.insert(k.clone(), self.eval(v, state)?);
                 }

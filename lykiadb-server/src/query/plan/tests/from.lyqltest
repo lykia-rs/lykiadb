@@ -5,9 +5,9 @@
 
         @expect {
             {
-              "alias": "books",
+              "@type": "scan",
               "collection": "books",
-              "type": "scan"
+              "alias": "books"
             }
         }
     }
@@ -17,9 +17,9 @@
 
         @expect {
             {
-              "alias": "fib",
+              "@type": "eval_scan",
               "expr": "Array(Num(1.0), Num(1.0), Num(2.0), Num(3.0), Num(5.0), Num(8.0), Num(13.0))",
-              "type": "eval_scan"
+              "alias": "fib"
             }
         }
     }
@@ -29,19 +29,19 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "u.id as id"
               ],
               "source": {
+                "@type": "subquery",
                 "alias": "u",
                 "source": {
-                  "alias": "books",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "subquery"
-              },
-              "type": "projection"
+                  "alias": "books"
+                }
+              }
             }
         }
     }
@@ -51,19 +51,19 @@
 
         @expect {
             {
-              "constraint": null,
+              "@type": "join",
               "join_type": "cross",
+              "constraint": null,
               "left": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
+                "alias": "books"
               },
               "right": {
-                "alias": "num",
+                "@type": "eval_scan",
                 "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                "type": "eval_scan"
-              },
-              "type": "join"
+                "alias": "num"
+              }
             }
         }
     }

@@ -5,23 +5,23 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(c.name IsEqual Str(\"Science\"))",
               "source": {
-                "constraint": "(b.category_id IsEqual c.id)",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(b.category_id IsEqual c.id)",
                 "left": {
-                  "alias": "b",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
+                  "alias": "b"
                 },
                 "right": {
-                  "alias": "c",
+                  "@type": "scan",
                   "collection": "categories",
-                  "type": "scan"
-                },
-                "type": "join"
-              },
-              "type": "filter"
+                  "alias": "c"
+                }
+              }
             }
         }
     }
@@ -31,33 +31,33 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(p.name IsEqual Str(\"Springer\"))",
               "source": {
-                "constraint": "(b.publisher_id IsEqual p.id)",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(b.publisher_id IsEqual p.id)",
                 "left": {
-                  "constraint": "(b.category_id IsEqual c.id)",
+                  "@type": "join",
                   "join_type": "inner",
+                  "constraint": "(b.category_id IsEqual c.id)",
                   "left": {
-                    "alias": "b",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
+                    "alias": "b"
                   },
                   "right": {
-                    "alias": "c",
+                    "@type": "scan",
                     "collection": "categories",
-                    "type": "scan"
-                  },
-                  "type": "join"
+                    "alias": "c"
+                  }
                 },
                 "right": {
-                  "alias": "p",
+                  "@type": "scan",
                   "collection": "publishers",
-                  "type": "scan"
-                },
-                "type": "join"
-              },
-              "type": "filter"
+                  "alias": "p"
+                }
+              }
             }
         }
     }
@@ -67,33 +67,33 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(p.name IsEqual Str(\"Springer\"))",
               "source": {
-                "constraint": "(b.publisher_id IsEqual p.id)",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(b.publisher_id IsEqual p.id)",
                 "left": {
-                  "alias": "b",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
+                  "alias": "b"
                 },
                 "right": {
-                  "constraint": "(b.category_id IsEqual c.id)",
+                  "@type": "join",
                   "join_type": "inner",
+                  "constraint": "(b.category_id IsEqual c.id)",
                   "left": {
-                    "alias": "c",
+                    "@type": "scan",
                     "collection": "categories",
-                    "type": "scan"
+                    "alias": "c"
                   },
                   "right": {
-                    "alias": "p",
+                    "@type": "scan",
                     "collection": "publishers",
-                    "type": "scan"
-                  },
-                  "type": "join"
-                },
-                "type": "join"
-              },
-              "type": "filter"
+                    "alias": "p"
+                  }
+                }
+              }
             }
         }
     }
@@ -103,25 +103,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": "(Num(1.0) IsEqual Num(1.0))",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(Num(1.0) IsEqual Num(1.0))",
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }
@@ -131,25 +131,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": "true",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "true",
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }
@@ -159,25 +159,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": null,
+                "@type": "join",
                 "join_type": "cross",
+                "constraint": null,
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }
@@ -187,25 +187,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": "(Num(1.0) IsEqual Num(0.0))",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "(Num(1.0) IsEqual Num(0.0))",
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }
@@ -215,25 +215,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": "false",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "false",
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }
@@ -243,25 +243,25 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(c Multiply e) as m"
               ],
               "source": {
-                "constraint": "((c Multiply e) Greater Num(100.0))",
+                "@type": "join",
                 "join_type": "inner",
+                "constraint": "((c Multiply e) Greater Num(100.0))",
                 "left": {
-                  "alias": "c",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                  "type": "eval_scan"
+                  "alias": "c"
                 },
                 "right": {
-                  "alias": "e",
+                  "@type": "eval_scan",
                   "expr": "Array(Num(10.0), Num(100.0), Num(1000.0))",
-                  "type": "eval_scan"
-                },
-                "type": "join"
-              },
-              "type": "projection"
+                  "alias": "e"
+                }
+              }
             }
         }
     }

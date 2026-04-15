@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use indexmap::IndexMap;
 use lykiadb_lang::ast::{
     Identifier,
     expr::Expr,
@@ -129,7 +130,7 @@ impl<'v> Display for Plan<'v> {
 
 macro_rules! rv_object {
     ($($key:expr => $val:expr),* $(,)?) => {{
-        let mut map: rustc_hash::FxHashMap<String, RV<'v>> = rustc_hash::FxHashMap::default();
+        let mut map: indexmap::IndexMap<String, RV<'v>> = indexmap::IndexMap::default();
         $( map.insert(String::from($key), $val); )*
         RV::Object(RVObject::from_map(map))
     }};
@@ -144,33 +145,35 @@ macro_rules! rv_str {
 impl<'v> Node<'v> {
     fn to_object(&self) -> RV<'v> {
         match self {
-            Node::Nothing => rv_object! { "type" => rv_str!("nothing") },
+            Node::Nothing => rv_object! { "@type" => rv_str!("nothing") },
 
             Node::Scan { source, .. } => rv_object!{
-                "type" => rv_str!("scan"),
+                "@type" => rv_str!("scan"),
                 "collection" => rv_str!(source.name.name),
                 "alias" => rv_str!(source.alias.as_ref().map(|a| a.name.clone()).unwrap_or_else(|| source.name.name.clone())),
             },
 
             Node::EvalScan { source, .. } => rv_object!{
-                "type" => rv_str!("eval_scan"),
+                "@type" => rv_str!("eval_scan"),
                 "expr" => rv_str!(source.expr.to_string()),
                 "alias" => rv_str!(source.alias.name),
             },
 
             Node::Filter { source, predicate, subqueries } => {
-                let mut obj = rv_object!{
-                    "type" => rv_str!("filter"),
-                    "predicate" => rv_str!(predicate.to_string()),
-                    "source" => source.to_object(),
-                };
-                /*if !subqueries.is_empty() {
-                    obj["subqueries"] = rv_object!{ 
-                        "type" => rv_str!("subqueries"), 
-                        "queries" => subqueries.iter().map(|s| s.to_object()).collect() 
-                    };
-                }*/
-                obj
+                let mut obj = IndexMap::new();
+
+                obj.insert("@type".to_string(), rv_str!("filter"));
+                obj.insert("predicate".to_string(), rv_str!(predicate.to_string()));
+                obj.insert("source".to_string(), source.to_object());
+
+                if !subqueries.is_empty() {
+                    obj.insert("subqueries".to_string(), rv_object!{ 
+                        "@type" => rv_str!("subqueries"), 
+                        "queries" => RV::Array(RVArray::from_vec(subqueries.iter().map(|s| s.to_object()).collect()))
+                    });
+                }
+
+                RV::Object(RVObject::from_map(obj))
             }
 
             Node::Projection { source, fields } => {

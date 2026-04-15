@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap;
+use indexmap::IndexMap;
 
 use crate::{
     libs::stdlib::{
@@ -21,6 +21,6 @@ lykia_lib!(
     vec![json(), time(), math(), dtype(), bench(), out(), arr()]
 );
 
-pub fn stdlib<'rv>() -> FxHashMap<String, RV<'rv>> {
+pub fn stdlib<'rv>() -> IndexMap<String, RV<'rv>> {
     std_core().as_raw()
 }

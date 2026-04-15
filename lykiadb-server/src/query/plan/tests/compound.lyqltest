@@ -5,18 +5,18 @@
 
         @expect {
             {
+              "@type": "compound",
               "operator": "union",
-              "right": {
-                "alias": "books",
-                "collection": "books",
-                "type": "scan"
-              },
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
+                "alias": "books"
               },
-              "type": "compound"
+              "right": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
             }
         }
     }
@@ -26,18 +26,18 @@
 
         @expect {
             {
+              "@type": "compound",
               "operator": "intersect",
-              "right": {
-                "alias": "books",
-                "collection": "books",
-                "type": "scan"
-              },
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
+                "alias": "books"
               },
-              "type": "compound"
+              "right": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
             }
         }
     }
@@ -47,18 +47,18 @@
 
         @expect {
             {
+              "@type": "compound",
               "operator": "except",
-              "right": {
-                "alias": "books",
-                "collection": "books",
-                "type": "scan"
-              },
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
+                "alias": "books"
               },
-              "type": "compound"
+              "right": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
             }
         }
     }
@@ -68,40 +68,40 @@
 
         @expect {
             {
+              "@type": "compound",
               "operator": "union",
-              "right": {
-                "operator": "intersect",
-                "right": {
-                  "operator": "except",
-                  "right": {
-                    "alias": "books",
-                    "collection": "books",
-                    "type": "scan"
-                  },
-                  "source": {
-                    "alias": "books",
-                    "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "compound"
-                },
-                "source": {
-                  "alias": "books",
-                  "collection": "books",
-                  "type": "scan"
-                },
-                "type": "compound"
-              },
               "source": {
+                "@type": "filter",
                 "predicate": "(id Greater Num(5.0))",
                 "source": {
-                  "alias": "books",
+                  "@type": "scan",
                   "collection": "books",
-                  "type": "scan"
-                },
-                "type": "filter"
+                  "alias": "books"
+                }
               },
-              "type": "compound"
+              "right": {
+                "@type": "compound",
+                "operator": "intersect",
+                "source": {
+                  "@type": "scan",
+                  "collection": "books",
+                  "alias": "books"
+                },
+                "right": {
+                  "@type": "compound",
+                  "operator": "except",
+                  "source": {
+                    "@type": "scan",
+                    "collection": "books",
+                    "alias": "books"
+                  },
+                  "right": {
+                    "@type": "scan",
+                    "collection": "books",
+                    "alias": "books"
+                  }
+                }
+              }
             }
         }
     }
@@ -111,34 +111,34 @@
 
         @expect {
             {
+              "@type": "compound",
               "operator": "union",
-              "right": {
-                "fields": [
-                  "title"
-                ],
-                "source": {
-                  "alias": "books",
-                  "collection": "books",
-                  "type": "scan"
-                },
-                "type": "projection"
-              },
               "source": {
+                "@type": "projection",
                 "fields": [
                   "id"
                 ],
                 "source": {
+                  "@type": "filter",
                   "predicate": "(id Greater Num(5.0))",
                   "source": {
-                    "alias": "books",
+                    "@type": "scan",
                     "collection": "books",
-                    "type": "scan"
-                  },
-                  "type": "filter"
-                },
-                "type": "projection"
+                    "alias": "books"
+                  }
+                }
               },
-              "type": "compound"
+              "right": {
+                "@type": "projection",
+                "fields": [
+                  "title"
+                ],
+                "source": {
+                  "@type": "scan",
+                  "collection": "books",
+                  "alias": "books"
+                }
+              }
             }
         }
     }

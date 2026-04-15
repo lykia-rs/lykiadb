@@ -5,9 +5,9 @@
 
         @expect {
             {
-              "alias": "books",
+              "@type": "scan",
               "collection": "books",
-              "type": "scan"
+              "alias": "books"
             }
         }
     }
@@ -17,15 +17,15 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "books.*"
               ],
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "projection"
+                "alias": "books"
+              }
             }
         }
     }
@@ -35,16 +35,16 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "id",
                 "title"
               ],
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "projection"
+                "alias": "books"
+              }
             }
         }
     }
@@ -54,15 +54,15 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "(Num(5.0) Add Num(5.0)) as ten"
               ],
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "projection"
+                "alias": "books"
+              }
             }
         }
     }
@@ -72,15 +72,15 @@
 
         @expect {
             {
+              "@type": "projection",
               "fields": [
                 "capitalize(Str(\"str\")) as json_str_title"
               ],
               "source": {
-                "alias": "books",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "projection"
+                "alias": "books"
+              }
             }
         }
     }

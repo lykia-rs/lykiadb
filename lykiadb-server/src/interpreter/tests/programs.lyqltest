@@ -16,17 +16,17 @@
         $resolved_first();
 
         @expect output {
-            global
-            global
+            "global"
+            "global"
         }
 
         $resolved_first();
 
         @expect output {
-            global
-            global
-            global
-            global
+            "global"
+            "global"
+            "global"
+            "global"
         }
     }
 }

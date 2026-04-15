@@ -5,13 +5,13 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(title Like Str(\"%hello%\"))",
               "source": {
-                "alias": "b",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "filter"
+                "alias": "b"
+              }
             }
         }
     }
@@ -21,13 +21,13 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(id In Array(Num(1.0), Num(2.0), Num(3.0)))",
               "source": {
-                "alias": "b",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "filter"
+                "alias": "b"
+              }
             }
         }
     }
@@ -37,26 +37,29 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(id In (<SqlSelect>))",
               "source": {
-                "alias": "b",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
+                "alias": "b"
               },
-              "subqueries": [
-                {
-                  "fields": [
-                    "n"
-                  ],
-                  "source": {
-                    "alias": "ids",
-                    "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
-                    "type": "eval_scan"
-                  },
-                  "type": "projection"
-                }
-              ],
-              "type": "filter"
+              "subqueries": {
+                "@type": "subqueries",
+                "queries": [
+                  {
+                    "@type": "projection",
+                    "fields": [
+                      "n"
+                    ],
+                    "source": {
+                      "@type": "eval_scan",
+                      "expr": "Array(Num(1.0), Num(2.0), Num(3.0))",
+                      "alias": "ids"
+                    }
+                  }
+                ]
+              }
             }
         }
     }
@@ -66,13 +69,13 @@
 
         @expect {
             {
+              "@type": "filter",
               "predicate": "(id Between Num(1.0) And Num(10.0))",
               "source": {
-                "alias": "b",
+                "@type": "scan",
                 "collection": "books",
-                "type": "scan"
-              },
-              "type": "filter"
+                "alias": "b"
+              }
             }
         }
     }
@@ -81,47 +84,50 @@
         EXPLAIN SELECT * FROM books b where author_id in (SELECT id FROM authors where name = 'John') or publisher_id in (SELECT id FROM publishers where name = 'Elsevier');
 
         @expect {
-            {
-              "predicate": "(author_id In (<SqlSelect>)) Or (publisher_id In (<SqlSelect>))",
-              "source": {
-                "alias": "b",
-                "collection": "books",
-                "type": "scan"
-              },
-              "subqueries": [
+          {
+            "@type": "filter",
+            "predicate": "(author_id In (<SqlSelect>)) Or (publisher_id In (<SqlSelect>))",
+            "source": {
+              "@type": "scan",
+              "collection": "books",
+              "alias": "b"
+            },
+            "subqueries": {
+              "@type": "subqueries",
+              "queries": [
                 {
+                  "@type": "projection",
                   "fields": [
                     "id"
                   ],
                   "source": {
+                    "@type": "filter",
                     "predicate": "(name IsEqual Str(\"John\"))",
                     "source": {
-                      "alias": "authors",
+                      "@type": "scan",
                       "collection": "authors",
-                      "type": "scan"
-                    },
-                    "type": "filter"
-                  },
-                  "type": "projection"
+                      "alias": "authors"
+                    }
+                  }
                 },
                 {
+                  "@type": "projection",
                   "fields": [
                     "id"
                   ],
                   "source": {
+                    "@type": "filter",
                     "predicate": "(name IsEqual Str(\"Elsevier\"))",
                     "source": {
-                      "alias": "publishers",
+                      "@type": "scan",
                       "collection": "publishers",
-                      "type": "scan"
-                    },
-                    "type": "filter"
-                  },
-                  "type": "projection"
+                      "alias": "publishers"
+                    }
+                  }
                 }
-              ],
-              "type": "filter"
+              ]
             }
+          }
         }
     }
 }
