@@ -7,7 +7,10 @@ pub struct DocumentRef<'a> {
 }
 impl<'a> DocumentRef<'a> {
     pub(crate) fn new(bytes: Vec<u8>) -> Self {
-        DocumentRef { bytes, phantom: std::marker::PhantomData }
+        DocumentRef {
+            bytes,
+            phantom: std::marker::PhantomData,
+        }
     }
 
     pub(crate) fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

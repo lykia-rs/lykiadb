@@ -60,9 +60,9 @@ mod tests {
     use crate::interpreter::output::Output;
     use crate::interpreter::tests::create_test_interpreter;
     use crate::value::{array::RVArray, object::RVObject};
+    use indexmap::IndexMap;
     use lykiadb_common::extract;
     use lykiadb_common::memory::alloc_shared;
-    use indexmap::IndexMap;
     use std::sync::Arc;
 
     #[test]

@@ -1,5 +1,5 @@
-use lykiadb_common::memory::{Shared, alloc_shared};
 use indexmap::IndexMap;
+use lykiadb_common::memory::{Shared, alloc_shared};
 
 use crate::value::RV;
 

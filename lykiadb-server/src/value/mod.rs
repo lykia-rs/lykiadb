@@ -1,9 +1,9 @@
 use array::RVArray;
 use callable::RVCallable;
+use indexmap::IndexMap;
 use lykiadb_lang::types::Datatype;
 use object::RVObject;
 use rustc_hash::FxHashMap;
-use indexmap::IndexMap;
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -534,7 +534,10 @@ mod tests {
     #[test]
     fn test_rv_display() {
         // Strings are JSON-formatted with quotes
-        assert_eq!(RV::Str(Arc::new("hello".to_string())).to_string(), "\"hello\"");
+        assert_eq!(
+            RV::Str(Arc::new("hello".to_string())).to_string(),
+            "\"hello\""
+        );
         // Numbers are JSON-formatted
         assert_eq!(RV::Double(42.0).to_string(), "42.0");
         // Booleans are JSON-formatted
@@ -544,11 +547,17 @@ mod tests {
         assert_eq!(RV::Undefined.to_string(), "null");
 
         let arr = vec![RV::Double(1.0), RV::Str(Arc::new("test".to_string()))];
-        assert_eq!(RV::Array(RVArray::from_vec(arr)).to_string(), "[\n  1.0,\n  \"test\"\n]");
+        assert_eq!(
+            RV::Array(RVArray::from_vec(arr)).to_string(),
+            "[\n  1.0,\n  \"test\"\n]"
+        );
 
         let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(42.0));
-        assert_eq!(RV::Object(RVObject::from_map(map)).to_string(), "{\n  \"key\": 42.0\n}");
+        assert_eq!(
+            RV::Object(RVObject::from_map(map)).to_string(),
+            "{\n  \"key\": 42.0\n}"
+        );
     }
 
     #[test]

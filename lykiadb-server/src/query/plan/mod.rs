@@ -11,7 +11,7 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::value::{RV, array::RVArray, object::RVObject, callable::AggregatorFactory};
+use crate::value::{RV, array::RVArray, callable::AggregatorFactory, object::RVObject};
 use derivative::Derivative;
 use std::sync::Arc;
 
@@ -147,19 +147,23 @@ impl<'v> Node<'v> {
         match self {
             Node::Nothing => rv_object! { "@type" => rv_str!("nothing") },
 
-            Node::Scan { source, .. } => rv_object!{
+            Node::Scan { source, .. } => rv_object! {
                 "@type" => rv_str!("scan"),
                 "collection" => rv_str!(source.name.name),
                 "alias" => rv_str!(source.alias.as_ref().map(|a| a.name.clone()).unwrap_or_else(|| source.name.name.clone())),
             },
 
-            Node::EvalScan { source, .. } => rv_object!{
+            Node::EvalScan { source, .. } => rv_object! {
                 "@type" => rv_str!("eval_scan"),
                 "expr" => rv_str!(source.expr.to_string()),
                 "alias" => rv_str!(source.alias.name),
             },
 
-            Node::Filter { source, predicate, subqueries } => {
+            Node::Filter {
+                source,
+                predicate,
+                subqueries,
+            } => {
                 let mut obj = IndexMap::new();
 
                 obj.insert("@type".to_string(), rv_str!("filter"));
@@ -177,20 +181,34 @@ impl<'v> Node<'v> {
             }
 
             Node::Projection { source, fields } => {
-                let field_strs = RVArray::from_vec(fields.iter().map(|f| match f {
-                    SqlProjection::All { collection: None } => rv_str!("*".to_string()),
-                    SqlProjection::All { collection: Some(c) } => rv_str!(format!("{}.*", c.name)),
-                    SqlProjection::Expr { expr, alias: None } => rv_str!(expr.to_string()),
-                    SqlProjection::Expr { expr, alias: Some(a) } => rv_str!(format!("{} as {}", expr, a.name)),
-                }).collect());
-                rv_object!{
+                let field_strs = RVArray::from_vec(
+                    fields
+                        .iter()
+                        .map(|f| match f {
+                            SqlProjection::All { collection: None } => rv_str!("*".to_string()),
+                            SqlProjection::All {
+                                collection: Some(c),
+                            } => rv_str!(format!("{}.*", c.name)),
+                            SqlProjection::Expr { expr, alias: None } => rv_str!(expr.to_string()),
+                            SqlProjection::Expr {
+                                expr,
+                                alias: Some(a),
+                            } => rv_str!(format!("{} as {}", expr, a.name)),
+                        })
+                        .collect(),
+                );
+                rv_object! {
                     "@type" => rv_str!("projection"),
                     "fields" => RV::Array(field_strs),
                     "source" => source.to_object(),
                 }
             }
 
-            Node::Aggregate { source, group_by, aggregates } => rv_object!{
+            Node::Aggregate {
+                source,
+                group_by,
+                aggregates,
+            } => rv_object! {
                 "@type" => rv_str!("aggregate"),
                 "group_by" => RV::Array(
                         RVArray::from_vec(
@@ -206,18 +224,20 @@ impl<'v> Node<'v> {
             },
 
             Node::Order { source, key } => {
-                let key_json= RV::Array(
-                        RVArray::from_vec(
-                                    key.iter().map(|(expr, ord)| {
+                let key_json = RV::Array(RVArray::from_vec(
+                    key.iter()
+                        .map(|(expr, ord)| {
                             let ord_str = match ord {
                                 SqlOrdering::Asc => "asc",
                                 SqlOrdering::Desc => "desc",
                             };
-                            RV::Array(
-                            RVArray::from_vec(vec![rv_str!(expr.to_string()), rv_str!(ord_str)]))
-                        }).collect()
-                    )
-                );
+                            RV::Array(RVArray::from_vec(vec![
+                                rv_str!(expr.to_string()),
+                                rv_str!(ord_str),
+                            ]))
+                        })
+                        .collect(),
+                ));
                 rv_object! {
                     "@type" => rv_str!("order"),
                     "key" => key_json,
@@ -225,26 +245,31 @@ impl<'v> Node<'v> {
                 }
             }
 
-            Node::Limit { source, limit } => rv_object!{
+            Node::Limit { source, limit } => rv_object! {
                 "@type" => rv_str!("limit"),
                 "count" => RV::Int64(*limit as i64),
                 "source" => source.to_object(),
             },
 
-            Node::Offset { source, offset } => rv_object!{
+            Node::Offset { source, offset } => rv_object! {
                 "@type" => rv_str!("offset"),
                 "count" => RV::Int64(*offset as i64),
                 "source" => source.to_object(),
             },
 
-            Node::Join { left, join_type, right, constraint } => {
+            Node::Join {
+                left,
+                join_type,
+                right,
+                constraint,
+            } => {
                 let join_type_str = match join_type {
                     SqlJoinType::Inner => "inner",
                     SqlJoinType::Cross => "cross",
                     SqlJoinType::Left => "left",
                     SqlJoinType::Right => "right",
                 };
-                rv_object!{
+                rv_object! {
                     "@type" => rv_str!("join"),
                     "join_type" => rv_str!(join_type_str),
                     "constraint" => constraint.as_ref().map(|c| rv_str!(c.to_string())).unwrap_or(RV::Undefined),
@@ -253,14 +278,18 @@ impl<'v> Node<'v> {
                 }
             }
 
-            Node::Compound { source, operator, right } => {
+            Node::Compound {
+                source,
+                operator,
+                right,
+            } => {
                 let op_str = match operator {
                     SqlCompoundOperator::Union => "union",
                     SqlCompoundOperator::UnionAll => "union_all",
                     SqlCompoundOperator::Intersect => "intersect",
                     SqlCompoundOperator::Except => "except",
                 };
-                rv_object!{
+                rv_object! {
                     "@type" => rv_str!("compound"),
                     "operator" => rv_str!(op_str),
                     "source" => source.to_object(),
