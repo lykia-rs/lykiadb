@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use indexmap::IndexMap;
 use lykiadb_lang::ast::{
     Identifier,
     expr::Expr,
@@ -10,8 +11,9 @@ use lykiadb_lang::ast::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::value::{RV, callable::AggregatorFactory};
+use crate::value::{RV, array::RVArray, callable::AggregatorFactory, object::RVObject};
 use derivative::Derivative;
+use std::sync::Arc;
 
 mod aggregation;
 pub mod error;
@@ -109,205 +111,198 @@ pub enum Node<'v> {
     Nothing,
 }
 
-impl<'v> Display for Plan<'v> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<'v> Plan<'v> {
+    pub fn to_object(&self) -> RV<'v> {
         match self {
-            Plan::Select(node) => write!(f, "{node}"),
+            Plan::Select(node) => node.to_object(),
         }
     }
 }
 
+impl<'v> Display for Plan<'v> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string_pretty(&self.to_object()) {
+            Ok(json) => write!(f, "{json}"),
+            Err(e) => write!(f, "{{\"error\": \"{e}\"}}"),
+        }
+    }
+}
+
+macro_rules! rv_object {
+    ($($key:expr => $val:expr),* $(,)?) => {{
+        let mut map: indexmap::IndexMap<String, RV<'v>> = indexmap::IndexMap::default();
+        $( map.insert(String::from($key), $val); )*
+        RV::Object(RVObject::from_map(map))
+    }};
+}
+
+macro_rules! rv_str {
+    ($s:expr) => {
+        RV::Str(Arc::new($s.to_string()))
+    };
+}
+
 impl<'v> Node<'v> {
-    const TAB: &'static str = "  ";
-    const NEWLINE: &'static str = "\n";
-
-    fn _fmt_recursive(&self, f: &mut std::fmt::Formatter<'_>, indent: usize) -> std::fmt::Result {
-        let indent_str = Self::TAB.repeat(indent);
+    fn to_object(&self) -> RV<'v> {
         match self {
-            Node::Nothing => write!(f, "{}- nothing{}", indent_str, Self::NEWLINE),
-            Node::Order { source, key } => {
-                let key_description = key
-                    .iter()
-                    .map(|(expr, ordering)| format!("({expr}, {ordering:?})"))
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- order [{}]{}",
-                    indent_str,
-                    key_description,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Projection { source, fields } => {
-                let fields_description = fields
-                    .iter()
-                    .map(|field| match field {
-                        SqlProjection::All { collection } => {
-                            if let Some(c) = collection.as_ref() {
-                                return format!("* in {}", c.name);
-                            }
-                            "*".to_string()
-                        }
-                        SqlProjection::Expr { expr, alias } => {
-                            if let Some(alias) = alias {
-                                return format!("{} as {}", expr, alias.name);
-                            }
-                            format!("{expr} as {expr}")
-                        }
-                    })
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- project [{}]{}",
-                    indent_str,
-                    fields_description,
-                    Self::NEWLINE
-                )?;
+            Node::Nothing => rv_object! { "@type" => rv_str!("nothing") },
 
-                source._fmt_recursive(f, indent + 1)
-            }
+            Node::Scan { source, .. } => rv_object! {
+                "@type" => rv_str!("scan"),
+                "collection" => rv_str!(source.name.name),
+                "alias" => rv_str!(source.alias.as_ref().map(|a| a.name.clone()).unwrap_or_else(|| source.name.name.clone())),
+            },
+
+            Node::EvalScan { source, .. } => rv_object! {
+                "@type" => rv_str!("eval_scan"),
+                "expr" => rv_str!(source.expr.to_string()),
+                "alias" => rv_str!(source.alias.name),
+            },
+
             Node::Filter {
                 source,
                 predicate,
                 subqueries,
             } => {
-                write!(f, "{}- filter [{}]{}", indent_str, predicate, Self::NEWLINE)?;
+                let mut obj = IndexMap::new();
+
+                obj.insert("@type".to_string(), rv_str!("filter"));
+                obj.insert("predicate".to_string(), rv_str!(predicate.to_string()));
+                obj.insert("source".to_string(), source.to_object());
+
                 if !subqueries.is_empty() {
-                    write!(f, "{}  > subqueries{}", indent_str, Self::NEWLINE)?;
-                    subqueries
-                        .iter()
-                        .try_for_each(|subquery| subquery._fmt_recursive(f, indent + 2))?;
+                    obj.insert("subqueries".to_string(), rv_object!{ 
+                        "@type" => rv_str!("subqueries"), 
+                        "queries" => RV::Array(RVArray::from_vec(subqueries.iter().map(|s| s.to_object()).collect()))
+                    });
                 }
-                source._fmt_recursive(f, indent + 1)
+
+                RV::Object(RVObject::from_map(obj))
             }
-            Node::Subquery { source, alias } => {
-                write!(
-                    f,
-                    "{}- subquery [{}]{}",
-                    indent_str,
-                    alias.name.clone(),
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
+
+            Node::Projection { source, fields } => {
+                let field_strs = RVArray::from_vec(
+                    fields
+                        .iter()
+                        .map(|f| match f {
+                            SqlProjection::All { collection: None } => rv_str!("*".to_string()),
+                            SqlProjection::All {
+                                collection: Some(c),
+                            } => rv_str!(format!("{}.*", c.name)),
+                            SqlProjection::Expr { expr, alias: None } => rv_str!(expr.to_string()),
+                            SqlProjection::Expr {
+                                expr,
+                                alias: Some(a),
+                            } => rv_str!(format!("{} as {}", expr, a.name)),
+                        })
+                        .collect(),
+                );
+                rv_object! {
+                    "@type" => rv_str!("projection"),
+                    "fields" => RV::Array(field_strs),
+                    "source" => source.to_object(),
+                }
             }
-            Node::Scan { source, .. } => {
-                write!(
-                    f,
-                    "{}- scan [{} as {}]{}",
-                    indent_str,
-                    source.name,
-                    source.alias.as_ref().unwrap_or(&source.name),
-                    Self::NEWLINE
-                )
-            }
-            Node::Compound {
+
+            Node::Aggregate {
                 source,
-                operator,
-                right,
-            } => {
-                write!(
-                    f,
-                    "{}- compound [type={:?}]{}",
-                    indent_str,
-                    operator,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)?;
-                right._fmt_recursive(f, indent + 1)
+                group_by,
+                aggregates,
+            } => rv_object! {
+                "@type" => rv_str!("aggregate"),
+                "group_by" => RV::Array(
+                        RVArray::from_vec(
+                            group_by.iter().map(|e| rv_str!(e.to_string())).collect::<Vec<_>>(),
+                        )
+                    ),
+                "aggregates" => RV::Array(
+                    RVArray::from_vec(
+                        aggregates.iter().map(|a| rv_str!(a.to_string())).collect::<Vec<_>>(),
+                    )
+                ),
+                "source" => source.to_object(),
+            },
+
+            Node::Order { source, key } => {
+                let key_json = RV::Array(RVArray::from_vec(
+                    key.iter()
+                        .map(|(expr, ord)| {
+                            let ord_str = match ord {
+                                SqlOrdering::Asc => "asc",
+                                SqlOrdering::Desc => "desc",
+                            };
+                            RV::Array(RVArray::from_vec(vec![
+                                rv_str!(expr.to_string()),
+                                rv_str!(ord_str),
+                            ]))
+                        })
+                        .collect(),
+                ));
+                rv_object! {
+                    "@type" => rv_str!("order"),
+                    "key" => key_json,
+                    "source" => source.to_object(),
+                }
             }
-            Node::Limit { source, limit } => {
-                write!(
-                    f,
-                    "{}- limit [count={}]{}",
-                    indent_str,
-                    limit,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            Node::Offset { source, offset } => {
-                write!(
-                    f,
-                    "{}- offset [count={}]{}",
-                    indent_str,
-                    offset,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
+
+            Node::Limit { source, limit } => rv_object! {
+                "@type" => rv_str!("limit"),
+                "count" => RV::Int64(*limit as i64),
+                "source" => source.to_object(),
+            },
+
+            Node::Offset { source, offset } => rv_object! {
+                "@type" => rv_str!("offset"),
+                "count" => RV::Int64(*offset as i64),
+                "source" => source.to_object(),
+            },
+
             Node::Join {
                 left,
                 join_type,
                 right,
                 constraint,
             } => {
-                write!(
-                    f,
-                    "{}- join [type={:?}, {}]{}",
-                    indent_str,
-                    join_type,
-                    constraint
-                        .as_ref()
-                        .map(|x| x.to_string())
-                        .unwrap_or("None".to_string()),
-                    Self::NEWLINE
-                )?;
-                left._fmt_recursive(f, indent + 1)?;
-                right._fmt_recursive(f, indent + 1)
+                let join_type_str = match join_type {
+                    SqlJoinType::Inner => "inner",
+                    SqlJoinType::Cross => "cross",
+                    SqlJoinType::Left => "left",
+                    SqlJoinType::Right => "right",
+                };
+                rv_object! {
+                    "@type" => rv_str!("join"),
+                    "join_type" => rv_str!(join_type_str),
+                    "constraint" => constraint.as_ref().map(|c| rv_str!(c.to_string())).unwrap_or(RV::Undefined),
+                    "left" => left.to_object(),
+                    "right" => right.to_object(),
+                }
             }
-            Node::EvalScan { source, .. } => {
-                write!(
-                    f,
-                    "{}- eval_scan [{}]{}",
-                    indent_str,
-                    source.expr,
-                    Self::NEWLINE
-                )
-            }
-            Node::Aggregate {
-                source,
-                group_by,
-                aggregates,
-            } => {
-                let group_by_description = group_by
-                    .iter()
-                    .map(|expr| expr.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                let aggregates_description = aggregates
-                    .iter()
-                    .map(|aggregate| {
-                        let args = aggregate
-                            .args
-                            .iter()
-                            .map(|arg| arg.to_string())
-                            .collect::<Vec<String>>()
-                            .join(", ");
-                        format!("{}({})", aggregate.name, args)
-                    })
-                    .collect::<Vec<String>>()
-                    .join(", ");
-                write!(
-                    f,
-                    "{}- aggregate [group_by=[{}], aggregates=[{}]]{}",
-                    indent_str,
-                    group_by_description,
-                    aggregates_description,
-                    Self::NEWLINE
-                )?;
-                source._fmt_recursive(f, indent + 1)
-            }
-            _ => "<NotImplementedYet>".fmt(f),
-        }
-    }
-}
 
-impl<'v> Display for Node<'v> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self._fmt_recursive(f, 0)
+            Node::Compound {
+                source,
+                operator,
+                right,
+            } => {
+                let op_str = match operator {
+                    SqlCompoundOperator::Union => "union",
+                    SqlCompoundOperator::UnionAll => "union_all",
+                    SqlCompoundOperator::Intersect => "intersect",
+                    SqlCompoundOperator::Except => "except",
+                };
+                rv_object! {
+                    "@type" => rv_str!("compound"),
+                    "operator" => rv_str!(op_str),
+                    "source" => source.to_object(),
+                    "right" => right.to_object(),
+                }
+            }
+
+            Node::Subquery { source, alias } => rv_object! {
+                "@type" => rv_str!("subquery"),
+                "alias" => rv_str!(alias.name),
+                "source" => source.to_object(),
+            },
+        }
     }
 }
 

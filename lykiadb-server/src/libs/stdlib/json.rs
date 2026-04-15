@@ -60,9 +60,9 @@ mod tests {
     use crate::interpreter::output::Output;
     use crate::interpreter::tests::create_test_interpreter;
     use crate::value::{array::RVArray, object::RVObject};
+    use indexmap::IndexMap;
     use lykiadb_common::extract;
     use lykiadb_common::memory::alloc_shared;
-    use rustc_hash::FxHashMap;
     use std::sync::Arc;
 
     #[test]
@@ -104,7 +104,7 @@ mod tests {
         );
 
         // Test object
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert("key".to_string(), RV::Double(123.0));
         map.insert("msg".to_string(), RV::Str(Arc::new("value".to_string())));
         let object_rv = RV::Object(RVObject::from_map(map));

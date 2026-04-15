@@ -24,10 +24,10 @@
         }
 
         @expect output {
-            global
-            block
-            global
-            test
+            "global"
+            "block"
+            "global"
+            "test"
         }
     }
 
@@ -54,10 +54,10 @@
         }
 
         @expect output {
-            global
-            block
-            global
-            test
+            "global"
+            "block"
+            "global"
+            "test"
         }
     }
 }

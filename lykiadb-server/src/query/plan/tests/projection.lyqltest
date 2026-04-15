@@ -4,7 +4,11 @@
         EXPLAIN SELECT * FROM books;
 
         @expect {
-            - scan [books as books]
+            {
+              "@type": "scan",
+              "collection": "books",
+              "alias": "books"
+            }
         }
     }
 
@@ -12,8 +16,17 @@
         EXPLAIN SELECT books.* FROM books;
 
         @expect {
-            - project [* in books]
-              - scan [books as books]
+            {
+              "@type": "projection",
+              "fields": [
+                "books.*"
+              ],
+              "source": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
+            }
         }
     }
 
@@ -21,8 +34,18 @@
         EXPLAIN SELECT id, title FROM books;
 
         @expect {
-            - project [id as id, title as title]
-              - scan [books as books]
+            {
+              "@type": "projection",
+              "fields": [
+                "id",
+                "title"
+              ],
+              "source": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
+            }
         }
     }
 
@@ -30,8 +53,17 @@
         EXPLAIN SELECT 5 + 5 as ten FROM books;
 
         @expect {
-            - project [(Num(5.0) Add Num(5.0)) as ten]
-              - scan [books as books]
+            {
+              "@type": "projection",
+              "fields": [
+                "(Num(5.0) Add Num(5.0)) as ten"
+              ],
+              "source": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
+            }
         }
     }
 
@@ -39,8 +71,17 @@
         EXPLAIN SELECT capitalize("str") as json_str_title FROM books;
 
         @expect {
-            - project [capitalize(Str("str")) as json_str_title]
-              - scan [books as books]
+            {
+              "@type": "projection",
+              "fields": [
+                "capitalize(Str(\"str\")) as json_str_title"
+              ],
+              "source": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
+            }
         }
     }
 }

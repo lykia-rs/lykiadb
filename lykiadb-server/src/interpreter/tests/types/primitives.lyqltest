@@ -11,8 +11,8 @@
             true
             true
             false
-            <Datatype, dtype::double>
-            <Datatype, dtype::double>
+            null
+            null
         }
     }
 
@@ -24,7 +24,7 @@
         @expect output {
             true
             false
-            <Datatype, dtype::str>
+            null
         }
     }
 
@@ -39,8 +39,8 @@
             true
             true
             false
-            <Datatype, dtype::bool>
-            <Datatype, dtype::bool>
+            null
+            null
         }
     }
 
@@ -52,7 +52,7 @@
         @expect output {
             true
             false
-            <Datatype, dtype::array(dtype::double)>
+            null
         }
     }
 
@@ -65,8 +65,8 @@
         @expect output {
             true
             true
-            <Datatype, dtype::object({a: dtype::array(dtype::double)})>
-            <Datatype, dtype::object({b: dtype::double, a: dtype::double})>
+            null
+            null
         }
     }
 
@@ -76,7 +76,7 @@
 
         @expect output {
             false
-            <Datatype, dtype::callable(dtype::unknown, dtype::unknown)>
+            null
         }
     }
 
@@ -88,7 +88,7 @@
         @expect output {
             true
             false
-            <Datatype, dtype::dtype>
+            null
         }
     }
 
@@ -100,7 +100,7 @@
         @expect output {
             true
             false
-            <Datatype, dtype::none>
+            null
         }
     }
 }

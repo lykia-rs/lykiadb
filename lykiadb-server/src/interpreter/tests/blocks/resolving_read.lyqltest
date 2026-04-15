@@ -16,10 +16,10 @@
         out::print($a);
 
         @expect output {
-            global
-            global
-            block
-            global
+            "global"
+            "global"
+            "block"
+            "global"
         }
     }
 
@@ -42,9 +42,9 @@
         }
 
         @expect output {
-            global
-            global
-            block
+            "global"
+            "global"
+            "block"
         }
     }
 
@@ -63,8 +63,8 @@
         }
 
         @expect output {
-            global
-            global
+            "global"
+            "global"
         }
     }
 
@@ -90,8 +90,8 @@
         $a.my_fun();
 
         @expect output {
-            outer $text
-            inner $text
+            "outer $text"
+            "inner $text"
         }
     }
 
@@ -136,10 +136,10 @@
         $a.b.c1.my_fun();
 
         @expect output {
-            outer $text
-            c0 inner $text
-            outer $text
-            c1 inner $text
+            "outer $text"
+            "c0 inner $text"
+            "outer $text"
+            "c1 inner $text"
         }
     }
 }

@@ -7,6 +7,7 @@ edition = "2024"
 [dependencies]
 lykiadb-lang = { path = "../lykiadb-lang" }
 rustc-hash = "1.1.0"
+indexmap = "2"
 serde = { version = "1.0.188", features=["derive", "rc"] }
 serde_json = "1.0.105"
 tokio = { version = "~1.49.0", features = [

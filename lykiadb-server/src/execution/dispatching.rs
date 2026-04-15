@@ -19,7 +19,7 @@ pub fn dispatch_query_explain<'sess>(
         let exec_ctx = QueryExecutionContext::new(state.clone());
         let mut query_engine = QueryEngine::new();
         let plan = &query_engine.explain(expr, &exec_ctx)?;
-        Err(HaltReason::Return(RV::Str(Arc::new(plan.to_string()))))
+        Err(HaltReason::Return(plan.to_object()))
     } else {
         Err(HaltReason::Error(
             InterpretError::InvalidExplainTarget { span: *span }.into(),

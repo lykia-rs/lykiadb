@@ -8,8 +8,8 @@
         out::print(!!!3);
 
         @expect output {
-            -2
-            2
+            -2.0
+            2.0
             false
             true
             false
@@ -24,11 +24,11 @@
         out::print(-5-2);
 
         @expect output {
-            7
-            28
-            13
-            170
-            -7
+            7.0
+            28.0
+            13.0
+            170.0
+            -7.0
         }
     }
 
@@ -82,10 +82,10 @@
         out::print($obj.address.zip);
 
         @expect output {
-            John
-            30
-            New York
-            10001
+            "John"
+            30.0
+            "New York"
+            10001.0
         }
     }
 
@@ -112,7 +112,7 @@
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "null" })
         }
 
         out::print(5.prop);
@@ -120,8 +120,8 @@
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "null" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5.0" })
         }
 
         out::print("string".length);
@@ -129,9 +129,9 @@
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 45, end: 53, line: 4, line_end: 4 }, property: "age" })
             Interpret(PropertyNotFound { span: Span { start: 11, end: 23, line: 0, line_end: 0 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 26, line: 0, line_end: 0 }, value_str: "string" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 25, line: 0, line_end: 0 }, value_str: "null" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 17, line: 0, line_end: 0 }, value_str: "5.0" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 11, end: 26, line: 0, line_end: 0 }, value_str: "\"string\"" })
         }
     }
 
@@ -158,10 +158,10 @@
         out::print($obj.newProp);
 
         @expect output {
-            Jane
-            31
-            Boston
-            test
+            "Jane"
+            31.0
+            "Boston"
+            "test"
         }
     }
 
@@ -180,34 +180,34 @@
 
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "null" })
         }
 
         5.prop = "test";
 
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "null" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5.0" })
         }
 
         "string".prop = "test";
 
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "string" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "null" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5.0" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "\"string\"" })
         }
 
         undefined.prop = "test";
 
         @expect error {
             Interpret(PropertyNotFound { span: Span { start: 34, end: 46, line: 4, line_end: 4 }, property: "address" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "string" })
-            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "undefined" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "null" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 15, line: 0, line_end: 0 }, value_str: "5.0" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 22, line: 0, line_end: 0 }, value_str: "\"string\"" })
+            Interpret(InvalidPropertyAccess { span: Span { start: 0, end: 23, line: 0, line_end: 0 }, value_str: "null" })
         }
     }
 
@@ -313,9 +313,9 @@
         out::print($object.level_one.level_two.level_three.title);
 
         @expect output {
-            1
-            2
-            3
+            "1"
+            "2"
+            "3"
         }
     }
 }

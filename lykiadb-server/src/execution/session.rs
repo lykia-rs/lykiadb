@@ -76,13 +76,6 @@ impl<'v> SessionTester<'v> {
     }
 }
 
-fn normalize_multiline(raw: &str) -> String {
-    dedent(raw)
-        .split('\n')
-        .map(|l| l.to_string())
-        .collect::<String>()
-}
-
 impl<'v> TestHandler for SessionTester<'v> {
     fn run_case(&mut self, case: TestCase) -> Result<(), TestFailure> {
         let mut errors: Vec<ExecutionError> = vec![];
@@ -104,20 +97,14 @@ impl<'v> TestHandler for SessionTester<'v> {
                 }
                 Block::ExpectValue(raw) => {
                     if let Some(value) = last_returned {
-                        let expected: String = normalize_multiline(&raw);
-
-                        let returned: String = normalize_multiline(&value.to_string());
-
-                        pretty_assertions::assert_eq!(expected, returned);
+                        pretty_assertions::assert_eq!(dedent(&raw), dedent(&value.to_string()));
                         last_returned = None;
                     } else {
                         panic!("There is no returned value")
                     }
                 }
                 Block::ExpectOutput(raw) => {
-                    let expected = dedent(&raw);
-                    let lines: Vec<String> = expected.split('\n').map(|l| l.to_string()).collect();
-                    self.out.write().unwrap().expect(lines)?;
+                    self.out.write().unwrap().expect(dedent(&raw))?;
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);

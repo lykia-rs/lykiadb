@@ -22,15 +22,15 @@
         out::print($c);
 
         @expect output {
-            inner a
-            outer b
-            global c
-            outer a
-            outer b
-            global c
-            global a
-            global b
-            global c
+            "inner a"
+            "outer b"
+            "global c"
+            "outer a"
+            "outer b"
+            "global c"
+            "global a"
+            "global b"
+            "global c"
         }
     }
 
@@ -47,8 +47,8 @@
         $fn_block();
 
         @expect output {
-            block
-            global
+            "block"
+            "global"
         }
 
         out::print($a);
@@ -60,8 +60,8 @@
         out::print($a);
 
         @expect output {
-            block
-            global
+            "block"
+            "global"
         }
 
         @expect error {

@@ -4,7 +4,14 @@
         out::print(select item from [1, 2, 3, 4, 5] as item where item > 3);
 
         @expect output {
-            [{item: 4}, {item: 5}]
+            [
+              {
+                "item": 4.0
+              },
+              {
+                "item": 5.0
+              }
+            ]
         }
     }
 
@@ -12,7 +19,14 @@
         out::print(select item from [1, 2, 3, 4, 5] as item where item < 3);
 
         @expect output {
-            [{item: 1}, {item: 2}]
+            [
+              {
+                "item": 1.0
+              },
+              {
+                "item": 2.0
+              }
+            ]
         }
     }
 
@@ -20,7 +34,11 @@
         out::print(select item from [1, 2, 3, 4, 5] as item where item = 3);
 
         @expect output {
-            [{item: 3}]
+            [
+              {
+                "item": 3.0
+              }
+            ]
         }
     }
 
@@ -28,7 +46,17 @@
         out::print(select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 3 and item < 7);
 
         @expect output {
-            [{item: 4}, {item: 5}, {item: 6}]
+            [
+              {
+                "item": 4.0
+              },
+              {
+                "item": 5.0
+              },
+              {
+                "item": 6.0
+              }
+            ]
         }
     }
 
@@ -44,7 +72,14 @@
         out::print(select item * 2 as doubled from [1, 2, 3, 4, 5] as item where item > 3);
 
         @expect output {
-            [{doubled: 8}, {doubled: 10}]
+            [
+              {
+                "doubled": 8.0
+              },
+              {
+                "doubled": 10.0
+              }
+            ]
         }
     }
 }

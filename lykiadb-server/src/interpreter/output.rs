@@ -30,11 +30,9 @@ impl<'v> Output<'v> {
         self.out.push(rv);
     }
 
-    pub fn expect(&mut self, rv: Vec<String>) -> Result<(), TestFailure> {
+    pub fn expect(&mut self, rv: String) -> Result<(), TestFailure> {
         let actual: Vec<String> = self.out.iter().map(|x| x.to_string()).collect();
-        if actual != rv {
-            return Err(str_diff(&actual.join("\n"), &rv.join("\n")));
-        }
+        pretty_assertions::assert_eq!(actual.join("\n"), rv);
         Ok(())
     }
 }
@@ -43,24 +41,9 @@ impl<'v> Output<'v> {
 mod tests {
     use super::*;
     use pretty_assertions::Comparison;
-    use std::sync::Arc;
 
     pub(crate) fn diff<L: std::fmt::Debug, R: std::fmt::Debug>(left: &L, right: &R) -> TestFailure {
         TestFailure(Comparison::new(left, right).to_string())
-    }
-
-    #[test]
-    fn expect_match() {
-        let mut out = Output::new();
-        out.push(RV::Str(Arc::new("hello".into())));
-        assert!(out.expect(vec!["hello".into()]).is_ok());
-    }
-
-    #[test]
-    fn expect_mismatch_returns_err() {
-        let mut out = Output::new();
-        out.push(RV::Str(Arc::new("hello".into())));
-        assert!(out.expect(vec!["world".into()]).is_err());
     }
 
     #[test]

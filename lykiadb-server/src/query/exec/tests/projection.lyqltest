@@ -4,7 +4,17 @@
         out::print(select item * 2 as doubled from [1, 2, 3] as item);
 
         @expect output {
-            [{doubled: 2}, {doubled: 4}, {doubled: 6}]
+            [
+              {
+                "doubled": 2.0
+              },
+              {
+                "doubled": 4.0
+              },
+              {
+                "doubled": 6.0
+              }
+            ]
         }
     }
 
@@ -12,7 +22,17 @@
         out::print(select item + 10 as shifted from [1, 2, 3] as item);
 
         @expect output {
-            [{shifted: 11}, {shifted: 12}, {shifted: 13}]
+            [
+              {
+                "shifted": 11.0
+              },
+              {
+                "shifted": 12.0
+              },
+              {
+                "shifted": 13.0
+              }
+            ]
         }
     }
 
@@ -20,7 +40,17 @@
         out::print(select item as value from [10, 20, 30] as item);
 
         @expect output {
-            [{value: 10}, {value: 20}, {value: 30}]
+            [
+              {
+                "value": 10.0
+              },
+              {
+                "value": 20.0
+              },
+              {
+                "value": 30.0
+              }
+            ]
         }
     }
 
@@ -28,7 +58,11 @@
         out::print(select 5 + 5 as ten from [1] as item);
 
         @expect output {
-            [{ten: 10}]
+            [
+              {
+                "ten": 10.0
+              }
+            ]
         }
     }
 
@@ -36,7 +70,24 @@
         out::print(select item as original, item * item as squared from [1, 2, 3, 4] as item);
 
         @expect output {
-            [{original: 1, squared: 1}, {original: 2, squared: 4}, {original: 3, squared: 9}, {original: 4, squared: 16}]
+            [
+              {
+                "original": 1.0,
+                "squared": 1.0
+              },
+              {
+                "original": 2.0,
+                "squared": 4.0
+              },
+              {
+                "original": 3.0,
+                "squared": 9.0
+              },
+              {
+                "original": 4.0,
+                "squared": 16.0
+              }
+            ]
         }
     }
 }

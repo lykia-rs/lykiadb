@@ -1,11 +1,11 @@
+use indexmap::IndexMap;
 use lykiadb_common::memory::{Shared, alloc_shared};
-use rustc_hash::FxHashMap;
 
 use crate::value::RV;
 
 #[derive(Debug, Clone)]
 pub struct RVObject<'v> {
-    inner: Shared<FxHashMap<String, RV<'v>>>,
+    inner: Shared<IndexMap<String, RV<'v>>>,
 }
 
 impl<'v> Default for RVObject<'v> {
@@ -17,7 +17,7 @@ impl<'v> Default for RVObject<'v> {
 impl<'v> RVObject<'v> {
     pub fn new() -> Self {
         RVObject {
-            inner: alloc_shared(FxHashMap::default()),
+            inner: alloc_shared(IndexMap::default()),
         }
     }
 
@@ -57,7 +57,7 @@ impl<'v> RVObject<'v> {
         Box::new(keys.into_iter())
     }
 
-    pub fn from_map(map: FxHashMap<String, RV<'v>>) -> Self {
+    pub fn from_map(map: IndexMap<String, RV<'v>>) -> Self {
         RVObject {
             inner: alloc_shared(map),
         }

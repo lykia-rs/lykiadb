@@ -1,24 +1,38 @@
 @group limit_offset {
 
-    @test limit {
+    @test limit_simple {
         EXPLAIN SELECT * FROM books limit 4 + 4;
 
         @expect {
-            - limit [count=8]
-              - scan [books as books]
+            {
+              "@type": "limit",
+              "count": 8,
+              "source": {
+                "@type": "scan",
+                "collection": "books",
+                "alias": "books"
+              }
+            }
         }
     }
 
-    @test limit {
-        var $limit = 5 + 5;
-        var $offset = 5 + 15;
-        
-        EXPLAIN SELECT * FROM books limit $limit offset $offset;
+    @test limit_with_offset {
+        EXPLAIN SELECT * FROM books limit 10 offset 20;
 
         @expect {
-            - limit [count=10]
-              - offset [count=20]
-                - scan [books as books]
+            {
+              "@type": "limit",
+              "count": 10,
+              "source": {
+                "@type": "offset",
+                "count": 20,
+                "source": {
+                  "@type": "scan",
+                  "collection": "books",
+                  "alias": "books"
+                }
+              }
+            }
         }
     }
 
@@ -26,27 +40,70 @@
         EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id limit 100;
 
         @expect {
-            - limit [count=100]
-              - join [type=Inner, (books.author_id IsEqual authors.id)]
-                - scan [books as books]
-                - scan [authors as authors]
+            {
+              "@type": "limit",
+              "count": 100,
+              "source": {
+                "@type": "join",
+                "join_type": "inner",
+                "constraint": "(books.author_id IsEqual authors.id)",
+                "left": {
+                  "@type": "scan",
+                  "collection": "books",
+                  "alias": "books"
+                },
+                "right": {
+                  "@type": "scan",
+                  "collection": "authors",
+                  "alias": "authors"
+                }
+              }
+            }
         }
     }
 
     @test limit_compound_and_joins {
-        EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id
-        UNION
-        SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id LIMIT 100;
+        EXPLAIN SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id UNION SELECT * FROM books INNER JOIN authors ON books.author_id = authors.id LIMIT 100;
 
         @expect {
-            - limit [count=100]
-              - compound [type=Union]
-                - join [type=Inner, (books.author_id IsEqual authors.id)]
-                  - scan [books as books]
-                  - scan [authors as authors]
-                - join [type=Inner, (books.author_id IsEqual authors.id)]
-                  - scan [books as books]
-                  - scan [authors as authors]
+            {
+              "@type": "limit",
+              "count": 100,
+              "source": {
+                "@type": "compound",
+                "operator": "union",
+                "source": {
+                  "@type": "join",
+                  "join_type": "inner",
+                  "constraint": "(books.author_id IsEqual authors.id)",
+                  "left": {
+                    "@type": "scan",
+                    "collection": "books",
+                    "alias": "books"
+                  },
+                  "right": {
+                    "@type": "scan",
+                    "collection": "authors",
+                    "alias": "authors"
+                  }
+                },
+                "right": {
+                  "@type": "join",
+                  "join_type": "inner",
+                  "constraint": "(books.author_id IsEqual authors.id)",
+                  "left": {
+                    "@type": "scan",
+                    "collection": "books",
+                    "alias": "books"
+                  },
+                  "right": {
+                    "@type": "scan",
+                    "collection": "authors",
+                    "alias": "authors"
+                  }
+                }
+              }
+            }
         }
     }
 }

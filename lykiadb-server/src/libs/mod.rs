@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap;
+use indexmap::IndexMap;
 
 use crate::value::{RV, callable::RVCallable, object::RVObject};
 
@@ -6,7 +6,7 @@ pub mod stdlib;
 
 pub struct LykiaModule<'rv> {
     name: String,
-    map: FxHashMap<String, RV<'rv>>,
+    map: IndexMap<String, RV<'rv>>,
     root: Vec<String>,
 }
 
@@ -14,7 +14,7 @@ impl<'rv> LykiaModule<'rv> {
     pub fn new(name: &str) -> Self {
         LykiaModule {
             name: name.to_owned(),
-            map: FxHashMap::default(),
+            map: IndexMap::default(),
             root: Vec::new(),
         }
     }
@@ -63,8 +63,8 @@ impl<'rv> LykiaLibrary<'rv> {
         }
     }
 
-    pub fn as_raw(&self) -> FxHashMap<String, RV<'rv>> {
-        let mut lib = FxHashMap::default();
+    pub fn as_raw(&self) -> IndexMap<String, RV<'rv>> {
+        let mut lib = IndexMap::default();
         for modl in self.mods.iter() {
             let mod_defs = modl.as_raw();
             for (name, map) in mod_defs {
