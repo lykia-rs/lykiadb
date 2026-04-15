@@ -210,44 +210,9 @@ impl<'v> RV<'v> {
 
 impl<'v> Display for RV<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RV::Str(s) => write!(f, "{s}"),
-            RV::Double(n) => write!(f, "{n}"),
-            RV::Int32(i) => write!(f, "{i}"),
-            RV::Int64(i) => write!(f, "{i}"),
-            RV::Decimal128(d) => write!(f, "{d}"),
-            RV::Bool(b) => write!(f, "{b}"),
-            RV::Undefined => write!(f, "undefined"),
-            RV::Null => write!(f, "null"),
-            RV::DateTime(date_time) => write!(f, "{date_time}"),
-            RV::Document(_) => write!(f, "<Document>"),
-            RV::DocumentArray(_) => write!(f, "<DocumentArray>"),
-            RV::Array(arr) => {
-                write!(f, "[")?;
-                for (i, item) in arr.iter().enumerate() {
-                    if i != 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{item}")?;
-                }
-                write!(f, "]")
-            }
-            RV::Object(obj) => {
-                write!(f, "{{")?;
-                for (i, (key, value)) in obj.iter().enumerate() {
-                    if i != 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{key}: {value}")?;
-                }
-                write!(f, "}}")
-            }
-            RV::Callable(_) => write!(f, "<Callable>"),
-            RV::Datatype(dtype) => write!(f, "<Datatype, {dtype}>"),
-        }
+        write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
     }
 }
-
 impl<'v> Serialize for RV<'v> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
