@@ -4,7 +4,11 @@
         out::print(select sum(item) as total from [1, 2, 3, 4, 5] as item);
 
         @expect output {
-            [{total: 15}]
+            [
+              {
+                "total": 15.0
+              }
+            ]
         }
     }
 
@@ -12,7 +16,11 @@
         out::print(select count(item) as cnt from [1, 2, 3, 4, 5, 6] as item);
 
         @expect output {
-            [{cnt: 6}]
+            [
+              {
+                "cnt": 6.0
+              }
+            ]
         }
     }
 
@@ -20,7 +28,11 @@
         out::print(select avg(item) as mean from [10, 20, 30] as item);
 
         @expect output {
-            [{mean: 20}]
+            [
+              {
+                "mean": 20.0
+              }
+            ]
         }
     }
 
@@ -29,7 +41,20 @@
         out::print(select col_0 as bucket, count(item) as cnt from $data as item group by mod(item, 3));
 
         @expect output {
-            [{cnt: 3, bucket: 0}, {cnt: 3, bucket: 1}, {cnt: 3, bucket: 2}]
+            [
+              {
+                "bucket": 0.0,
+                "cnt": 3.0
+              },
+              {
+                "bucket": 1.0,
+                "cnt": 3.0
+              },
+              {
+                "bucket": 2.0,
+                "cnt": 3.0
+              }
+            ]
         }
     }
 
@@ -38,11 +63,16 @@
         out::print(select col_0 as bucket, sum(item) as total from $data as item group by mod(item, 2) having sum(item) > 20);
 
         // Two buckets exist:
-        // [{total: 20, bucket: 0}, {total: 25, bucket: 1}]
-        // But only the second one satisfies the HAVING condition, so only it is returned.
+        // [{bucket: 0, total: 20}, {bucket: 1, total: 25}]
+        // But only the second one satisfies the HAVING condition, so only it is returned.
 
         @expect output {
-            [{total: 25, bucket: 1}]
+            [
+              {
+                "bucket": 1.0,
+                "total": 25.0
+              }
+            ]
         }
     }
 }

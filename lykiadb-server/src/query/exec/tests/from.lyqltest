@@ -4,7 +4,17 @@
         out::print(select item from [1, 2, 3] as item);
 
         @expect output {
-            [{item: 1}, {item: 2}, {item: 3}]
+          [
+            {
+              "item": 1.0
+            },
+            {
+              "item": 2.0
+            },
+            {
+              "item": 3.0
+            }
+          ]
         }
     }
 
@@ -12,7 +22,11 @@
         out::print(select x from [42] as x);
 
         @expect output {
-            [{x: 42}]
+          [
+            {
+              "x": 42.0
+            }
+          ]
         }
     }
 
@@ -28,7 +42,17 @@
         out::print(select * from [1, 2, 3] as nums);
 
         @expect output {
-            [{nums: 1}, {nums: 2}, {nums: 3}]
+          [
+            {
+              "nums": 1.0
+            },
+            {
+              "nums": 2.0
+            },
+            {
+              "nums": 3.0
+            }
+          ]
         }
     }
 
@@ -36,7 +60,17 @@
         out::print(select u.item from (select item from [1, 2, 3] as item) u);
 
         @expect output {
-            [{u.item: 1}, {u.item: 2}, {u.item: 3}]
+          [
+            {
+              "u.item": 1.0
+            },
+            {
+              "u.item": 2.0
+            },
+            {
+              "u.item": 3.0
+            }
+          ]
         }
     }
 }

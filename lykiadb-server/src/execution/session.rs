@@ -97,20 +97,14 @@ impl<'v> TestHandler for SessionTester<'v> {
                 }
                 Block::ExpectValue(raw) => {
                     if let Some(value) = last_returned {
-                        let expected: String = dedent(&raw);
-
-                        let returned: String = dedent(&value.to_string());
-
-                        pretty_assertions::assert_eq!(expected, returned);
+                        pretty_assertions::assert_eq!(dedent(&raw), dedent(&value.to_string()));
                         last_returned = None;
                     } else {
                         panic!("There is no returned value")
                     }
                 }
                 Block::ExpectOutput(raw) => {
-                    let expected = dedent(&raw);
-                    let lines: Vec<String> = expected.split('\n').map(|l| l.to_string()).collect();
-                    self.out.write().unwrap().expect(lines)?;
+                    self.out.write().unwrap().expect(dedent(&raw))?;
                 }
                 Block::ExpectErr(raw) => {
                     let expected = dedent(&raw);
