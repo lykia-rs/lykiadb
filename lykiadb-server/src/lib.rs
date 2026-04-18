@@ -3,6 +3,7 @@ pub mod interpreter;
 pub mod libs;
 pub mod query;
 pub mod value;
+pub mod store;
 
 #[macro_export]
 macro_rules! register_tests {
