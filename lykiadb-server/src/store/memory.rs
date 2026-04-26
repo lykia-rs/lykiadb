@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::{collections::{BTreeMap, btree_map::Range}, ops::{RangeFull}};
 
-use crate::store::{ScanIterator, Store};
+use crate::store::{Store, error::StoreError};
 
 pub struct MemoryStore {
     data: BTreeMap<Vec<u8>, Vec<u8>>,
@@ -14,7 +14,19 @@ impl MemoryStore {
     }
 }
 
+pub struct MemoryScanIterator<'a>(Range<'a, Vec<u8>, Vec<u8>>);
+
+impl Iterator for MemoryScanIterator<'_> {
+    type Item = Result<(Vec<u8>, Vec<u8>), StoreError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|(k, v)| Ok((k.clone(), v.clone())))
+    }
+}
+
 impl<'a> Store<'a> for MemoryStore {
+    type ScanIterator = MemoryScanIterator<'a>;
+
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.data.get(key).cloned()
     }
@@ -27,21 +39,8 @@ impl<'a> Store<'a> for MemoryStore {
         self.data.remove(key);
     }
 
-    fn scan(&'a self) -> ScanIterator<'a> {
-        Box::new(
-            self.data
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-        )
-    }
-
-    fn scan_prefix(&'a self, prefix: &'a [u8]) -> ScanIterator<'a> {
-        Box::new(
-            self.data
-                .iter()
-                .filter(move |(k, _)| k.starts_with(prefix))
-                .map(|(k, v)| (k.clone(), v.clone()))
-        )
+    fn scan(&'a self) -> Self::ScanIterator {
+        MemoryScanIterator(self.data.range::<Vec<u8>, RangeFull>(..))
     }
 }
 
@@ -112,7 +111,7 @@ mod tests {
         store.set(b"a", b"1".to_vec());
         store.set(b"b", b"2".to_vec());
 
-        let entries: Vec<_> = store.scan().collect();
+        let entries: Vec<_> = store.scan().collect::<Result<_, _>>().unwrap();
         assert_eq!(
             entries,
             vec![
@@ -130,53 +129,7 @@ mod tests {
         store.set(b"drop", b"no".to_vec());
         store.delete(b"drop");
 
-        let entries: Vec<_> = store.scan().collect();
+        let entries: Vec<_> = store.scan().collect::<Result<_, _>>().unwrap();
         assert_eq!(entries, vec![(b"keep".to_vec(), b"yes".to_vec())]);
-    }
-
-    #[test]
-    fn test_scan_prefix_returns_matching_entries() {
-        let mut store = make_store();
-        store.set(b"col:1", b"alice".to_vec());
-        store.set(b"col:2", b"bob".to_vec());
-        store.set(b"idx:1", b"should_not_appear".to_vec());
-
-        let entries: Vec<_> = store.scan_prefix(b"col:").collect();
-        assert_eq!(
-            entries,
-            vec![
-                (b"col:1".to_vec(), b"alice".to_vec()),
-                (b"col:2".to_vec(), b"bob".to_vec()),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_scan_prefix_empty_when_no_match() {
-        let mut store = make_store();
-        store.set(b"col:1", b"alice".to_vec());
-
-        let entries: Vec<_> = store.scan_prefix(b"idx:").collect();
-        assert!(entries.is_empty());
-    }
-
-    #[test]
-    fn test_scan_prefix_excludes_deleted_entries() {
-        let mut store = make_store();
-        store.set(b"col:1", b"alice".to_vec());
-        store.set(b"col:2", b"bob".to_vec());
-        store.delete(b"col:1");
-
-        let entries: Vec<_> = store.scan_prefix(b"col:").collect();
-        assert_eq!(entries, vec![(b"col:2".to_vec(), b"bob".to_vec())]);
-    }
-
-    #[test]
-    fn test_scan_prefix_longer_than_key_returns_nothing() {
-        let mut store = make_store();
-        store.set(b"col:100", b"val".to_vec());
-
-        let entries: Vec<_> = store.scan_prefix(b"col:100:extra").collect();
-        assert!(entries.is_empty());
     }
 }
