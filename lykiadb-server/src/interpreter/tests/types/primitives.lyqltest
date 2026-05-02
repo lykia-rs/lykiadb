@@ -11,8 +11,8 @@
             true
             true
             false
-            null
-            null
+            "Double"
+            "Double"
         }
     }
 
@@ -24,7 +24,7 @@
         @expect output {
             true
             false
-            null
+            "Str"
         }
     }
 
@@ -39,8 +39,8 @@
             true
             true
             false
-            null
-            null
+            "Bool"
+            "Bool"
         }
     }
 
@@ -52,7 +52,9 @@
         @expect output {
             true
             false
-            null
+            {
+              "Array": "Double"
+            }
         }
     }
 
@@ -65,8 +67,19 @@
         @expect output {
             true
             true
-            null
-            null
+            {
+              "Object": {
+                "a": {
+                  "Array": "Double"
+                }
+              }
+            }
+            {
+              "Object": {
+                "b": "Double",
+                "a": "Double"
+              }
+            }
         }
     }
 
@@ -76,7 +89,12 @@
 
         @expect output {
             false
-            null
+            {
+              "Callable": [
+                "Unknown",
+                "Unknown"
+              ]
+            }
         }
     }
 
@@ -88,7 +106,7 @@
         @expect output {
             true
             false
-            null
+            "Datatype"
         }
     }
 
@@ -100,7 +118,7 @@
         @expect output {
             true
             false
-            null
+            "None"
         }
     }
 }

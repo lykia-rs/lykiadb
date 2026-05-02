@@ -33,13 +33,13 @@ pub fn nt_json_decode<'rv>(
         }
     };
 
-    let parsed: RV = match serde_json::from_str(json_str) {
-        Ok(v) => v,
+    let parsed = match serde_json::from_str::<serde_json::Value>(json_str) {
+        Ok(v) => RV::from(v),
         Err(e) => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
                     span: *called_from,
-                    expected: "JSON".to_string(),
+                    expected: "A valid JSON string".to_string(),
                 }
                 .into(),
             ));

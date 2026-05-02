@@ -1,16 +1,13 @@
 use array::RVArray;
 use callable::RVCallable;
-use indexmap::IndexMap;
 use lykiadb_lang::types::Datatype;
 use object::RVObject;
 use rustc_hash::FxHashMap;
-use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::ops;
 use std::sync::Arc;
 
-use crate::value::document::{DocumentArrayRef, DocumentRef};
 
 pub mod array;
 pub mod callable;
@@ -19,7 +16,8 @@ pub mod eval;
 pub mod iterator;
 pub mod object;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum RV<'v> {
     // Boolean-like values
     Undefined,
@@ -36,12 +34,11 @@ pub enum RV<'v> {
     // Reference types
     // TODO: Replace them with references
     Str(Arc<String>),
-    Document(DocumentRef<'v>),
-    DocumentArray(DocumentArrayRef<'v>),
 
     // Engine types
     Object(RVObject<'v>),
     Array(RVArray<'v>),
+    #[serde(skip)]
     Callable(RVCallable<'v>),
     Datatype(Datatype),
 }
@@ -81,12 +78,6 @@ impl<'v> std::hash::Hash for RV<'v> {
             RV::DateTime(date_time) => {
                 date_time.timestamp_millis().hash(state);
             }
-            RV::Document(document) => {
-                document.hash(state);
-            }
-            RV::DocumentArray(document_arr) => {
-                document_arr.hash(state);
-            }
             RV::Undefined | RV::Null => {
                 // Discriminant is enough for Undefined and Null
             }
@@ -99,6 +90,30 @@ impl<'v> From<RV<'v>> for Datatype {
         match rv {
             RV::Datatype(t) => t,
             _ => Datatype::None,
+        }
+    }
+}
+
+impl<'v> From<serde_json::Value> for RV<'v> {
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => RV::Null,
+            serde_json::Value::Bool(b) => RV::Bool(b),
+            serde_json::Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    RV::Int64(i)
+                } else {
+                    RV::Double(n.as_f64().unwrap())
+                }
+            }
+            serde_json::Value::String(s) => RV::Str(Arc::new(s)),
+            serde_json::Value::Array(arr) => {
+                RV::Array(RVArray::from_vec(arr.into_iter().map(RV::from).collect()))
+            }
+            serde_json::Value::Object(obj) => {
+                let map = obj.into_iter().map(|(k, v)| (k, RV::from(v))).collect();
+                RV::Object(RVObject::from_map(map))
+            }
         }
     }
 }
@@ -165,8 +180,6 @@ impl<'v> RV<'v> {
                 Datatype::Callable(input, output)
             }
             RV::DateTime(_) => Datatype::DateTime,
-            RV::Document(_) => Datatype::Document,
-            RV::DocumentArray(_) => Datatype::DocumentArray,
             RV::Datatype(_) => Datatype::Datatype,
             RV::Undefined | RV::Null => Datatype::None,
         }
@@ -212,70 +225,6 @@ impl<'v> RV<'v> {
 impl<'v> Display for RV<'v> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
-    }
-}
-impl<'v> Serialize for RV<'v> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            RV::Str(s) => serializer.serialize_str(s),
-            RV::Double(n) => serializer.serialize_f64(*n),
-            RV::Int32(n) => serializer.serialize_i32(*n),
-            RV::Int64(n) => serializer.serialize_i64(*n),
-            RV::Decimal128(d) => serializer.serialize_str(&d.to_string()),
-            RV::DateTime(dt) => serializer.serialize_str(&dt.to_string()),
-            RV::Bool(b) => serializer.serialize_bool(*b),
-            RV::Undefined => serializer.serialize_none(),
-            RV::Null => serializer.serialize_none(),
-            RV::Array(arr) => {
-                let mut seq = serializer.serialize_seq(None).unwrap();
-                for item in arr.iter() {
-                    seq.serialize_element(&item)?;
-                }
-                seq.end()
-            }
-            RV::Object(obj) => {
-                let mut map = serializer.serialize_map(None).unwrap();
-                for (key, value) in obj.iter() {
-                    map.serialize_entry(&key, &value)?;
-                }
-                map.end()
-            }
-            RV::Document(doc) => todo!("Implement serialization for DocumentRef"),
-            RV::DocumentArray(arr) => todo!("Implement serialization for DocumentArrayRef"),
-            _ => serializer.serialize_none(),
-        }
-    }
-}
-
-impl<'de, 'v> Deserialize<'de> for RV<'v> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        match value {
-            serde_json::Value::String(s) => Ok(RV::Str(Arc::new(s))),
-            serde_json::Value::Number(n) => Ok(RV::Double(n.as_f64().unwrap())),
-            serde_json::Value::Bool(b) => Ok(RV::Bool(b)),
-            serde_json::Value::Array(arr) => {
-                let mut vec = vec![];
-                for item in arr {
-                    vec.push(serde_json::from_value(item).unwrap());
-                }
-                Ok(RV::Array(RVArray::from_vec(vec)))
-            }
-            serde_json::Value::Object(obj) => {
-                let mut map = IndexMap::default();
-                for (key, value) in obj {
-                    map.insert(key, serde_json::from_value(value).unwrap());
-                }
-                Ok(RV::Object(RVObject::from_map(map)))
-            }
-            serde_json::Value::Null => Ok(RV::Null),
-        }
     }
 }
 
@@ -425,8 +374,35 @@ impl<'v> ops::Div for RV<'v> {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexMap;
+    use proptest::prelude::*;
+
     use super::*;
     use std::sync::Arc;
+
+    const BSON_DATETIME_MIN_MILLIS: i64 = -62_167_219_200_000;
+    const BSON_DATETIME_MAX_MILLIS: i64 = 253_402_300_799_999;
+
+    fn decimal128_string_strategy() -> impl Strategy<Value = String> {
+        (any::<i64>(), 0u32..=18u32).prop_map(|(coefficient, scale)| {
+            if scale == 0 {
+                return coefficient.to_string();
+            }
+
+            let magnitude = coefficient.unsigned_abs();
+            let factor = 10u64.pow(scale);
+            let whole = magnitude / factor;
+            let fractional = magnitude % factor;
+            let sign = if coefficient < 0 { "-" } else { "" };
+
+            format!(
+                "{}{whole}.{:0width$}",
+                sign,
+                fractional,
+                width = scale as usize
+            )
+        })
+    }
 
     #[test]
     fn test_rv_as_bool() {
@@ -676,5 +652,207 @@ mod tests {
 
         // Should have 500 distinct hash buckets
         assert_eq!(groups.len(), 500);
+    }
+
+    proptest! {
+        #[test]
+        fn prop_rv_bson_roundtrip_bool(value in any::<bool>()) {
+            let rv = RV::Bool(value);
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+            prop_assert_eq!(decoded, RV::Bool(value));
+        }
+
+        #[test]
+        fn prop_rv_bson_roundtrip_int32(value in any::<i32>()) {
+            let rv = RV::Int32(value);
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::Int32(decoded_value) => prop_assert_eq!(decoded_value, value),
+                other => prop_assert!(false, "Expected RV::Int32, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_bson_roundtrip_int64(
+            value in any::<i64>().prop_filter("outside i32 range", |v| *v < i32::MIN as i64 || *v > i32::MAX as i64)
+        ) {
+            let rv = RV::Int64(value);
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::Int64(decoded_value) => prop_assert_eq!(decoded_value, value),
+                other => prop_assert!(false, "Expected RV::Int64, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_bson_roundtrip_double(value in any::<f64>().prop_filter("finite", |v| v.is_finite())) {
+            let rv = RV::Double(value);
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::Double(decoded_value) => prop_assert_eq!(decoded_value.to_bits(), value.to_bits()),
+                other => prop_assert!(false, "Expected RV::Double, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_bson_roundtrip_string(value in any::<String>()) {
+            let rv = RV::Str(Arc::new(value.clone()));
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+            prop_assert_eq!(decoded, RV::Str(Arc::new(value)));
+        }
+
+        #[test]
+        fn prop_rv_datetime_roundtrip(
+            timestamp_millis in BSON_DATETIME_MIN_MILLIS..=BSON_DATETIME_MAX_MILLIS
+        ) {
+            let rv = RV::DateTime(bson::DateTime::from_millis(timestamp_millis));
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::DateTime(date_time) => prop_assert_eq!(date_time.timestamp_millis(), timestamp_millis),
+                other => prop_assert!(false, "Expected RV::DateTime, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_decimal128_roundtrip(value in decimal128_string_strategy()) {
+            let decimal = value.parse::<bson::Decimal128>().unwrap();
+            let expected = decimal.to_string();
+            let rv = RV::Decimal128(decimal);
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::Decimal128(decoded_decimal) => {
+                    prop_assert_eq!(decoded_decimal.to_string(), expected);
+                }
+                other => prop_assert!(false, "Expected RV::Decimal128, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_datetime_roundtrip_preserves_distinct_values(
+            val in BSON_DATETIME_MIN_MILLIS..=BSON_DATETIME_MAX_MILLIS
+        ) {
+            let rv_val = RV::DateTime(bson::DateTime::from_millis(val));
+
+            let decoded_left: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv_val).unwrap()).unwrap();
+
+            match decoded_left {
+                RV::DateTime(date_time) => prop_assert_eq!(date_time.timestamp_millis(), val),
+                other => prop_assert!(false, "Expected RV::DateTime, got: {:?}", other),
+            }
+        }
+
+        #[test]
+        fn prop_rv_decimal128_zero_roundtrip(
+            bytes in Just([0u8; 16])
+        ) {
+            let rv = RV::Decimal128(bson::Decimal128::from_bytes(bytes));
+            let decoded: RV =
+                bson::deserialize_from_bson(bson::serialize_to_bson(&rv).unwrap()).unwrap();
+
+            match decoded {
+                RV::Decimal128(decimal) => prop_assert_eq!(decimal.bytes(), bytes),
+                other => prop_assert!(false, "Expected RV::Decimal128, got: {:?}", other),
+            }
+        }
+    }
+    
+    #[test]
+    fn test_rv_bson_roundtrip_array() {
+        let value = RV::Array(RVArray::from_vec(vec![
+            RV::Bool(true),
+            RV::Int32(1),
+            RV::Str(Arc::new("item".to_string())),
+        ]));
+
+        let encoded = bson::serialize_to_bson(&value).unwrap();
+        let decoded: RV = bson::deserialize_from_bson(encoded).unwrap();
+
+        match decoded {
+            RV::Array(arr) => {
+                assert_eq!(arr.len(), 3);
+                assert_eq!(arr.get(0), RV::Bool(true));
+                match arr.get(1) {
+                    RV::Int32(value) => assert_eq!(value, 1),
+                    other => panic!("Expected RV::Int32, got: {:?}", other),
+                }
+                assert_eq!(arr.get(2), RV::Str(Arc::new("item".to_string())));
+            }
+            _ => panic!("Expected RV::Array"),
+        }
+    }
+
+    #[test]
+    fn test_rv_bson_roundtrip_object() {
+        let mut map = IndexMap::default();
+        map.insert("x".to_string(), RV::Int32(99));
+        map.insert("y".to_string(), RV::Bool(false));
+        let value = RV::Object(RVObject::from_map(map));
+
+        let encoded = bson::serialize_to_bson(&value).unwrap();
+        let decoded: RV = bson::deserialize_from_bson(encoded).unwrap();
+
+        match decoded {
+            RV::Object(obj) => {
+                match obj.get("x") {
+                    Some(RV::Int32(value)) => assert_eq!(value, 99),
+                    other => panic!("Expected Some(RV::Int32(99)), got: {:?}", other),
+                }
+                assert_eq!(obj.get("y"), Some(RV::Bool(false)));
+                assert_eq!(obj.get("missing"), None);
+            }
+            _ => panic!("Expected RV::Object"),
+        }
+    }
+
+    #[test]
+    fn test_rv_bson_roundtrip_nested() {
+        let ts_ms = 1_700_000_000_000i64;
+        let decimal_bytes = [1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6, 10, 7, 9, 8, 0];
+
+        let nested = RV::Array(RVArray::from_vec(vec![
+            RV::DateTime(bson::DateTime::from_millis(ts_ms)),
+            RV::Decimal128(bson::Decimal128::from_bytes(decimal_bytes)),
+        ]));
+        let mut map = IndexMap::default();
+        map.insert("nested".to_string(), nested);
+        let value = RV::Object(RVObject::from_map(map));
+
+        let encoded = bson::serialize_to_bson(&value).unwrap();
+        let decoded: RV = bson::deserialize_from_bson(encoded).unwrap();
+
+        match decoded {
+            RV::Object(obj) => match obj.get("nested") {
+                Some(RV::Array(arr)) => {
+                    assert_eq!(arr.len(), 2);
+                    match arr.get(0) {
+                        RV::DateTime(date_time) => {
+                            assert_eq!(date_time.timestamp_millis(), ts_ms);
+                        }
+                        other => panic!("Expected RV::DateTime, got: {:?}", other),
+                    }
+                    match arr.get(1) {
+                        RV::Decimal128(decimal) => {
+                            assert_eq!(decimal.bytes(), decimal_bytes);
+                        }
+                        other => panic!("Expected RV::Decimal128, got: {:?}", other),
+                    }
+                }
+                _ => panic!("Expected nested array"),
+            },
+            _ => panic!("Expected RV::Object"),
+        }
     }
 }
