@@ -36,17 +36,6 @@ struct Snapshot {
     timestamp: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Estimates {
-    mean: Option<PointEstimate>,
-    median: Option<PointEstimate>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PointEstimate {
-    point_estimate: f64,
-}
-
 fn bench_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
@@ -156,11 +145,11 @@ fn list_snapshots() -> Result<()> {
     for entry in entries {
         let name = entry.file_name();
         let meta_path = entry.path().join("meta.json");
-        if let Ok(meta) = fs::read_to_string(meta_path) {
-            if let Ok(snapshot) = serde_json::from_str::<Snapshot>(&meta) {
-                println!("{} ({})", name.to_string_lossy(), snapshot.timestamp);
-                continue;
-            }
+        if let Ok(meta) = fs::read_to_string(meta_path)
+            && let Ok(snapshot) = serde_json::from_str::<Snapshot>(&meta)
+        {
+            println!("{} ({})", name.to_string_lossy(), snapshot.timestamp);
+            continue;
         }
         println!("{}", name.to_string_lossy());
     }

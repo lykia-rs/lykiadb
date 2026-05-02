@@ -9,7 +9,7 @@ use crate::{
 
 pub fn nt_of<'rv>(
     _interpreter: &mut Interpreter<'rv>,
-    called_from: &Span,
+    _called_from: &Span,
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     Ok(RV::Datatype(args[0].get_type()))

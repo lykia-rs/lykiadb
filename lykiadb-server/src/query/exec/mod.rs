@@ -75,7 +75,7 @@ impl<'v, 'q> PlanExecutor {
             Node::Filter {
                 source,
                 predicate,
-                subqueries,
+                subqueries: _,
             } => {
                 match predicate {
                     IntermediateExpr::Constant(ct) => {
@@ -149,7 +149,7 @@ impl<'v, 'q> PlanExecutor {
 
                 Ok(Box::from(iter))
             }
-            Node::EvalScan { source, filter } => match exec_ctx.eval(&source.expr) {
+            Node::EvalScan { source, filter: _ } => match exec_ctx.eval(&source.expr) {
                 Err(HaltReason::Error(err)) => Err(err),
                 Err(HaltReason::Return(value)) | Ok(value) => {
                     let alias = source.alias.to_owned();
@@ -188,10 +188,10 @@ impl<'v, 'q> PlanExecutor {
 
                 for row in cursor {
                     exec_ctx.push_row(&row);
-                    if let Err(e) = grouper.row() {
-                        if let HaltReason::Error(err) = e {
-                            return Err(err);
-                        }
+                    if let Err(e) = grouper.row()
+                        && let HaltReason::Error(err) = e
+                    {
+                        return Err(err);
                     }
                     exec_ctx.pop_row();
                 }
@@ -202,7 +202,7 @@ impl<'v, 'q> PlanExecutor {
             }
             Node::Join {
                 left,
-                join_type,
+                join_type: _,
                 right,
                 constraint,
             } => {
@@ -243,12 +243,15 @@ impl<'v, 'q> PlanExecutor {
 
                 Ok(Box::from(product))
             }
-            Node::Order { source, key } => todo!(),
-            Node::Scan { source, filter } => todo!(),
+            Node::Order { source: _, key: _ } => todo!(),
+            Node::Scan {
+                source: _,
+                filter: _,
+            } => todo!(),
             Node::Compound {
-                source,
-                operator,
-                right,
+                source: _,
+                operator: _,
+                right: _,
             } => todo!(),
             Node::Nothing => todo!(),
         }

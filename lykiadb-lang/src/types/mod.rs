@@ -1,7 +1,8 @@
 use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Datatype {
     Str,
     Double,

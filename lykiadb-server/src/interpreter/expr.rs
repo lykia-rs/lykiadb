@@ -274,7 +274,7 @@ impl<'sess> ExprEngine {
                 head,
                 tail,
                 span,
-                id,
+                id: _,
             } => {
                 let root = self.eval_variable(&head.name, e, state);
 

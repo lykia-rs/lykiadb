@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 pub fn nt_json_encode<'rv>(
     _interpreter: &mut Interpreter<'rv>,
-    called_from: &Span,
+    _called_from: &Span,
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     Ok(RV::Str(Arc::new(json!(args[0]).to_string())))
@@ -33,13 +33,13 @@ pub fn nt_json_decode<'rv>(
         }
     };
 
-    let parsed: RV = match serde_json::from_str(json_str) {
-        Ok(v) => v,
-        Err(e) => {
+    let parsed = match serde_json::from_str::<serde_json::Value>(json_str) {
+        Ok(v) => RV::from(v),
+        Err(_e) => {
             return Err(HaltReason::Error(
                 InterpretError::InvalidArgumentType {
                     span: *called_from,
-                    expected: "JSON".to_string(),
+                    expected: "A valid JSON string".to_string(),
                 }
                 .into(),
             ));

@@ -1,5 +1,8 @@
 use indexmap::IndexMap;
 use lykiadb_common::memory::{Shared, alloc_shared};
+use serde::de::MapAccess;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::value::RV;
 
@@ -72,5 +75,53 @@ impl<'v> RVObject<'v> {
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect::<Vec<_>>();
         Box::new(items.into_iter())
+    }
+}
+
+impl<'v> Serialize for RVObject<'v> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let map = self.inner.read().unwrap();
+        let mut s = serializer.serialize_map(Some(map.len()))?;
+        for (k, v) in map.iter() {
+            s.serialize_entry(k, v)?;
+        }
+        s.end()
+    }
+}
+
+struct RVObjectVisitor<'v> {
+    _phantom: std::marker::PhantomData<&'v ()>,
+}
+
+impl<'de, 'v> serde::de::Visitor<'de> for RVObjectVisitor<'v> {
+    type Value = RVObject<'v>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a map of RV values")
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut obj_map = IndexMap::default();
+        while let Some((key, value)) = map.next_entry::<String, RV>()? {
+            obj_map.insert(key, value);
+        }
+        Ok(RVObject::from_map(obj_map))
+    }
+}
+
+impl<'de, 'v> Deserialize<'de> for RVObject<'v> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(RVObjectVisitor {
+            _phantom: std::marker::PhantomData,
+        })
     }
 }
