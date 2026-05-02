@@ -36,16 +36,6 @@ struct Snapshot {
     timestamp: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Estimates {
-    mean: Option<PointEstimate>,
-    median: Option<PointEstimate>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PointEstimate {
-    point_estimate: f64,
-}
 
 fn bench_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
