@@ -1,5 +1,5 @@
-pub mod memory;
 pub mod error;
+pub mod memory;
 
 pub type IteratorItem = Result<(Vec<u8>, Vec<u8>), error::StoreError>;
 

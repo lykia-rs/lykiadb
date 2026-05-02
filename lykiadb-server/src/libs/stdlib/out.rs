@@ -8,7 +8,7 @@ use crate::{
 
 pub fn nt_print<'rv>(
     _interpreter: &mut Interpreter<'rv>,
-    called_from: &Span,
+    _called_from: &Span,
     args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     for arg in args {

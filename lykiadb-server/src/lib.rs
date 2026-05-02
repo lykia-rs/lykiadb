@@ -1,10 +1,10 @@
+pub mod engine;
 pub mod execution;
 pub mod interpreter;
 pub mod libs;
 pub mod query;
-pub mod value;
 pub mod store;
-pub mod engine;
+pub mod value;
 
 #[macro_export]
 macro_rules! register_tests {

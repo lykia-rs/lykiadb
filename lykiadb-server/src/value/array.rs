@@ -63,7 +63,6 @@ impl<'v> RVArray<'v> {
     }
 }
 
-
 impl<'v> Serialize for RVArray<'v> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

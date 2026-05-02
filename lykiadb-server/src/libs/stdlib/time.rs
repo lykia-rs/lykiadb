@@ -7,7 +7,7 @@ use std::time;
 
 pub fn nt_clock<'rv>(
     _interpreter: &mut Interpreter<'rv>,
-    called_from: &Span,
+    _called_from: &Span,
     _args: &[RV<'rv>],
 ) -> Result<RV<'rv>, HaltReason<'rv>> {
     if let Ok(n) = time::SystemTime::now().duration_since(time::UNIX_EPOCH) {

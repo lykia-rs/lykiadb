@@ -27,7 +27,7 @@ pub struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn create(tokens: &Vec<Token>) -> Parser {
+    pub fn create(tokens: &'_ Vec<Token>) -> Parser<'_> {
         Parser {
             tokens,
             expr_id: 0,

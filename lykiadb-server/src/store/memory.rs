@@ -1,9 +1,18 @@
-use std::{collections::{BTreeMap, btree_map::Range}, ops::{RangeFull}};
+use std::{
+    collections::{BTreeMap, btree_map::Range},
+    ops::RangeFull,
+};
 
 use crate::store::{Store, error::StoreError};
 
 pub struct MemoryStore {
     data: BTreeMap<Vec<u8>, Vec<u8>>,
+}
+
+impl Default for MemoryStore {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MemoryStore {

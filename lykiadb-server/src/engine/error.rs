@@ -9,9 +9,8 @@ pub enum EngineError {
 
 impl From<EngineError> for InputError {
     fn from(value: EngineError) -> Self {
-        let hint= match &value {
-            EngineError::InvalidValue => 
-                "Ensure the value is a valid object",
+        let hint = match &value {
+            EngineError::InvalidValue => "Ensure the value is a valid object",
         };
 
         InputError::new(&value.to_string(), hint, None)

@@ -2,16 +2,24 @@ pub mod error;
 
 use std::iter::Filter;
 
-use crate::{engine::error::EngineError, execution::error::ExecutionError, store::{IteratorItem, Store, memory::{MemoryScanIterator, MemoryStore}}, value::RV};
+use crate::{
+    engine::error::EngineError,
+    execution::error::ExecutionError,
+    store::{
+        IteratorItem, Store,
+        memory::{MemoryScanIterator, MemoryStore},
+    },
+    value::RV,
+};
 
 pub struct StoreId(String);
 
 pub struct Catalog<S: for<'a> Store<'a>> {
-    store: S
+    store: S,
 }
 
 pub struct Engine<S: for<'a> Store<'a>> {
-    catalog: Catalog<S>
+    catalog: Catalog<S>,
 }
 
 fn encode_key(sid: &StoreId, key: &str) -> Vec<u8> {
@@ -20,12 +28,18 @@ fn encode_key(sid: &StoreId, key: &str) -> Vec<u8> {
     k.into_bytes()
 }
 
+impl Default for Engine<MemoryStore> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Engine<MemoryStore> {
     pub fn new() -> Self {
         Engine {
             catalog: Catalog {
                 store: MemoryStore::new(),
-            }
+            },
         }
     }
 }
@@ -33,24 +47,31 @@ impl Engine<MemoryStore> {
 impl Engine<MemoryStore> {
     pub fn get(&'_ self, sid: &StoreId, key: &str) -> Option<RV<'_>> {
         let encoded_key = encode_key(sid, key);
-        self.catalog.store.get(&encoded_key).map(|value| bson::deserialize_from_slice(&value).unwrap())
+        self.catalog
+            .store
+            .get(&encoded_key)
+            .map(|value| bson::deserialize_from_slice(&value).unwrap())
     }
     pub fn set(&mut self, sid: &StoreId, key: &str, value: RV<'_>) -> Result<(), ExecutionError> {
-
         if !value.is_object() {
             return Err(ExecutionError::Engine(EngineError::InvalidValue));
         }
 
         let encoded_key = encode_key(sid, key);
-        self.catalog.store.set(&encoded_key, bson::serialize_to_vec(&value).unwrap());
-        
+        self.catalog
+            .store
+            .set(&encoded_key, bson::serialize_to_vec(&value).unwrap());
+
         Ok(())
     }
     pub fn delete(&mut self, sid: &StoreId, key: &str) {
         let encoded_key = encode_key(sid, key);
         self.catalog.store.delete(&encoded_key);
     }
-    pub fn scan(&'_ self, sid: &StoreId) -> Filter<MemoryScanIterator<'_>, impl FnMut(&IteratorItem) -> bool + '_> {
+    pub fn scan(
+        &'_ self,
+        sid: &StoreId,
+    ) -> Filter<MemoryScanIterator<'_>, impl FnMut(&IteratorItem) -> bool + '_> {
         let prefix: Vec<u8> = sid.0.clone().into_bytes();
         self.catalog.store.scan().filter(move |res| {
             if let Ok((k, _)) = res {
@@ -68,9 +89,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        engine::error::EngineError,
-        execution::error::ExecutionError,
-        value::object::RVObject,
+        engine::error::EngineError, execution::error::ExecutionError, value::object::RVObject,
     };
 
     fn make_engine() -> Engine<MemoryStore> {
@@ -148,7 +167,11 @@ mod tests {
         // Insert in non-alphabetical order; BTreeMap will return them sorted
         for key in ["gamma", "alpha", "beta"] {
             engine
-                .set(&sid, key, make_object(&[("k", RV::Str(Arc::new(key.to_string())))]))
+                .set(
+                    &sid,
+                    key,
+                    make_object(&[("k", RV::Str(Arc::new(key.to_string())))]),
+                )
                 .unwrap();
         }
         let prefix_len = sid.0.len();

@@ -8,7 +8,6 @@ use std::fmt::Display;
 use std::ops;
 use std::sync::Arc;
 
-
 pub mod array;
 pub mod callable;
 pub mod document;
@@ -772,7 +771,7 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn test_rv_bson_roundtrip_array() {
         let value = RV::Array(RVArray::from_vec(vec![

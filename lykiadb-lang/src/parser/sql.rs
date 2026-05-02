@@ -453,15 +453,15 @@ impl SqlParser {
             cparser.expect(&sym!(RightParen))?;
             Ok(parsed)
         } else if let Some(collection) = self.sql_collection_identifier(cparser)? {
-            return Ok(SqlFrom::Source(SqlSource::Collection(collection)));
+            Ok(SqlFrom::Source(SqlSource::Collection(collection)))
         } else {
             let expr = cparser.consume_expr()?;
             cparser.expect(&skw!(As))?;
             let identifier = cparser.expect(&Identifier { dollar: false })?.clone();
-            return Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
+            Ok(SqlFrom::Source(SqlSource::Expr(SqlExpressionSource {
                 expr,
                 alias: identifier.extract_identifier()?,
-            })));
+            })))
         }
     }
 }

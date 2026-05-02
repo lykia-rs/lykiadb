@@ -71,7 +71,7 @@ impl Shell {
                 "{} (took {time:?})",
                 serde_json::to_string_pretty(&bson).unwrap()
             ),
-            Message::Response(Response::Error(err, time)) => {
+            Message::Response(Response::Error(err, _time)) => {
                 err.report(filename, content, &mut stdout());
             }
             _ => panic!(""),
