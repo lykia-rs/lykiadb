@@ -1,8 +1,11 @@
 pub mod memory;
 pub mod error;
-pub trait StoreScanIterator<'a>: Iterator<Item = Result<(Vec<u8>, Vec<u8>), error::StoreError>> + 'a {}
 
-impl<'a, I: Iterator<Item = Result<(Vec<u8>, Vec<u8>), error::StoreError>> + 'a> StoreScanIterator<'a> for I {}
+pub type IteratorItem = Result<(Vec<u8>, Vec<u8>), error::StoreError>;
+
+pub trait StoreScanIterator<'a>: Iterator<Item = IteratorItem> + 'a {}
+
+impl<'a, I: Iterator<Item = IteratorItem> + 'a> StoreScanIterator<'a> for I {}
 
 pub trait Store<'a> {
     type ScanIterator: StoreScanIterator<'a>;

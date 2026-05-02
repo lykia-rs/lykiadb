@@ -192,6 +192,10 @@ impl<'v> RV<'v> {
         }
     }
 
+    pub fn is_object(&self) -> bool {
+        matches!(self, RV::Object(_))
+    }
+
     pub fn eq_any_bool(&self, b: bool) -> bool {
         self.to_bool() == b
     }
