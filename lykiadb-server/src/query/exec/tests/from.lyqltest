@@ -1,9 +1,9 @@
 @group from {
 
     @test simple_array {
-        out::print(select item from [1, 2, 3] as item);
+        select item from [1, 2, 3] as item;
 
-        @expect output {
+        @expect {
           [
             {
               "item": 1.0
@@ -19,9 +19,9 @@
     }
 
     @test single_element {
-        out::print(select x from [42] as x);
+        select x from [42] as x;
 
-        @expect output {
+        @expect {
           [
             {
               "x": 42.0
@@ -31,17 +31,17 @@
     }
 
     @test empty_array {
-        out::print(select item from [] as item);
+        select item from [] as item;
 
-        @expect output {
+        @expect {
             []
         }
     }
 
     @test select_all_fields {
-        out::print(select * from [1, 2, 3] as nums);
+        select * from [1, 2, 3] as nums;
 
-        @expect output {
+        @expect {
           [
             {
               "nums": 1.0
@@ -57,9 +57,9 @@
     }
 
     @test subquery {
-        out::print(select u.item from (select item from [1, 2, 3] as item) u);
+        select u.item from (select item from [1, 2, 3] as item) u;
 
-        @expect output {
+        @expect {
           [
             {
               "u.item": 1.0

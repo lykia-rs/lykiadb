@@ -1,9 +1,9 @@
 @group projection {
 
     @test multiply {
-        out::print(select item * 2 as doubled from [1, 2, 3] as item);
+        select item * 2 as doubled from [1, 2, 3] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "doubled": 2.0
@@ -19,9 +19,9 @@
     }
 
     @test add_constant {
-        out::print(select item + 10 as shifted from [1, 2, 3] as item);
+        select item + 10 as shifted from [1, 2, 3] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "shifted": 11.0
@@ -37,9 +37,9 @@
     }
 
     @test rename {
-        out::print(select item as value from [10, 20, 30] as item);
+        select item as value from [10, 20, 30] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "value": 10.0
@@ -55,9 +55,9 @@
     }
 
     @test constant_expr {
-        out::print(select 5 + 5 as ten from [1] as item);
+        select 5 + 5 as ten from [1] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "ten": 10.0
@@ -67,9 +67,9 @@
     }
 
     @test multiple_fields {
-        out::print(select item as original, item * item as squared from [1, 2, 3, 4] as item);
+        select item as original, item * item as squared from [1, 2, 3, 4] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "original": 1.0,

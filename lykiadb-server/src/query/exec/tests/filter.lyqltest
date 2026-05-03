@@ -1,9 +1,9 @@
 @group filter {
 
     @test greater_than {
-        out::print(select item from [1, 2, 3, 4, 5] as item where item > 3);
+        select item from [1, 2, 3, 4, 5] as item where item > 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 4.0
@@ -16,9 +16,9 @@
     }
 
     @test less_than {
-        out::print(select item from [1, 2, 3, 4, 5] as item where item < 3);
+        select item from [1, 2, 3, 4, 5] as item where item < 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 1.0
@@ -31,9 +31,9 @@
     }
 
     @test equality {
-        out::print(select item from [1, 2, 3, 4, 5] as item where item = 3);
+        select item from [1, 2, 3, 4, 5] as item where item = 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 3.0
@@ -43,9 +43,9 @@
     }
 
     @test and_condition {
-        out::print(select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 3 and item < 7);
+        select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 3 and item < 7;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 4.0
@@ -61,17 +61,17 @@
     }
 
     @test no_match {
-        out::print(select item from [1, 2, 3] as item where item > 10);
+        select item from [1, 2, 3] as item where item > 10;
 
-        @expect output {
+        @expect {
             []
         }
     }
 
     @test filter_then_project {
-        out::print(select item * 2 as doubled from [1, 2, 3, 4, 5] as item where item > 3);
+        select item * 2 as doubled from [1, 2, 3, 4, 5] as item where item > 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "doubled": 8.0
