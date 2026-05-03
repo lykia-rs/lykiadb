@@ -8,6 +8,7 @@ use crate::value::RV;
 
 #[derive(Debug, Clone)]
 pub struct RVObject<'v> {
+    // TODO: Make this lock-free
     inner: Shared<IndexMap<String, RV<'v>>>,
 }
 

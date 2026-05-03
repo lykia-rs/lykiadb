@@ -10,7 +10,6 @@ use std::sync::Arc;
 
 pub mod array;
 pub mod callable;
-pub mod document;
 pub mod eval;
 pub mod iterator;
 pub mod object;
