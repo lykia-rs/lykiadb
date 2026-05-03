@@ -18,11 +18,11 @@
 
           {
               var $b = $buckets($s, $m);
-              out::print(select $dbl(buckets.m) as m, buckets.a as a from $b as buckets);
+              return select $dbl(buckets.m) as m, buckets.a as a from $b as buckets;
           }
         }
         
-        @expect output {
+        @expect {
             [
               {
                 "m": 0.0,

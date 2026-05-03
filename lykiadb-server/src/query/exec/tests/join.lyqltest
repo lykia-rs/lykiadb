@@ -1,14 +1,14 @@
 @group join {
     @test eval_scan_join_truthy_condition {
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
               [10, 100, 1000] AS e
               ON 1 = 1
-            ));
+            );
 
-        @expect output {
+        @expect {
           [
             {
               "m": 10.0
@@ -40,44 +40,15 @@
           ]
         }
 
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
               [10, 100, 1000] AS e
               ON true
-            ));
+            );
 
-        @expect output {
-          [
-            {
-              "m": 10.0
-            },
-            {
-              "m": 100.0
-            },
-            {
-              "m": 1000.0
-            },
-            {
-              "m": 20.0
-            },
-            {
-              "m": 200.0
-            },
-            {
-              "m": 2000.0
-            },
-            {
-              "m": 30.0
-            },
-            {
-              "m": 300.0
-            },
-            {
-              "m": 3000.0
-            }
-          ]
+        @expect {
           [
             {
               "m": 10.0
@@ -109,72 +80,14 @@
           ]
         }
 
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               CROSS JOIN
               [10, 100, 1000] AS e
-            ));
+            );
 
-        @expect output {
-          [
-            {
-              "m": 10.0
-            },
-            {
-              "m": 100.0
-            },
-            {
-              "m": 1000.0
-            },
-            {
-              "m": 20.0
-            },
-            {
-              "m": 200.0
-            },
-            {
-              "m": 2000.0
-            },
-            {
-              "m": 30.0
-            },
-            {
-              "m": 300.0
-            },
-            {
-              "m": 3000.0
-            }
-          ]
-          [
-            {
-              "m": 10.0
-            },
-            {
-              "m": 100.0
-            },
-            {
-              "m": 1000.0
-            },
-            {
-              "m": 20.0
-            },
-            {
-              "m": 200.0
-            },
-            {
-              "m": 2000.0
-            },
-            {
-              "m": 30.0
-            },
-            {
-              "m": 300.0
-            },
-            {
-              "m": 3000.0
-            }
-          ]
+        @expect  {
           [
             {
               "m": 10.0
@@ -208,42 +121,41 @@
     }
 
     @test eval_scan_join_falsy_condition {
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
               [10, 100, 1000] AS e
               ON 1 = 0
-            ));
+            );
 
-        @expect output {
+        @expect {
           []
         }
 
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
               [10, 100, 1000] AS e
               ON false
-            ));
+            );
 
-        @expect output {
-          []
+        @expect {
           []
         }
     }
 
     @test eval_scan_join_condition {
-        out::print(SELECT c * e as m FROM
+        SELECT c * e as m FROM
             (
               [1, 2, 3] AS c
               INNER JOIN
               [10, 100, 1000] AS e
               ON c * e > 100
-            ));
+            );
 
-        @expect output {
+        @expect {
           [
             {
               "m": 1000.0
