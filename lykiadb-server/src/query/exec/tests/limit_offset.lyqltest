@@ -1,9 +1,9 @@
 @group limit_offset {
 
     @test limit_only {
-        out::print(select item from [1, 2, 3, 4, 5] as item limit 3);
+        select item from [1, 2, 3, 4, 5] as item limit 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 1.0
@@ -19,9 +19,9 @@
     }
 
     @test limit_with_offset {
-        out::print(select item from [1, 2, 3, 4, 5] as item limit 2 offset 2);
+        select item from [1, 2, 3, 4, 5] as item limit 2 offset 2;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 3.0
@@ -34,17 +34,17 @@
     }
 
     @test limit_zero {
-        out::print(select item from [1, 2, 3] as item limit 0);
+        select item from [1, 2, 3] as item limit 0;
 
-        @expect output {
+        @expect {
             []
         }
     }
 
     @test limit_exceeds_count {
-        out::print(select item from [1, 2, 3] as item limit 10);
+        select item from [1, 2, 3] as item limit 10;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 1.0
@@ -60,9 +60,9 @@
     }
 
     @test limit_with_filter {
-        out::print(select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 4 limit 3);
+        select item from [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as item where item > 4 limit 3;
 
-        @expect output {
+        @expect {
             [
               {
                 "item": 5.0

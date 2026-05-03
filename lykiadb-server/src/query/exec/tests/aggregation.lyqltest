@@ -1,9 +1,9 @@
 @group aggregation {
 
     @test sum_all {
-        out::print(select sum(item) as total from [1, 2, 3, 4, 5] as item);
+        select sum(item) as total from [1, 2, 3, 4, 5] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "total": 15.0
@@ -13,9 +13,9 @@
     }
 
     @test count_all {
-        out::print(select count(item) as cnt from [1, 2, 3, 4, 5, 6] as item);
+        select count(item) as cnt from [1, 2, 3, 4, 5, 6] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "cnt": 6.0
@@ -25,9 +25,9 @@
     }
 
     @test avg_all {
-        out::print(select avg(item) as mean from [10, 20, 30] as item);
+        select avg(item) as mean from [10, 20, 30] as item;
 
-        @expect output {
+        @expect {
             [
               {
                 "mean": 20.0
@@ -38,9 +38,9 @@
 
     @test group_by_bucket {
         var $data = arr::new(9);
-        out::print(select col_0 as bucket, count(item) as cnt from $data as item group by mod(item, 3));
+        select col_0 as bucket, count(item) as cnt from $data as item group by mod(item, 3);
 
-        @expect output {
+        @expect {
             [
               {
                 "bucket": 0.0,
@@ -60,13 +60,13 @@
 
     @test having_clause {
         var $data = arr::new(10);
-        out::print(select col_0 as bucket, sum(item) as total from $data as item group by mod(item, 2) having sum(item) > 20);
+        select col_0 as bucket, sum(item) as total from $data as item group by mod(item, 2) having sum(item) > 20;
 
         // Two buckets exist:
         // [{bucket: 0, total: 20}, {bucket: 1, total: 25}]
         // But only the second one satisfies the HAVING condition, so only it is returned.
 
-        @expect output {
+        @expect {
             [
               {
                 "bucket": 1.0,

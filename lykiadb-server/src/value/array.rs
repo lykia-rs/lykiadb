@@ -5,6 +5,7 @@ use crate::value::RV;
 
 #[derive(Debug, Clone)]
 pub struct RVArray<'v> {
+    // TODO: Make this lock-free
     inner: Shared<Vec<RV<'v>>>,
 }
 
