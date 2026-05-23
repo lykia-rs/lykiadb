@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use crate::{
-    engine::error::EngineError,
+    storage::error::EngineError,
     interpreter::{environment::EnvironmentError, error::InterpretError},
     query::plan::error::PlannerError,
 };

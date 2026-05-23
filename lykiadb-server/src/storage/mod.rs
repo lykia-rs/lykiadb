@@ -1,13 +1,13 @@
 pub mod error;
+mod engines;
 
 use std::{borrow::Cow, iter::Filter};
-
 use bson::oid::ObjectId;
 
 use crate::{
-    engine::error::EngineError,
+    storage::error::EngineError,
     execution::error::ExecutionError,
-    store::{
+    storage::engines::{
         IteratorItem, Store,
         memory::{MemoryScanIterator, MemoryStore},
     },
@@ -104,7 +104,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        engine::error::EngineError, execution::error::ExecutionError, value::object::RVObject,
+        storage::error::EngineError, execution::error::ExecutionError, value::object::RVObject,
     };
 
     fn make_engine() -> Engine<MemoryStore> {
