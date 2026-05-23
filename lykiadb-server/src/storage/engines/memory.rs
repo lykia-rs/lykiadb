@@ -3,21 +3,21 @@ use std::{
     ops::RangeFull,
 };
 
-use crate::storage::{Store, engines::error::StoreError};
+use crate::storage::{StorageEngine, engines::error::StorageEngineError};
 
-pub struct MemoryStore {
+pub struct MemoryStorageEngine {
     data: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
-impl Default for MemoryStore {
+impl Default for MemoryStorageEngine {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MemoryStore {
+impl MemoryStorageEngine {
     pub fn new() -> Self {
-        MemoryStore {
+        MemoryStorageEngine {
             data: BTreeMap::new(),
         }
     }
@@ -26,14 +26,14 @@ impl MemoryStore {
 pub struct MemoryScanIterator<'a>(Range<'a, Vec<u8>, Vec<u8>>);
 
 impl Iterator for MemoryScanIterator<'_> {
-    type Item = Result<(Vec<u8>, Vec<u8>), StoreError>;
+    type Item = Result<(Vec<u8>, Vec<u8>), StorageEngineError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|(k, v)| Ok((k.clone(), v.clone())))
     }
 }
 
-impl<'a> Store<'a> for MemoryStore {
+impl<'a> StorageEngine<'a> for MemoryStorageEngine {
     type ScanIterator = MemoryScanIterator<'a>;
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
@@ -57,8 +57,8 @@ impl<'a> Store<'a> for MemoryStore {
 mod tests {
     use super::*;
 
-    fn make_store() -> MemoryStore {
-        MemoryStore::new()
+    fn make_store() -> MemoryStorageEngine {
+        MemoryStorageEngine::new()
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use crate::{
-    storage::error::EngineError,
+    storage::error::StorageError,
     interpreter::{environment::EnvironmentError, error::InterpretError},
     query::plan::error::PlannerError,
 };
@@ -16,7 +16,7 @@ pub enum ExecutionError {
     Interpret(InterpretError),
     Environment(EnvironmentError),
     Plan(PlannerError),
-    Engine(EngineError),
+    Engine(StorageError),
 }
 
 impl Display for ExecutionError {

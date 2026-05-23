@@ -5,11 +5,11 @@ use std::{borrow::Cow, iter::Filter};
 use bson::oid::ObjectId;
 
 use crate::{
-    storage::error::EngineError,
+    storage::error::StorageError,
     execution::error::ExecutionError,
     storage::engines::{
-        IteratorItem, Store,
-        memory::{MemoryScanIterator, MemoryStore},
+        IteratorItem, StorageEngine,
+        memory::{MemoryScanIterator, MemoryStorageEngine},
     },
     value::RV,
 };
@@ -33,31 +33,31 @@ impl<'a> Key<'a> {
     }
 }
 
-pub struct Catalog<S: for<'a> Store<'a>> {
+pub struct Catalog<S: for<'a> StorageEngine<'a>> {
     store: S,
 }
 
-pub struct Engine<S: for<'a> Store<'a>> {
+pub struct Storage<S: for<'a> StorageEngine<'a>> {
     catalog: Catalog<S>,
 }
 
-impl Default for Engine<MemoryStore> {
+impl Default for Storage<MemoryStorageEngine> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Engine<MemoryStore> {
+impl Storage<MemoryStorageEngine> {
     pub fn new() -> Self {
-        Engine {
+        Storage {
             catalog: Catalog {
-                store: MemoryStore::new(),
+                store: MemoryStorageEngine::new(),
             },
         }
     }
 }
 
-impl Engine<MemoryStore> {
+impl Storage<MemoryStorageEngine> {
     pub fn get(&'_ self, key: Key<'_>) -> Option<RV<'_>> {
         let encoded_key = key.encode();
         self.catalog
@@ -67,7 +67,7 @@ impl Engine<MemoryStore> {
     }
     pub fn set(&mut self, key: Key<'_>, value: RV<'_>) -> Result<(), ExecutionError> {
         if !value.is_object() {
-            return Err(ExecutionError::Engine(EngineError::InvalidValue));
+            return Err(ExecutionError::Engine(StorageError::InvalidValue));
         }
 
         let encoded_key = key.encode();
@@ -104,11 +104,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        storage::error::EngineError, execution::error::ExecutionError, value::object::RVObject,
+        storage::error::StorageError, execution::error::ExecutionError, value::object::RVObject,
     };
 
-    fn make_engine() -> Engine<MemoryStore> {
-        Engine::new()
+    fn make_engine() -> Storage<MemoryStorageEngine> {
+        Storage::new()
     }
 
     fn make_object(fields: &[(&str, RV<'static>)]) -> RV<'static> {
@@ -164,7 +164,7 @@ mod tests {
                     Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)),
                     value.clone()
                 ),
-                Err(ExecutionError::Engine(EngineError::InvalidValue))
+                Err(ExecutionError::Engine(StorageError::InvalidValue))
             );
         }
     }
