@@ -1,18 +1,14 @@
 pub mod error;
 mod engines;
 
-use std::{borrow::Cow, iter::Filter};
+use std::borrow::Cow;
 use bson::oid::ObjectId;
 
 use crate::{
-    storage::error::StorageError,
-    execution::error::ExecutionError,
-    storage::engines::{
-        IteratorItem, StorageEngine,
-        memory::{MemoryScanIterator, MemoryStorageEngine},
-    },
-    value::RV,
+    execution::error::ExecutionError, storage::{engines::{StorageEngine, memory::MemoryStorageEngine}, error::StorageError}, value::RV
 };
+
+pub type StorageIteratorItem<'a> = Result<(Vec<u8>, RV<'a>), error::StorageError>;
 
 pub enum Key<'a> {
     Collection(Cow<'a, str>),
@@ -33,12 +29,8 @@ impl<'a> Key<'a> {
     }
 }
 
-pub struct Catalog<S: for<'a> StorageEngine<'a>> {
-    store: S,
-}
-
 pub struct Storage<S: for<'a> StorageEngine<'a>> {
-    catalog: Catalog<S>,
+    engine: S,
 }
 
 impl Default for Storage<MemoryStorageEngine> {
@@ -50,48 +42,50 @@ impl Default for Storage<MemoryStorageEngine> {
 impl Storage<MemoryStorageEngine> {
     pub fn new() -> Self {
         Storage {
-            catalog: Catalog {
-                store: MemoryStorageEngine::new(),
-            },
+            engine: MemoryStorageEngine::new(),
         }
     }
 }
 
-impl Storage<MemoryStorageEngine> {
+impl<S: for<'a> StorageEngine<'a>> Storage<S> {
     pub fn get(&'_ self, key: Key<'_>) -> Option<RV<'_>> {
         let encoded_key = key.encode();
-        self.catalog
-            .store
+        self.engine
             .get(&encoded_key)
             .map(|value| bson::deserialize_from_slice(&value).unwrap())
     }
     pub fn set(&mut self, key: Key<'_>, value: RV<'_>) -> Result<(), ExecutionError> {
         if !value.is_object() {
-            return Err(ExecutionError::Engine(StorageError::InvalidValue));
+            return Err(ExecutionError::Storage(StorageError::InvalidValue));
         }
 
         let encoded_key = key.encode();
-        self.catalog
-            .store
+        self.engine
             .set(&encoded_key, bson::serialize_to_vec(&value).unwrap());
 
         Ok(())
     }
     pub fn delete(&mut self, key: Key<'_>) {
         let encoded_key = key.encode();
-        self.catalog.store.delete(&encoded_key);
+        self.engine.delete(&encoded_key);
     }
     pub fn scan(
-        &'_ self,
+        &self,
         key: Key<'_>,
-    ) -> Filter<MemoryScanIterator<'_>, impl FnMut(&IteratorItem) -> bool + '_> {
+    ) -> impl Iterator<Item = StorageIteratorItem<'_>> + '_ {
         let prefix: Vec<u8> = key.encode();
-        self.catalog.store.scan().filter(move |res| {
+        self.engine.scan().filter(move |res| {
             if let Ok((k, _)) = res {
                 k.starts_with(&prefix)
             } else {
                 false
             }
+        })
+        .map(|res| {
+            res.map(|(k, v)| {
+                let value: RV = bson::deserialize_from_slice(&v).unwrap();
+                Ok((k, value))
+            }).unwrap_or_else(|e| Err(StorageError::Engine(e)))
         })
     }
 }
@@ -107,7 +101,7 @@ mod tests {
         storage::error::StorageError, execution::error::ExecutionError, value::object::RVObject,
     };
 
-    fn make_engine() -> Storage<MemoryStorageEngine> {
+    fn make_storage() -> Storage<MemoryStorageEngine> {
         Storage::new()
     }
 
@@ -121,24 +115,24 @@ mod tests {
 
     #[test]
     fn test_get_missing_key_returns_none() {
-        let engine = make_engine();
+        let storage = make_storage();
         let id = ObjectId::new();
-        assert!(engine
+        assert!(storage
             .get(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)))
             .is_none());
     }
 
     #[test]
     fn test_set_and_get_returns_object_with_correct_fields() {
-        let mut engine = make_engine();
+        let mut storage = make_storage();
         let id = ObjectId::new();
-        engine
+        storage
             .set(
                 Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)),
                 make_object(&[("x", RV::Int32(42))]),
             )
             .unwrap();
-        let rv = engine
+        let rv = storage
             .get(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)))
             .unwrap();
         assert!(rv.is_object());
@@ -148,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_set_non_object_returns_invalid_value_error() {
-        let mut engine = make_engine();
+        let mut storage = make_storage();
         let id = ObjectId::new();
         let non_objects: &[RV<'static>] = &[
             RV::Null,
@@ -160,56 +154,57 @@ mod tests {
         ];
         for value in non_objects {
             assert_eq!(
-                engine.set(
+                storage.set(
                     Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)),
                     value.clone()
                 ),
-                Err(ExecutionError::Engine(StorageError::InvalidValue))
+                Err(ExecutionError::Storage(StorageError::InvalidValue))
             );
         }
     }
 
     #[test]
     fn test_delete_removes_document() {
-        let mut engine = make_engine();
+        let mut storage = make_storage();
         let id = ObjectId::new();
-        engine
+        storage
             .set(
                 Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)),
                 make_object(&[("flag", RV::Bool(true))]),
             )
             .unwrap();
-        assert!(engine
+        assert!(storage
             .get(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)))
             .is_some());
-        engine.delete(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)));
-        assert!(engine
+        storage.delete(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)));
+        assert!(storage
             .get(Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)))
             .is_none());
     }
 
     #[test]
     fn test_scan_returns_docs_in_sorted_key_order() {
-        let mut engine = make_engine();
+        let mut storage = make_storage();
         // Use fixed bytes so the hex-encoded sort order is deterministic
         let id1 = ObjectId::from_bytes([0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         let id2 = ObjectId::from_bytes([0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         let id3 = ObjectId::from_bytes([0x03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         // Insert in non-sorted order; BTreeMap will return them sorted by encoded key
         for id in [id3, id1, id2] {
-            engine
+            storage
                 .set(
                     Key::Document(Cow::Borrowed("ns"), Cow::Owned(id)),
-                    make_object(&[("k", RV::Int32(id.bytes()[0] as i32))]),
+                    make_object(&[("k", RV::Str(id.to_string().into()))]),
                 )
                 .unwrap();
         }
         let prefix_len = "ns:".len();
-        let ids_returned: Vec<ObjectId> = engine
+        let ids_returned: Vec<ObjectId> = storage
             .scan(Key::Collection(Cow::Borrowed("ns")))
             .map(|r| {
-                let (k, _) = r.unwrap();
+                let (k, v) = r.unwrap();
                 let id_str = String::from_utf8(k[prefix_len..].to_vec()).unwrap();
+                assert_eq!(v.extract_object().unwrap().get("k"), Some(RV::Str(id_str.clone().into())));
                 ObjectId::parse_str(&id_str).unwrap()
             })
             .collect();
@@ -218,34 +213,34 @@ mod tests {
 
     #[test]
     fn test_scan_does_not_return_other_namespace_docs() {
-        let mut engine = make_engine();
+        let mut storage = make_storage();
         let id1 = ObjectId::new();
         let id2 = ObjectId::new();
         let id3 = ObjectId::new();
-        engine
+        storage
             .set(
                 Key::Document(Cow::Borrowed("ns1"), Cow::Owned(id1)),
                 make_object(&[("id", RV::Int32(1))]),
             )
             .unwrap();
-        engine
+        storage
             .set(
                 Key::Document(Cow::Borrowed("ns1"), Cow::Owned(id2)),
                 make_object(&[("id", RV::Int32(2))]),
             )
             .unwrap();
-        engine
+        storage
             .set(
                 Key::Document(Cow::Borrowed("ns2"), Cow::Owned(id3)),
                 make_object(&[("id", RV::Int32(3))]),
             )
             .unwrap();
         assert_eq!(
-            engine.scan(Key::Collection(Cow::Borrowed("ns1"))).count(),
+            storage.scan(Key::Collection(Cow::Borrowed("ns1"))).count(),
             2
         );
         assert_eq!(
-            engine.scan(Key::Collection(Cow::Borrowed("ns2"))).count(),
+            storage.scan(Key::Collection(Cow::Borrowed("ns2"))).count(),
             1
         );
     }

@@ -16,7 +16,7 @@ pub enum ExecutionError {
     Interpret(InterpretError),
     Environment(EnvironmentError),
     Plan(PlannerError),
-    Engine(StorageError),
+    Storage(StorageError),
 }
 
 impl Display for ExecutionError {
@@ -32,7 +32,7 @@ impl ExecutionError {
             ExecutionError::Interpret(interpret_error) => interpret_error.into(),
             ExecutionError::Plan(planner_error) => planner_error.into(),
             ExecutionError::Environment(env_error) => env_error.into(),
-            ExecutionError::Engine(engine_error) => engine_error.into(),
+            ExecutionError::Storage(storage_error) => storage_error.into(),
         }
     }
 }
