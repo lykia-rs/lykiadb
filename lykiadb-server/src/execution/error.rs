@@ -1,9 +1,7 @@
 use std::fmt::{Display, Formatter, Result};
 
 use crate::{
-    storage::error::StorageError,
-    interpreter::{environment::EnvironmentError, error::InterpretError},
-    query::plan::error::PlannerError,
+    database::error::DatabaseError, interpreter::{environment::EnvironmentError, error::InterpretError}, query::plan::error::PlannerError, storage::error::StorageEngineError
 };
 
 use lykiadb_common::error::InputError;
@@ -16,7 +14,7 @@ pub enum ExecutionError {
     Interpret(InterpretError),
     Environment(EnvironmentError),
     Plan(PlannerError),
-    Storage(StorageError),
+    Storage(DatabaseError),
 }
 
 impl Display for ExecutionError {

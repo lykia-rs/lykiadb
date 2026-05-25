@@ -3,7 +3,7 @@ use std::{
     ops::RangeFull,
 };
 
-use crate::storage::{StorageEngine, engines::error::StorageEngineError};
+use crate::storage::{StorageEngine, error::StorageEngineError};
 
 pub struct MemoryStorageEngine {
     data: BTreeMap<Vec<u8>, Vec<u8>>,

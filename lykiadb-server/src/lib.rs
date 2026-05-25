@@ -4,6 +4,7 @@ pub mod query;
 pub mod value;
 pub mod libs;
 pub mod storage;
+pub mod database;
 
 #[macro_export]
 macro_rules! register_tests {
