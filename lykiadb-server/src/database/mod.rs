@@ -15,7 +15,7 @@ pub trait Transaction {
     fn get(&self, key: Key<'_>) -> TransactionActionResult<Option<RV<'_>>>;
     fn set(&mut self, key: Key<'_>, value: RV<'_>) -> TransactionActionResult<()>;
     fn delete(&mut self, key: Key<'_>) -> TransactionActionResult<()>;
-    fn scan(&self, prefix: Key<'_>) -> TransactionActionResult<impl Iterator<Item = StorageIteratorItem<'_>> + '_>;
+    fn scan<'a>(&self, prefix: Key<'a>) -> TransactionActionResult<impl Iterator<Item = StorageIteratorItem<'a>> + 'a>;
 }
 
 impl<T> From<std::sync::PoisonError<T>> for DatabaseError {
