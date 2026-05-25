@@ -1,8 +1,8 @@
-use lykiadb_common::memory::Shared;
+use crate::{execution::error::ExecutionError, storage::{Key, StorageIteratorItem}, value::RV};
 
-use crate::storage::{Engine, engines::StorageEngine};
-
-#[derive(Clone)]
-pub struct Transaction<S: for<'a> StorageEngine<'a>> {
-    store: Shared<Engine<S>>,
+pub trait Transaction<'a> {
+    fn get(&self, key: Key<'_>) -> Option<RV<'_>>;
+    fn set(&mut self, key: Key<'_>, value: RV<'_>) -> Result<(), ExecutionError>;
+    fn delete(&mut self, key: Key<'_>);
+    fn scan(&'a self, prefix: Key<'_>) -> impl Iterator<Item = StorageIteratorItem<'a>>;
 }

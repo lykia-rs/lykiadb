@@ -1,11 +1,12 @@
 pub mod error;
+pub mod transaction;
 mod engines;
 
 use std::borrow::Cow;
 use bson::oid::ObjectId;
 
 use crate::{
-    execution::error::ExecutionError, storage::{engines::{StorageEngine, memory::MemoryStorageEngine}, error::StorageError}, value::RV
+    execution::error::ExecutionError, storage::{engines::{StorageEngine, memory::MemoryStorageEngine}, error::StorageError, transaction::Transaction}, value::RV
 };
 
 pub type StorageIteratorItem<'a> = Result<(Vec<u8>, RV<'a>), error::StorageError>;
@@ -54,6 +55,7 @@ impl<S: for<'a> StorageEngine<'a>> Storage<S> {
             .get(&encoded_key)
             .map(|value| bson::deserialize_from_slice(&value).unwrap())
     }
+
     pub fn set(&mut self, key: Key<'_>, value: RV<'_>) -> Result<(), ExecutionError> {
         if !value.is_object() {
             return Err(ExecutionError::Storage(StorageError::InvalidValue));
@@ -65,15 +67,17 @@ impl<S: for<'a> StorageEngine<'a>> Storage<S> {
 
         Ok(())
     }
+
     pub fn delete(&mut self, key: Key<'_>) {
         let encoded_key = key.encode();
         self.engine.delete(&encoded_key);
     }
+
     pub fn scan(
         &self,
-        key: Key<'_>,
+        prefix: Key<'_>,
     ) -> impl Iterator<Item = StorageIteratorItem<'_>> + '_ {
-        let prefix: Vec<u8> = key.encode();
+        let prefix: Vec<u8> = prefix.encode();
         self.engine.scan().filter(move |res| {
             if let Ok((k, _)) = res {
                 k.starts_with(&prefix)
