@@ -2,8 +2,11 @@ use ::std::time::Instant;
 use lykiadb_common::comm::tcp::TcpConnection;
 use lykiadb_common::comm::{CommunicationError, Message, Request, Response};
 use lykiadb_common::memory::alloc_shared;
+use lykiadb_server::database::Database;
+use lykiadb_server::database::simple::SimpleDatabase;
 use lykiadb_server::execution::session::Session;
 use lykiadb_server::interpreter::output::Output;
+use lykiadb_server::storage::memory::MemoryStorageEngine;
 use std::io::Error;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
@@ -25,13 +28,14 @@ $$$$$$$$\ \$$$$$$$ |$$ | \$$\ $$ |\$$$$$$$ |$$$$$$$  |$$$$$$$  |
            \______/
 ";
 
-struct Server {
+struct Server<D: Database> {
     listener: Option<TcpListener>,
+    db: D,
 }
 
-impl Server {
-    pub fn new() -> Result<Self, Error> {
-        Ok(Server { listener: None })
+impl<D: Database + 'static> Server<D> {
+    pub fn new(db: D) -> Result<Self, Error> {
+        Ok(Server { listener: None, db })
     }
 
     pub async fn listen(mut self, addr: &str) -> Result<Self, Error> {
@@ -47,8 +51,9 @@ impl Server {
             let mut stream = TcpListenerStream::new(listener);
             while let Some(socket) = stream.try_next().await? {
                 let peer = socket.peer_addr()?;
+                let db_handle = self.db.clone();
                 tokio::spawn(async move {
-                    let mut session = Connection::new(socket);
+                    let mut session = Connection::new(socket, Session::new(true, db_handle));
                     info!("Client {} connected", peer);
                     session.handle().await;
                     info!("Client {} disconnected", peer);
@@ -59,16 +64,16 @@ impl Server {
     }
 }
 
-pub struct Connection<'v> {
+pub struct Connection<'v, D: Database> {
     conn: TcpConnection,
-    session: Session<'v>,
+    session: Session<'v, D>,
 }
 
-impl<'v> Connection<'v> {
-    pub fn new(stream: TcpStream) -> Self {
+impl<'v, D: Database> Connection<'v, D> {
+    pub fn new(stream: TcpStream, session: Session<'v, D>) -> Self {
         Connection {
             conn: TcpConnection::new(stream),
-            session: Session::new(false),
+            session
         }
     }
 
@@ -110,5 +115,6 @@ impl<'v> Connection<'v> {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt::init();
-    Server::new()?.listen("0.0.0.0:19191").await?.serve().await
+    let db = SimpleDatabase::new(MemoryStorageEngine::new());
+    Server::new(db)?.listen("0.0.0.0:19191").await?.serve().await
 }

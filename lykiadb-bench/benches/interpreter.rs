@@ -6,7 +6,7 @@ use std::{
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lykiadb_common::memory::alloc_shared;
-use lykiadb_server::{execution::session::Session, interpreter::output::Output};
+use lykiadb_server::{database::simple::SimpleDatabase, execution::session::Session, interpreter::output::Output, storage::memory::MemoryStorageEngine};
 
 fn session(filename: &str) {
     let file = File::open(filename).unwrap();
@@ -14,7 +14,9 @@ fn session(filename: &str) {
     BufReader::new(file)
         .read_to_string(&mut content)
         .expect("File couldn't be read.");
-    let mut session = Session::new(false);
+
+    let db = SimpleDatabase::new(MemoryStorageEngine::new());
+    let mut session = Session::new(false, db);
     session
         .interpret(&content, alloc_shared(Output::new()))
         .unwrap();

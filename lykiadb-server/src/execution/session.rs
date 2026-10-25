@@ -1,6 +1,5 @@
 use crate::{
-    execution::{error::ExecutionError, state::ProgramState},
-    interpreter::{Interpreter, output::Output},
+    database::Database, execution::{error::ExecutionError, state::ProgramState}, interpreter::{Interpreter, output::Output}
 };
 use lykiadb_common::memory::{Shared, alloc_shared};
 use tracing::info;
@@ -11,18 +10,20 @@ use crate::value::RV;
 use lykiadb_common::testing::{Block, TestCase, TestFailure, TestHandler, dedent};
 use lykiadb_lang::SourceProcessor;
 
-pub struct Session<'v> {
+pub struct Session<'v, D: Database> {
     keep_alive: bool,
     source_processor: SourceProcessor,
     program_state: Option<ProgramState<'v>>,
+    db: D,
 }
 
-impl<'v> Session<'v> {
-    pub fn new(keep_alive: bool) -> Session<'v> {
+impl<'v, D: Database> Session<'v, D> {
+    pub fn new(keep_alive: bool, db: D) -> Session<'v, D> {
         Session {
             keep_alive,
             source_processor: SourceProcessor::new(),
             program_state: None,
+            db,
         }
     }
 
@@ -54,29 +55,23 @@ impl<'v> Session<'v> {
     }
 }
 
-pub struct SessionTester<'v> {
+pub struct SessionTester<'v, D: Database> {
     out: Shared<Output<'v>>,
-    session: Session<'v>,
+    session: Session<'v, D>,
 }
 
-impl<'v> Default for SessionTester<'v> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'v> SessionTester<'v> {
-    pub fn new() -> SessionTester<'v> {
+impl<'v, D: Database> SessionTester<'v, D> {
+    pub fn new(db: D) -> SessionTester<'v, D> {
         let out = alloc_shared(Output::new());
 
         SessionTester {
             out: out.clone(),
-            session: Session::new(true),
+            session: Session::new(true, db),
         }
     }
 }
 
-impl<'v> TestHandler for SessionTester<'v> {
+impl<'v, D: Database> TestHandler for SessionTester<'v, D> {
     fn run_case(&mut self, case: TestCase) -> Result<(), TestFailure> {
         let mut errors: Vec<ExecutionError> = vec![];
         let mut last_returned: Option<RV> = None;
@@ -126,13 +121,14 @@ impl<'v> TestHandler for SessionTester<'v> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::output::Output;
+    use crate::{database::simple::SimpleDatabase, interpreter::output::Output, storage::memory::MemoryStorageEngine};
     use lykiadb_common::memory::alloc_shared;
 
     #[test]
     fn repl_mode_interpret_logs_and_returns() {
         let out = alloc_shared(Output::new());
-        let mut session = Session::new(true);
+        let db = SimpleDatabase::new(MemoryStorageEngine::new());
+        let mut session = Session::new(true, db);
         // A simple expression should succeed in Repl mode (exercises the info! branch)
         let result = session.interpret("1 + 1;", out);
         assert!(result.is_ok());
