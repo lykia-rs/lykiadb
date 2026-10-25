@@ -134,12 +134,21 @@ impl<'v, 'q> PlanExecutor {
                                     Ok(v) => v,
                                     Err(_) => &RV::Undefined,
                                 };
-                                let key = alias
-                                    .as_ref()
-                                    .map(|a| a.to_string())
-                                    .unwrap_or(expr.to_string());
 
-                                upstream.insert(GLOBAL_INTERNER.intern(&key), value.clone());
+                                if let RV::Object(obj) = value {
+                                    for (k, v) in obj.iter() {
+                                        let interned_key = GLOBAL_INTERNER.intern(&k);
+                                        upstream.insert(interned_key, v.clone());
+                                    }
+                                }
+                                else {
+                                    let key = alias
+                                        .as_ref()
+                                        .map(|a| a.to_string())
+                                        .unwrap_or(expr.to_string());
+
+                                    upstream.insert(GLOBAL_INTERNER.intern(&key), value.clone());
+                                }
                             }
                         }
                     }
@@ -253,7 +262,7 @@ impl<'v, 'q> PlanExecutor {
                 operator: _,
                 right: _,
             } => todo!(),
-            Node::Nothing => todo!(),
+            Node::Unit => Ok(Box::from(vec![ExecutionRow::new()].into_iter())),
         }
     }
 }

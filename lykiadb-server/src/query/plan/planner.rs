@@ -144,7 +144,7 @@ impl<'v, 'q> Planner {
         core: &SqlSelectCore,
         exec_ctx: &'q QueryExecutionContext<'v>,
     ) -> Result<Node<'v>, HaltReason<'v>> {
-        let mut node: Node = Node::Nothing;
+        let mut node: Node = Node::Unit;
 
         let mut core_scope = Scope::new();
 

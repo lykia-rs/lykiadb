@@ -108,7 +108,7 @@ pub enum Node<'v> {
         alias: Identifier,
     },
 
-    Nothing,
+    Unit,
 }
 
 impl<'v> Plan<'v> {
@@ -145,7 +145,7 @@ macro_rules! rv_str {
 impl<'v> Node<'v> {
     fn to_object(&self) -> RV<'v> {
         match self {
-            Node::Nothing => rv_object! { "@type" => rv_str!("nothing") },
+            Node::Unit => rv_object! { "@type" => rv_str!("unit") },
 
             Node::Scan { source, .. } => rv_object! {
                 "@type" => rv_str!("scan"),
