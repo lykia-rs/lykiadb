@@ -17,7 +17,8 @@ macro_rules! register_tests {
                 in $path => {
                     |path: &std::path::Path| {
                         let input = std::fs::read_to_string(path).expect("Failed to read test file");
-                        lykiadb_common::testing::TestRunner::new(Box::new(|| Box::new(SessionTester::new())))
+                        let db = $crate::database::simple::SimpleDatabase::new($crate::storage::memory::MemoryStorageEngine::new());
+                        lykiadb_common::testing::TestRunner::new(Box::new(move || Box::new(SessionTester::new(db.clone()))))
                             .test_file_named(path.to_str().unwrap_or(""), &input)
                     }
                 }

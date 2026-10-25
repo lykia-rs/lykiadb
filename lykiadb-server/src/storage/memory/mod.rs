@@ -5,6 +5,7 @@ use std::{
 
 use crate::storage::{StorageEngine, error::StorageEngineError};
 
+#[derive(Debug, Clone)]
 pub struct MemoryStorageEngine {
     data: BTreeMap<Vec<u8>, Vec<u8>>,
 }

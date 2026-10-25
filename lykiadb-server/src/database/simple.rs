@@ -4,8 +4,15 @@ use crate::{
     database::{Database, Transaction, TransactionActionResult, error::DatabaseError, storage::{Key, StorageIteratorItem}}, storage::StorageEngine, value::RV
 };
 
+#[derive(Debug, Clone)]
 pub struct SimpleDatabase<S: for<'a> StorageEngine<'a>> {
     storage: Arc<Mutex<S>>,
+}
+
+impl<S: for<'a> StorageEngine<'a>> SimpleDatabase<S> {
+    pub fn new(storage: S) -> Self {
+        SimpleDatabase { storage: Arc::new(Mutex::new(storage)) }
+    }
 }
 
 pub struct SimpleTransaction<S: for<'a> StorageEngine<'a>> {

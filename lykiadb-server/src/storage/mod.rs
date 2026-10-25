@@ -7,7 +7,7 @@ pub trait StorageEngineScanIterator<'a>: Iterator<Item = IteratorItem> + 'a {}
 
 impl<'a, I: Iterator<Item = IteratorItem> + 'a> StorageEngineScanIterator<'a> for I {}
 
-pub trait StorageEngine<'a> {
+pub trait StorageEngine<'a>: Send + Clone {
     type ScanIterator: StorageEngineScanIterator<'a>;
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>>;

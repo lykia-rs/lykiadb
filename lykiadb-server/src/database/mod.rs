@@ -4,7 +4,7 @@ pub mod error;
 pub mod storage;
 pub mod simple;
 
-pub trait Database {
+pub trait Database: Send + Clone {
     type Transaction: Transaction;
     fn begin(&'_ self) -> Self::Transaction;
 }
