@@ -7,6 +7,10 @@ use lykiadb_lang::ast::expr::Expr;
 #[derive(Clone)]
 pub struct QueryExecutionContext<'sess> {
     state: ProgramState<'sess>,
+    /*
+    database: &'sess D,
+    tx: Option<D::Transaction>,
+    */
 }
 
 impl<'sess> QueryExecutionContext<'sess> {
