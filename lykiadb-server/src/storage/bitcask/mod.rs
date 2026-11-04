@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf};
+use std::{io, path::{Path, PathBuf}};
 
 mod file;
 mod keydir;
@@ -82,18 +82,22 @@ impl Bitcask {
 
 #[cfg(test)]
 mod test {
-    use crate::storage::bitcask::Bitcask;
     use std::path::PathBuf;
+
+use tempfile::tempdir;
+
+use crate::storage::bitcask::Bitcask;
 
     #[test]
     fn open_instance() {
+        let temp_dir = tempdir().unwrap();
+
+        let mut buf = PathBuf::new();
+
+        buf.push(temp_dir.path());
+
         let mut bc =
-            Bitcask::open(PathBuf::from("/Users/monaco/workspace/lykiadb/db-data/")).unwrap();
-        bc.put(
-            "hello".to_owned().into_bytes(),
-            "world".to_owned().into_bytes(),
-        )
-        .unwrap();
+            Bitcask::open(buf).unwrap();
         bc.put(
             "hello".to_owned().into_bytes(),
             "world".to_owned().into_bytes(),
