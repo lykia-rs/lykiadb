@@ -1,29 +1,29 @@
 use std::{io, path::PathBuf};
 
-mod datadir;
+mod store;
 mod keydir;
 
-use datadir::DataDir;
+use store::DataStore;
 use keydir::KeyDir;
 
 use crate::storage::bitcask::{
-    datadir::DataDirScanError,
+    store::DataStoreScanError,
     keydir::{IndexRecord, Keys},
 };
 
 struct Bitcask {
-    data_dir: DataDir,
+    data_store: DataStore,
     key_dir: KeyDir,
 }
 
 // Reference: https://riak.com/assets/bitcask-intro.pdf
 impl Bitcask {
-    pub fn open(dir: PathBuf) -> Result<Bitcask, DataDirScanError> {
-        let data_dir = DataDir::open(dir)?;
+    pub fn open(dir: PathBuf) -> Result<Bitcask, DataStoreScanError> {
+        let data_store = DataStore::open(dir)?;
 
         let instance = Bitcask {
-            key_dir: data_dir.to_keydir(),
-            data_dir,
+            key_dir: data_store.to_keydir(),
+            data_store,
         };
 
         Ok(instance)
@@ -36,7 +36,7 @@ impl Bitcask {
         let index: Option<IndexRecord> = self.key_dir.get(key);
 
         if let Some(index) = index {
-            return self.data_dir.get(index);
+            return self.data_store.get(index);
         }
 
         None
@@ -47,7 +47,7 @@ impl Bitcask {
     - Update the keydir with the location of the newest data
     */
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<()> {
-        let index = self.data_dir.put(key.clone(), value)?;
+        let index = self.data_store.put(key.clone(), value)?;
         self.key_dir.put(key, index);
         Ok(())
     }
@@ -76,5 +76,23 @@ impl Bitcask {
 
     pub fn close() {
         // TODO
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::storage::bitcask::Bitcask;
+    use itertools::Itertools;
+    use std::path::PathBuf;
+
+    #[test]
+    fn open_instance() {
+        let mut bc =
+            Bitcask::open(PathBuf::from("/Users/monaco/workspace/lykiadb/db-data/")).unwrap();
+        bc.put(
+            "hello".to_string().bytes().collect_vec(),
+            "world".to_string().bytes().collect_vec(),
+        )
+        .unwrap();
     }
 }

@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::storage::bitcask::{
-    datadir::DataDirScanError::IncorrectDataFileName,
+    store::DataStoreScanError::IncorrectDataFileName,
     keydir::{IndexRecord, KeyDir},
 };
 
@@ -33,25 +33,25 @@ pub(crate) struct DataFile {
     path: PathBuf,
 }
 
-pub(crate) struct DataDir {
+pub(crate) struct DataStore {
     files: Vec<DataFile>,
     writer: DataFileWriter,
 }
 
 #[derive(Debug)]
-pub enum DataDirScanError {
+pub enum DataStoreScanError {
     IoError(std::io::Error),
     IncorrectDataFileName(String),
 }
 
-impl From<std::io::Error> for DataDirScanError {
+impl From<std::io::Error> for DataStoreScanError {
     fn from(err: std::io::Error) -> Self {
-        DataDirScanError::IoError(err)
+        DataStoreScanError::IoError(err)
     }
 }
 
-impl DataDir {
-    pub fn open(dir: PathBuf) -> Result<DataDir, DataDirScanError> {
+impl DataStore {
+    pub fn open(dir: PathBuf) -> Result<DataStore, DataStoreScanError> {
         let mut files: Vec<DataFile> = vec![];
 
         for entry in fs::read_dir(&dir)? {
@@ -76,11 +76,11 @@ impl DataDir {
 
         let last = files.last();
 
-        let next_file = DataDir::get_next_file(dir, last);
+        let next_file = DataStore::get_next_file(dir, last);
 
         files.push(next_file.clone());
 
-        Ok(DataDir {
+        Ok(DataStore {
             files,
             writer: next_file.writer()?,
         })
