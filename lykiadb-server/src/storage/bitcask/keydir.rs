@@ -5,7 +5,7 @@ pub(crate) struct IndexRecord {
     pub file_id: usize,
     pub vpos: usize,
     pub vsz: usize,
-    pub tstamp: u32,
+    pub tstamp: u64,
 }
 
 pub type Keys<'a> = std::collections::btree_map::Keys<'a, Vec<u8>, IndexRecord>;

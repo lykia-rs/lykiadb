@@ -14,3 +14,4 @@ Cargo.lock
 .vscode
 dist/
 .DS_Store
+db-data/

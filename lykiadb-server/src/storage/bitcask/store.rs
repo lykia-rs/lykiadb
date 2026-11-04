@@ -4,6 +4,9 @@ use std::{
     path::PathBuf,
 };
 
+use crc64fast::Digest;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use crate::storage::bitcask::{
     store::DataStoreScanError::IncorrectDataFileName,
     keydir::{IndexRecord, KeyDir},
@@ -20,8 +23,8 @@ const MAX_FILE_BYTES: usize = 4096;
 | --- | --------- crc coverage --------- |
  */
 pub struct DataRecord {
-    crc: u32,
-    tstamp: u32,
+    crc: u64,
+    tstamp: u64,
     value: Vec<u8>,
     key: Vec<u8>,
 }
@@ -106,9 +109,18 @@ impl DataStore {
     }
 
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<IndexRecord> {
+        let mut c = Digest::new();
+        c.write(key.as_slice());
+        c.write(value.as_slice());
+
+        let tstamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
         let result = self.writer.write(DataRecord {
-            crc: 0,
-            tstamp: 0,
+            crc: c.sum64(),
+            tstamp,
             key,
             value,
         })?;
