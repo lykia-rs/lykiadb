@@ -1,7 +1,5 @@
 use std::{
-    fs::{self},
-    io::{self},
-    path::PathBuf,
+    fs::{self}, io::{self}, path::{Path, PathBuf},
 };
 
 
@@ -10,10 +8,13 @@ use crate::storage::bitcask::{
 };
 
 const DATA_FILE_PREFIX: &str = "data_";
+const MAX_FILE_BYTES: usize = 1 << 20;
 
 pub(crate) struct DataStore {
     files: Vec<DataFile>,
     writer: DataFileWriter,
+    max_file_bytes: usize,
+    dir: PathBuf,
 }
 
 #[derive(Debug)]
@@ -42,7 +43,7 @@ impl DataStore {
                 match id_str.parse::<usize>() {
                     Ok(id) => files.push(DataFile {
                         id,
-                        path: entry.path(),
+                        dir: entry.path(),
                         name: file_name.to_string(),
                     }),
                     Err(_) => return Err(IncorrectDataFileName(id_str.to_string())),
@@ -52,7 +53,7 @@ impl DataStore {
 
         files.sort_by_key(|a| a.id);
 
-        let next_file = DataStore::get_next_file(dir, files.last());
+        let next_file = DataStore::get_next_file(&dir, files.last());
 
         let writer = next_file.writer()?;
 
@@ -60,22 +61,34 @@ impl DataStore {
 
         Ok(DataStore {
             files,
-            writer
+            writer,
+            dir,
+            max_file_bytes: MAX_FILE_BYTES
         })
     }
 
-    fn get_next_file(dir: PathBuf, last_file: Option<&DataFile>) -> DataFile {
+    fn get_next_file(dir: &PathBuf, last_file: Option<&DataFile>) -> DataFile {
         let id = match last_file {
             Some(file) => file.id + 1,
             None => 1,
         };
-        let mut path = dir.clone();
+
         let mut name = DATA_FILE_PREFIX.to_string();
-
         name.push_str(&format!("{:04}", id));
-        path.push(&name);
 
-        DataFile { id, path, name }
+        DataFile { id, dir: dir.clone(), name }
+    }
+
+    fn switch_to_next_file(&mut self) -> io::Result<()> {
+        self.writer.flush()?;
+
+        let next_file = DataStore::get_next_file(&self.dir, self.files.last());
+
+        self.writer = next_file.writer()?;
+
+        self.files.push(next_file);
+
+        Ok(())
     }
 
     pub fn get(&self, record: IndexRecord) -> Option<Vec<u8>> {
@@ -84,12 +97,18 @@ impl DataStore {
     }
 
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<IndexRecord> {
-        let result = self.writer.write(DataRecord::new(
+        let index_record = self.writer.write(DataRecord::new(
             key,
             value
         ))?;
 
-        Ok(result.index_record)
+
+        // true: it is time to switch to a new file
+        if self.writer.get_total_bytes() >= self.max_file_bytes {
+            self.switch_to_next_file()?;
+        }
+
+        Ok(index_record)
     }
 
     pub fn to_keydir(&self) -> KeyDir {

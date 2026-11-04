@@ -4,8 +4,6 @@ use crc64fast::Digest;
 
 use crate::storage::bitcask::keydir::IndexRecord;
 
-const MAX_FILE_BYTES: usize = 4096;
-
 /*
  * Data file
  * One active append only data file
@@ -57,32 +55,26 @@ impl DataRecord {
 pub(crate) struct DataFile {
     pub id: usize,
     pub name: String,
-    pub path: PathBuf,
+    pub dir: PathBuf,
 }
 
 pub(crate) struct DataFileWriter {
     file: DataFile,
     writer: BufWriter<File>,
-    written_bytes: usize,
-    max_file_bytes: usize,
-}
-
-pub(crate) struct WriteResult {
-    pub switch_files: bool,
-    pub index_record: IndexRecord,
+    total_bytes: usize,
 }
 
 impl DataFile {
     pub fn writer(&self) -> io::Result<DataFileWriter> {
-        let path = self.path.clone();
+        let mut path = self.dir.clone();
+        path.push(&self.name);
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
         Ok(DataFileWriter {
             file: self.clone(),
             writer,
-            written_bytes: 0,
-            max_file_bytes: MAX_FILE_BYTES,
+            total_bytes: 0,
         })
     }
 
@@ -97,27 +89,22 @@ impl DataFileWriter {
         self.writer.flush()
     }
 
-    pub fn write(&mut self, record: DataRecord) -> io::Result<WriteResult> {
-        let pos = self.written_bytes;
+    pub fn get_total_bytes(&self) -> usize {
+        self.total_bytes
+    }
+
+    pub fn write(&mut self, record: DataRecord) -> io::Result<IndexRecord> {
+        let pos = self.total_bytes;
 
         let written = record.write_to(&mut self.writer)?;
         
-        self.written_bytes += written;
-        // true: it is time to switch to a new file
-        let switch_files = self.written_bytes >= self.max_file_bytes;
+        self.total_bytes += written;
 
-        if switch_files {
-            self.flush();
-        }
-
-        Ok(WriteResult {
-            switch_files,
-            index_record: IndexRecord {
-                file_id: self.file.id,
-                vpos: pos,
-                vsz: record.value.len(),
-                tstamp: record.tstamp,
-            },
+        Ok(IndexRecord {
+            file_id: self.file.id,
+            vpos: pos,
+            vsz: record.value.len(),
+            tstamp: record.tstamp,
         })
     }
 }
