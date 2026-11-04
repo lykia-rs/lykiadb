@@ -112,7 +112,7 @@ impl DataStore {
         Ok(index_record)
     }
 
-    pub fn to_keydir(&self) -> KeyDir {
+    pub fn build_keydir(&self) -> KeyDir {
         let keydir = KeyDir::default();
         // TODO(vck): implement keydir build
         keydir
