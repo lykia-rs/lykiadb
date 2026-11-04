@@ -86,21 +86,10 @@ impl DataStore {
     }
 
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<IndexRecord> {
-        let mut c = Digest::new();
-        c.write(key.as_slice());
-        c.write(value.as_slice());
-
-        let tstamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-
-        let result = self.writer.write(DataRecord {
-            crc: c.sum64(),
-            tstamp,
+        let result = self.writer.write(DataRecord::new(
             key,
-            value,
-        })?;
+            value
+        ))?;
 
         Ok(result.index_record)
     }
