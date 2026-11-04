@@ -1,10 +1,13 @@
 use std::{
-    fs::{self}, io::{self}, path::{Path, PathBuf},
+    fs::{self},
+    io::{self},
+    path::{Path, PathBuf},
 };
 
-
 use crate::storage::bitcask::{
-    file::{DataFile, DataFileWriter, DataRecord}, keydir::{IndexRecord, KeyDir}, store::DataStoreScanError::IncorrectDataFileName,
+    file::{DataFile, DataFileWriter, DataRecord},
+    keydir::{IndexRecord, KeyDir},
+    store::DataStoreScanError::IncorrectDataFileName,
 };
 
 const DATA_FILE_PREFIX: &str = "data_";
@@ -63,7 +66,7 @@ impl DataStore {
             files,
             writer,
             dir,
-            max_file_bytes: MAX_FILE_BYTES
+            max_file_bytes: MAX_FILE_BYTES,
         })
     }
 
@@ -76,16 +79,18 @@ impl DataStore {
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
 
-        DataFile { id, dir: dir.clone(), name }
+        DataFile {
+            id,
+            dir: dir.clone(),
+            name,
+        }
     }
 
     fn switch_to_next_file(&mut self) -> io::Result<()> {
         self.writer.flush()?;
 
         let next_file = DataStore::get_next_file(&self.dir, self.files.last());
-
         self.writer = next_file.writer()?;
-
         self.files.push(next_file);
 
         Ok(())
@@ -97,11 +102,7 @@ impl DataStore {
     }
 
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<IndexRecord> {
-        let index_record = self.writer.write(DataRecord::new(
-            key,
-            value
-        ))?;
-
+        let index_record = self.writer.write(DataRecord::new(key, value))?;
 
         // true: it is time to switch to a new file
         if self.writer.get_total_bytes() >= self.max_file_bytes {

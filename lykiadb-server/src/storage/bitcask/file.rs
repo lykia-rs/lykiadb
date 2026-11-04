@@ -1,4 +1,9 @@
-use std::{fs::File, io::{self, BufWriter, Write}, path::PathBuf, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    fs::File,
+    io::{self, BufWriter, Write},
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crc64fast::Digest;
 
@@ -14,11 +19,10 @@ use crate::storage::bitcask::keydir::IndexRecord;
 pub(crate) struct DataRecord {
     key: Vec<u8>,
     value: Vec<u8>,
-    tstamp: u64
+    tstamp: u64,
 }
 
 impl DataRecord {
-
     pub fn new(key: Vec<u8>, value: Vec<u8>) -> DataRecord {
         let tstamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -97,7 +101,7 @@ impl DataFileWriter {
         let pos = self.total_bytes;
 
         let written = record.write_to(&mut self.writer)?;
-        
+
         self.total_bytes += written;
 
         Ok(IndexRecord {

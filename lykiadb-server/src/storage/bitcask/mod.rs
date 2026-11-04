@@ -1,15 +1,15 @@
 use std::{io, path::PathBuf};
 
-mod store;
-mod keydir;
 mod file;
+mod keydir;
+mod store;
 
-use store::DataStore;
 use keydir::KeyDir;
+use store::DataStore;
 
 use crate::storage::bitcask::{
-    store::DataStoreScanError,
     keydir::{IndexRecord, Keys},
+    store::DataStoreScanError,
 };
 
 struct Bitcask {
@@ -83,7 +83,6 @@ impl Bitcask {
 #[cfg(test)]
 mod test {
     use crate::storage::bitcask::Bitcask;
-    use itertools::Itertools;
     use std::path::PathBuf;
 
     #[test]
@@ -91,8 +90,13 @@ mod test {
         let mut bc =
             Bitcask::open(PathBuf::from("/Users/monaco/workspace/lykiadb/db-data/")).unwrap();
         bc.put(
-            "hello".to_string().bytes().collect_vec(),
-            "world".to_string().bytes().collect_vec(),
+            "hello".to_owned().into_bytes(),
+            "world".to_owned().into_bytes(),
+        )
+        .unwrap();
+        bc.put(
+            "hello".to_owned().into_bytes(),
+            "world".to_owned().into_bytes(),
         )
         .unwrap();
     }
