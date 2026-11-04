@@ -1,6 +1,6 @@
 use std::{
-    fs::{self, File},
-    io::{self, BufWriter, Write},
+    fs::{self},
+    io::{self},
     path::PathBuf,
 };
 
@@ -8,33 +8,10 @@ use crc64fast::Digest;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::storage::bitcask::{
-    store::DataStoreScanError::IncorrectDataFileName,
-    keydir::{IndexRecord, KeyDir},
+    file::{DataFile, DataFileWriter, DataRecord}, keydir::{IndexRecord, KeyDir}, store::DataStoreScanError::IncorrectDataFileName,
 };
 
 const DATA_FILE_PREFIX: &str = "data_";
-const MAX_FILE_BYTES: usize = 4096;
-
-/*
- * Data file
- * One active append only data file
-
-| crc | tstamp | ksz | vsz | key | value |
-| --- | --------- crc coverage --------- |
- */
-pub struct DataRecord {
-    crc: u64,
-    tstamp: u64,
-    value: Vec<u8>,
-    key: Vec<u8>,
-}
-
-#[derive(Clone)]
-pub(crate) struct DataFile {
-    id: usize,
-    name: String,
-    path: PathBuf,
-}
 
 pub(crate) struct DataStore {
     files: Vec<DataFile>,
@@ -77,15 +54,15 @@ impl DataStore {
 
         files.sort_by_key(|a| a.id);
 
-        let last = files.last();
+        let next_file = DataStore::get_next_file(dir, files.last());
 
-        let next_file = DataStore::get_next_file(dir, last);
+        let writer = next_file.writer()?;
 
-        files.push(next_file.clone());
+        files.push(next_file);
 
         Ok(DataStore {
             files,
-            writer: next_file.writer()?,
+            writer
         })
     }
 
@@ -132,75 +109,5 @@ impl DataStore {
         let keydir = KeyDir::default();
         // TODO(vck): implement keydir build
         keydir
-    }
-}
-
-impl DataFile {
-    pub fn writer(&self) -> io::Result<DataFileWriter> {
-        let path = self.path.clone();
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
-
-        Ok(DataFileWriter {
-            file: self.clone(),
-            writer,
-            written_bytes: 0,
-            max_file_bytes: MAX_FILE_BYTES,
-        })
-    }
-
-    pub fn get(&self, _record: IndexRecord) -> Vec<u8> {
-        // TODO(vck): Implement get
-        vec![]
-    }
-}
-
-pub(crate) struct DataFileWriter {
-    file: DataFile,
-    writer: BufWriter<File>,
-    written_bytes: usize,
-    max_file_bytes: usize,
-}
-
-struct WriteResult {
-    switch_files: bool,
-    index_record: IndexRecord,
-}
-
-impl DataFileWriter {
-    pub fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
-
-    pub fn write(&mut self, record: DataRecord) -> io::Result<WriteResult> {
-        let ksz = record.key.len();
-        let vsz = record.value.len();
-        let pos = self.written_bytes;
-        let mut written = ksz + vsz;
-
-        written += self.writer.write(&record.crc.to_le_bytes())?;
-        written += self.writer.write(&record.tstamp.to_le_bytes())?;
-        written += self.writer.write(&ksz.to_le_bytes())?;
-        written += self.writer.write(&vsz.to_le_bytes())?;
-        self.writer.write_all(&record.key)?;
-        self.writer.write_all(&record.value)?;
-        self.written_bytes += written;
-
-        // true: it is time to switch to a new file
-        let switch_files = self.written_bytes >= self.max_file_bytes;
-
-        if switch_files {
-            self.flush();
-        }
-
-        Ok(WriteResult {
-            switch_files,
-            index_record: IndexRecord {
-                file_id: self.file.id,
-                vpos: pos,
-                vsz,
-                tstamp: record.tstamp,
-            },
-        })
     }
 }

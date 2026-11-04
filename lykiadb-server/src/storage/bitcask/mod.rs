@@ -2,6 +2,7 @@ use std::{io, path::PathBuf};
 
 mod store;
 mod keydir;
+mod file;
 
 use store::DataStore;
 use keydir::KeyDir;
