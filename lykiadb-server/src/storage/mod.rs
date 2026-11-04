@@ -1,3 +1,4 @@
+pub mod bitcask;
 pub mod error;
 pub mod memory;
 
