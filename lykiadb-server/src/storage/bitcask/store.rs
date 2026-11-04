@@ -4,8 +4,6 @@ use std::{
     path::PathBuf,
 };
 
-use crc64fast::Digest;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::storage::bitcask::{
     file::{DataFile, DataFileWriter, DataRecord}, keydir::{IndexRecord, KeyDir}, store::DataStoreScanError::IncorrectDataFileName,
