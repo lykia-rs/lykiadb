@@ -53,9 +53,9 @@ impl DataRecord {
 }
 
 pub(crate) struct DataFile {
-    pub id: usize,
-    pub dir: PathBuf,
-    pub name: String,
+    id: usize,
+    dir: PathBuf,
+    name: String,
     handle: Option<File>,
     written_bytes: usize,
 }
@@ -73,7 +73,6 @@ impl From<std::io::Error> for DataFileWriteError {
 }
 
 impl DataFile {
-    
     pub fn new(id: usize, dir: PathBuf, name: String) -> DataFile {
         DataFile {
             id,
@@ -82,6 +81,10 @@ impl DataFile {
             handle: None,
             written_bytes: 0
         }
+    }
+
+    pub fn get_id(&self) -> usize {
+        return self.id
     }
 
     pub fn open(&mut self) -> io::Result<()> {

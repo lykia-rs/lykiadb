@@ -51,7 +51,7 @@ impl DataStore {
             }
         }
 
-        files.sort_by_key(|a| a.id);
+        files.sort_by_key(|a| a.get_id());
 
         let mut next_file = DataStore::get_next_file(&dir, files.last());
 
@@ -68,7 +68,7 @@ impl DataStore {
 
     fn get_next_file(dir: &PathBuf, last_file: Option<&DataFile>) -> DataFile {
         let id = match last_file {
-            Some(file) => file.id + 1,
+            Some(file) => file.get_id() + 1,
             None => 1,
         };
 
