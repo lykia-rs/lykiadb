@@ -106,10 +106,8 @@ impl DataFile {
     }
 
     pub fn close(&mut self) -> io::Result<()> {
-        if let Some(file) = &mut self.handle {
-            file.flush()?;
-            self.handle = None;
-        }
+        self.flush()?;
+        self.handle = None;
         Ok(())
     }
 

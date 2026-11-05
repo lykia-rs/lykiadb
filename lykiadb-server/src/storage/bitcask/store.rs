@@ -51,11 +51,7 @@ impl DataStore {
 
         files.sort_by_key(|a| a.get_id());
 
-        let mut next_file = DataStore::get_next_file(&dir, files.last());
-
-        next_file.open()?;
-
-        files.push(next_file);
+        files.push(DataStore::get_next_file(&dir, files.last())?);
 
         Ok(DataStore {
             files,
@@ -64,7 +60,7 @@ impl DataStore {
         })
     }
 
-    fn get_next_file(dir: &PathBuf, last_file: Option<&DataFile>) -> DataFile {
+    fn get_next_file(dir: &PathBuf, last_file: Option<&DataFile>) -> io::Result<DataFile> {
         let id = match last_file {
             Some(file) => file.get_id() + 1,
             None => 1,
@@ -73,7 +69,11 @@ impl DataStore {
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
 
-        DataFile::new(id, dir.clone(), name)
+        let mut file= DataFile::new(id, dir.clone(), name);
+
+        file.open()?;
+
+        Ok(file)
     }
 
     fn switch_to_next_file(&mut self) -> io::Result<()> {
@@ -81,9 +81,7 @@ impl DataStore {
 
         current_file.unwrap().close()?;
 
-        let mut next_file = DataStore::get_next_file(&self.dir, self.files.last());
-        next_file.open()?;
-        self.files.push(next_file);
+        self.files.push(DataStore::get_next_file(&self.dir, self.files.last())?);
 
         Ok(())
     }
