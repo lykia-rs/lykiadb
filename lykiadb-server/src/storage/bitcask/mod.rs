@@ -81,9 +81,7 @@ mod test {
 
     #[test]
     fn open_instance() {
-        let mut bc = Bitcask::open(
-            PathBuf::from(tempdir().unwrap().path())
-        ).unwrap();
+        let mut bc = Bitcask::open(PathBuf::from(tempdir().unwrap().path())).unwrap();
 
         bc.put(
             "hello".to_owned().into_bytes(),

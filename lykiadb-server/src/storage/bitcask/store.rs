@@ -5,7 +5,9 @@ use std::{
 };
 
 use crate::storage::bitcask::{
-    file::{DataFile, DataFileWriteError, DataRecord}, keydir::{IndexRecord, KeyDir}, store::DataStoreScanError::IncorrectDataFileName,
+    file::{DataFile, DataFileWriteError, DataRecord},
+    keydir::{IndexRecord, KeyDir},
+    store::DataStoreScanError::IncorrectDataFileName,
 };
 
 const DATA_FILE_PREFIX: &str = "data_";
@@ -41,11 +43,7 @@ impl DataStore {
                 && let Some(id_str) = file_name.strip_prefix(DATA_FILE_PREFIX)
             {
                 match id_str.parse::<usize>() {
-                    Ok(id) => files.push(DataFile::new(
-                        id,
-                        entry.path(),
-                        file_name.to_string(),
-                    )),
+                    Ok(id) => files.push(DataFile::new(id, entry.path(), file_name.to_string())),
                     Err(_) => return Err(IncorrectDataFileName(id_str.to_string())),
                 }
             }
@@ -75,11 +73,7 @@ impl DataStore {
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
 
-        DataFile::new(
-            id,
-            dir.clone(),
-            name,
-        )
+        DataFile::new(id, dir.clone(), name)
     }
 
     fn switch_to_next_file(&mut self) -> io::Result<()> {

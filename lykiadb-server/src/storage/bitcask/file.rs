@@ -1,5 +1,8 @@
 use std::{
-    fs::{File, OpenOptions}, io::{self, Write}, path::PathBuf, time::{SystemTime, UNIX_EPOCH},
+    fs::{File, OpenOptions},
+    io::{self, Write},
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use crc64fast::Digest;
@@ -79,23 +82,25 @@ impl DataFile {
             dir,
             name,
             handle: None,
-            written_bytes: 0
+            written_bytes: 0,
         }
     }
 
     pub fn get_id(&self) -> usize {
-        return self.id
+        self.id
     }
 
     pub fn open(&mut self) -> io::Result<()> {
         let mut path = self.dir.clone();
         path.push(&self.name);
 
-        self.handle = Some(OpenOptions::new()
-            .create(true)
-            .read(true)
-            .append(true)
-            .open(path)?);
+        self.handle = Some(
+            OpenOptions::new()
+                .create(true)
+                .read(true)
+                .append(true)
+                .open(path)?,
+        );
 
         Ok(())
     }
