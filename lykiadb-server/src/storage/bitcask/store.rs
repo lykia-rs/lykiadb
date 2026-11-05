@@ -1,13 +1,11 @@
 use std::{
     fs::{self},
     io::{self},
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use crate::storage::bitcask::{
-    file::{DataFile, DataFileWriter, DataRecord},
-    keydir::{IndexRecord, KeyDir},
-    store::DataStoreScanError::IncorrectDataFileName,
+    file::{DataFile, DataFileWriteError, DataRecord}, keydir::{IndexRecord, KeyDir}, store::DataStoreScanError::IncorrectDataFileName,
 };
 
 const DATA_FILE_PREFIX: &str = "data_";
@@ -15,7 +13,6 @@ const MAX_FILE_BYTES: usize = 1 << 20;
 
 pub(crate) struct DataStore {
     files: Vec<DataFile>,
-    writer: DataFileWriter,
     max_file_bytes: usize,
     dir: PathBuf,
 }
@@ -44,11 +41,11 @@ impl DataStore {
                 && let Some(id_str) = file_name.strip_prefix(DATA_FILE_PREFIX)
             {
                 match id_str.parse::<usize>() {
-                    Ok(id) => files.push(DataFile {
+                    Ok(id) => files.push(DataFile::new(
                         id,
-                        dir: entry.path(),
-                        name: file_name.to_string(),
-                    }),
+                        entry.path(),
+                        file_name.to_string(),
+                    )),
                     Err(_) => return Err(IncorrectDataFileName(id_str.to_string())),
                 }
             }
@@ -56,15 +53,14 @@ impl DataStore {
 
         files.sort_by_key(|a| a.id);
 
-        let next_file = DataStore::get_next_file(&dir, files.last());
+        let mut next_file = DataStore::get_next_file(&dir, files.last());
 
-        let writer = next_file.writer()?;
+        next_file.open()?;
 
         files.push(next_file);
 
         Ok(DataStore {
             files,
-            writer,
             dir,
             max_file_bytes: MAX_FILE_BYTES,
         })
@@ -79,18 +75,20 @@ impl DataStore {
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
 
-        DataFile {
+        DataFile::new(
             id,
-            dir: dir.clone(),
+            dir.clone(),
             name,
-        }
+        )
     }
 
     fn switch_to_next_file(&mut self) -> io::Result<()> {
-        self.writer.flush()?;
+        let current_file = self.files.last_mut();
 
-        let next_file = DataStore::get_next_file(&self.dir, self.files.last());
-        self.writer = next_file.writer()?;
+        current_file.unwrap().close()?;
+
+        let mut next_file = DataStore::get_next_file(&self.dir, self.files.last());
+        next_file.open()?;
         self.files.push(next_file);
 
         Ok(())
@@ -101,11 +99,12 @@ impl DataStore {
         data_file.map(|data_file| data_file.get(record))
     }
 
-    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<IndexRecord> {
-        let index_record = self.writer.write(DataRecord::new(key, value))?;
+    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<IndexRecord, DataFileWriteError> {
+        let current_file = self.files.last_mut().unwrap();
+        let index_record = current_file.write(DataRecord::new(key, value))?;
 
         // true: it is time to switch to a new file
-        if self.writer.get_total_bytes() >= self.max_file_bytes {
+        if current_file.get_written_bytes() >= self.max_file_bytes {
             self.switch_to_next_file()?;
         }
 

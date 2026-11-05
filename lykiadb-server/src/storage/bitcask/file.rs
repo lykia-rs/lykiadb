@@ -1,8 +1,5 @@
 use std::{
-    fs::File,
-    io::{self, BufWriter, Write},
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
+    fs::{File, OpenOptions}, io::{self, Write}, path::PathBuf, time::{SystemTime, UNIX_EPOCH},
 };
 
 use crc64fast::Digest;
@@ -31,7 +28,7 @@ impl DataRecord {
         DataRecord { key, value, tstamp }
     }
 
-    pub fn write_to<T: Write>(&self, buf: &mut BufWriter<T>) -> io::Result<usize> {
+    pub fn write_to<T: Write>(&self, buf: &mut T) -> io::Result<usize> {
         let ksz = self.key.len();
         let vsz = self.value.len();
 
@@ -55,60 +52,89 @@ impl DataRecord {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct DataFile {
     pub id: usize,
-    pub name: String,
     pub dir: PathBuf,
+    pub name: String,
+    handle: Option<File>,
+    written_bytes: usize,
 }
 
-pub(crate) struct DataFileWriter {
-    file: DataFile,
-    writer: BufWriter<File>,
-    total_bytes: usize,
+#[derive(Debug)]
+pub enum DataFileWriteError {
+    IoError(std::io::Error),
+    WriteAttemptToClosedFile,
+}
+
+impl From<std::io::Error> for DataFileWriteError {
+    fn from(err: std::io::Error) -> Self {
+        DataFileWriteError::IoError(err)
+    }
 }
 
 impl DataFile {
-    pub fn writer(&self) -> io::Result<DataFileWriter> {
+    
+    pub fn new(id: usize, dir: PathBuf, name: String) -> DataFile {
+        DataFile {
+            id,
+            dir,
+            name,
+            handle: None,
+            written_bytes: 0
+        }
+    }
+
+    pub fn open(&mut self) -> io::Result<()> {
         let mut path = self.dir.clone();
         path.push(&self.name);
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
 
-        Ok(DataFileWriter {
-            file: self.clone(),
-            writer,
-            total_bytes: 0,
-        })
+        self.handle = Some(OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(path)?);
+
+        Ok(())
+    }
+
+    pub fn close(&mut self) -> io::Result<()> {
+        if let Some(file) = &mut self.handle {
+            file.flush()?;
+            self.handle = None;
+        }
+        Ok(())
+    }
+
+    pub fn flush(&mut self) -> io::Result<()> {
+        if let Some(file) = &mut self.handle {
+            file.flush()?;
+        }
+        Ok(())
+    }
+
+    pub fn get_written_bytes(&self) -> usize {
+        self.written_bytes
     }
 
     pub fn get(&self, _record: IndexRecord) -> Vec<u8> {
         // TODO(vck): Implement get
         vec![]
     }
-}
 
-impl DataFileWriter {
-    pub fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
+    pub fn write(&mut self, record: DataRecord) -> Result<IndexRecord, DataFileWriteError> {
+        if let Some(file) = &mut self.handle {
+            let pos = self.written_bytes;
 
-    pub fn get_total_bytes(&self) -> usize {
-        self.total_bytes
-    }
+            self.written_bytes += record.write_to(file)?;
 
-    pub fn write(&mut self, record: DataRecord) -> io::Result<IndexRecord> {
-        let pos = self.total_bytes;
+            return Ok(IndexRecord {
+                file_id: self.id,
+                vpos: pos,
+                vsz: record.value.len(),
+                tstamp: record.tstamp,
+            });
+        }
 
-        let written = record.write_to(&mut self.writer)?;
-
-        self.total_bytes += written;
-
-        Ok(IndexRecord {
-            file_id: self.file.id,
-            vpos: pos,
-            vsz: record.value.len(),
-            tstamp: record.tstamp,
-        })
+        Err(DataFileWriteError::WriteAttemptToClosedFile)
     }
 }

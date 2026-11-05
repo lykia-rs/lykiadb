@@ -7,7 +7,7 @@ mod store;
 use keydir::KeyDir;
 use store::DataStore;
 
-use crate::storage::bitcask::{keydir::Keys, store::DataStoreScanError};
+use crate::storage::bitcask::{file::DataFileWriteError, keydir::Keys, store::DataStoreScanError};
 
 struct Bitcask {
     data_store: DataStore,
@@ -38,13 +38,13 @@ impl Bitcask {
     - Append the key value pair to active data file
     - Update the keydir with the location of the newest data
     */
-    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> io::Result<()> {
+    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<(), DataFileWriteError> {
         let index = self.data_store.put(key.clone(), value)?;
         self.key_dir.put(key, index);
         Ok(())
     }
 
-    pub fn delete(&mut self, key: Vec<u8>) -> io::Result<()> {
+    pub fn delete(&mut self, key: Vec<u8>) -> Result<(), DataFileWriteError> {
         self.put(key, vec![])
     }
 
