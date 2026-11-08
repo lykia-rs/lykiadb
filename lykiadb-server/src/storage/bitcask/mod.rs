@@ -1,4 +1,4 @@
-use std::{io, path::PathBuf};
+use std::path::PathBuf;
 
 mod file;
 mod keydir;
@@ -7,7 +7,11 @@ mod store;
 use keydir::KeyDir;
 use store::DataStore;
 
-use crate::storage::bitcask::{file::DataFileWriteError, keydir::Keys, store::DataStoreScanError};
+use crate::storage::bitcask::{
+    file::{DataFileReadError, DataFileWriteError},
+    keydir::Keys,
+    store::DataStoreScanError,
+};
 
 struct Bitcask {
     data_store: DataStore,
@@ -28,10 +32,15 @@ impl Bitcask {
     /* Read
     - Lookup keydir for the address, then read the file
     */
-    pub fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.key_dir
+    pub fn get(&mut self, key: &[u8]) -> Result<Option<Vec<u8>>, DataFileReadError> {
+        match self
+            .key_dir
             .get(key)
-            .map(|index| self.data_store.get(index))?
+            .map(|index| self.data_store.get(index))
+        {
+            Some(x) => x,
+            None => Ok(None),
+        }
     }
 
     /* Write
@@ -81,12 +90,16 @@ mod test {
 
     #[test]
     fn open_instance() {
-        let mut bc = Bitcask::open(PathBuf::from(tempdir().unwrap().path())).unwrap();
+        let tmp_dir = tempdir().unwrap();
+        let mut bc = Bitcask::open(PathBuf::from(tmp_dir.path())).unwrap();
 
-        bc.put(
-            "hello".to_owned().into_bytes(),
-            "world".to_owned().into_bytes(),
-        )
-        .unwrap();
+        bc.put(b"hello".to_vec(), b"world".to_vec()).unwrap();
+
+        assert_eq!(
+            bc.get(b"hello".to_vec().as_slice()).unwrap(),
+            Some(b"world".to_vec())
+        );
+
+        tmp_dir.close().unwrap();
     }
 }

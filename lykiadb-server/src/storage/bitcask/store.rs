@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::storage::bitcask::{
-    file::{DataFile, DataFileWriteError, DataRecord},
+    file::{DataFile, DataFileReadError, DataFileWriteError, DataRecord},
     keydir::{IndexRecord, KeyDir},
     store::DataStoreScanError::IncorrectDataFileName,
 };
@@ -43,7 +43,9 @@ impl DataStore {
                 && let Some(id_str) = file_name.strip_prefix(DATA_FILE_PREFIX)
             {
                 match id_str.parse::<usize>() {
-                    Ok(id) => files.push(DataFile::new(id, entry.path(), file_name.to_string())),
+                    Ok(id) => {
+                        files.push(DataFile::new(id, entry.path(), file_name.to_string(), true))
+                    }
                     Err(_) => return Err(IncorrectDataFileName(id_str.to_string())),
                 }
             }
@@ -63,13 +65,13 @@ impl DataStore {
     fn get_next_file(dir: &PathBuf, last_file: Option<&DataFile>) -> io::Result<DataFile> {
         let id = match last_file {
             Some(file) => file.get_id() + 1,
-            None => 1,
+            None => 0,
         };
 
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
 
-        let mut file= DataFile::new(id, dir.clone(), name);
+        let mut file = DataFile::new(id, dir.clone(), name, false);
 
         file.open()?;
 
@@ -79,16 +81,18 @@ impl DataStore {
     fn switch_to_next_file(&mut self) -> io::Result<()> {
         let current_file = self.files.last_mut();
 
-        current_file.unwrap().close()?;
+        current_file.unwrap().archive()?;
 
-        self.files.push(DataStore::get_next_file(&self.dir, self.files.last())?);
+        self.files
+            .push(DataStore::get_next_file(&self.dir, self.files.last())?);
 
         Ok(())
     }
 
-    pub fn get(&self, record: IndexRecord) -> Option<Vec<u8>> {
-        let data_file = self.files.get(record.file_id);
-        data_file.map(|data_file| data_file.get(record))
+    pub fn get(&mut self, record: IndexRecord) -> Result<Option<Vec<u8>>, DataFileReadError> {
+        let data_file = self.files.get_mut(record.file_id);
+
+        data_file.map(|data_file| data_file.get(record)).transpose()
     }
 
     pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<IndexRecord, DataFileWriteError> {

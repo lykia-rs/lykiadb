@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Write},
+    io::{self, Read, Seek, Write},
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -61,12 +61,26 @@ pub(crate) struct DataFile {
     name: String,
     handle: Option<File>,
     written_bytes: usize,
+    readonly: bool,
+}
+
+#[derive(Debug)]
+pub enum DataFileReadError {
+    IoError(std::io::Error),
+    FileNotOpened,
+}
+
+impl From<std::io::Error> for DataFileReadError {
+    fn from(err: std::io::Error) -> Self {
+        DataFileReadError::IoError(err)
+    }
 }
 
 #[derive(Debug)]
 pub enum DataFileWriteError {
     IoError(std::io::Error),
-    WriteAttemptToClosedFile,
+    FileNotOpened,
+    WriteAttemptToReadonlyFile,
 }
 
 impl From<std::io::Error> for DataFileWriteError {
@@ -76,13 +90,14 @@ impl From<std::io::Error> for DataFileWriteError {
 }
 
 impl DataFile {
-    pub fn new(id: usize, dir: PathBuf, name: String) -> DataFile {
+    pub fn new(id: usize, dir: PathBuf, name: String, readonly: bool) -> DataFile {
         DataFile {
             id,
             dir,
             name,
             handle: None,
             written_bytes: 0,
+            readonly,
         }
     }
 
@@ -96,12 +111,20 @@ impl DataFile {
 
         self.handle = Some(
             OpenOptions::new()
-                .create(true)
                 .read(true)
-                .append(true)
+                .create(!self.readonly)
+                .append(!self.readonly)
                 .open(path)?,
         );
 
+        Ok(())
+    }
+
+    pub fn archive(&mut self) -> io::Result<()> {
+        self.close()?;
+        self.readonly = true;
+        self.written_bytes = 0;
+        self.open()?;
         Ok(())
     }
 
@@ -122,25 +145,127 @@ impl DataFile {
         self.written_bytes
     }
 
-    pub fn get(&self, _record: IndexRecord) -> Vec<u8> {
-        // TODO(vck): Implement get
-        vec![]
+    pub fn get(&mut self, record: IndexRecord) -> Result<Vec<u8>, DataFileReadError> {
+        if let Some(file) = &mut self.handle {
+            let mut value = vec![0; record.vsz];
+            file.seek(io::SeekFrom::Start(record.vpos as u64))?;
+            file.read_exact(&mut value)?;
+            return Ok(value);
+        }
+        Err(DataFileReadError::FileNotOpened)
     }
 
     pub fn write(&mut self, record: DataRecord) -> Result<IndexRecord, DataFileWriteError> {
-        if let Some(file) = &mut self.handle {
-            let pos = self.written_bytes;
+        if self.readonly {
+            return Err(DataFileWriteError::WriteAttemptToReadonlyFile);
+        }
 
+        if let Some(file) = &mut self.handle {
             self.written_bytes += record.write_to(file)?;
 
             return Ok(IndexRecord {
                 file_id: self.id,
-                vpos: pos,
+                vpos: self.written_bytes - record.value.len(),
                 vsz: record.value.len(),
                 tstamp: record.tstamp,
             });
         }
 
-        Err(DataFileWriteError::WriteAttemptToClosedFile)
+        Err(DataFileWriteError::FileNotOpened)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::storage::bitcask::file::{DataFile, DataFileWriteError, DataRecord};
+    use std::{assert_matches, path::PathBuf};
+    use tempfile::tempdir;
+
+    #[test]
+    fn write() {
+        let tmp_dir = tempdir().unwrap();
+        let mut file = DataFile::new(
+            1,
+            PathBuf::from(tmp_dir.path()),
+            "data_0001".to_owned(),
+            false,
+        );
+        file.open().unwrap();
+        let index_record = file
+            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .unwrap();
+
+        assert_eq!(file.get_written_bytes(), 42);
+        assert_eq!(index_record.file_id, 1);
+        assert_eq!(index_record.vpos, 37);
+        assert_eq!(index_record.vsz, 5);
+        tmp_dir.close().unwrap();
+    }
+
+    #[test]
+    fn archive() {
+        let tmp_dir = tempdir().unwrap();
+        let mut file = DataFile::new(
+            1,
+            PathBuf::from(tmp_dir.path()),
+            "data_0001".to_owned(),
+            false,
+        );
+        file.open().unwrap();
+
+        assert_eq!(file.readonly, false);
+        file.archive().unwrap();
+        assert_eq!(file.readonly, true);
+
+        assert_matches!(
+            file.write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+                .unwrap_err(),
+            DataFileWriteError::WriteAttemptToReadonlyFile
+        );
+
+        tmp_dir.close().unwrap();
+    }
+
+    #[test]
+    fn multi_rws() {
+        let tmp_dir = tempdir().unwrap();
+        let mut file = DataFile::new(
+            1,
+            PathBuf::from(tmp_dir.path()),
+            "data_0001".to_owned(),
+            false,
+        );
+        file.open().unwrap();
+        let r0 = file
+            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .unwrap();
+
+        assert_eq!(file.get_written_bytes(), 42);
+        assert_eq!(r0.vpos, 37);
+        assert_eq!(r0.vsz, 5);
+
+        assert_eq!(file.get(r0).unwrap(), b"world".to_vec());
+
+        let r1 = file
+            .write(DataRecord::new(b"hello".to_vec(), b"".to_vec()))
+            .unwrap();
+
+        assert_eq!(file.get_written_bytes(), 79);
+        assert_eq!(r1.vpos, 79);
+        assert_eq!(r1.vsz, 0);
+
+        assert_eq!(file.get(r1).unwrap(), b"".to_vec());
+
+        let r2 = file
+            .write(DataRecord::new(b"key".to_vec(), b"val".to_vec()))
+            .unwrap();
+
+        assert_eq!(file.get_written_bytes(), 117);
+        assert_eq!(r2.vpos, 114);
+        assert_eq!(r2.vsz, 3);
+
+        assert_eq!(file.get(r2).unwrap(), b"val".to_vec());
+
+        tmp_dir.close().unwrap();
     }
 }

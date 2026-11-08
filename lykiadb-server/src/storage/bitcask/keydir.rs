@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct IndexRecord {
     pub file_id: usize,
     pub vpos: usize,
