@@ -96,7 +96,7 @@ mod test {
         bc.put(b"hello", b"world".to_vec()).unwrap();
 
         assert_eq!(
-            bc.get(b"hello".to_vec().as_slice()).unwrap(),
+            bc.get(b"hello").unwrap(),
             Some(b"world".to_vec())
         );
 

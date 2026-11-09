@@ -52,7 +52,6 @@ impl DataStore {
         }
 
         files.sort_by_key(|a| a.get_id());
-
         files.push(DataStore::get_next_file(&dir, files.last())?);
 
         Ok(DataStore {
@@ -70,9 +69,7 @@ impl DataStore {
 
         let mut name = DATA_FILE_PREFIX.to_string();
         name.push_str(&format!("{:04}", id));
-
         let mut file = DataFile::new(id, dir.clone(), name, false);
-
         file.open()?;
 
         Ok(file)
