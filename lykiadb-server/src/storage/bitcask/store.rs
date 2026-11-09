@@ -89,7 +89,7 @@ impl DataStore {
         Ok(())
     }
 
-    pub fn get(&mut self, record: IndexRecord) -> Result<Option<Vec<u8>>, DataFileReadError> {
+    pub fn get(&mut self, record: &IndexRecord) -> Result<Option<Vec<u8>>, DataFileReadError> {
         let data_file = self.files.get_mut(record.file_id);
 
         data_file.map(|data_file| data_file.get(record)).transpose()

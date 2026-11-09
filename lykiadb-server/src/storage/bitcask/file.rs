@@ -145,7 +145,7 @@ impl DataFile {
         self.written_bytes
     }
 
-    pub fn get(&mut self, record: IndexRecord) -> Result<Vec<u8>, DataFileReadError> {
+    pub fn get(&mut self, record: &IndexRecord) -> Result<Vec<u8>, DataFileReadError> {
         if let Some(file) = &mut self.handle {
             let mut value = vec![0; record.vsz];
             file.seek(io::SeekFrom::Start(record.vpos as u64))?;
@@ -177,12 +177,12 @@ impl DataFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::bitcask::file::{DataFile, DataFileWriteError, DataRecord};
+    use crate::storage::bitcask::{file::{DataFile, DataFileWriteError, DataRecord}, keydir::IndexRecord};
     use std::{assert_matches, path::PathBuf};
     use tempfile::tempdir;
 
     #[test]
-    fn write() {
+    fn test_simple_write() {
         let tmp_dir = tempdir().unwrap();
         let mut file = DataFile::new(
             1,
@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn archive() {
+    fn test_read_after_archive() {
         let tmp_dir = tempdir().unwrap();
         let mut file = DataFile::new(
             1,
@@ -212,6 +212,14 @@ mod tests {
             false,
         );
         file.open().unwrap();
+
+        let r0 = file
+            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .unwrap();
+
+        assert_eq!(file.get_written_bytes(), 42);
+        assert_eq!(r0.vpos, 37);
+        assert_eq!(r0.vsz, 5);
 
         assert_eq!(file.readonly, false);
         file.archive().unwrap();
@@ -223,11 +231,13 @@ mod tests {
             DataFileWriteError::WriteAttemptToReadonlyFile
         );
 
+        assert_eq!(file.get(&r0).unwrap(), b"world".to_vec());
+
         tmp_dir.close().unwrap();
     }
 
     #[test]
-    fn multi_rws() {
+    fn test_interleaved_reads_writes() {
         let tmp_dir = tempdir().unwrap();
         let mut file = DataFile::new(
             1,
@@ -235,7 +245,11 @@ mod tests {
             "data_0001".to_owned(),
             false,
         );
+
+        // Open
         file.open().unwrap();
+
+        // First record
         let r0 = file
             .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
             .unwrap();
@@ -244,8 +258,10 @@ mod tests {
         assert_eq!(r0.vpos, 37);
         assert_eq!(r0.vsz, 5);
 
-        assert_eq!(file.get(r0).unwrap(), b"world".to_vec());
+        // Read 1st
+        assert_eq!(file.get(&r0).unwrap(), b"world".to_vec());
 
+        // Second record
         let r1 = file
             .write(DataRecord::new(b"hello".to_vec(), b"".to_vec()))
             .unwrap();
@@ -254,8 +270,11 @@ mod tests {
         assert_eq!(r1.vpos, 79);
         assert_eq!(r1.vsz, 0);
 
-        assert_eq!(file.get(r1).unwrap(), b"".to_vec());
+        // Read 1st and 2nd
+        assert_eq!(file.get(&r0).unwrap(), b"world".to_vec());
+        assert_eq!(file.get(&r1).unwrap(), b"".to_vec());
 
+        // Third record
         let r2 = file
             .write(DataRecord::new(b"key".to_vec(), b"val".to_vec()))
             .unwrap();
@@ -264,8 +283,12 @@ mod tests {
         assert_eq!(r2.vpos, 114);
         assert_eq!(r2.vsz, 3);
 
-        assert_eq!(file.get(r2).unwrap(), b"val".to_vec());
+        // Read all
+        assert_eq!(file.get(&r0).unwrap(), b"world".to_vec());
+        assert_eq!(file.get(&r1).unwrap(), b"".to_vec());
+        assert_eq!(file.get(&r2).unwrap(), b"val".to_vec());
 
+        // Close
         tmp_dir.close().unwrap();
     }
 }

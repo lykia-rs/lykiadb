@@ -36,7 +36,7 @@ impl Bitcask {
         match self
             .key_dir
             .get(key)
-            .map(|index| self.data_store.get(index))
+            .map(|index| self.data_store.get(&index))
         {
             Some(x) => x,
             None => Ok(None),
