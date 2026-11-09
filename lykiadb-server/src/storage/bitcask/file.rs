@@ -16,44 +16,6 @@ use crate::storage::bitcask::keydir::IndexRecord;
 | crc | tstamp | ksz | vsz | key | value |
 | --- | --------- crc coverage --------- |
  */
-pub(crate) struct DataRecord {
-    key: Vec<u8>,
-    value: Vec<u8>,
-    tstamp: u64,
-}
-
-impl DataRecord {
-    pub fn new(key: Vec<u8>, value: Vec<u8>) -> DataRecord {
-        let tstamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-        DataRecord { key, value, tstamp }
-    }
-
-    pub fn write_to<T: Write>(&self, buf: &mut T) -> io::Result<usize> {
-        let ksz = self.key.len();
-        let vsz = self.value.len();
-
-        let mut c = Digest::new();
-        c.write(&self.tstamp.to_le_bytes());
-        c.write(&ksz.to_le_bytes());
-        c.write(&vsz.to_le_bytes());
-        c.write(self.key.as_slice());
-        c.write(self.value.as_slice());
-        let crc = c.sum64();
-
-        let mut written = ksz + vsz;
-        written += buf.write(&crc.to_le_bytes())?;
-        written += buf.write(&self.tstamp.to_be_bytes())?;
-        written += buf.write(&ksz.to_le_bytes())?;
-        written += buf.write(&vsz.to_le_bytes())?;
-        buf.write_all(&self.key)?;
-        buf.write_all(&self.value)?;
-
-        Ok(written)
-    }
-}
 
 pub(crate) struct DataFile {
     id: usize,
@@ -155,19 +117,47 @@ impl DataFile {
         Err(DataFileReadError::FileNotOpened)
     }
 
-    pub fn write(&mut self, record: DataRecord) -> Result<IndexRecord, DataFileWriteError> {
+    pub fn write(&mut self, key: &[u8], value: &[u8]) -> Result<IndexRecord, DataFileWriteError> {
         if self.readonly {
             return Err(DataFileWriteError::WriteAttemptToReadonlyFile);
         }
 
         if let Some(file) = &mut self.handle {
-            self.written_bytes += record.write_to(file)?;
+            let tstamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64;
+
+            //
+
+            let ksz = key.len();
+            let vsz = value.len();
+
+            let mut c = Digest::new();
+            c.write(&tstamp.to_le_bytes());
+            c.write(&ksz.to_le_bytes());
+            c.write(&vsz.to_le_bytes());
+            c.write(key);
+            c.write(value);
+            let crc = c.sum64();
+
+            let mut written = ksz + vsz;
+            written += file.write(&crc.to_le_bytes())?;
+            written += file.write(&tstamp.to_be_bytes())?;
+            written += file.write(&ksz.to_le_bytes())?;
+            written += file.write(&vsz.to_le_bytes())?;
+            file.write_all(key)?;
+            file.write_all(value)?;
+
+            //
+            
+            self.written_bytes += written;
 
             return Ok(IndexRecord {
                 file_id: self.id,
-                vpos: self.written_bytes - record.value.len(),
-                vsz: record.value.len(),
-                tstamp: record.tstamp,
+                vpos: self.written_bytes - value.len(),
+                vsz: value.len(),
+                tstamp: tstamp,
             });
         }
 
@@ -177,7 +167,7 @@ impl DataFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::bitcask::{file::{DataFile, DataFileWriteError, DataRecord}, keydir::IndexRecord};
+    use crate::storage::bitcask::{file::{DataFile, DataFileWriteError}};
     use std::{assert_matches, path::PathBuf};
     use tempfile::tempdir;
 
@@ -192,7 +182,7 @@ mod tests {
         );
         file.open().unwrap();
         let index_record = file
-            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .write(b"hello", b"world")
             .unwrap();
 
         assert_eq!(file.get_written_bytes(), 42);
@@ -214,7 +204,7 @@ mod tests {
         file.open().unwrap();
 
         let r0 = file
-            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .write(b"hello", b"world")
             .unwrap();
 
         assert_eq!(file.get_written_bytes(), 42);
@@ -226,7 +216,7 @@ mod tests {
         assert_eq!(file.readonly, true);
 
         assert_matches!(
-            file.write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            file.write(b"hello", b"world")
                 .unwrap_err(),
             DataFileWriteError::WriteAttemptToReadonlyFile
         );
@@ -251,7 +241,7 @@ mod tests {
 
         // First record
         let r0 = file
-            .write(DataRecord::new(b"hello".to_vec(), b"world".to_vec()))
+            .write(b"hello", b"world")
             .unwrap();
 
         assert_eq!(file.get_written_bytes(), 42);
@@ -263,7 +253,7 @@ mod tests {
 
         // Second record
         let r1 = file
-            .write(DataRecord::new(b"hello".to_vec(), b"".to_vec()))
+            .write(b"hello", b"")
             .unwrap();
 
         assert_eq!(file.get_written_bytes(), 79);
@@ -276,7 +266,7 @@ mod tests {
 
         // Third record
         let r2 = file
-            .write(DataRecord::new(b"key".to_vec(), b"val".to_vec()))
+            .write(b"key", b"val")
             .unwrap();
 
         assert_eq!(file.get_written_bytes(), 117);

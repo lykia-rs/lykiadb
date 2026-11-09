@@ -47,13 +47,13 @@ impl Bitcask {
     - Append the key value pair to active data file
     - Update the keydir with the location of the newest data
     */
-    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<(), DataFileWriteError> {
-        let index = self.data_store.put(key.clone(), value)?;
+    pub fn put(&mut self, key: &[u8], value: Vec<u8>) -> Result<(), DataFileWriteError> {
+        let index = self.data_store.put(key, value)?;
         self.key_dir.put(key, index);
         Ok(())
     }
 
-    pub fn delete(&mut self, key: Vec<u8>) -> Result<(), DataFileWriteError> {
+    pub fn delete(&mut self, key: &[u8]) -> Result<(), DataFileWriteError> {
         self.put(key, vec![])
     }
 
@@ -93,7 +93,7 @@ mod test {
         let tmp_dir = tempdir().unwrap();
         let mut bc = Bitcask::open(PathBuf::from(tmp_dir.path())).unwrap();
 
-        bc.put(b"hello".to_vec(), b"world".to_vec()).unwrap();
+        bc.put(b"hello", b"world".to_vec()).unwrap();
 
         assert_eq!(
             bc.get(b"hello".to_vec().as_slice()).unwrap(),

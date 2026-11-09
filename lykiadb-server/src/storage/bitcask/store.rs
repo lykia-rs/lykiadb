@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::storage::bitcask::{
-    file::{DataFile, DataFileReadError, DataFileWriteError, DataRecord},
+    file::{DataFile, DataFileReadError, DataFileWriteError},
     keydir::{IndexRecord, KeyDir},
     store::DataStoreScanError::IncorrectDataFileName,
 };
@@ -95,9 +95,9 @@ impl DataStore {
         data_file.map(|data_file| data_file.get(record)).transpose()
     }
 
-    pub fn put(&mut self, key: Vec<u8>, value: Vec<u8>) -> Result<IndexRecord, DataFileWriteError> {
+    pub fn put(&mut self, key: &[u8], value: Vec<u8>) -> Result<IndexRecord, DataFileWriteError> {
         let current_file = self.files.last_mut().unwrap();
-        let index_record = current_file.write(DataRecord::new(key, value))?;
+        let index_record = current_file.write(&key, &value)?;
 
         // true: it is time to switch to a new file
         if current_file.get_written_bytes() >= self.max_file_bytes {

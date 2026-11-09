@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub(crate) struct IndexRecord {
     pub file_id: usize,
     pub vpos: usize,
@@ -24,8 +24,8 @@ impl KeyDir {
         self.map.get(key).cloned()
     }
 
-    pub fn put(&mut self, key: Vec<u8>, value: IndexRecord) {
-        self.map.insert(key, value);
+    pub fn put(&mut self, key: &[u8], value: IndexRecord) {
+        self.map.insert(key.to_vec(), value);
     }
 
     pub fn list_keys(&self) -> Keys<'_> {
